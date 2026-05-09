@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many TTS requests. Please wait.' });
   }
 
-  const { provider = 'openai', text, voice, format = 'mp3' } = req.body || {};
+  const { provider = 'openai', text, voice, format = 'mp3', instructions } = req.body || {};
 
   if (!ALLOWED_PROVIDERS.includes(provider)) {
     return res.status(400).json({ error: `Invalid provider. Must be one of: ${ALLOWED_PROVIDERS.join(', ')}` });
@@ -68,6 +68,9 @@ export default async function handler(req, res) {
   if (text.length > MAX_TEXT_LENGTH) {
     return res.status(400).json({ error: `Text too long. Maximum ${MAX_TEXT_LENGTH} characters.` });
   }
+  if (instructions !== undefined && (typeof instructions !== 'string' || instructions.length > 2000)) {
+    return res.status(400).json({ error: 'Invalid instructions field (must be string ≤ 2000 chars).' });
+  }
 
   try {
     if (provider === 'openai') {
@@ -76,7 +79,7 @@ export default async function handler(req, res) {
         log('NO_OPENAI_KEY');
         return res.status(500).json({ error: 'OpenAI TTS not configured.' });
       }
-      return await openaiTts(res, apiKey, text, voice ?? DEFAULT_OPENAI_VOICE, format);
+      return await openaiTts(res, apiKey, text, voice ?? DEFAULT_OPENAI_VOICE, format, instructions);
     }
     if (provider === 'gemini') {
       const apiKey = process.env.GEMINI_API_KEY;
@@ -94,13 +97,14 @@ export default async function handler(req, res) {
   }
 }
 
-async function openaiTts(res, apiKey, text, voice, format) {
+async function openaiTts(res, apiKey, text, voice, format, instructions) {
   const body = {
     model: OPENAI_TTS_MODEL,
     voice,
     input: text,
     response_format: format === 'wav' ? 'wav' : 'mp3',
   };
+  if (instructions) body.instructions = instructions;
 
   const r = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',

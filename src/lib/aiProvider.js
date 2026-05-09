@@ -197,15 +197,16 @@ export async function invokeLLM({
  * @param {'gemini'|'openai'} [params.provider] - Image provider override (defaults to env or gemini)
  * @returns {{ base64: string, mimeType: string }}
  */
-export async function generateImage({ prompt, aspectRatio = '1:1', provider }) {
+export async function generateImage({ prompt, aspectRatio = '1:1', provider, referenceImageBase64 }) {
   const effectiveProvider = provider
     ?? (typeof window !== 'undefined' && window.localStorage?.getItem('sipurai_image_provider'))
     ?? import.meta.env.VITE_IMAGE_PROVIDER
     ?? 'gemini';
 
   // ── Proxy mode (production) — always for OpenAI since key is server-only ──
-  if (!useDirectApi() || effectiveProvider === 'openai') {
-    return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider });
+  // Also forced when referenceImageBase64 is provided (image-edit endpoint).
+  if (!useDirectApi() || effectiveProvider === 'openai' || referenceImageBase64) {
+    return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider, referenceImageBase64 });
   }
 
   // ── Direct mode (dev with local key) ──

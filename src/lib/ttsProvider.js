@@ -12,15 +12,20 @@ const PROXY_URL = '/api/ai/tts';
 
 /**
  * Synthesize speech from text via the serverless TTS proxy.
- * @param {{ text: string, provider?: 'openai'|'gemini', voice?: string, format?: 'mp3'|'wav' }} params
+ * @param {Object} params
+ * @param {string} params.text - Text to narrate
+ * @param {'openai'|'gemini'} [params.provider='openai']
+ * @param {string} [params.voice] - Voice name (per-provider)
+ * @param {'mp3'|'wav'} [params.format='mp3']
+ * @param {string} [params.instructions] - OpenAI gpt-4o-mini-tts steering: tone/pacing/emotion (Hebrew narration presets)
  * @returns {Promise<{ url: string, blob: Blob, mimeType: string }>}
  */
-export async function synthesize({ text, provider = 'openai', voice, format }) {
+export async function synthesize({ text, provider = 'openai', voice, format, instructions }) {
   if (!text || typeof text !== 'string') throw new Error('synthesize: text required');
   const r = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, provider, voice, format }),
+    body: JSON.stringify({ text, provider, voice, format, instructions }),
   });
   if (!r.ok) {
     const errBody = await r.text();

@@ -161,12 +161,19 @@ export default async function handler(req, res) {
           log('IMAGE_OPENAI_NO_KEY');
           return res.status(500).json({ error: 'OpenAI not configured for images.' });
         }
-        const { openaiImage } = await import('./openai-image.js');
-        result = await openaiImage(oaKey, prompt, options);
+        // Character-reference workflow: pass referenceImageBase64 to use image-edit endpoint
+        // for cross-page character continuity (Sprint 24).
+        if (options?.referenceImageBase64) {
+          const { openaiImageEdit } = await import('./openai-image-edit.js');
+          result = await openaiImageEdit(oaKey, prompt, options);
+        } else {
+          const { openaiImage } = await import('./openai-image.js');
+          result = await openaiImage(oaKey, prompt, options);
+        }
       } else {
         result = await handleImage(apiKey, prompt, options);
       }
-      log('IMAGE_SUCCESS', { provider, hasBase64: !!result?.base64, base64Length: result?.base64?.length || 0, mimeType: result?.mimeType });
+      log('IMAGE_SUCCESS', { provider, hasBase64: !!result?.base64, base64Length: result?.base64?.length || 0, mimeType: result?.mimeType, mode: options?.referenceImageBase64 ? 'edit' : 'generate' });
       return res.status(200).json(result);
     }
   } catch (err) {
