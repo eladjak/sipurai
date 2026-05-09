@@ -1,10 +1,21 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square, Minus, Plus } from "lucide-react";
+import { Play, Pause, Square, Minus, Plus, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
+const ENGINE_STORAGE_KEY = "sipurai_tts_engine";
+const ENGINE_OPTIONS = [
+  { value: "browser", label: "דפדפן (חינם)" },
+  { value: "openai",  label: "OpenAI (טבעי)" },
+  { value: "gemini",  label: "Gemini (טבעי)" },
+];
+
 /**
- * TTSControls - Text-to-Speech play/pause/stop controls with speed adjustment.
+ * TTSControls - Text-to-Speech play/pause/stop controls with speed + engine selection.
+ *
+ * Engine selector persists to localStorage. Reload required for change to take effect
+ * (parent reads from storage on mount). Shows a small ✨ "natural voice" indicator when
+ * a cloud engine is selected.
  */
 export default function TTSControls({
   isSpeaking,
@@ -15,9 +26,20 @@ export default function TTSControls({
   onResume,
   onStop,
   onRateChange,
-  isRTL
+  isRTL,
+  showEngineSelector = true,
 }) {
   const { t } = useI18n();
+  const [engine, setEngine] = React.useState(() => {
+    if (typeof window === "undefined") return "browser";
+    return window.localStorage?.getItem(ENGINE_STORAGE_KEY) || "browser";
+  });
+
+  const handleEngineChange = (e) => {
+    const next = e.target.value;
+    setEngine(next);
+    try { window.localStorage?.setItem(ENGINE_STORAGE_KEY, next); } catch {}
+  };
 
   const speedLabel = rate === 0.5
     ? t("bookView.tts.slow")
@@ -101,6 +123,32 @@ export default function TTSControls({
           <Plus className="h-3 w-3" aria-hidden="true" />
         </Button>
       </div>
+
+      {/* Engine selector — persists, takes effect on next read */}
+      {showEngineSelector && (
+        <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <select
+            value={engine}
+            onChange={handleEngineChange}
+            disabled={isSpeaking}
+            aria-label="בחר מנוע קריינות"
+            className="h-7 text-xs rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-1"
+          >
+            {ENGINE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          {engine !== "browser" && (
+            <Sparkles className="h-3 w-3 text-purple-500" aria-label="קול טבעי" />
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+/** Helper for parent components: reads the engine pref from storage. */
+export function getStoredTTSEngine() {
+  if (typeof window === "undefined") return "browser";
+  return window.localStorage?.getItem(ENGINE_STORAGE_KEY) || "browser";
 }

@@ -1,14 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { synthesize, getDefaultVoice } from '../lib/ttsProvider';
 
 /**
  * Hook for Text-to-Speech narration with language-aware voice selection.
- * Uses the Web Speech API (speechSynthesis).
+ *
+ * Two engines:
+ *   - 'browser' (default): Web Speech API (speechSynthesis) — free, robotic, often poor Hebrew
+ *   - 'openai' / 'gemini': cloud TTS via /api/ai/tts — natural voices, slight latency, costs $
  *
  * @param {Object} options
- * @param {string} options.language - 'english' | 'hebrew' | 'yiddish'
- * @returns {{ speak, stop, pause, resume, isSpeaking, isPaused, currentWordIndex, rate, setRate }}
+ * @param {'english'|'hebrew'|'yiddish'} options.language
+ * @param {'browser'|'openai'|'gemini'} [options.engine='browser']
+ * @param {string} [options.voice] - voice name for cloud engines (default per-engine)
+ * @returns {{ speak, stop, pause, resume, isSpeaking, isPaused, currentWordIndex, rate, setRate, engine }}
  */
-export function useTTS({ language = 'english' } = {}) {
+export function useTTS({ language = 'english', engine = 'browser', voice } = {}) {
+  const cloudAudioRef = useRef(null);
+  const cloudUrlRef = useRef(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
@@ -43,7 +51,47 @@ export function useTTS({ language = 'english' } = {}) {
     return voices[0] || null;
   }, [language]);
 
+  // ── Cloud engines (OpenAI / Gemini) — fetch audio bytes, play via <audio> ──
+  const speakCloud = useCallback(async (text) => {
+    if (!text) return;
+    try {
+      stopCloud();
+      const v = voice ?? getDefaultVoice(engine, language);
+      const { url } = await synthesize({ text, provider: engine, voice: v });
+      cloudUrlRef.current = url;
+      const audio = new Audio(url);
+      audio.playbackRate = rate;
+      cloudAudioRef.current = audio;
+      audio.onplay = () => { setIsSpeaking(true); setIsPaused(false); };
+      audio.onpause = () => setIsPaused(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setCurrentWordIndex(-1);
+        if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+      };
+      await audio.play();
+    } catch (err) {
+      console.error('[useTTS] cloud TTS failed:', err);
+      setIsSpeaking(false);
+    }
+  }, [engine, voice, language, rate]);
+
+  function stopCloud() {
+    if (cloudAudioRef.current) {
+      cloudAudioRef.current.pause();
+      cloudAudioRef.current.currentTime = 0;
+      cloudAudioRef.current = null;
+    }
+    if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
+  }
+
   const speak = useCallback((text) => {
+    if (engine !== 'browser') { speakCloud(text); return; }
     if (!window.speechSynthesis || !text) return;
 
     window.speechSynthesis.cancel();
@@ -93,21 +141,32 @@ export function useTTS({ language = 'english' } = {}) {
   }, [getVoice, rate]);
 
   const stop = useCallback(() => {
-    window.speechSynthesis?.cancel();
+    if (engine !== 'browser') stopCloud();
+    else window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setIsPaused(false);
     setCurrentWordIndex(-1);
-  }, []);
+  }, [engine]);
 
   const pause = useCallback(() => {
+    if (engine !== 'browser') {
+      cloudAudioRef.current?.pause();
+      setIsPaused(true);
+      return;
+    }
     window.speechSynthesis?.pause();
     setIsPaused(true);
-  }, []);
+  }, [engine]);
 
   const resume = useCallback(() => {
+    if (engine !== 'browser') {
+      cloudAudioRef.current?.play();
+      setIsPaused(false);
+      return;
+    }
     window.speechSynthesis?.resume();
     setIsPaused(false);
-  }, []);
+  }, [engine]);
 
   return {
     speak,
@@ -118,6 +177,7 @@ export function useTTS({ language = 'english' } = {}) {
     isPaused,
     currentWordIndex,
     rate,
-    setRate
+    setRate,
+    engine,
   };
 }

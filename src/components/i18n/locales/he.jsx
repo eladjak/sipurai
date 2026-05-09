@@ -2,6 +2,7 @@
 export default {
   common: {
     home: "דף הבית",
+    haveQuestions: "יש שאלות? דברו איתנו",
     library: "הספרייה שלי",
     community: "קהילה",
     settings: "הגדרות",
@@ -1649,6 +1650,9 @@ export default {
     pricing: {
       sectionTitle: "תוכניות ומחירים",
       sectionSubtitle: "התחילו עם 5 ספרים חינם בחודש — שדרגו כשאתם מכורים",
+      heading: "מסלולים פשוטים, ערך גדול",
+      subheading: "התחילו חינם, שדרגו כשהילדים יוצרים יותר.",
+      guaranteeNote: "ניתן לבטל מתי שרוצים. החיוב מתבצע בדולרים, התצוגה בש״ח להתמצאות בלבד.",
       period: "חודש",
       firstBookNote: "הספר הראשון עם כל הסגנונות — בחינם!",
       free: {

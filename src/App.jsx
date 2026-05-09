@@ -33,7 +33,7 @@ const PrivacyPolicy = Pages['PrivacyPolicy'];
 const TermsOfService = Pages['TermsOfService'];
 
 // Pages accessible without authentication (public routes)
-const PUBLIC_PAGES = new Set(['BookView', 'LandingPage', 'Blog', 'BlogPost', 'PrivacyPolicy', 'TermsOfService', 'Contact']);
+const PUBLIC_PAGES = new Set(['BookView', 'LandingPage', 'Blog', 'BlogPost', 'PrivacyPolicy', 'TermsOfService', 'Contact', 'Pricing']);
 
 const pageTransition = {
   initial: { opacity: 0 },

@@ -2,6 +2,7 @@
 export default {
   common: {
     home: "Home",
+    haveQuestions: "Questions? Get in touch",
     library: "My Library",
     community: "Community",
     settings: "Settings",
@@ -1654,6 +1655,9 @@ export default {
     pricing: {
       sectionTitle: "Plans & Pricing",
       sectionSubtitle: "Start with 5 free books a month \u2014 upgrade when you're hooked",
+      heading: "Simple plans, big value",
+      subheading: "Start free, upgrade as the kids create more.",
+      guaranteeNote: "Cancel any time. Charged in USD; NIS shown for reference.",
       period: "month",
       firstBookNote: "First book with ALL styles \u2014 free!",
       free: {

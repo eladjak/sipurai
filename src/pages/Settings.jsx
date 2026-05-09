@@ -50,6 +50,7 @@ import {
   AlignJustify,
 } from 'lucide-react';
 import AIStudio from '../components/ai/AIStudio';
+import AIProvidersPanel from '../components/ai/AIProvidersPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
 import { PLANS, openCheckout } from '@/lib/creem';
@@ -676,6 +677,8 @@ export default function Settings() {
         {/* AI TAB */}
         <TabsContent value="ai">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+            <AIProvidersPanel isRTL={isRTL} />
+            <div className="h-4" />
             <AIStudio
               currentModel={null}
               onModelChange={() => {}}

@@ -194,12 +194,18 @@ export async function invokeLLM({
  * @param {Object} params
  * @param {string} params.prompt - Image description
  * @param {string} [params.aspectRatio='1:1'] - Aspect ratio
+ * @param {'gemini'|'openai'} [params.provider] - Image provider override (defaults to env or gemini)
  * @returns {{ base64: string, mimeType: string }}
  */
-export async function generateImage({ prompt, aspectRatio = '1:1' }) {
-  // ── Proxy mode (production) ──
-  if (!useDirectApi()) {
-    return proxyCall('image', prompt, { aspectRatio });
+export async function generateImage({ prompt, aspectRatio = '1:1', provider }) {
+  const effectiveProvider = provider
+    ?? (typeof window !== 'undefined' && window.localStorage?.getItem('sipurai_image_provider'))
+    ?? import.meta.env.VITE_IMAGE_PROVIDER
+    ?? 'gemini';
+
+  // ── Proxy mode (production) — always for OpenAI since key is server-only ──
+  if (!useDirectApi() || effectiveProvider === 'openai') {
+    return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider });
   }
 
   // ── Direct mode (dev with local key) ──

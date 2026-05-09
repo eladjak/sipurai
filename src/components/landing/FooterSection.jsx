@@ -7,6 +7,7 @@ const FooterSection = () => {
   const { t, isRTL } = useI18n();
 
   const links = [
+    { label: t('landing.pricing.sectionTitle') || (isRTL ? 'מחירים' : 'Pricing'), href: '/Pricing', external: false },
     { label: t('landing.footer.blog'), href: '/blog', external: false },
     { label: t('landing.footer.privacy'), href: '/privacy', external: false },
     { label: t('landing.footer.terms'), href: '/terms', external: false },

@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import PageFlip from "@/components/bookReader/PageFlip";
-import TTSControls from "@/components/bookReader/TTSControls";
+import TTSControls, { getStoredTTSEngine } from "@/components/bookReader/TTSControls";
 import { useTTS } from "@/hooks/useTTS";
 import { exportBookToPDF } from "@/utils/pdfExporter";
 import useGamification from "@/hooks/useGamification";
@@ -76,7 +76,7 @@ export default function BookView() {
   const isHebrewBook = currentLanguage === "hebrew" || currentLanguage === "yiddish";
   const isGuest = !user;
 
-  const tts = useTTS({ language: currentLanguage });
+  const tts = useTTS({ language: currentLanguage, engine: getStoredTTSEngine() });
 
   useEffect(() => {
     if (!bookId) {

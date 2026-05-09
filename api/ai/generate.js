@@ -153,8 +153,20 @@ export default async function handler(req, res) {
     }
 
     if (type === 'image') {
-      const result = await handleImage(apiKey, prompt, options);
-      log('IMAGE_SUCCESS', { hasBase64: !!result?.base64, base64Length: result?.base64?.length || 0, mimeType: result?.mimeType });
+      const provider = options?.provider === 'openai' ? 'openai' : 'gemini';
+      let result;
+      if (provider === 'openai') {
+        const oaKey = process.env.OPENAI_API_KEY;
+        if (!oaKey) {
+          log('IMAGE_OPENAI_NO_KEY');
+          return res.status(500).json({ error: 'OpenAI not configured for images.' });
+        }
+        const { openaiImage } = await import('./openai-image.js');
+        result = await openaiImage(oaKey, prompt, options);
+      } else {
+        result = await handleImage(apiKey, prompt, options);
+      }
+      log('IMAGE_SUCCESS', { provider, hasBase64: !!result?.base64, base64Length: result?.base64?.length || 0, mimeType: result?.mimeType });
       return res.status(200).json(result);
     }
   } catch (err) {
