@@ -135,15 +135,20 @@ const AuthenticatedApp = () => {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          {/* All registered pages (auto-generated) */}
+          {/* All registered pages (auto-generated) — public pages render WITHOUT
+              the authenticated LayoutWrapper sidebar. Per Wave-6 audit grok-4. */}
           {Object.entries(Pages).map(([path, Page]) => (
             <Route
               key={path}
               path={`/${path}`}
               element={
-                <LayoutWrapper currentPageName={path}>
+                PUBLIC_PAGES.has(path) ? (
                   <Page />
-                </LayoutWrapper>
+                ) : (
+                  <LayoutWrapper currentPageName={path}>
+                    <Page />
+                  </LayoutWrapper>
+                )
               }
             />
           ))}
