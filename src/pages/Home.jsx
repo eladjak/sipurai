@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { openCheckout } from "@/lib/creem";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { InvokeLLM } from "@/integrations/Core";
@@ -29,6 +30,23 @@ export default function Home() {
   const gamification = useGamification();
   const { language: currentLanguage, isRTL, t } = useI18n();
   const { user: currentUserHook } = useCurrentUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // After landing-page → /sign-up?plan=X → Home, auto-open Creem checkout for paid tiers.
+  // Wave-7: ties pricing CTA selection through to checkout.
+  useEffect(() => {
+    const plan = searchParams.get("plan");
+    if (!plan || plan === "free") return;
+    if (!["lite", "premium", "family"].includes(plan)) return;
+    if (!currentUserHook?.email) return;
+    searchParams.delete("plan");
+    setSearchParams(searchParams, { replace: true });
+    openCheckout(plan, currentUserHook.email).catch((err) => {
+      if (import.meta.env.DEV) console.warn("[Home] auto-checkout failed:", err);
+      navigate("/Settings?tab=billing");
+    });
+  }, [searchParams, currentUserHook?.email, setSearchParams, navigate]);
 
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("onboarding_complete")

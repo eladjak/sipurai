@@ -23,7 +23,7 @@ const PricingSection = () => {
       ],
       cta: t('landing.pricing.free.cta'),
       highlighted: false,
-      link: '/sign-up',
+      link: '/sign-up?plan=free',
     },
     {
       name: t('landing.pricing.lite.name'),
@@ -37,7 +37,7 @@ const PricingSection = () => {
       ],
       cta: t('landing.pricing.lite.cta'),
       highlighted: false,
-      link: '/sign-up',
+      link: '/sign-up?plan=lite',
     },
     {
       name: t('landing.pricing.premium.name'),
@@ -52,7 +52,7 @@ const PricingSection = () => {
       cta: t('landing.pricing.premium.cta'),
       highlighted: true,
       badge: t('landing.pricing.premium.badge'),
-      link: '/sign-up',
+      link: '/sign-up?plan=premium',
     },
     {
       name: t('landing.pricing.family.name'),
@@ -66,7 +66,7 @@ const PricingSection = () => {
       ],
       cta: t('landing.pricing.family.cta'),
       highlighted: false,
-      link: '/sign-up',
+      link: '/sign-up?plan=family',
     },
   ];
 

@@ -22,9 +22,11 @@ export default function Contact() {
   const { t, isRTL } = useI18n();
 
   useEffect(() => {
-    updateMeta({ title: 'Contact — Sipurai', description: 'Contact the Sipurai team for support, feedback, or questions.' });
+    const title = t('contact.meta.title') || (isRTL ? 'צור קשר · Sipurai' : 'Contact — Sipurai');
+    const description = t('contact.meta.description') || (isRTL ? 'יצירת קשר עם צוות סיפוראי לתמיכה, משוב ושאלות.' : 'Contact the Sipurai team for support, feedback, or questions.');
+    updateMeta({ title, description });
     return () => resetMeta();
-  }, []);
+  }, [t, isRTL]);
 
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
