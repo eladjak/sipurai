@@ -23,13 +23,13 @@ export async function openaiImage(apiKey, prompt, options = {}) {
 
   const safePrompt = `${prompt}\n\nThis image is for a children's book. It must be wholesome, child-friendly, and contain NO text, letters, words, numbers, or signs. Pure illustration only.`;
 
+  // gpt-image-1 always returns base64 by default — response_format is not a valid param
   const body = {
     model: OPENAI_IMAGE_MODEL,
     prompt: safePrompt,
     n: 1,
     size,
     quality,
-    response_format: 'b64_json',
   };
 
   const r = await fetch('https://api.openai.com/v1/images/generations', {
