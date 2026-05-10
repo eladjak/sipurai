@@ -524,14 +524,14 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       setCreationProgress({ label: t("wizard.progress.checkingContent"), percent: 5, step: "" });
 
       const useStoryBibleFastPath = (typeof window !== "undefined") && window.localStorage?.getItem("sipurai_use_story_bible") === "1";
+      let storyBible = null; // Wave-8: when present, downstream flow re-uses bible.pages instead of LLM-generating page texts
       if (useStoryBibleFastPath) {
-        const bible = await tryStoryBibleFastPath();
-        if (bible?.pages?.length && bible?.title) {
-          // Override bookData with Bible-driven values for downstream save (cover gets a separate gen below using bible.global_style + characters[0].description)
-          // Note: full integration with Page.create + Book.update is the next phase; this scaffold lands the data structure.
-          if (import.meta.env.DEV) console.log("[BookWizard] Story Bible generated:", bible.title, "pages:", bible.pages.length);
-          // Stash on window for debug/inspection
-          window.__sipurai_last_bible = bible;
+        storyBible = await tryStoryBibleFastPath();
+        if (storyBible?.pages?.length && storyBible?.title) {
+          if (import.meta.env.DEV) console.log("[BookWizard] Story Bible generated:", storyBible.title, "pages:", storyBible.pages.length);
+          window.__sipurai_last_bible = storyBible;
+        } else {
+          storyBible = null;
         }
       }
 
@@ -706,7 +706,17 @@ Rules:
         : "";
 
       const outlinePages = outlineResult?.outline || [];
-      const pageTextPromises = outlinePages.map((pageOutline, i) => {
+
+      // Wave-8: when Story Bible was generated upfront with matching page count,
+      // bypass the per-page LLM call and reuse bible.pages directly. Saves ~10 calls/book.
+      const bibleHasMatchingPages = storyBible?.pages?.length > 0;
+      const pageTextPromises = bibleHasMatchingPages
+        ? storyBible.pages.map((bp, i) => Promise.resolve({
+            text_content: bp.text || outlinePages[i]?.description || "",
+            ...(isHebrewBook && bp.text_with_nikud ? { text_with_nikud: bp.text_with_nikud } : {}),
+            image_prompt: bp.image_prompt || `${bookData.art_style} illustration: ${(bp.text || "").slice(0, 100)}`,
+          }))
+        : outlinePages.map((pageOutline, i) => {
         const prompt = `${safetyPrefix}${langInstruction}Write the text content for page ${i} of a children's story based on this description: "${pageOutline.description}"
 
 Story details:
