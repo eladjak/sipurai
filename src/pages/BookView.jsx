@@ -584,6 +584,18 @@ export default function BookView() {
               }
             </Button>
 
+            {/* Print — Wave-13 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.print()}
+              className={`rounded-xl hidden sm:flex ${nightToolbar}`}
+              aria-label="הדפס"
+              title="הדפס"
+            >
+              <span className="text-base" aria-hidden="true">🖨️</span>
+            </Button>
+
             {/* Edit — owner only */}
             {book && !isGuest && book.created_by === user?.email && (
               <Link to={`${createPageUrl("BookCreation")}?id=${book.id}`}>
