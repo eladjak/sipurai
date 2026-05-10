@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, BookOpen, Sparkles, Trash2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
+import { generateStoryBible, imagePromptFor } from "@/lib/storyBible";
 import { moderateInput, buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { checkAgeAppropriateLanguage } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
@@ -475,12 +476,64 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   };
 
   // Create the book with parallel page generation
+  // Sprint 24: opt-in fast path. Set localStorage.sipurai_use_story_bible='1' to enable.
+  // When enabled: ONE InvokeLLM call returns the full Story Bible (title + characters
+  // + global_style + all page texts + image_prompts + tts_directions), then images run in
+  // parallel using the page-level image_prompt that already inlines character continuity.
+  // Saves N+2 round-trips (outline + cover + 1-per-page text) for a bigger book.
+  const tryStoryBibleFastPath = async () => {
+    try {
+      const isHebrewBook = bookData.language === "hebrew";
+      const ageRange = bookData.age_range || localStorage.getItem("preferredAgeRange") || "5-10";
+      const safetyDirective = buildSafetyPromptPrefix(ageRange);
+      const topicDescription = selectedTopic === "custom" && customIdea ? customIdea : selectedTopic;
+      const characters = selectedCharacters.map((c) => ({
+        name: c.name,
+        role: c.role || "character",
+        description: c.appearance || c.description || c.traits || c.name,
+      }));
+
+      let pageCount = 10;
+      if (bookData.length === "short") pageCount = 6;
+      if (bookData.length === "long") pageCount = 15;
+
+      setCreationProgress({ label: t("wizard.progress.creatingStory"), percent: 15, step: t("wizard.progress.step1of4") });
+
+      const bible = await generateStoryBible({
+        topic: bookData.title || topicDescription,
+        characters,
+        language: bookData.language || (isHebrewBook ? "hebrew" : "english"),
+        ageRange,
+        pageCount,
+        style: `${bookData.art_style} children's picture book illustration, no text in image`,
+        preset: bookData.tone === "dramatic" ? "dramatic-lite" : bookData.tone === "calm" ? "bedtime" : "playful",
+        safetyDirective,
+      });
+      return bible;
+    } catch (err) {
+      captureError(err instanceof Error ? err : new Error(String(err?.message || err)), { context: "BookWizard storyBible fast-path" });
+      return null;
+    }
+  };
+
   const createBook = async () => {
     try {
       setIsCreating(true);
       setError(null);
       setImageFailures([]);
       setCreationProgress({ label: t("wizard.progress.checkingContent"), percent: 5, step: "" });
+
+      const useStoryBibleFastPath = (typeof window !== "undefined") && window.localStorage?.getItem("sipurai_use_story_bible") === "1";
+      if (useStoryBibleFastPath) {
+        const bible = await tryStoryBibleFastPath();
+        if (bible?.pages?.length && bible?.title) {
+          // Override bookData with Bible-driven values for downstream save (cover gets a separate gen below using bible.global_style + characters[0].description)
+          // Note: full integration with Page.create + Book.update is the next phase; this scaffold lands the data structure.
+          if (import.meta.env.DEV) console.log("[BookWizard] Story Bible generated:", bible.title, "pages:", bible.pages.length);
+          // Stash on window for debug/inspection
+          window.__sipurai_last_bible = bible;
+        }
+      }
 
       // Moderate title and description
       const titleCheck = moderateInput(bookData.title, "title");
