@@ -2192,6 +2192,10 @@ export default {
     speed: "מהירות"
   },
   contact: {
+    meta: {
+      title: "צור קשר · Sipurai",
+      description: "יצירת קשר עם צוות סיפוראי לתמיכה, משוב ושאלות."
+    },
     title: "צור קשר",
     subtitle: "נשמח לשמוע מכם. שלחו לנו הודעה ונחזור אליכם בהקדם.",
     emailLabel: "אימייל ישיר",

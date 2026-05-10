@@ -2195,6 +2195,10 @@ export default {
     speed: "Speed"
   },
   contact: {
+    meta: {
+      title: "Contact — Sipurai",
+      description: "Contact the Sipurai team for support, feedback, or questions."
+    },
     title: "Contact Us",
     subtitle: "We'd love to hear from you. Send us a message and we'll get back to you as soon as possible.",
     emailLabel: "Direct Email",
