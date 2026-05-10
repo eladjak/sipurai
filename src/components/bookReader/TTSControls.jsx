@@ -4,6 +4,7 @@ import { Play, Pause, Square, Minus, Plus, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
 const ENGINE_STORAGE_KEY = "sipurai_tts_engine";
+const AUTO_STORAGE_KEY = "sipurai_tts_auto";
 const ENGINE_OPTIONS = [
   { value: "browser", label: "דפדפן (חינם)" },
   { value: "openai",  label: "OpenAI (טבעי)" },
@@ -34,11 +35,22 @@ export default function TTSControls({
     if (typeof window === "undefined") return "browser";
     return window.localStorage?.getItem(ENGINE_STORAGE_KEY) || "browser";
   });
+  const [autoNarrate, setAutoNarrate] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage?.getItem(AUTO_STORAGE_KEY) === "1";
+  });
 
   const handleEngineChange = (e) => {
     const next = e.target.value;
     setEngine(next);
     try { window.localStorage?.setItem(ENGINE_STORAGE_KEY, next); } catch {}
+  };
+  const toggleAuto = () => {
+    setAutoNarrate((prev) => {
+      const next = !prev;
+      try { window.localStorage?.setItem(AUTO_STORAGE_KEY, next ? "1" : "0"); } catch {}
+      return next;
+    });
   };
 
   const speedLabel = rate === 0.5
@@ -123,6 +135,21 @@ export default function TTSControls({
           <Plus className="h-3 w-3" aria-hidden="true" />
         </Button>
       </div>
+
+      {/* Auto-narrate toggle — Wave-12: when on, page changes auto-play TTS */}
+      <button
+        type="button"
+        onClick={toggleAuto}
+        aria-pressed={autoNarrate}
+        aria-label={autoNarrate ? "כבה הקראה אוטומטית" : "הפעל הקראה אוטומטית"}
+        className={`h-7 px-2 text-xs rounded-full border transition-colors ${
+          autoNarrate
+            ? "bg-purple-600 border-purple-600 text-white"
+            : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400"
+        }`}
+      >
+        {autoNarrate ? "🔊 אוטו" : "🔇 ידני"}
+      </button>
 
       {/* Engine selector — persists, takes effect on next read */}
       {showEngineSelector && (

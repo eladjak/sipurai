@@ -146,6 +146,25 @@ export default function BookView() {
     tts.stop();
   }, [currentPageIndex]);
 
+  // Wave-12: Auto-play TTS when user toggles "auto-narrate" via localStorage flag.
+  // Stays opt-in (UI control wires this); page change triggers next chunk.
+  useEffect(() => {
+    let cancelled = false;
+    const autoNarrate = (() => {
+      try { return window.localStorage?.getItem("sipurai_tts_auto") === "1"; }
+      catch { return false; }
+    })();
+    if (!autoNarrate) return;
+    const text = currentPageIndex === 0
+      ? `${book?.title || ""}. ${book?.description || ""}`
+      : pages[currentPageIndex]?.text_content;
+    if (!text) return;
+    const timer = setTimeout(() => {
+      if (!cancelled) tts.speak(text);
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [currentPageIndex, book?.title, book?.description, pages, tts]);
+
   useEffect(() => {
     if (
       !isGuest &&
