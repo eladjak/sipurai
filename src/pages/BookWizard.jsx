@@ -919,11 +919,25 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
       celebrationTimerRef.current = setTimeout(() => {
         navigateToBook(createdBook.id, failuresWithPageIds);
       }, 3000);
-    } catch {
+    } catch (err) {
+      // Wave-12: Surface real error so user can see WHY it stuck
+      const errMessage = err?.message || String(err) || t("wizard.error.createMessage");
+      const isTimeout = /timeout|timed out|aborted/i.test(errMessage);
+      const isQuota = /quota|rate limit|429|credit/i.test(errMessage);
+      const isAuth = /401|403|api.?key|unauthorized/i.test(errMessage);
+      const friendlyMsg = isTimeout
+        ? t("wizard.error.timeoutMessage") || "ייצור הסיפור לקח יותר מדי זמן. נסה שוב — אם זה ממשיך, ייתכן שיש עומס על שרתי ה-AI."
+        : isQuota
+        ? "מכסת ה-AI הגיעה. נסה שוב בעוד מספר דקות, או צור קשר אם הבעיה ממשיכה."
+        : isAuth
+        ? "תקלה באימות מול שרתי ה-AI. נסה שוב מאוחר יותר."
+        : `${t("wizard.error.createMessage")}\n\n${errMessage.substring(0, 200)}`;
+      captureError(err instanceof Error ? err : new Error(errMessage), { context: "BookWizard.createBook", bookData });
       setError({
         title: t("wizard.error.createTitle"),
-        message: t("wizard.error.createMessage"),
-        onRetry: createBook
+        message: friendlyMsg,
+        onRetry: createBook,
+        details: errMessage.substring(0, 500),
       });
     } finally {
       setIsCreating(false);

@@ -75,18 +75,32 @@ function convertSchemaToGemini(schema) {
 // ─── Proxy Calls ────────────────────────────────────────────────────────────
 
 async function proxyCall(type, prompt, options = {}) {
-  const response = await fetch('/api/ai/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, type, options }),
-  });
+  // Wave-12: 60s timeout per call so UI never hangs forever on a stalled AI provider
+  const timeoutMs = type === 'image' ? 90_000 : 60_000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, type, options }),
+      signal: ctrl.signal,
+    });
 
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `AI request failed (${response.status})`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || `AI request failed (${response.status})`);
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`AI request timed out after ${timeoutMs / 1000}s. Please try again.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return response.json();
 }
 
 // ─── Text Generation (LLM) ─────────────────────────────────────────────────
