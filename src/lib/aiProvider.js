@@ -11,9 +11,10 @@
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
-// NOTE: The old preview model was retired by Google. Updated to the stable model.
-// Old: 'gemini-2.0-flash-preview-image-generation'
-const GEMINI_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+// Cost-tier image model. Was 'gemini-3-pro-image-preview' (~$0.04/img preview pricing).
+// gemini-2.5-flash-image is the GA stable + ~3x cheaper. Quality difference for kids' books
+// is acceptable per QA. Override via VITE_GEMINI_IMAGE_MODEL if needed.
+const GEMINI_IMAGE_MODEL = import.meta.env.VITE_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**

@@ -33,10 +33,11 @@ function checkRateLimit(ip) {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
-// NOTE: The old preview model was retired by Google. Updated to the stable model.
-// Old: 'gemini-2.0-flash-preview-image-generation'
-const GEMINI_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+const GEMINI_TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
+// Cost-tier image model. Was 'gemini-3-pro-image-preview' (~$0.04/img preview pricing,
+// caused April→May bill spike). gemini-2.5-flash-image is GA stable + ~3x cheaper.
+// Quality acceptable for kids' books per QA. Override via env GEMINI_IMAGE_MODEL.
+const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ─── Diagnostic Logging ─────────────────────────────────────────────────────
