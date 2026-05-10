@@ -8,7 +8,7 @@ import ShowcaseSection from '@/components/landing/ShowcaseSection';
 import WhyUsSection from '@/components/landing/WhyUsSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import PricingSection from '@/components/landing/PricingSection';
-import FAQSection from '@/components/landing/FAQSection';
+import FAQChat from '@/components/landing/FAQChat';
 import CTASection from '@/components/landing/CTASection';
 import FooterSection from '@/components/landing/FooterSection';
 import { useI18n } from '@/components/i18n/i18nProvider';
@@ -34,7 +34,7 @@ const LandingPage = () => {
       <WhyUsSection />
       <HowItWorksSection />
       <PricingSection />
-      <FAQSection />
+      <FAQChat />
       <CTASection />
       <FooterSection />
     </div>
