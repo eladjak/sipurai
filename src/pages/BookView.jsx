@@ -62,6 +62,9 @@ export default function BookView() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [pdfProgress, setPdfProgress] = useState(0);
+  // Wave-14: Optional background music toggle
+  const [musicOn, setMusicOn] = useState(false);
+  const musicRef = useRef(null);
 
   const { toast } = useToast();
   const containerRef = useRef(null);
@@ -595,6 +598,38 @@ export default function BookView() {
             >
               <span className="text-base" aria-hidden="true">🖨️</span>
             </Button>
+
+            {/* Background music toggle — Wave-14 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const next = !musicOn;
+                setMusicOn(next);
+                const el = musicRef.current;
+                if (!el) return;
+                if (next) {
+                  el.volume = 0.25;
+                  el.loop = true;
+                  el.play().catch(() => { /* user gesture required, will retry on next click */ });
+                } else {
+                  el.pause();
+                }
+              }}
+              className={`rounded-xl hidden sm:flex ${nightToolbar}`}
+              aria-label={musicOn ? "כבה מוזיקת רקע" : "הפעל מוזיקת רקע"}
+              title={musicOn ? "כבה מוזיקת רקע" : "הפעל מוזיקת רקע"}
+            >
+              <span className="text-base" aria-hidden="true">{musicOn ? "🎵" : "🔈"}</span>
+            </Button>
+
+            {/* Hidden audio element — uses a free royalty-free lullaby track from public domain CDN */}
+            <audio
+              ref={musicRef}
+              src="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3"
+              preload="none"
+              style={{ display: "none" }}
+            />
 
             {/* Edit — owner only */}
             {book && !isGuest && book.created_by === user?.email && (
