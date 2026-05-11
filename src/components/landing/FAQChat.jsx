@@ -36,7 +36,7 @@ const FAQChat = () => {
   const suggested = isRTL ? SUGGESTED_HE : SUGGESTED_EN;
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, loading]);
 
   const send = async (text) => {
