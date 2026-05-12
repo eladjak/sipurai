@@ -69,10 +69,21 @@
         {
           "@type": "Organization",
           "name": "Sipurai",
+          "alternateName": "סיפוראי",
           "url": "https://www.sipurai.ai",
           "logo": "https://www.sipurai.ai/icons/icon-512x512.jpg",
           "description": "פלטפורמה ליצירת ספרי ילדים מותאמים אישית עם בינה מלאכותית — בעברית, אנגלית ויידיש",
-          "sameAs": []
+          "email": "hello@sipurai.ai",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "email": "hello@sipurai.ai",
+            "availableLanguage": ["he", "en", "yi"]
+          },
+          "sameAs": [
+            "https://fullstack-eladjak.co.il",
+            "https://www.eladjak.com"
+          ]
         },
         {
           "@type": "WebApplication",
@@ -121,19 +132,112 @@
             "@type": "Organization",
             "name": "Sipurai"
           }
+        },
+        {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "hello@sipurai.ai",
+          "url": "https://www.sipurai.ai/",
+          "availableLanguage": ["he", "en", "yi"]
+        },
+        {
+          "@type": "WebPage",
+          "name": "סיפוראי — ספרי ילדים מותאמים אישית עם AI",
+          "url": "https://www.sipurai.ai/",
+          "inLanguage": "he-IL",
+          "datePublished": "2026-01-01",
+          "dateModified": "2026-05-12",
+          "primaryImageOfPage": {
+            "@type": "ImageObject",
+            "url": "https://www.sipurai.ai/images/hero-banner.jpg"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "מה זה סיפוראי?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "סיפוראי היא פלטפורמה שמאפשרת לילדים והורים ליצור ספרי ילדים מותאמים אישית באמצעות בינה מלאכותית. הילד בוחר דמויות, סגנון איור, ז'אנר ושפה — וה-AI יוצר ספר שלם עם סיפור ואיורים מקוריים."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "באילו שפות סיפוראי תומכת?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "סיפוראי תומכת בשלוש שפות: עברית (עם RTL מלא), אנגלית ויידיש. ניתן ליצור ספרים בכל אחת מהשפות הללו."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "האם השימוש בסיפוראי חינמי?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "כן! יש מסלול חינמי (Lite) המאפשר עד 3 ספרים בחודש עם סימן מים. מסלול Premium ב-$9.99 לחודש מסיר את סימן המים ומאפשר ספרים בלתי מוגבלים. מסלול Family ב-$19.99 תומך עד 5 פרופילי ילדים."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "האם סיפוראי בטוחה לילדים?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "כן. כל התכנים מסוננים להיות מותאמים לגיל 4-12. אין תוכן מפחיד או אלים. הפלטפורמה COPPA-safe ומשתמשת ב-analytics ללא cookies."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "איך יוצרים קשר עם סיפוראי?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "אפשר ליצור קשר במייל hello@sipurai.ai או דרך טופס יצירת הקשר באתר www.sipurai.ai."
+              }
+            }
+          ]
         }
       ]
     }
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <header style="display:none" aria-hidden="true">
+      <nav>
+        <a href="/">בית</a>
+        <a href="/about">אודות</a>
+        <a href="/library">ספרייה</a>
+        <a href="/community">קהילה</a>
+      </nav>
+    </header>
+    <main id="root"></main>
     <noscript>
-      <div style="text-align:center;padding:40px;font-family:sans-serif;direction:rtl;">
-        <h1>סיפוראי — יצירת ספרי ילדים עם AI</h1>
-        <p>כדי להשתמש באפליקציה, יש להפעיל JavaScript בדפדפן.</p>
-        <p>To use Sipurai, please enable JavaScript in your browser.</p>
-      </div>
+      <article style="text-align:center;padding:40px;font-family:sans-serif;direction:rtl;">
+        <header>
+          <h1>סיפוראי — יצירת ספרי ילדים עם AI</h1>
+          <p><strong>פלטפורמה ליצירת ספרי ילדים מותאמים אישית עם בינה מלאכותית.</strong></p>
+        </header>
+        <section>
+          <h2>איך זה עובד?</h2>
+          <p>הילד בוחר דמויות, סגנון איור, ז'אנר ושפה — וה-AI יוצר ספר ילדים שלם עם סיפור ואיורים מקוריים. בעברית, אנגלית ויידיש.</p>
+        </section>
+        <section>
+          <h2>אודות</h2>
+          <p>סיפוראי היא פלטפורמה חינוכית מאובטחת לילדים. עיצובים שהילד יוצר נשמרים בספרייה אישית. ניתן לשתף עם המשפחה ולהדפיס PDF.</p>
+          <p><a href="/about">למידע נוסף על סיפוראי</a></p>
+        </section>
+        <section>
+          <h2>יצירת קשר</h2>
+          <address>
+            <p>אימייל: <a href="mailto:hello@sipurai.ai">hello@sipurai.ai</a></p>
+            <p>אתר: <a href="https://www.sipurai.ai">www.sipurai.ai</a></p>
+          </address>
+        </section>
+        <footer>
+          <p>כדי להשתמש באפליקציה, יש להפעיל JavaScript בדפדפן.</p>
+          <p>To use Sipurai, please enable JavaScript in your browser.</p>
+        </footer>
+      </article>
     </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
