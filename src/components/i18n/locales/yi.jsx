@@ -1019,8 +1019,7 @@ export default {
     generateError: "טעות ביי שאַפֿן אידעע. פּרוּוו נאָך אַ מאָל.",
     inappropriateInput: "טייל פֿון דער אַרייַנגאַבע האָט אומפּאַסיקן אינהאַלט. ביטע פֿאַרריכט.",
     moralLabel: "מוסר",
-    plotPointsLabel: "עלילה פּונקטן",
-    saved: "!אָפּגעהיט"
+    plotPointsLabel: "עלילה פּונקטן"
   },
   onboarding: {
     welcome: {
@@ -1844,7 +1843,28 @@ export default {
       generating: "שאַפֿט..."
     },
     warning: {
-      noModel: "ביטע קלײַבט אַ בילד מאָדעל כּדי אָנצוהייבן שאַפֿן"
+      noModel: "ביטע קלײַבט אַ בילד מאָדעל כּדי אָנצוהייבן שאַפֿן",
+      generateFailed: "שאַפֿן בילד איז דורכגעפֿאַלן. פּרובירט נאָך אַ מאָל."
+    },
+    selectionMode: {
+      auto: "אויטאָמאַטיש",
+      manual: "מאַנואַל",
+      toggleAria: "מאָדעל אויסקלייב מאָדע"
+    },
+    auto: {
+      title: "ה-AI קלייבט די בעסטע מאָדעל פֿאַר אײַך",
+      hint: "שרײַבט אַ באַשרײַבונג און די סיסטעם וועט קלײַבן די בעסטע מאָדעל.",
+      picked: "מאָדעל וואָס וועט באַניצט ווערן",
+      reason: {
+        "hebrew-text": "טעקסט אויף עברית",
+        "realistic-style": "ריאַליסטיש סטיל",
+        "cartoon-style": "אילוסטראַציע",
+        "sketch-draft": "שנעלע סקיצע",
+        "free-tier-default": "ברירת מחדל",
+        "tier-fallback": "בעסטער פֿאַר אײַער פּלאַן",
+        "last-manual-pick": "אײַער פֿריִערדיקע אויסקלייב",
+        "default-fallback": "ברירת מחדל"
+      }
     },
     plan: "פּלאַן"
   },
@@ -2217,6 +2237,8 @@ export default {
     new: "נײַ",
     premium: "פּרעמיום",
     locked: "דאַרף שדרוג",
+    comingSoon: "באַלד",
+    comingSoonNote: "דער מאָדעל איז נישט אַקטיוו נאָך — באַלד",
     speed: "גיכקייט",
     quality: "קוואַליטעט",
     credits: "קרעדיטן פּער נוץ",

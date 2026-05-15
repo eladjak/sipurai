@@ -17,74 +17,79 @@
 
 /** @type {import('@sentry/react') | null} */
 let _sentry = null;
+let _initPromise = null;
 
 /**
  * Initialise Sentry error tracking.
  * Call once at application startup (e.g. in App.jsx useEffect).
- * Safe to call multiple times — subsequent calls are no-ops.
+ * Safe to call multiple times — subsequent calls return the in-flight promise
+ * (prevents double-init under React StrictMode dev double-mount).
  */
 export async function initErrorTracking() {
   if (_sentry !== null) return;
+  if (_initPromise) return _initPromise;
 
-  const dsn = import.meta.env.VITE_SENTRY_DSN;
+  _initPromise = (async () => {
+    const dsn = import.meta.env.VITE_SENTRY_DSN;
 
-  if (!dsn) {
-    if (import.meta.env.DEV) {
-      console.debug('[errorTracking] VITE_SENTRY_DSN not set — running without Sentry');
+    if (!dsn) {
+      if (import.meta.env.DEV) {
+        console.debug('[errorTracking] VITE_SENTRY_DSN not set — running without Sentry');
+      }
+      _sentry = undefined;
+      return;
     }
-    // Set to undefined (not null) so we know we've already checked
-    _sentry = undefined;
-    return;
-  }
 
-  // Dynamic import: only bundled/loaded when DSN is set
-  const Sentry = await import('@sentry/react');
+    // Dynamic import: only bundled/loaded when DSN is set
+    const Sentry = await import('@sentry/react');
 
-  Sentry.init({
-    dsn,
-    environment: import.meta.env.MODE,
+    Sentry.init({
+      dsn,
+      environment: import.meta.env.MODE,
 
-    // Low sample rate to keep costs down (10 % of transactions)
-    tracesSampleRate: 0.1,
+      // Low sample rate to keep costs down (10 % of transactions)
+      tracesSampleRate: 0.1,
 
-    // Only send 10 % of session replays (if replay integration is added later)
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 0.5,
+      // Only send 10 % of session replays (if replay integration is added later)
+      replaysSessionSampleRate: 0.1,
+      replaysOnErrorSampleRate: 0.5,
 
-    /**
-     * beforeSend — PII filter for COPPA compliance.
-     *
-     * Strip email and name from the user context before the event leaves
-     * the browser. We keep only the anonymous user ID so we can count
-     * affected users without storing personal data.
-     */
-    beforeSend(event) {
-      if (event.user) {
-        // Keep only the anonymous id — drop email and username/name
-        event.user = { id: event.user.id };
-      }
+      /**
+       * beforeSend — PII filter for COPPA compliance.
+       *
+       * Strip email and name from the user context before the event leaves
+       * the browser. We keep only the anonymous user ID so we can count
+       * affected users without storing personal data.
+       */
+      beforeSend(event) {
+        if (event.user) {
+          // Keep only the anonymous id — drop email and username/name
+          event.user = { id: event.user.id };
+        }
 
-      // Also scrub breadcrumbs that might contain PII in their data
-      if (event.breadcrumbs?.values) {
-        event.breadcrumbs.values = event.breadcrumbs.values.map((crumb) => {
-          if (crumb.data) {
-            // eslint-disable-next-line no-unused-vars
-            const { email, name, username, ...safeData } = crumb.data;
-            return { ...crumb, data: safeData };
-          }
-          return crumb;
-        });
-      }
+        // Also scrub breadcrumbs that might contain PII in their data
+        if (event.breadcrumbs?.values) {
+          event.breadcrumbs.values = event.breadcrumbs.values.map((crumb) => {
+            if (crumb.data) {
+              const { email: _e, name: _n, username: _u, ...safeData } = crumb.data;
+              return { ...crumb, data: safeData };
+            }
+            return crumb;
+          });
+        }
 
-      return event;
-    },
-  });
+        return event;
+      },
+    });
 
-  _sentry = Sentry;
+    _sentry = Sentry;
 
-  if (import.meta.env.DEV) {
-    console.debug('[errorTracking] Sentry initialised (env:', import.meta.env.MODE, ')');
-  }
+    if (import.meta.env.DEV) {
+      console.debug('[errorTracking] Sentry initialised (env:', import.meta.env.MODE, ')');
+    }
+  })();
+
+  return _initPromise;
 }
 
 /**
