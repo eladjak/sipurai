@@ -2004,7 +2004,28 @@ export default {
       generating: "יוצר..."
     },
     warning: {
-      noModel: "אנא בחר מודל תמונה כדי להתחיל ליצור"
+      noModel: "אנא בחר מודל תמונה כדי להתחיל ליצור",
+      generateFailed: "יצירת התמונה נכשלה. נסו שוב."
+    },
+    selectionMode: {
+      auto: "אוטומטי",
+      manual: "ידני",
+      toggleAria: "מצב בחירת מודל: אוטומטי או ידני"
+    },
+    auto: {
+      title: "ה-AI בוחר את המודל הטוב ביותר עבורכם",
+      hint: "כתבו תיאור והמערכת תבחר את מודל ה-AI המתאים ביותר (סגנון, עברית, תקציב).",
+      picked: "המודל שיופעל",
+      reason: {
+        "hebrew-text": "טקסט בעברית",
+        "realistic-style": "סגנון מציאותי",
+        "cartoon-style": "איור / מצויר",
+        "sketch-draft": "טיוטה מהירה",
+        "free-tier-default": "ברירת מחדל בחבילה החינמית",
+        "tier-fallback": "בחירה לפי החבילה שלכם",
+        "last-manual-pick": "ההעדפה הקודמת שלכם",
+        "default-fallback": "ברירת מחדל"
+      }
     },
     plan: "חבילה"
   },
@@ -2410,6 +2431,8 @@ export default {
     new: "חדש",
     premium: "פרימיום",
     locked: "דרוש שדרוג",
+    comingSoon: "בקרוב",
+    comingSoonNote: "המודל הזה עדיין לא פעיל — בקרוב",
     speed: "מהירות",
     quality: "איכות",
     credits: "קרדיטים לשימוש",

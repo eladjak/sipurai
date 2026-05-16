@@ -22,6 +22,45 @@ import {
 } from "@/components/ui/tooltip";
 
 import { useI18n } from "@/components/i18n/i18nProvider";
+import { isModelSupported } from "@/lib/smartModelPicker";
+
+// Map UI model card ids → backend smart-routing ids.
+// Models NOT in this map are rendered as "Coming soon" (disabled).
+const UI_ID_TO_ROUTING_ID = {
+  "sdxl": null, // Open-source — not wired yet, coming soon
+  "dall-e-3": "dall-e-3",
+  "ideogram-basic": null,
+  "flux-fast": null,
+  "flux-kontext-fast": null,
+  "imagen-3-fast": null,
+  "luma-photon-flash": null,
+  "flux-kontext-pro": null,
+  "flux-pro": null,
+  "ideogram-3-turbo": null,
+  "imagen-3": null,
+  "leonardo-phoenix": null,
+  "luma-photon": null,
+  "dall-e-3-hd": null,
+  "flux-kontext-max": null,
+  "flux-ultra": null,
+  "gpt-image": null,
+  "gpt-image-fast": null,
+  "ideogram-3": null,
+  "recraft": null,
+  "recraft-realistic": null,
+  // Synthetic ids exposed for smart routing — these ARE wired:
+  "gemini-fast": "gemini-2-5-flash-image",
+  "gemini-pro": "gemini-3-pro-image",
+};
+
+export function isUiModelWired(uiId) {
+  const routingId = UI_ID_TO_ROUTING_ID[uiId];
+  return !!routingId && isModelSupported(routingId);
+}
+
+export function getRoutingIdForUiModel(uiId) {
+  return UI_ID_TO_ROUTING_ID[uiId] || null;
+}
 
 export default function ModelSelector({
   category = "image",
@@ -38,6 +77,31 @@ export default function ModelSelector({
   // מודלים מלאים כמו ב-Gamma (מהתמונות שצירפת)
   const modelsByCategory = {
     image: [
+      // Free Tier - Wired models (live endpoints)
+      {
+        id: "gemini-fast",
+        name: "Gemini 2.5 Flash Image",
+        provider: "Google",
+        tier: "free",
+        speed: "very-fast",
+        quality: "high",
+        specialties: ["Cost-tier default", "Hebrew text", "Kids illustration"],
+        credits: 1,
+        tags: ["recommended"],
+        description: "Sipurai's default — fast, cheap, great for kids' books"
+      },
+      {
+        id: "gemini-pro",
+        name: "Gemini 3 Pro Image",
+        provider: "Google",
+        tier: "creator",
+        speed: "medium",
+        quality: "excellent",
+        specialties: ["Hebrew typography", "Rich illustration", "Multi-style"],
+        credits: 4,
+        tags: ["new"],
+        description: "Best Hebrew text fidelity, highest-quality kids' book art"
+      },
       // Free Tier - Basic Models
       {
         id: "sdxl",
@@ -453,20 +517,26 @@ export default function ModelSelector({
 
   const ModelCard = ({ model, isSelected, onSelect }) => {
     const accessible = canAccessModel(model);
+    const wired = isUiModelWired(model.id);
     const isLocked = !accessible;
-    
+    const isComingSoon = !wired;
+    const disabled = isLocked || isComingSoon;
+
     return (
       <div
-        className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-          isSelected 
-            ? 'border-purple-500 bg-purple-50 dark:border-purple-600 dark:bg-purple-900/20 shadow-md' 
+        className={`relative p-4 rounded-lg border-2 transition-all duration-200 ${
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+        } ${
+          isSelected && !disabled
+            ? 'border-purple-500 bg-purple-50 dark:border-purple-600 dark:bg-purple-900/20 shadow-md'
             : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
-        } ${isLocked ? 'opacity-60' : ''}`}
-        onClick={() => accessible && onSelect(model)}
+        } ${disabled ? 'opacity-60' : ''}`}
+        onClick={() => !disabled && onSelect(model)}
+        aria-disabled={disabled}
       >
         {isLocked && (
           <div className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-2`}>
-            <Lock className="h-4 w-4 text-gray-400" />
+            <Lock className="h-4 w-4 text-gray-400" aria-label={t("modelSelector.locked")} />
           </div>
         )}
 
@@ -482,6 +552,11 @@ export default function ModelSelector({
               {model.tags.includes("new") && (
                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                   {t("modelSelector.new")}
+                </Badge>
+              )}
+              {isComingSoon && (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  {t("modelSelector.comingSoon")}
                 </Badge>
               )}
             </h3>
@@ -523,6 +598,14 @@ export default function ModelSelector({
           <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-800 rounded text-center">
             <p className="text-xs text-gray-600 dark:text-gray-400">
               {t("modelSelector.locked")}
+            </p>
+          </div>
+        )}
+
+        {!isLocked && isComingSoon && (
+          <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-center">
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              {t("modelSelector.comingSoonNote")}
             </p>
           </div>
         )}

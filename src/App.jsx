@@ -76,7 +76,8 @@ const AuthenticatedApp = () => {
     location.pathname === '/terms' ||
     location.pathname === '/welcome' ||
     location.pathname === '/contact' ||
-    location.pathname === '/Contact';
+    location.pathname === '/Contact' ||
+    location.pathname === '/pricing';
 
   // Show loading spinner while checking app public settings or auth
   // For public routes, skip auth loading wait (user will be null but that's fine)

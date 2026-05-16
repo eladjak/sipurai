@@ -18,6 +18,7 @@ const CTASection = () => {
         <img
           src="/images/welcome-portal.jpg"
           alt=""
+          aria-hidden="true"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-purple-700/85 to-indigo-900/90" />

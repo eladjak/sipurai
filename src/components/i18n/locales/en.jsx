@@ -2007,7 +2007,28 @@ export default {
       generating: "Generating..."
     },
     warning: {
-      noModel: "Please select an image model to start creating"
+      noModel: "Please select an image model to start creating",
+      generateFailed: "Failed to generate image. Please try again."
+    },
+    selectionMode: {
+      auto: "Auto",
+      manual: "Manual",
+      toggleAria: "Model selection mode: auto or manual"
+    },
+    auto: {
+      title: "AI is picking the best model for you",
+      hint: "Type a prompt — we'll route it to the model best suited for the style, language, and your tier.",
+      picked: "Will use",
+      reason: {
+        "hebrew-text": "Hebrew text detected",
+        "realistic-style": "Realistic style",
+        "cartoon-style": "Cartoon / illustration",
+        "sketch-draft": "Quick draft",
+        "free-tier-default": "Free-tier default",
+        "tier-fallback": "Best for your tier",
+        "last-manual-pick": "Your previous pick",
+        "default-fallback": "Default"
+      }
     },
     plan: "Plan"
   },
@@ -2413,6 +2434,8 @@ export default {
     new: "New",
     premium: "Premium",
     locked: "Upgrade Required",
+    comingSoon: "Coming soon",
+    comingSoonNote: "This model isn't wired up yet — coming soon",
     speed: "Speed",
     quality: "Quality",
     credits: "Credits per use",

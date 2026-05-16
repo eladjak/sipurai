@@ -1,7 +1,22 @@
 # Sipurai - Progress & Analysis Report
 
-## Status: LAUNCHED — comprehensive QA complete
-## Last Updated: 2026-04-10
+## Status: LAUNCHED · comprehensive QA · Sentry race-condition fixed · yi locale duplicate cleaned (2026-05-15)
+## Last Updated: 2026-05-15 11:05 IDT
+
+### Session 2026-05-15 — Live UI smoke + tiny bugs (Sprint 7.25d)
+**Status:** build OK · 30/30 lib tests pass · live dev http://localhost:5173 verified across 8 routes
+
+| # | What | Status |
+|---|------|--------|
+| 1 | `src/lib/errorTracking.js` — Sentry double-init race condition (4× init in dev, possible 2× in prod under StrictMode) | FIXED — added `_initPromise` sentinel returning in-flight promise; second invocation returns same promise instead of re-running `Sentry.init()` |
+| 2 | `src/components/i18n/locales/yi.jsx` — duplicate `saved` key at line 1023 inside `storyIdeas` (vite-esbuild warning) | FIXED — removed duplicate |
+| 3 | Live smoke `/welcome` `/Pricing` `/sign-in` `/Library` `/Characters` `/StoryIdeas` `/Profile` `/Settings` `/privacy` `/Blog` | PASS — no console errors on any of 10 routes after fix |
+| 4 | `/Settings` route renders blank for unauth user (no redirect, no message) | NOTED — not breaking, but worth a redirect-to-signin pass next session |
+
+**Auth-gated routes (`/Home`, `/Library`, `/Characters`, etc.) silently fall through to a blank canvas when user is unauthed.** This is intentional in the AuthenticatedApp guard but should show a clearer "please sign in" CTA. Deferred.
+
+---
+
 
 ---
 
@@ -2466,3 +2481,33 @@ Also added Skeleton mock for LoadingOverlay compatibility.
 - CharacterPicker integrated into BookWizard with entity support
 - Next priorities: Cross-flow awareness, Home page overhaul, StoryIdeas merge
 - Build verified passing
+
+---
+
+## Session 2026-05-14 (post-archive + Sumit verification)
+
+### Completed
+- Bug #1: `/pricing` was case-sensitive in App.jsx PUBLIC_PAGES → added explicit `/pricing` check (verified live)
+- a11y: 2 empty alt= (CTASection.jsx, HeroSection.jsx) got `aria-hidden="true"` — 6 others were already correct decorative pattern
+- Smart auto-select + ModelSelector wiring (per agent ae65c90):
+  - New: api/ai/gemini-image.js (Gemini-3-Pro-Image-Preview, thinkingBudget:512, maxOutputTokens:4000)
+  - New: src/components/ai/SmartAutoSelector.jsx
+  - New: src/lib/smartModelPicker.js + .test.js (9/9 passing)
+  - New: src/lib/resultHelper.js (local Result helper, no better-result dep)
+  - Patched: AIStudio.jsx (auto/manual mode toggle, localStorage persistence)
+  - Patched: ModelSelector.jsx (Coming soon badge for unwired models)
+  - Patched: aiProvider.js, integrations/Core.js, generate.js
+  - Patched: locales/he|en|yi (added aiStudio.* keys)
+  - Build: EXIT=0 verified
+
+### Discovered
+- `ey.ai-kids-playground` (stale clone) archived to `~/projects/_archive/`
+- Sipurai is the canonical project (has .env + .vercel)
+- Public smoke test 7/7 routes pass; 14 protected routes redirect correctly to /sign-in
+
+### Open
+- Scene generation + Character-scene integration (agent ae46a48 still running)
+- ePub export — not started
+- Print integration — not started
+- Sumit wiring (replace Creem) — not started; shared lib at ~/projects/_lib/sumit-client/ ready
+

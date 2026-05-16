@@ -154,7 +154,13 @@ export default async function handler(req, res) {
     }
 
     if (type === 'image') {
-      const provider = options?.provider === 'openai' ? 'openai' : 'gemini';
+      // Provider routing: 'openai' (DALL-E gpt-image-1), 'gemini-pro' (gemini-3-pro-image-preview
+      // for Hebrew+rich text), or 'gemini' (gemini-2.5-flash-image, cost tier default).
+      const rawProvider = options?.provider;
+      const provider =
+        rawProvider === 'openai' ? 'openai'
+        : rawProvider === 'gemini-pro' ? 'gemini-pro'
+        : 'gemini';
       let result;
       if (provider === 'openai') {
         const oaKey = process.env.OPENAI_API_KEY;
@@ -171,6 +177,9 @@ export default async function handler(req, res) {
           const { openaiImage } = await import('./openai-image.js');
           result = await openaiImage(oaKey, prompt, options);
         }
+      } else if (provider === 'gemini-pro') {
+        const { geminiProImage } = await import('./gemini-image.js');
+        result = await geminiProImage(apiKey, prompt, options);
       } else {
         result = await handleImage(apiKey, prompt, options);
       }

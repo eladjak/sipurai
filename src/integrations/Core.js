@@ -13,6 +13,7 @@ import {
   base64ToFile,
 } from '../lib/aiProvider';
 import { uploadFileToSupabase } from '../lib/supabaseClient';
+import { safeAsync, Result } from '../lib/resultHelper';
 
 // ─── Text Generation ────────────────────────────────────────────────────────
 // Powered by Gemini API directly
@@ -22,38 +23,52 @@ export async function InvokeLLM(params) {
 }
 
 // ─── Image Generation ───────────────────────────────────────────────────────
-// Gemini generates base64 → upload to Supabase Storage → persistent URL
+// Routes to backend per modelId (DALL-E / Gemini 3 Pro / Gemini Fast).
+// Returned base64 is uploaded to Supabase Storage → persistent URL.
+//
+// modelId param (new, optional): pass from ModelSelector or SmartAutoSelector.
+//   - 'dall-e-3'              → OpenAI gpt-image-1
+//   - 'gemini-3-pro-image'    → Gemini 3 Pro (Hebrew text + rich illustration)
+//   - 'gemini-2-5-flash-image'→ Gemini 2.5 Flash (default cost tier)
+//   - undefined               → existing default routing (env / localStorage)
 
-export async function GenerateImage({ prompt, quality, size }) {
-  if (import.meta.env.DEV) console.log('[Core.GenerateImage] Starting image generation, prompt length:', prompt?.length);
+export async function GenerateImage({ prompt, quality, size, modelId, aspectRatio }) {
+  if (import.meta.env.DEV) {
+    console.log('[Core.GenerateImage] Starting image generation, prompt length:', prompt?.length, 'modelId:', modelId);
+  }
 
-  let base64, mimeType;
-  try {
-    const result = await geminiGenerateImage({ prompt });
-    base64 = result.base64;
-    mimeType = result.mimeType;
-    if (import.meta.env.DEV) console.log('[Core.GenerateImage] Gemini returned base64:', !!base64, 'length:', base64?.length || 0, 'mimeType:', mimeType);
-  } catch (err) {
-    console.error('[Core.GenerateImage] Gemini image generation FAILED:', err?.message || err);
+  // Wrap 3rd-party AI fetch in Result at the boundary (no try/catch in business logic).
+  const genResult = await safeAsync(() =>
+    geminiGenerateImage({ prompt, modelId, aspectRatio })
+  );
+
+  if (genResult.isErr) {
+    const err = genResult.error();
+    console.error('[Core.GenerateImage] image generation FAILED:', err?.message || err);
     throw err;
   }
 
+  const { base64, mimeType } = genResult.unwrap();
+
   if (!base64) {
-    console.error('[Core.GenerateImage] No base64 data received from Gemini');
+    console.error('[Core.GenerateImage] No base64 data received from provider');
     throw new Error('Image generation returned no data');
   }
 
   const file = base64ToFile(base64, mimeType, `sipurai-${Date.now()}.png`);
 
-  try {
-    const uploadResult = await uploadFileToSupabase(file, 'generated');
-    if (import.meta.env.DEV) console.log('[Core.GenerateImage] Upload success, URL:', uploadResult.file_url?.substring(0, 80));
-    return { url: uploadResult.file_url };
-  } catch (uploadErr) {
-    if (import.meta.env.DEV) console.warn('[Core.GenerateImage] Supabase upload failed, using data URI fallback:', uploadErr?.message);
-    // Fallback to base64 data URI if upload fails
-    return { url: `data:${mimeType};base64,${base64}` };
+  // Upload is also wrapped in Result; on failure fall back to inline data URI.
+  const uploadResult = await safeAsync(() => uploadFileToSupabase(file, 'generated'));
+  if (uploadResult.isOk) {
+    const url = uploadResult.unwrap().file_url;
+    if (import.meta.env.DEV) console.log('[Core.GenerateImage] Upload success, URL:', url?.substring(0, 80));
+    return { url };
   }
+
+  if (import.meta.env.DEV) {
+    console.warn('[Core.GenerateImage] Supabase upload failed, using data URI fallback:', uploadResult.error()?.message);
+  }
+  return { url: `data:${mimeType};base64,${base64}` };
 }
 
 // ─── File Upload ────────────────────────────────────────────────────────────

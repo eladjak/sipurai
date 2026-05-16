@@ -209,18 +209,28 @@ export async function invokeLLM({
  * @param {Object} params
  * @param {string} params.prompt - Image description
  * @param {string} [params.aspectRatio='1:1'] - Aspect ratio
- * @param {'gemini'|'openai'} [params.provider] - Image provider override (defaults to env or gemini)
+ * @param {'gemini'|'gemini-pro'|'openai'} [params.provider] - Image provider override (defaults to env or gemini)
+ * @param {string} [params.modelId] - Smart routing: SUPPORTED_MODEL_IDS from smartModelPicker.js.
+ *                                    When set, overrides `provider` argument.
  * @returns {{ base64: string, mimeType: string }}
  */
-export async function generateImage({ prompt, aspectRatio = '1:1', provider, referenceImageBase64 }) {
-  const effectiveProvider = provider
+export async function generateImage({ prompt, aspectRatio = '1:1', provider, modelId, referenceImageBase64 }) {
+  // ── modelId takes priority over provider when supplied (ModelSelector path) ──
+  let resolvedProvider = provider;
+  if (modelId) {
+    if (modelId === 'dall-e-3') resolvedProvider = 'openai';
+    else if (modelId === 'gemini-3-pro-image') resolvedProvider = 'gemini-pro';
+    else if (modelId === 'gemini-2-5-flash-image') resolvedProvider = 'gemini';
+  }
+
+  const effectiveProvider = resolvedProvider
     ?? (typeof window !== 'undefined' && window.localStorage?.getItem('sipurai_image_provider'))
     ?? import.meta.env.VITE_IMAGE_PROVIDER
     ?? 'gemini';
 
-  // ── Proxy mode (production) — always for OpenAI since key is server-only ──
+  // ── Proxy mode (production) — always for OpenAI + gemini-pro since keys are server-only ──
   // Also forced when referenceImageBase64 is provided (image-edit endpoint).
-  if (!useDirectApi() || effectiveProvider === 'openai' || referenceImageBase64) {
+  if (!useDirectApi() || effectiveProvider === 'openai' || effectiveProvider === 'gemini-pro' || referenceImageBase64) {
     return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider, referenceImageBase64 });
   }
 

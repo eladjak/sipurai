@@ -27,6 +27,7 @@ import BookEditorTab from "../components/bookCreation/BookEditorTab";
 import BookStylingTab from "../components/bookCreation/BookStylingTab";
 import ShareOptions from "../components/bookCreation/ShareOptions";
 import DraftView from "../components/bookCreation/DraftView";
+import ScenePlanStep from "../components/bookCreation/ScenePlanStep";
 import AutoSaveIndicator from "../components/bookCreation/AutoSaveIndicator";
 
 // Hooks
@@ -96,6 +97,10 @@ export default function BookCreation() {
   const [currentPageText, setCurrentPageText] = useState("");
   const [currentPageImagePrompt, setCurrentPageImagePrompt] = useState("");
   const [currentPageLayout, setCurrentPageLayout] = useState("text_top");
+
+  // Pre-generation wizard phase: "draft" (DraftView) → "scenePlan" (ScenePlanStep) → generation
+  const [wizardPhase, setWizardPhase] = useState("draft");
+  const [scenePlan, setScenePlan] = useState([]);
 
   // Get book ID from URL
   const bookId = searchParams.get("id");
@@ -231,7 +236,7 @@ export default function BookCreation() {
 
   // --- AI Generation Logic ---
 
-  const generateBook = async () => {
+  const generateBook = async (plan = scenePlan) => {
     if (isGenerating) return;
 
     // --- Rate limit check ---
@@ -255,7 +260,7 @@ export default function BookCreation() {
 
       await Book.update(bookId, { status: "generating" });
 
-      const outlinePrompt = getStoryOutlinePrompt();
+      const outlinePrompt = getStoryOutlinePrompt(plan);
       setGeneratingStep(2);
 
       const outlineResult = await InvokeLLM({

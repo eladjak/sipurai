@@ -50,6 +50,7 @@ const HeroSection = () => {
         <img
           src="/images/hero-banner.jpg"
           alt=""
+          aria-hidden="true"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/85 via-purple-700/80 to-indigo-800/85" />

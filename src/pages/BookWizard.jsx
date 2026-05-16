@@ -25,6 +25,7 @@ import TopicStep from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "@/components/wizard/PreviewEditStep";
 import SaveStep from "@/components/wizard/SaveStep";
+import StoryStructure from "@/components/storyBuilder/StoryStructure";
 import LoadingOverlay from "@/components/shared/LoadingOverlay";
 import FriendlyError from "@/components/shared/FriendlyError";
 
@@ -111,6 +112,10 @@ export default function BookWizard() {
   // Step 2: Characters
   const [selectedCharacters, setSelectedCharacters] = useState([]);
 
+  // Step 2.5: Story Structure (scene-by-scene spine)
+  // Each scene: { id, role, title, description, characters: string[], illustration_prompt }
+  const [scenes, setScenes] = useState([]);
+
   // Creation progress
   const [creationProgress, setCreationProgress] = useState(null);
   // Track image generation failures for retry
@@ -165,6 +170,7 @@ export default function BookWizard() {
       selectedTopic,
       customIdea,
       selectedCharacters,
+      scenes,
       bookData,
       generatedOutline,
       useRhyming,
@@ -182,7 +188,7 @@ export default function BookWizard() {
     } catch {
       // localStorage may be full — silently skip
     }
-  }, [currentStep, selectedTopic, customIdea, selectedCharacters, bookData, generatedOutline, isCreating, activeDraftKey]);
+  }, [currentStep, selectedTopic, customIdea, selectedCharacters, scenes, bookData, generatedOutline, useRhyming, rhymeSettings, isCreating, activeDraftKey]);
 
   // Debounced auto-save on state changes (2 second delay)
   useEffect(() => {
@@ -228,6 +234,7 @@ export default function BookWizard() {
                 if (draft.selectedTopic) setSelectedTopic(draft.selectedTopic);
                 if (draft.customIdea) setCustomIdea(draft.customIdea);
                 if (draft.selectedCharacters) setSelectedCharacters(draft.selectedCharacters);
+                if (draft.scenes) setScenes(draft.scenes);
                 if (draft.bookData) setBookData((prev) => ({ ...prev, ...draft.bookData }));
                 if (draft.generatedOutline) setGeneratedOutline(draft.generatedOutline);
                 if (draft.useRhyming != null) setUseRhyming(draft.useRhyming);
@@ -261,10 +268,19 @@ export default function BookWizard() {
     });
   };
 
-  // Step definitions using i18n
+  // Step definitions using i18n.
+  // The "structure" step lives between characters and preview so the user
+  // can shape the scene-by-scene spine before reviewing/editing the book
+  // metadata. Falls back to a literal label when the i18n key is missing.
+  const structureLabelRaw = t("wizard.steps.structure");
+  const structureLabel =
+    !structureLabelRaw || structureLabelRaw === "wizard.steps.structure"
+      ? (uiLanguage === "hebrew" ? "מבנה הסיפור" : uiLanguage === "yiddish" ? "סטרוקטור" : "Story Structure")
+      : structureLabelRaw;
   const steps = [
     { id: "topic", title: t("wizard.steps.topic") },
     { id: "characters", title: t("wizard.steps.characters") },
+    { id: "structure", title: structureLabel },
     { id: "preview", title: t("wizard.steps.preview") },
     { id: "save", title: t("wizard.steps.create") }
   ];
@@ -278,12 +294,17 @@ export default function BookWizard() {
   }, [currentUserData]);
 
   // Navigation
+  // 0: topic · 1: characters · 2: structure · 3: preview · 4: save
+  // The structure step is intentionally permissive — the AI may fail
+  // and we don't want to trap the user; they can always advance with
+  // an empty / partial spine, which the create flow will fall back from.
   const canGoNext = () => {
     switch (currentStep) {
       case 0: return selectedTopic === "custom" ? !!customIdea?.trim() : !!selectedTopic;
       case 1: return selectedCharacters.length > 0;
-      case 2: return !!bookData.title;
-      case 3: return true;
+      case 2: return true; // structure is optional / editable on next step too
+      case 3: return !!bookData.title;
+      case 4: return true;
       default: return false;
     }
   };
@@ -297,8 +318,12 @@ export default function BookWizard() {
   const nextStep = async () => {
     if (currentStep >= steps.length - 1) return;
 
-    // When moving from characters to preview, generate outline if not already done
-    if (currentStep === 1 && !generatedOutline) {
+    // When moving from structure (2) to preview (3), generate the
+    // book-level outline (title/description/moral) if not already done.
+    // The structure step itself does NOT block — scenes already feed the
+    // image pipeline downstream regardless of whether the outline call
+    // succeeds.
+    if (currentStep === 2 && !generatedOutline) {
       const success = await generateOutline();
       if (!success) return; // Don't advance if outline generation failed
     }
@@ -642,7 +667,11 @@ The story should have a clear beginning, middle, and end.`;
         ...bookData,
         title: sanitizedTitle,
         cover_image: coverImage,
-        status: "generating"
+        status: "generating",
+        // Persist the user-curated scene structure on the Book so future
+        // edits can resurface the spine. Tolerated as best-effort — entity
+        // schemas that don't know about this field will ignore it.
+        ...(Array.isArray(scenes) && scenes.length > 0 ? { scenes } : {})
       };
 
       const createdBook = await Book.create(finalBookData);
@@ -770,19 +799,71 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
         step: t("wizard.progress.step4of4")
       });
 
-      const imagePromises = sanitizedPageTexts.map((pageText) => {
+      // Sprint 7.24: When the user has built a scene structure on step 2,
+      // align scenes → pages so each page-level illustration prompt is
+      // enriched with the canonical scene description AND the names of
+      // characters the user marked as present in THAT scene. Pages that
+      // sit beyond the scene count (e.g. cover + 10 pages but only 4
+      // scenes) fall back to the original character-context behaviour.
+      const hasScenes = Array.isArray(scenes) && scenes.length > 0;
+      const charById = Object.fromEntries(selectedCharacters.map((c) => [c.id, c]));
+
+      const imagePromises = sanitizedPageTexts.map((pageText, i) => {
+        // Map page i → scene. Page 0 is typically a cover/title page; the
+        // first body scene therefore maps to page 1. If we ever have
+        // exactly scenes.length pages (no cover), still align by index.
+        const sceneForPage = hasScenes
+          ? scenes[Math.max(0, Math.min(scenes.length - 1, i === 0 ? 0 : i - 1))]
+          : null;
+
+        // Characters this scene "owns" — fall back to all selected.
+        const sceneCharNames = sceneForPage?.characters?.length
+          ? sceneForPage.characters
+              .map((cid) => charById[cid]?.name)
+              .filter(Boolean)
+              .join(", ")
+          : characterNames;
+
+        const sceneAppearances = sceneForPage?.characters?.length
+          ? sceneForPage.characters
+              .map((cid) => {
+                const c = charById[cid];
+                if (!c) return null;
+                const trait = c.appearance || c.description || c.traits;
+                return trait ? `${c.name}: ${trait}` : c.name;
+              })
+              .filter(Boolean)
+              .join(". ")
+          : characterAppearances;
+
         // Prepend character appearance descriptions to every image prompt for visual consistency
-        const characterContext = characterAppearances
-          ? `Characters: ${characterAppearances}. `
+        const characterContext = sceneAppearances
+          ? `Characters: ${sceneAppearances}. `
           : "";
         const consistencyInstruction = `CRITICAL: Maintain EXACT visual consistency for all characters across every illustration: Same hair color, eye color, skin tone, clothing in every image. Same art style, color palette, and visual mood throughout. Characters must look IDENTICAL in every page - as if drawn by the same artist. Do NOT change character appearance between pages. `;
         const noTextInstruction = `IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. The image should contain ONLY visual elements - no Hebrew letters, no English text, no numbers, no signs with text. Pure illustration only. `;
-        const imagePrompt = `${consistencyInstruction}${noTextInstruction}${characterContext}Scene: ${pageText.image_prompt}. Children's book illustration in ${bookData.art_style} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
+
+        // Scene-aware composition: surface scene description + the user's
+        // hand-edited illustration_prompt alongside the per-page prompt the
+        // outline LLM produced. Page-level prompt wins as the most specific
+        // beat; scene-level adds structural framing.
+        const sceneFraming = sceneForPage
+          ? `Scene role: ${sceneForPage.role}. Scene beat: ${sceneForPage.description || sceneForPage.title || ""}. ${sceneForPage.illustration_prompt ? `Scene visual: ${sceneForPage.illustration_prompt}. ` : ""}`
+          : "";
+        const sceneCharLine = sceneCharNames
+          ? `Featuring: ${sceneCharNames}. `
+          : "";
+
+        const imagePrompt = `${consistencyInstruction}${noTextInstruction}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${pageText.image_prompt}. Children's book illustration in ${bookData.art_style} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
         return GenerateImage({ prompt: imagePrompt })
-          .then((result) => ({ url: result?.url || "", prompt: imagePrompt }))
+          .then((result) => ({
+            url: result?.url || "",
+            prompt: imagePrompt,
+            scene_id: sceneForPage?.id || null
+          }))
           .catch((err) => {
             captureError(err instanceof Error ? err : new Error(String(err?.message || err)), { context: "BookWizard image generation" });
-            return { url: "", prompt: imagePrompt, failed: true };
+            return { url: "", prompt: imagePrompt, failed: true, scene_id: sceneForPage?.id || null };
           });
       });
 
@@ -826,12 +907,18 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
           ? `[Image generation failed] ${pageText.image_prompt}`
           : pageText.image_prompt;
 
+        // scene_id is best-effort: present when the wizard's structure
+        // step was used, null otherwise. Stored on Page so a future
+        // page-edit surface can re-show the originating scene.
+        const sceneId = imageResults[i]?.scene_id || null;
+
         return Page.create({
           book_id: createdBook.id,
           page_number: i,
           text_content: pageText.text_content,
           image_url: imageUrl,
           image_prompt: imagePromptFinal,
+          ...(sceneId ? { scene_id: sceneId } : {}),
           layout_type: i === 0 ? "cover" : LAYOUT_TYPES[(i - 1) % LAYOUT_TYPES.length]
         });
       });
@@ -999,7 +1086,8 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
     );
   }
 
-  // Render current step content
+  // Render current step content.
+  // Step order: 0 topic · 1 characters · 2 structure · 3 preview · 4 save.
   const renderStep = () => {
     switch (currentStep) {
       case 0:
@@ -1024,6 +1112,19 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
         );
       case 2:
         return (
+          <StoryStructure
+            scenes={scenes}
+            onScenesChange={setScenes}
+            topic={selectedTopic}
+            customIdea={customIdea}
+            selectedCharacters={selectedCharacters}
+            language={currentLanguage}
+            ageRange={bookData.age_range || localStorage.getItem("preferredAgeRange") || "5-7"}
+            isRTL={isRTL}
+          />
+        );
+      case 3:
+        return (
           <PreviewEditStep
             bookData={bookData}
             onBookDataChange={updateBookField}
@@ -1038,7 +1139,7 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
             onRhymeSettingsChange={setRhymeSettings}
           />
         );
-      case 3:
+      case 4:
         return (
           <SaveStep
             bookData={bookData}
