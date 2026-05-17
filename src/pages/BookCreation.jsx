@@ -732,17 +732,18 @@ export default function BookCreation() {
                 size="icon"
                 onClick={() => navigate(createPageUrl("Library"))}
                 className="text-white/80 hover:text-white hover:bg-white/15 rounded-xl"
+                aria-label={t("book.backToLibrary")}
               >
-                <ArrowLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
+                <ArrowLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} aria-hidden="true" />
               </Button>
               <div>
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-yellow-300" />
+                  <Sparkles className="h-5 w-5 text-yellow-300" aria-hidden="true" />
                   <h1 className="text-xl font-bold text-white font-heading">
                     {book.title || t("book.createTitle")}
                   </h1>
                 </div>
-                <p className="text-white/60 text-sm mt-0.5">{t("book.editingLabel") || "Book Editor"}</p>
+                <p className="text-white/60 text-sm mt-0.5">{t("book.editingLabel")}</p>
               </div>
             </div>
 
@@ -860,7 +861,7 @@ export default function BookCreation() {
                 <iframe
                   src={`${createPageUrl("BookView")}?id=${bookId}`}
                   className="w-full h-[70vh] rounded-xl border-0 bg-white shadow-inner overflow-hidden"
-                  title="Book Preview"
+                  title={t("book.previewTitle")}
                 />
               </div>
             </motion.div>

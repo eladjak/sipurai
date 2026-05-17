@@ -7,6 +7,8 @@ const translations = {
   hebrew: {
     "book.backToLibrary": "חזרה לספרייה",
     "book.createTitle": "יצירת הספר שלך",
+    "book.editingLabel": "עורך הספר",
+    "book.previewTitle": "תצוגה מקדימה של הספר",
     "book.readyMessage": "אנחנו מוכנים ליצור סיפור מותאם אישית על פי העדפותיך.",
     "book.storyOf": "הסיפור של",
     "book.storyTitle": "הסיפור של {name}",
@@ -82,6 +84,8 @@ const translations = {
   english: {
     "book.backToLibrary": "Back to Library",
     "book.createTitle": "Create Your Book",
+    "book.editingLabel": "Book Editor",
+    "book.previewTitle": "Book Preview",
     "book.readyMessage": "We're ready to create a personalized story based on your preferences.",
     "book.storyOf": "Story of",
     "book.storyTitle": "{name}'s Story",

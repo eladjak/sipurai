@@ -887,6 +887,7 @@ export default {
     steps: {
       topic: "בחר נושא",
       characters: "בחר דמויות",
+      structure: "מבנה הסיפור",
       preview: "תצוגה מקדימה ועריכה",
       create: "צור ספר"
     },
@@ -987,6 +988,7 @@ export default {
       outlineMessage: "לא הצלחנו ליצור את הסיפור. אפשר לנסות שוב!",
       createTitle: "אופס! לא הצלחנו ליצור את הספר",
       createMessage: "משהו השתבש. בואו ננסה שוב!",
+      timeoutMessage: "הבקשה ארכה יותר מדי זמן. אפשר לנסות שוב.",
       titleDescInappropriate: "הכותרת או התיאור מכילים תוכן לא מתאים"
     },
     toast: {
@@ -2438,6 +2440,37 @@ export default {
     credits: "קרדיטים לשימוש",
     specialties: "מתאים ל",
     learnMore: "למד עוד"
+  },
+  storyBuilder: {
+    structure: {
+      title: "מבנה הסיפור",
+      subtitle: "בנה את שלד הסיפור, סצנה אחרי סצנה. אפשר לערוך כל סצנה.",
+      generate: "צור מבנה אוטומטית",
+      regenerate: "צור הכל מחדש",
+      countLabel: "כמה סצנות?",
+      four: "4 - קלאסי",
+      six: "6 - מעמיק",
+      empty: "עדיין לא נוצר מבנה. לחץ על \"צור מבנה אוטומטית\" כדי להתחיל.",
+      addScene: "הוסף סצנה",
+      errorTitle: "ייצור המבנה נכשל",
+      errorRetry: "נסה שוב",
+      errorNoTopic: "בחר נושא לפני יצירת המבנה.",
+      errorNoChars: "בחר לפחות דמות אחת לפני יצירת המבנה."
+    },
+    scene: {
+      scenePrefix: "סצנה",
+      title: "כותרת הסצנה",
+      description: "מה קורה בסצנה?",
+      descPlaceholder: "תאר במשפט או שניים מה קורה כאן...",
+      characters: "דמויות בסצנה",
+      addChar: "הוסף דמות",
+      noChars: "עדיין לא בחרת דמויות לסצנה זו",
+      illustration: "פרומפט לאיור",
+      illustrationHint: "התיאור החזותי שיישלח למחולל התמונות",
+      editPrompt: "ערוך פרומפט",
+      regenerate: "צור מחדש",
+      titlePlaceholder: "כותרת קצרה לסצנה..."
+    }
   },
   topicNames: {
     animals: "חיות",

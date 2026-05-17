@@ -167,7 +167,7 @@ Return ONLY the JSON matching the provided schema.`;
     temperature: 0.7,
   });
 
-  const bible = result?.result;
+  const bible = result?.result || result;
   if (!bible || !bible.characters || !bible.pages) {
     throw new Error('Story Bible generation returned malformed structure');
   }

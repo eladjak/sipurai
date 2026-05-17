@@ -889,6 +889,7 @@ export default {
     steps: {
       topic: "Choose a Topic",
       characters: "Choose Characters",
+      structure: "Story Structure",
       preview: "Preview & Edit",
       create: "Create Book"
     },
@@ -989,6 +990,7 @@ export default {
       outlineMessage: "We couldn't generate the story. Let's try again!",
       createTitle: "Oops! Couldn't create the book",
       createMessage: "Something went wrong. Let's try again!",
+      timeoutMessage: "The request took too long. Please try again.",
       titleDescInappropriate: "The title or description contains inappropriate content"
     },
     toast: {
@@ -2441,6 +2443,37 @@ export default {
     credits: "Credits per use",
     specialties: "Best for",
     learnMore: "Learn More"
+  },
+  storyBuilder: {
+    structure: {
+      title: "Story Structure",
+      subtitle: "Build the story spine, scene by scene. Edit any scene below.",
+      generate: "Generate structure",
+      regenerate: "Regenerate all",
+      countLabel: "How many scenes?",
+      four: "4 - Classic",
+      six: "6 - Detailed",
+      empty: "No structure yet. Click \"Generate structure\" to begin.",
+      addScene: "Add scene",
+      errorTitle: "Couldn't generate structure",
+      errorRetry: "Try again",
+      errorNoTopic: "Pick a topic before generating the structure.",
+      errorNoChars: "Pick at least one character first."
+    },
+    scene: {
+      scenePrefix: "Scene",
+      title: "Scene title",
+      description: "What happens in this scene?",
+      descPlaceholder: "Describe in a sentence or two what happens here...",
+      characters: "Characters in scene",
+      addChar: "Add character",
+      noChars: "No characters in this scene yet",
+      illustration: "Illustration prompt",
+      illustrationHint: "Visual description sent to the image generator",
+      editPrompt: "Edit prompt",
+      regenerate: "Regenerate",
+      titlePlaceholder: "Short title for the scene..."
+    }
   },
   topicNames: {
     animals: "Animals",

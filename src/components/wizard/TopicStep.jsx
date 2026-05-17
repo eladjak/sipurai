@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Cat,
@@ -247,12 +247,21 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
   const [savedIdeas, setSavedIdeas] = useState([]);
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
   const [surprisedTopicId, setSurprisedTopicId] = useState(null);
+  const surpriseTimerRef = useRef(null);
 
   useEffect(() => {
     if (showSavedIdeas && savedIdeas.length === 0) {
       loadSavedIdeas();
     }
   }, [showSavedIdeas]);
+
+  useEffect(() => {
+    return () => {
+      if (surpriseTimerRef.current) {
+        clearTimeout(surpriseTimerRef.current);
+      }
+    };
+  }, []);
 
   const loadSavedIdeas = async () => {
     try {
@@ -297,7 +306,10 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
     }
 
     setSurprisedTopicId(randomTopic.id);
-    setTimeout(() => setSurprisedTopicId(null), 900);
+    if (surpriseTimerRef.current) {
+      clearTimeout(surpriseTimerRef.current);
+    }
+    surpriseTimerRef.current = setTimeout(() => setSurprisedTopicId(null), 900);
 
     onSelectTopic("custom");
     if (onCustomIdeaChange) onCustomIdeaChange(ideaText);
