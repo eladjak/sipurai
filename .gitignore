@@ -33,3 +33,8 @@ dist-ssr
 # Generated HTML docs (reviews, guides, reports)
 docs/reviews/
 docs/guides/
+
+# Claude worktrees + local
+.claude/worktrees/
+.claude/cc10x/
+.claude/settings.local.json
