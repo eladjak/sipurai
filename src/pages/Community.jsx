@@ -258,6 +258,12 @@ export default function CommunityPage() {
 
       await Community.create(postData);
 
+      // Mark the book public so its direct link is readable by anon visitors.
+      // books.is_public is the source of truth for sharing (owner-only update).
+      if (bookData.bookId) {
+        try { await Book.update(bookData.bookId, { is_public: true }); } catch { /* non-fatal */ }
+      }
+
       gamification.awardXP("community_share");
       gamification.incrementStat("totalShares");
 

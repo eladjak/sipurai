@@ -131,6 +131,9 @@ async function testAnonPiiBlocked() {
   console.log('\n[2] anon must NOT read child PII columns on books');
   const { status, rows } = await rest(
     'GET', `/books?select=child_name,child_age,family_members&limit=5`, {});
+  // Post-2026-05-25-public-pii-safe-views: anon has NO grant on the base books
+  // table, so this must be REJECTED (401/403), not merely "0 rows". A 200/empty
+  // here would mean anon can still read the base table (only empty by luck).
   if (status >= 400) {
     ok('anon SELECT books PII rejected', `HTTP ${status}`);
   } else if (Array.isArray(rows) && rows.length === 0) {
@@ -201,6 +204,77 @@ async function testAnonPrivateCommunityBlocked() {
   }
 }
 
+async function testPiiSafeSharing() {
+  console.log('\n[6b] PII-safe sharing (migration 2026-05-25-public-pii-safe-views)');
+
+  // Base books/pages must be HARD-rejected for anon (no grant — they carry PII).
+  for (const t of ['books', 'pages']) {
+    const { status } = await rest('GET', `/${t}?select=*&limit=1`, {});
+    if (status === 401 || status === 403) {
+      ok(`anon SELECT base ${t} hard-rejected`, `HTTP ${status}`);
+    } else {
+      bad(`anon SELECT base ${t} NOT hard-rejected`, `HTTP ${status} — base table carrying PII must deny anon`);
+    }
+  }
+
+  // Sanitized public views must be readable (the legitimate public-share path).
+  for (const v of ['public_books', 'public_pages']) {
+    const { status } = await rest('GET', `/${v}?select=id&limit=1`, {});
+    if (status >= 200 && status < 300) {
+      ok(`anon SELECT ${v} allowed`, `HTTP ${status}`);
+    } else {
+      bad(`anon SELECT ${v} blocked`, `HTTP ${status} — public-share read path broken`);
+    }
+  }
+
+  // The sanitized view must NOT expose any child-PII column.
+  for (const col of ['child_name', 'child_age', 'child_gender', 'family_members', 'child_names', 'created_by']) {
+    const { status } = await rest('GET', `/public_books?select=${col}&limit=1`, {});
+    // 400 (column does not exist) is the desired outcome — the column is absent.
+    if (status === 400) {
+      ok(`public_books has NO ${col} column`, 'PII column absent from view');
+    } else if (status >= 200 && status < 300) {
+      bad(`public_books EXPOSES ${col}`, 'child PII leaked through sanitized view');
+    } else {
+      ok(`public_books ${col} not readable`, `HTTP ${status}`);
+    }
+  }
+
+  // anon must NOT be able to write through the views.
+  const ins = await rest('POST', `/public_books`,
+    { body: { id: '00000000-0000-0000-0000-000000000999', title: 'rls-neg-should-fail' } });
+  if (ins.status === 401 || ins.status === 403 || ins.status === 405) {
+    ok('anon INSERT public_books rejected', `HTTP ${ins.status}`);
+  } else if (ins.status >= 400) {
+    ok('anon INSERT public_books not created', `HTTP ${ins.status}`);
+  } else {
+    bad('anon INSERT public_books SUCCEEDED', `HTTP ${ins.status} — view is writable by anon`);
+  }
+}
+
+async function testProfilesLockedFromAnon() {
+  console.log('\n[6c] profiles directory must be fully locked from anon');
+  // SELECT — no anon grant -> 401.
+  const sel = await rest('GET', `/profiles?select=email&limit=1`, {});
+  if (sel.status === 401 || sel.status === 403) {
+    ok('anon SELECT profiles rejected', `HTTP ${sel.status}`);
+  } else if (Array.isArray(sel.rows) && sel.rows.length === 0) {
+    ok('anon SELECT profiles returns 0 rows', `HTTP ${sel.status} (grant present but RLS empty — prefer 401)`);
+  } else {
+    bad(`anon SELECT profiles LEAKED ${sel.rows?.length} row(s)`, 'email<->id directory exposed');
+  }
+  // INSERT (email squatting) — must be rejected by RLS / missing grant.
+  const ins = await rest('POST', `/profiles`,
+    { body: { clerk_id: 'user_rls_neg', email: 'squat-neg@evil.test' } });
+  if (ins.status === 401 || ins.status === 403) {
+    ok('anon INSERT profiles (squat) rejected', `HTTP ${ins.status}`);
+  } else if (ins.status >= 400) {
+    ok('anon INSERT profiles not created', `HTTP ${ins.status}`);
+  } else {
+    bad('anon INSERT profiles SUCCEEDED', `HTTP ${ins.status} — email squatting possible (DELETE the row!)`);
+  }
+}
+
 async function testAuthedScoping() {
   if (!CLERK_JWT || !CLERK_USER_ID) {
     console.log('\n[7] authed scoping — SKIPPED (set CLERK_JWT + CLERK_USER_ID to run)');
@@ -262,6 +336,8 @@ async function testAuthedScoping() {
   await testAnonInsertBlocked();
   await testCommunityPublicReadable();
   await testAnonPrivateCommunityBlocked();
+  await testPiiSafeSharing();
+  await testProfilesLockedFromAnon();
   await testAuthedScoping();
 
   console.log(`\n──────────────────────────────────────────`);

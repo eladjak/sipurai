@@ -44,11 +44,12 @@ export default function useNotifications() {
       queryKey: QUERY_KEY,
       queryFn: async () => {
         const user = await User.me();
-        if (!user?.email) return [];
+        if (!user?.id) return [];
 
-        // Fetch notifications for the current user, newest first
+        // Fetch notifications for the current user (keyed on Clerk id), newest
+        // first. RLS already restricts to recipient_id = the caller's sub.
         const results = await Notification.filter(
-          { user_email: user.email },
+          { recipient_id: user.id },
           '-created_date',
           50
         );

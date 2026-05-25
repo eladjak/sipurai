@@ -5,6 +5,7 @@ import { setUser as setSentryUser } from '@/lib/errorTracking';
 import { identifyUser } from '@/lib/analytics';
 import { setClerkTokenGetter } from '@/lib/supabaseClient';
 import { setApiTokenGetter } from '@/lib/apiAuth';
+import { ensureProfile } from '@/lib/profiles';
 
 const AuthContext = createContext();
 
@@ -41,6 +42,23 @@ const ClerkAuthProvider = ({ children }) => {
       setApiTokenGetter(null);
     };
   }, [isSignedIn, getToken]);
+
+  // Ensure the signed-in user has a `profiles` row (clerk_id -> email directory).
+  // This is what lets the follow/notify RPCs resolve a target email to a Clerk
+  // id. Fire-and-forget; failures never block the app.
+  useEffect(() => {
+    if (!isSignedIn || !clerkUser) return;
+    const email =
+      clerkUser.primaryEmailAddress?.emailAddress ||
+      clerkUser.emailAddresses?.[0]?.emailAddress;
+    ensureProfile({
+      id: clerkUser.id,
+      email,
+      full_name: clerkUser.fullName,
+      display_name: clerkUser.unsafeMetadata?.display_name || clerkUser.firstName,
+      avatar_url: clerkUser.unsafeMetadata?.avatar_url || clerkUser.imageUrl,
+    });
+  }, [isSignedIn, clerkUser]);
 
   // Sync the Clerk user to the imperative User module so
   // secureEntity, useGamification, etc. can call User.me().

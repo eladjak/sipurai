@@ -30,26 +30,22 @@ export function createSecureEntity(entity, options = {}) {
 
     create: async (data) => {
       const user = await User.me();
-      if (!user?.email) throw new Error('Authentication required');
-      // Ownership is keyed on the Clerk user id (the `sub` claim in the Supabase
-      // JWT), which is what the RLS policies compare `created_by` against.
-      // EXCEPTION: entities whose ownerField is the recipient EMAIL (e.g.
-      // Notification's `user_email`) must keep storing the email — their RLS
-      // policy keys on auth.jwt()->>'email', not on the Clerk id.
-      const ownerValue = ownerField === 'user_email' ? user.email : user.id;
-      if (!ownerValue) throw new Error('Authentication required');
-      return entity.create({ ...data, [ownerField]: ownerValue });
+      if (!user?.id) throw new Error('Authentication required');
+      // Ownership is ALWAYS keyed on the Clerk user id (the `sub` claim in the
+      // Supabase JWT), which is what every RLS policy compares the owner column
+      // against. Email is never used for authorization (it is mutable).
+      return entity.create({ ...data, [ownerField]: user.id });
     },
 
     update: async (id, data) => {
       const user = await User.me();
-      if (!user?.email) throw new Error('Authentication required');
+      if (!user?.id) throw new Error('Authentication required');
 
       const existing = await entity.get(id);
       // Deny if resource has an owner and it's not the current user.
       // Also deny if owner field is missing (prevents unowned resource bypass).
       const owner = existing[ownerField];
-      if (owner && owner !== user.email && owner !== user.id) {
+      if (owner && owner !== user.id) {
         throw new Error('Not authorized to modify this resource');
       }
 
@@ -58,11 +54,11 @@ export function createSecureEntity(entity, options = {}) {
 
     delete: async (id) => {
       const user = await User.me();
-      if (!user?.email) throw new Error('Authentication required');
+      if (!user?.id) throw new Error('Authentication required');
 
       const existing = await entity.get(id);
       const owner = existing[ownerField];
-      if (owner && owner !== user.email && owner !== user.id) {
+      if (owner && owner !== user.id) {
         throw new Error('Not authorized to delete this resource');
       }
 

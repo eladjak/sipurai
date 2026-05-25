@@ -1,7 +1,68 @@
 # Sipurai - Progress & Analysis Report
 
+## Status: ✅ CORRECT-SOLUTION PASS APPLIED + council-reviewed + verified live (2026-05-25 PM #2)
+## Last Updated: 2026-05-25 (clerk-sub ownership + PII-safe sharing + fail-closed JWKS)
+
+### Session 2026-05-25 (PM #2) — Correct-solution pass: uniform Clerk-sub ownership + council fixes
+
+Resumed a prior agent's correct-solution work (killed mid-task by a 401). Reviewed,
+finished, **ran the council-of-sages (it had NOT actually been run despite the SQL comment),**
+fixed the two real holes the council found, applied to prod, verified, committed.
+
+**Architecture (the correct solution, replaces the email-claim model):**
+- **Uniform Clerk-`sub` ownership.** Every RLS policy keys on `auth.jwt()->>'sub'` (the stable
+  Clerk id). The mutable `email` JWT claim is eliminated — no custom Clerk JWT template needed.
+- **`profiles` directory + SECURITY DEFINER RPCs** bridge email→clerk_id server-side
+  (`follow_user`/`unfollow_user`/`notify_user`, search_path pinned). Client never supplies the actor.
+- **`books.is_public`** is the source of truth for shareable links (replaces community-gated read).
+- **Env-driven Clerk JWKS verification** (`api/_lib/verifyClerk.js`) — no hardcoded coupling.
+
+**Council-of-sages 3-of-3 (GPT-5.5 + Grok-4.20 + Gemini-2.5-pro; budget gate $1.55→$1.64/$15):**
+- **Q1 uniform clerk-sub:** consensus SOUND. Unanimous caveat = **email squatting** (a user can claim
+  a not-yet-registered email in `profiles`). Acceptable for launch (0 users, UNIQUE(email)+immutable
+  trigger bound it); correct closure = Clerk `user.created` webhook (service-role upsert) — flagged for Elad.
+- **Q2 is_public sharing:** consensus the column is right, but **3/3 CRITICAL caveat** — anon read of
+  the *base* `books`/`pages` via `USING(is_public=true)` **leaks child PII** (child_name/age/gender/
+  family_members) to anonymous link visitors. COPPA/GDPR footgun. **REAL BUG — FIXED.**
+- **Q3 JWKS:** **3/3 RISKY** — must fail closed: require `iss` present+match (not match-if-present),
+  strict `azp` when allowlist explicit, no unconditional hardcoded fallback in prod. **FIXED.**
+
+**Fixes applied beyond the prior agent's work:**
+1. **`scripts/migrations/2026-05-25-public-pii-safe-views.sql` (NEW, APPLIED to prod):** dropped the
+   anon `books_public_select`/`pages_public_select` row policies; **REVOKE anon SELECT on base
+   books/pages**; created sanitized **`public_books`/`public_pages` views** (PII columns excluded);
+   `REVOKE ALL` then `GRANT SELECT` to anon/authenticated on the views (read-only); **`REVOKE ALL ON
+   profiles FROM anon`** (closed an anon INSERT/UPDATE/DELETE/TRUNCATE grant the live probe found).
+2. **`src/entities/PublicBook.js` (NEW)** + **BookView.jsx** guest fallback: owner reads base tables
+   (RLS-scoped); guests/non-owners read the sanitized views. Shared-link flow still works, PII-free.
+3. **`api/_lib/verifyClerk.js`:** `exp` now REQUIRED; `iss` REQUIRED present + exact match; explicit
+   `CLERK_AUTHORIZED_PARTIES` ⇒ azp REQUIRED + matching; hardcoded fallback issuer used ONLY in
+   non-production (prod returns null ⇒ fail closed). Soft pk-derived azp stays match-if-present.
+
+**Prod state (project `furviizyohryyqubosut`, direct Postgres `pg`):** clerk-sub-ownership migration was
+already applied before the 401 kill (profiles/is_public/RPCs present, `current_clerk_email` dropped) —
+verified by inspection. PII-safe-views migration applied this session. All 11 tables 0 rows (safe).
+
+**Verification (pasted):**
+- `node scripts/rls-negative-test.mjs` → **35 passed, 0 failed** (anon hard-rejected on base books/pages;
+  public_books/public_pages readable & PII-free; profiles locked; community public-browse still works).
+- `bun run build` → **exit 0** (`dist/index.html` + 116 assets).
+- `vitest run src/lib/secureEntity.test.js` → **22 passed**.
+
+**Vercel prod env:** `CLERK_ISSUER="https://clerk.sipurai.ai"` + `CLERK_PUBLISHABLE_KEY` already set
+(prior agent, 46m before this session) — verified via `vercel env pull`. JWKS verifier resolves issuer
+from env in prod (never the dev fallback). No further Vercel action required for JWKS.
+
+**REMAINING ELAD ACTION (single, honest, the correct way — NOT a hack):**
+- **Post-launch hardening (not a launch blocker):** add a Clerk **`user.created` webhook** that upserts
+  the `profiles` row via the **service role** (verified primary email, no client trust). This closes the
+  email-squatting residual the council unanimously flagged. Until then the residual is bounded (0 users;
+  UNIQUE(email) blocks claiming an already-registered email; immutable trigger blocks later changes).
+
+---
+
 ## Status: ✅ CRITICAL RLS BLOCKER CLOSED + should-fixes applied (2026-05-25 PM) — release path clear
-## Last Updated: 2026-05-25 (security lockdown applied + verified live)
+## (prior session) Last Updated: 2026-05-25 (security lockdown applied + verified live)
 
 ### Session 2026-05-25 (PM) — RLS lockdown APPLIED to prod + AI-route auth + llms.txt
 
