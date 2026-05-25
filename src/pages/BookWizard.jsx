@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight, BookOpen, Sparkles, Trash2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
-import { generateStoryBible, imagePromptFor } from "@/lib/storyBible";
+import { generateStoryBible } from "@/lib/storyBible";
 import { moderateInput, buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { checkAgeAppropriateLanguage } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
@@ -253,7 +253,7 @@ export default function BookWizard() {
       }
     }
     // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const handleClearDraft = () => {

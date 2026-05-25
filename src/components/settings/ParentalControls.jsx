@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Shield, Save, Lock, AlertTriangle, KeyRound, Check, X } from "lucide-react";
+import { Shield, Save, Lock, KeyRound, Check, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   getParentalControls,

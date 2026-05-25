@@ -1,4 +1,3 @@
-import React from "react";
 import CelebrationModal from "./CelebrationModal";
 import XPToast from "./XPToast";
 

@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { User } from "@/entities/User";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { useAuth } from "@/lib/AuthContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -13,7 +12,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import InstallPrompt from "@/components/shared/InstallPrompt";
 
 import {
-  BookOpen,
   Settings,
   Home,
   Menu,

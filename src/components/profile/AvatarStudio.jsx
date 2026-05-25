@@ -1,20 +1,15 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { GenerateImage } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, moderateInput } from "@/utils/content-moderation";
 import {
-  Camera,
   Wand2,
   Palette,
   RefreshCw,
-  Sparkles,
-  Download,
   Upload,
   User,
   Check,
   X,
-  Image as ImageIcon,
-  BookOpen,
   Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

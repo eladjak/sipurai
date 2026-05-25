@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Book } from "@/entities/Book";
@@ -15,8 +15,7 @@ import {
   X,
   LayoutGrid,
   List,
-  Sparkles,
-  Wand2
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +58,7 @@ export default function Library() {
 
   useEffect(() => {
     loadBooks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [hookUser]);
 
   useEffect(() => {

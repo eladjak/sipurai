@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useLayoutEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useLayoutEffect, useContext } from 'react';
 import { User } from "@/entities/User";
 
 // Import translations
@@ -70,7 +70,7 @@ export const I18nProvider = ({ children }) => {
   // so Hebrew/Yiddish users don't see a flash of LTR layout.
   useLayoutEffect(() => {
     applyLanguageSettings(_initialLang);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Detect browser language for first-time visitors (no saved preference)

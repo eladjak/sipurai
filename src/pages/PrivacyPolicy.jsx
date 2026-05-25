@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, BookOpen, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';

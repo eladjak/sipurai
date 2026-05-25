@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,13 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -285,7 +280,7 @@ export default function Settings() {
 
   useEffect(() => {
     loadSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [hookUser]);
 
   const loadSettings = () => {

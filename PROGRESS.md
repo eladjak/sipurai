@@ -1,7 +1,36 @@
 # Sipurai - Progress & Analysis Report
 
-## Status: LAUNCHED · build OK · 231 tests pass · production smoke 16/16 green (2026-05-25)
-## Last Updated: 2026-05-25 07:35 IDT
+## Status: ⛔ RELEASE NO-GO — live RLS data-exposure blocker (deep audit 2026-05-25)
+## Last Updated: 2026-05-25 (production-readiness audit)
+
+### Session 2026-05-25 — DEEP production-readiness audit (GO/NO-GO)
+**Verdict: NO-GO this week — ONE critical blocker; everything else release-ready. Council 3/3 unanimous NO-GO.**
+
+🚨 **CRITICAL BLOCKER (must-fix):** Supabase RLS on the LIVE prod DB (`furviizyohryyqubosut`) is fully permissive — `USING(true)/WITH CHECK(true)` for `anon` AND `authenticated` on all 11 core tables (books, pages, characters, community, comments, collaborations, feedback, story_ideas, user_badges, follows, notifications) for SELECT/INSERT/UPDATE/DELETE. **PROVEN LIVE** with the public anon key alone: anonymously read other users' books incl. parent emails (PII) in `created_by`; anonymous `DELETE` returned HTTP 204 (allowed). Authorization is enforced ONLY client-side (`secureEntity.js`), trivially bypassed via direct REST. Source: `scripts/setup-supabase-tables.sql:178-195` (comment literally says "Phase 4: Will tighten" — never done). Fix ≈1 day: replace with per-user policies on `auth.jwt()->>'sub'`, key ownership on Clerk user-id NOT email, block anon by default, then run live negative tests. **Requires Elad to run the SQL against prod — NOT done by me (irreversible prod DB change).**
+
+| # | Area | Result | Evidence |
+|---|------|--------|----------|
+| 1 | `vite build` | PASS | exit 0 (twice, incl. after lint:fix) |
+| 2 | vitest | PASS | 244 tests / 13 files / 0 failures; exit≠0 only from known worker-OOM on teardown (config excludes heavy page tests) |
+| 3 | eslint | improved | was 282 errors → `lint:fix` cleared 278; 4 remain = `react-hooks/rules-of-hooks` (pre-existing, real-but-likely-benign, left untouched) + 144 cosmetic warnings |
+| 4 | Remotion video render | PASS | `bun run video:render:sample` → 7MB valid mp4, exit 0 |
+| 5 | RLS / DB security | **FAIL — BLOCKER** | live anon read of PII + anon DELETE 204 (see above) |
+| 6 | AI/TTS proxies | WARN | no Clerk-JWT check (quota-burn risk); in-memory rate-limit only |
+| 7 | Payments (Creem) | PASS | webhook HMAC timing-safe; checkout via server proxy, no card data client-side |
+| 8 | Secrets | PASS | .env gitignored+untracked; server keys no VITE_ prefix; VITE_GEMINI key DEV-only |
+| 9 | Child-safety (text) | PASS | content-moderation.js EN+HE blocklist + prompt-injection guard, 55 tests, wired into all creation flows |
+| 10 | GEO/AEO | ~97 | plain-script JSON-LD multi-schema, 1 H1, canonical, noscript, robots, sitemap. Gaps: llms.txt=SPA shell, apex→www 307 |
+| 11 | i18n/RTL/a11y | PASS/partial | he/en/yi, dir=rtl in 80 files, ErrorBoundary, 17/21 loading states; recommend /rams pass |
+| 12 | Video MVP (unmerged branch) | partial | Player preview + CLI render work; prod async render-worker NOT wired; migration DRAFT assumes `stories`≠live `books`; video moderation = allow-by-default stub. Ship WITHOUT it. |
+
+**Local change committed (this session):** `bun run lint:fix` — removed 278 unused imports/vars. Build + tests still green. Clean, no logic change. NOT pushed.
+**SHOULD-fix (post/parallel):** JWT-verify AI/TTS proxies + durable rate-limit; add real public/llms.txt; /rams a11y pass.
+**Report:** `~/Documents/reports/sipurai-production-audit-2026-05-25.html` (Hebrew RTL, per-screen/per-area, fix list, council verdict).
+
+---
+
+### Session 2026-05-25 (earlier) — Health check + production smoke test fixed
+## (prior status: LAUNCHED · build OK · 231 tests pass · production smoke 16/16 green)
 
 ### Session 2026-05-25 — Health check + production smoke test fixed
 **Status:** build OK (exit 0, dist regenerated) · 231 tests pass (12/13 files; 1 file OOM = known Node worker heap infra, not a regression) · working tree was clean except one stray untracked file · live prod 16/16 green

@@ -6,7 +6,7 @@
  *   onRead        {function}  — called with notification.id when clicked/marked read
  *   onNavigate    {function}  — called with notification.link to navigate
  */
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { BookOpen, User, Heart, MessageCircle, Trophy } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 

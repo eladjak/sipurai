@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, BookOpen, Star, Wand2, Palette, Heart, Feather, PenTool } from 'lucide-react';

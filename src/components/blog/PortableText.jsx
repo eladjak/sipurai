@@ -1,4 +1,3 @@
-import React from "react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { openCheckout } from "@/lib/creem";
@@ -205,7 +205,7 @@ export default function Home() {
     };
 
     initializeApp();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentUserHook]);
 
   if (isLoading) {

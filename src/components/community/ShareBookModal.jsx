@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Book } from "@/entities/Book";
-import { User } from "@/entities/User";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import {
   Dialog,

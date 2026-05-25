@@ -1,4 +1,3 @@
-import React from 'react';
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -7,7 +6,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
 export default function RhymeOptions({ rhymeSettings, setRhymeSettings }) {

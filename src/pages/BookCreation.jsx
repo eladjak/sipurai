@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import useGamification from "@/hooks/useGamification";
@@ -27,7 +27,6 @@ import BookEditorTab from "../components/bookCreation/BookEditorTab";
 import BookStylingTab from "../components/bookCreation/BookStylingTab";
 import ShareOptions from "../components/bookCreation/ShareOptions";
 import DraftView from "../components/bookCreation/DraftView";
-import ScenePlanStep from "../components/bookCreation/ScenePlanStep";
 import AutoSaveIndicator from "../components/bookCreation/AutoSaveIndicator";
 
 // Hooks

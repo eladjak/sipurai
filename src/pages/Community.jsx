@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { Community } from "@/entities/Community";
@@ -12,9 +12,6 @@ import { verifyParentalPin, isPinSet } from "@/utils/content-moderation";
 import {
   Search,
   Filter,
-  Award,
-  Heart,
-  MessageSquare,
   Users,
   Tag,
   BookOpen,
@@ -42,7 +39,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";

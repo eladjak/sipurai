@@ -5,7 +5,7 @@
  * Created 2026-05-08 night per Sipurai audit gap #1 (no public pricing page).
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PricingSection from '@/components/landing/PricingSection';
 import { useI18n } from '@/components/i18n/i18nProvider';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from "@/utils";
 import { format } from 'date-fns';
@@ -8,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Heart,
   MessageSquare,
-  Award,
   Star,
   BookOpen
 } from 'lucide-react';

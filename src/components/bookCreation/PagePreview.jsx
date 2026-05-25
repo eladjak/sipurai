@@ -1,4 +1,3 @@
-import React from "react";
 
 /**
  * Renders a single page preview with text and image in the selected layout.

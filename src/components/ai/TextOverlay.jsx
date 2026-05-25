@@ -1,16 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Move,
-  Type,
-  Palette,
   Save,
   Download,
-  RotateCcw,
   Plus,
   Minus,
   AlignCenter,
@@ -18,10 +14,7 @@ import {
   AlignRight
 } from 'lucide-react';
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
   Select,

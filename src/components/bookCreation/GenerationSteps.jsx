@@ -1,4 +1,3 @@
-import React from 'react';
 import { Circle, CheckCircle, BookText, Image, Music } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 

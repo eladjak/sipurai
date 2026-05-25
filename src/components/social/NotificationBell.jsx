@@ -11,7 +11,7 @@
  *   - "Mark all as read" button appears at the top of the dropdown when there are
  *     unread notifications.
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';

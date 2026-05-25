@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { Character } from '@/entities/Character';
@@ -13,7 +13,6 @@ import {
   Users2,
   Plus,
   Search,
-  Filter,
   User,
   Sparkles,
   Grid3x3,
@@ -26,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Characters() {

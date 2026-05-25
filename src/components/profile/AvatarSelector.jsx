@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { useState, useRef, useEffect } from 'react';
+import { DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,10 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
   Camera,
-  X,
-  Crop,
-  RotateCw,
-  ZoomIn,
   Check,
   Loader2,
   Sparkles,

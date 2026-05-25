@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { updateMeta, resetMeta } from '@/lib/seo';
 import { motion } from 'framer-motion';

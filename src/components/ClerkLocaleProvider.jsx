@@ -1,4 +1,3 @@
-import React from 'react';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { heIL, enUS } from '@clerk/localizations';
 import { useI18n } from '@/components/i18n/i18nProvider';

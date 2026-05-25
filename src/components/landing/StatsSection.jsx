@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { BookOpen, Image, Palette, Globe } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';

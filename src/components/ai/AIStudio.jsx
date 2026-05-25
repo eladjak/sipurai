@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,15 +9,7 @@ import {
   Image,
   Video,
   Music,
-  Zap,
   Crown,
-  Lock,
-  CheckCircle,
-  Settings,
-  Info,
-  Wand2,
-  Rocket,
-  Type,
   Plus,
   RotateCw // New import for spinner icon
 } from 'lucide-react';

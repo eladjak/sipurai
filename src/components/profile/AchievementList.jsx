@@ -1,24 +1,18 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import {
-  Trophy, BookOpen, Star, Award, Users, Calendar, Zap,
-  Heart, MessageCircle, PenTool, Globe, Bookmark, Crown,
-  Target, Flame, Sparkles, Lightbulb, Palette,
-  Brush, Music, Laptop, Coffee, Gift, Wand2,
-  LayoutGrid, // שימוש ב-LayoutGrid במקום Layers
-  Filter
+  Trophy, BookOpen, Users, Calendar, Bookmark, Palette,
+  LayoutGrid
 } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
+  CardHeader
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import BadgeDisplay from "../gamification/BadgeDisplay";
 import { useI18n } from "@/components/i18n/i18nProvider";
 

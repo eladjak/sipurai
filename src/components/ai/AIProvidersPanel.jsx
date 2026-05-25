@@ -8,7 +8,7 @@
  * Created 2026-05-09 night per Elad — surfaces the cloud TTS + OpenAI image work.
  */
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Image as ImageIcon, Volume2 } from "lucide-react";
 import { VOICES } from "@/lib/ttsProvider";

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import LandingNav from '@/components/landing/LandingNav';
 import { updateMeta, resetMeta } from '@/lib/seo';
 import HeroSection from '@/components/landing/HeroSection';

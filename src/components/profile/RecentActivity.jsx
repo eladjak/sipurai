@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BookOpen, Trophy, Star, Award, Heart, MessageCircle,
-  Users, Calendar, Clock, ArrowUpRight, Gift, Sparkles,
-  Zap, Target, Crown, BookMarked, PenTool, Palette
+  BookOpen, Trophy, Heart, MessageCircle,
+  Users, Calendar, Clock, ArrowUpRight, Sparkles,
+  Zap, BookMarked
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,

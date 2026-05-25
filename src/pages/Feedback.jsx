@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useI18n } from "@/components/i18n/i18nProvider";
@@ -12,28 +12,18 @@ import {
   ArrowLeft,
   ArrowRight,
   Star,
-  StarHalf,
   MessageSquare,
   BookOpen,
   ChevronRight,
   ChevronLeft,
-  ThumbsUp,
-  LightbulbOff,
   Lightbulb,
   CheckCircle,
-  XCircle,
   Filter,
-  SlidersHorizontal,
-  Users,
-  ArrowUpRight,
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   DropdownMenu,
@@ -41,8 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
-import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 
 import FeedbackList from "../components/feedback/FeedbackList";

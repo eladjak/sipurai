@@ -1,4 +1,3 @@
-import React from 'react';
 import { SignUp as ClerkSignUp } from '@clerk/clerk-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { BookOpen } from 'lucide-react';

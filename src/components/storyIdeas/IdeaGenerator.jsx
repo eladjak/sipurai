@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildSafetyPromptPrefix } from "@/utils/content-moderation";
 import { useI18n } from "@/components/i18n/i18nProvider";

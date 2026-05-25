@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -175,7 +175,7 @@ export default function CharacterPicker({
     const childChar = buildChildCharacter(childName, t);
     onCharactersChange([childChar]);
   // Only run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   const toggleCharacter = (charSelection) => {

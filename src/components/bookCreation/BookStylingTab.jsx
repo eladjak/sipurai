@@ -1,4 +1,3 @@
-import React from "react";
 import { Music, Wand2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";

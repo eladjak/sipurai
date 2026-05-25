@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Wand2,
   Film,
-  Plus,
   AlertCircle
 } from "lucide-react";
 import { InvokeLLM } from "@/integrations/Core";

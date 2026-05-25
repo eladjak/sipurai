@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from "@/components/i18n/i18nProvider";
 import {
   Card,
@@ -12,18 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Share2,
   MessageSquare,
-  Heart,
-  Download,
   Copy,
   Twitter,
   Facebook,
   Instagram,
   Mail,
-  BookOpen,
   Send,
   MessageCircle
 } from "lucide-react";

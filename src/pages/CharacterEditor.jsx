@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useI18n } from '@/components/i18n/i18nProvider';
@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import {
   AlertDialog,
@@ -33,7 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Sparkles, Wand2, User, Save, ArrowLeft, Trash2, Camera, Eye, Palette, Star } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, User, Save, ArrowLeft, Trash2, Eye, Palette, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const fadeUp = {

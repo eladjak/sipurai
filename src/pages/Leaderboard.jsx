@@ -1,10 +1,8 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { createPageUrl } from "@/utils";
-import { Link } from "react-router-dom";
 import { getLevelFromXP } from "@/hooks/useGamification";
 import {
   Trophy,
@@ -13,12 +11,10 @@ import {
   Search,
   CalendarRange,
   Clock,
-  Star,
   BookOpen,
   Users,
   Shield,
   Calendar,
-  Loader2,
   Sparkles,
   Zap,
   Flame
@@ -27,7 +23,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,12 +43,12 @@ export default function Leaderboard() {
 
   useEffect(() => {
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [hookUser]);
 
   useEffect(() => {
     buildLeaderboard();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [timePeriod, category]);
 
   const loadData = async () => {

@@ -1,6 +1,5 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Heart, Mail, Twitter, Instagram, Facebook, Youtube } from 'lucide-react';
+import { BookOpen, Heart, Mail } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 
 const FooterSection = () => {

@@ -14,7 +14,6 @@
  *   className   {string?}  — optional extra Tailwind classes
  *   size        {string?}  — "sm" | "md" (default "md")
  */
-import React from 'react';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useFollow from '@/hooks/useFollow';

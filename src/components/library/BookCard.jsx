@@ -4,7 +4,6 @@ import { createPageUrl } from "@/utils";
 import LazyImage from "@/components/shared/LazyImage";
 import {
   Card,
-  CardContent,
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,8 @@ import {
   Clock,
   CheckCircle,
   RotateCw,
-  Users,
   Edit,
   MessageSquare,
-  Star,
   Share2,
   Copy,
   Loader2

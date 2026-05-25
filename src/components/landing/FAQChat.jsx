@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Send, MessageCircle, Sparkles } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 

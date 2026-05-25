@@ -1,4 +1,3 @@
-import React from "react";
 import { Edit, Music, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

@@ -1,8 +1,6 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Tag, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import LazyImage from "@/components/shared/LazyImage";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { urlFor } from "@/lib/sanityClient";

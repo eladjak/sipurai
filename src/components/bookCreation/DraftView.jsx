@@ -1,4 +1,3 @@
-import React from "react";
 import {
   ArrowLeft,
   Book as BookIcon,

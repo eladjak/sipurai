@@ -1,7 +1,6 @@
 import { useContext } from "react"
 
 import {
-  ToastActionElement,
   ToastContext,
 } from "@/components/ui/toast"
 

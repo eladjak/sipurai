@@ -1,18 +1,16 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/entities/User";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { UserBadge } from "@/entities/UserBadge";
-import useGamification, { BADGE_DEFINITIONS } from "@/hooks/useGamification";
+import { BADGE_DEFINITIONS } from "@/hooks/useGamification";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import FollowButton from "@/components/social/FollowButton";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  User as UserIcon,
-  Settings,
   Edit,
   Camera,
   Trophy,
@@ -22,31 +20,20 @@ import {
   Clock,
   Sparkles,
   Calendar,
-  Award,
-  Gift,
-  ArrowUpRight,
   Loader2,
-  Palette,
-  Globe,
-  MessageSquare,
-  Users,
-  Heart,
   Zap,
-  MessageCircle,
   Plus,
   FileText,
   BarChart3
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +43,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 import BadgeDisplay from "../components/gamification/BadgeDisplay";
 import AvatarSelector from "../components/profile/AvatarSelector";
@@ -186,7 +173,7 @@ export default function Profile() {
     };
 
     loadUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [hookUser]);
 
   const loadAchievementsData = async (user, books) => {

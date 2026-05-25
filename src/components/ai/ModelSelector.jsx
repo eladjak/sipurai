@@ -1,25 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { 
-  Sparkles, 
-  Zap, 
-  Crown, 
-  Lock,
-  CheckCircle,
-  Info,
-  ExternalLink
+  Lock
 } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
+
 
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { isModelSupported } from "@/lib/smartModelPicker";

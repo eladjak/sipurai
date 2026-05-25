@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { StoryIdea } from "@/entities/StoryIdea";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -13,11 +13,10 @@ import {
   BookOpen, 
   Save,
   RefreshCw,
-  Heart,
   Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,7 +68,7 @@ export default function StoryIdeas() {
     };
 
     loadUserSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [hookUser]);
 
   const handleIdeaSaved = async () => {
