@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
 import { Follow } from "@/entities/Follow";
-import { Notification } from "@/entities/Notification";
+import { supabase } from "@/lib/supabaseClient";
+import { notifyUserByEmail } from "@/lib/profiles";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
@@ -980,25 +981,37 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
       // Track book creation event
       trackEvent('book_created', { book_id: createdBook.id });
 
-      // Notify followers about the new book (fire-and-forget)
-      if (currentUserData?.email) {
-        Follow.filter({ following_email: currentUserData.email })
-          .then((followers) => {
-            if (followers.length > 0) {
-              const authorName = currentUserData.full_name || 'Someone you follow';
-              Promise.allSettled(
-                followers.map((follower) =>
-                  Notification.create({
-                    user_email: follower.follower_email,
-                    type: 'new_book',
-                    title: 'new_book',
-                    message: JSON.stringify({ authorName, bookTitle: finalBookData.title }),
-                    link: `/BookView?id=${createdBook.id}`,
-                    read: false,
-                  })
-                )
-              );
-            }
+      // Notify followers about the new book (fire-and-forget). Followers are
+      // rows where following_id = my Clerk id; we resolve each follower's email
+      // from the profiles directory and notify via the notify_user rpc (which
+      // stores recipient_id = the follower's Clerk id). All keyed on Clerk id —
+      // no email JWT claim involved.
+      if (currentUserData?.id) {
+        Follow.filter({ following_id: currentUserData.id })
+          .then(async (followers) => {
+            if (!followers.length) return;
+            const authorName = currentUserData.full_name || 'Someone you follow';
+            const followerIds = followers
+              .map((f) => f.follower_id)
+              .filter(Boolean);
+            if (!followerIds.length) return;
+            // Resolve follower Clerk ids -> emails (one round-trip).
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('clerk_id,email')
+              .in('clerk_id', followerIds);
+            const emails = (profiles || []).map((p) => p.email).filter(Boolean);
+            await Promise.allSettled(
+              emails.map((email) =>
+                notifyUserByEmail({
+                  targetEmail: email,
+                  type: 'new_book',
+                  title: 'new_book',
+                  message: JSON.stringify({ authorName, bookTitle: finalBookData.title }),
+                  link: `/BookView?id=${createdBook.id}`,
+                })
+              )
+            );
           })
           .catch(() => {}); // notification failures must never block book creation
       }

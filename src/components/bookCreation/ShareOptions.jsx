@@ -28,6 +28,7 @@ import {
   MessageCircle
 } from "lucide-react";
 import { Community } from "@/entities/Community";
+import { Book } from "@/entities/Book";
 import { useToast } from "@/components/ui/use-toast";
 import { createPageUrl } from "@/utils";
 import { moderateInput, getParentalControls } from "@/utils/content-moderation";
@@ -96,7 +97,15 @@ export default function ShareOptions({ book, bookId }) {
         tags: communityPost.tags,
         visibility: "public"
       });
-      
+
+      // Mark the book itself public so its direct BookView link is readable by
+      // anonymous visitors. books.is_public is the source of truth for sharing
+      // (RLS: books_public_select / pages_public_select). Owner-only update, so
+      // this is safe and authorized by RLS.
+      if (bookId) {
+        try { await Book.update(bookId, { is_public: true }); } catch { /* non-fatal */ }
+      }
+
       toast({
         title: t("sharing.shareSuccess"),
         description: t("sharing.shareSuccessDesc"),

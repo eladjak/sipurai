@@ -51,8 +51,8 @@ describe('createSecureEntity — authentication', () => {
     expect(entity.create).not.toHaveBeenCalled();
   });
 
-  it('throws when User.me() returns user without email on create', async () => {
-    mockUserMe.mockResolvedValue({ id: 'u1' }); // no email
+  it('throws when User.me() returns user without id on create', async () => {
+    mockUserMe.mockResolvedValue({ email: 'noid@example.com' }); // no Clerk id
     const entity = makeEntity();
     const secure = createSecureEntity(entity);
 
@@ -103,8 +103,8 @@ describe('createSecureEntity — ownership (default ownerField)', () => {
   });
 
   it('blocks update when current user is not the owner', async () => {
-    mockUserMe.mockResolvedValue({ email: 'attacker@example.com' });
-    const records = { id1: { id: 'id1', created_by: 'owner@example.com', title: 'Book' } };
+    mockUserMe.mockResolvedValue({ id: 'user_attacker', email: 'attacker@example.com' });
+    const records = { id1: { id: 'id1', created_by: 'user_owner', title: 'Book' } };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity);
 
@@ -115,8 +115,8 @@ describe('createSecureEntity — ownership (default ownerField)', () => {
   });
 
   it('allows update when current user is the owner', async () => {
-    mockUserMe.mockResolvedValue({ email: 'owner@example.com' });
-    const records = { id1: { id: 'id1', created_by: 'owner@example.com', title: 'Old' } };
+    mockUserMe.mockResolvedValue({ id: 'user_owner', email: 'owner@example.com' });
+    const records = { id1: { id: 'id1', created_by: 'user_owner', title: 'Old' } };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity);
 
@@ -125,7 +125,7 @@ describe('createSecureEntity — ownership (default ownerField)', () => {
   });
 
   it('allows update when ownerField is not set on entity (unowned resource)', async () => {
-    mockUserMe.mockResolvedValue({ email: 'anyone@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_anyone', email: 'anyone@example.com' });
     const records = { id1: { id: 'id1', title: 'Unowned' } };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity);
@@ -135,8 +135,8 @@ describe('createSecureEntity — ownership (default ownerField)', () => {
   });
 
   it('blocks delete when current user is not the owner', async () => {
-    mockUserMe.mockResolvedValue({ email: 'attacker@example.com' });
-    const records = { id1: { id: 'id1', created_by: 'owner@example.com' } };
+    mockUserMe.mockResolvedValue({ id: 'user_attacker', email: 'attacker@example.com' });
+    const records = { id1: { id: 'id1', created_by: 'user_owner' } };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity);
 
@@ -147,8 +147,8 @@ describe('createSecureEntity — ownership (default ownerField)', () => {
   });
 
   it('allows delete when current user is the owner', async () => {
-    mockUserMe.mockResolvedValue({ email: 'owner@example.com' });
-    const records = { id1: { id: 'id1', created_by: 'owner@example.com' } };
+    mockUserMe.mockResolvedValue({ id: 'user_owner', email: 'owner@example.com' });
+    const records = { id1: { id: 'id1', created_by: 'user_owner' } };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity);
 
@@ -193,16 +193,19 @@ describe('createSecureEntity — create auto-injects owner', () => {
     expect(call.created_by).toBe('user_bob');
   });
 
-  it('stores the EMAIL (not the id) when ownerField is user_email', async () => {
+  it('stores the Clerk id (never the email) for any custom ownerField', async () => {
+    // Ownership is ALWAYS keyed on the Clerk user id — email is never used for
+    // authorization. A custom ownerField (e.g. notifications.recipient_id) still
+    // receives the Clerk id.
     mockUserMe.mockResolvedValue({ id: 'user_dave', email: 'dave@example.com' });
     const entity = makeEntity();
-    const secure = createSecureEntity(entity, { ownerField: 'user_email' });
+    const secure = createSecureEntity(entity, { ownerField: 'recipient_id' });
 
     await secure.create({ message: 'X followed you' });
 
     expect(entity.create).toHaveBeenCalledWith({
       message: 'X followed you',
-      user_email: 'dave@example.com',
+      recipient_id: 'user_dave',
     });
   });
 });
@@ -288,9 +291,9 @@ describe('createSecureEntity — custom ownerField', () => {
   });
 
   it('blocks update when custom ownerField does not match', async () => {
-    mockUserMe.mockResolvedValue({ email: 'attacker@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_attacker', email: 'attacker@example.com' });
     const records = {
-      b1: { id: 'b1', user_id: 'carol@example.com', badge: 'first-book' },
+      b1: { id: 'b1', user_id: 'user_carol', badge: 'first-book' },
     };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity, { ownerField: 'user_id' });
@@ -301,9 +304,9 @@ describe('createSecureEntity — custom ownerField', () => {
   });
 
   it('checks custom ownerField on delete', async () => {
-    mockUserMe.mockResolvedValue({ email: 'carol@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_carol', email: 'carol@example.com' });
     const records = {
-      b1: { id: 'b1', user_id: 'carol@example.com' },
+      b1: { id: 'b1', user_id: 'user_carol' },
     };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity, { ownerField: 'user_id' });
@@ -313,9 +316,9 @@ describe('createSecureEntity — custom ownerField', () => {
   });
 
   it('blocks delete when custom ownerField does not match', async () => {
-    mockUserMe.mockResolvedValue({ email: 'attacker@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_attacker', email: 'attacker@example.com' });
     const records = {
-      b1: { id: 'b1', user_id: 'carol@example.com' },
+      b1: { id: 'b1', user_id: 'user_carol' },
     };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity, { ownerField: 'user_id' });

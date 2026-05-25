@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
+import { PublicBook, PublicPage } from "@/entities/PublicBook";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useI18n } from "@/components/i18n/i18nProvider";
@@ -96,10 +97,25 @@ export default function BookView() {
         const lang = user?.language || i18nLanguage || "english";
         setCurrentLanguage(lang);
 
-        const [bookData, pagesData] = await Promise.all([
-          Book.get(bookId),
-          Page.filter({ book_id: bookId }, "page_number")
-        ]);
+        // Owner reads the full book (RLS scopes the base tables to the owner).
+        // Guests / non-owners cannot read the base books/pages tables (they
+        // carry child PII and anon has no grant) — fall back to the sanitized,
+        // PII-free public views (public_books / public_pages), which only return
+        // rows where is_public = true. See entities/PublicBook.js + migration
+        // 2026-05-25-public-pii-safe-views.sql.
+        let bookData;
+        let pagesData;
+        try {
+          [bookData, pagesData] = await Promise.all([
+            Book.get(bookId),
+            Page.filter({ book_id: bookId }, "page_number")
+          ]);
+        } catch {
+          [bookData, pagesData] = await Promise.all([
+            PublicBook.get(bookId),
+            PublicPage.filter({ book_id: bookId }, "page_number")
+          ]);
+        }
 
         setBook(bookData);
         setPages(pagesData);
