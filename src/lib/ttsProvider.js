@@ -8,6 +8,8 @@
  * Created 2026-05-08 night per Elad — phase 1 of cloud-TTS for Sipurai narration.
  */
 
+import { getApiAuthHeaders } from '@/lib/apiAuth';
+
 const PROXY_URL = '/api/ai/tts';
 
 /**
@@ -22,9 +24,10 @@ const PROXY_URL = '/api/ai/tts';
  */
 export async function synthesize({ text, provider = 'openai', voice, format, instructions }) {
   if (!text || typeof text !== 'string') throw new Error('synthesize: text required');
+  const authHeaders = await getApiAuthHeaders();
   const r = await fetch(PROXY_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify({ text, provider, voice, format, instructions }),
   });
   if (!r.ok) {

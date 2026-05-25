@@ -31,7 +31,14 @@ export function createSecureEntity(entity, options = {}) {
     create: async (data) => {
       const user = await User.me();
       if (!user?.email) throw new Error('Authentication required');
-      return entity.create({ ...data, [ownerField]: user.email });
+      // Ownership is keyed on the Clerk user id (the `sub` claim in the Supabase
+      // JWT), which is what the RLS policies compare `created_by` against.
+      // EXCEPTION: entities whose ownerField is the recipient EMAIL (e.g.
+      // Notification's `user_email`) must keep storing the email — their RLS
+      // policy keys on auth.jwt()->>'email', not on the Clerk id.
+      const ownerValue = ownerField === 'user_email' ? user.email : user.id;
+      if (!ownerValue) throw new Error('Authentication required');
+      return entity.create({ ...data, [ownerField]: ownerValue });
     },
 
     update: async (id, data) => {

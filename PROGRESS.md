@@ -1,7 +1,68 @@
 # Sipurai - Progress & Analysis Report
 
-## Status: ⛔ RELEASE NO-GO — live RLS data-exposure blocker (deep audit 2026-05-25)
-## Last Updated: 2026-05-25 (production-readiness audit)
+## Status: ✅ CRITICAL RLS BLOCKER CLOSED + should-fixes applied (2026-05-25 PM) — release path clear
+## Last Updated: 2026-05-25 (security lockdown applied + verified live)
+
+### Session 2026-05-25 (PM) — RLS lockdown APPLIED to prod + AI-route auth + llms.txt
+
+**The NO-GO blocker is fixed and verified live.** Elad confirmed NO real users exist yet,
+so stale test rows were truncated (no email→Clerk-id backfill needed).
+
+**What was applied:**
+
+1. **Code fix — `src/lib/secureEntity.js`:** `create` now stamps ownership as the Clerk
+   user id (`user.id` = JWT `sub`), NOT `user.email`. Exception preserved: entities with
+   `ownerField: 'user_email'` (Notification) still store the email (their RLS policy keys on
+   `auth.jwt()->>'email'`). `update`/`delete` guards already accept `user.id` — unchanged.
+   Unit tests updated (`secureEntity.test.js`) → 63/63 lib tests pass.
+
+2. **DB — connected to sipurai prod (`furviizyohryyqubosut`)** via direct Postgres (node `pg`,
+   `db.furviizyohryyqubosut.supabase.co:5432`, postgres superuser — service key alone can't run DDL).
+   - Counted rows: only Elad's own test data (books=3, pages=20, user_badges=6, all `created_by=eladjak@gmail.com`); all other core tables empty.
+   - **TRUNCATEd** all 11 core tables (Option B — no real users) → 0 rows, no email/sub mismatch.
+   - **APPLIED `scripts/migrations/2026-05-25-rls-lockdown.sql`:** dropped the permissive
+     `USING(true)` policies, created `current_clerk_id()`/`current_clerk_email()` helpers, 47
+     scoped policies across 11 tables, RLS enabled on all 11.
+   - **Added corrective grants** (now in the migration file): `REVOKE ALL FROM anon` made
+     PostgREST 401 even on intended-public reads (it 401s before RLS runs). Re-granted table-level
+     `SELECT` to `anon` on the 4 public-read tables (community, comments, books, pages) only —
+     RLS still narrows rows to the public subset. The other 7 tables: anon has zero privilege.
+
+3. **Negative test — PROOF anon is blocked** (`node scripts/rls-negative-test.mjs`):
+   ```
+   RESULT: 22 passed, 0 failed
+   [1] anon SELECT books/pages → 0 rows; characters/story_ideas/feedback/collaborations/follows/notifications/user_badges → HTTP 401
+   [2] anon SELECT books child-PII → 0 rows
+   [3] anon DELETE all 9 core tables → HTTP 401
+   [4] anon INSERT books → HTTP 401
+   [5] anon SELECT public community → HTTP 200 (intended browse works)
+   [6] anon SELECT private community → 0 rows
+   ```
+   (Authed-scoping checks [7][8] need a live Clerk JWT — left for a signed-in smoke.)
+
+4. **Should-fixes:**
+   - (a) **AI-route auth:** `/api/ai/generate` + `/api/ai/tts` now require a valid Clerk session
+     JWT (RS256 verified against Clerk JWKS — dependency-free `api/_lib/verifyClerk.js`). Client
+     attaches the token via new `src/lib/apiAuth.js` (registered in `AuthContext`, used by
+     aiProvider/ttsProvider). Unauthenticated callers get 401 → can't burn Gemini/OpenAI quota.
+   - (b) **`public/llms.txt`** added (real content, served as static file — was SPA shell).
+
+5. **Build:** `vite build` → exit 0, ✓ 3996 modules transformed, built in 55s. `llms.txt` in dist.
+
+**Sharing model (no users → safe defaults kept):** book/pages public read tied to an existing
+public `community` post (`visibility='public'`). Direct-link sharing outside community would need
+`books.is_public` — deferred, no users affected.
+
+**LEFT FOR ELAD (cannot do autonomously):**
+- **Clerk Dashboard → JWT Templates → `supabase` template:** add the `email` claim
+  `{ "email": "{{user.primary_email_address}}" }`. Without it, notifications + follows RLS
+  reads return nothing (they key on `auth.jwt()->>'email'`).
+- **Vercel env:** add `CLERK_PUBLISHABLE_KEY` (same value as `VITE_CLERK_PUBLISHABLE_KEY`) so the
+  AI routes can resolve the Clerk JWKS URL in production.
+- **Supabase MCP** is still pointed at the **bayit** project (`uqumzjmyejlhoyliyesu`) — re-point to
+  `furviizyohryyqubosut` for future MCP use (the migration was applied via direct `pg`, NOT MCP).
+
+---
 
 ### Session 2026-05-25 — DEEP production-readiness audit (GO/NO-GO)
 **Verdict: NO-GO this week — ONE critical blocker; everything else release-ready. Council 3/3 unanimous NO-GO.**
@@ -14,12 +75,12 @@
 | 2 | vitest | PASS | 244 tests / 13 files / 0 failures; exit≠0 only from known worker-OOM on teardown (config excludes heavy page tests) |
 | 3 | eslint | improved | was 282 errors → `lint:fix` cleared 278; 4 remain = `react-hooks/rules-of-hooks` (pre-existing, real-but-likely-benign, left untouched) + 144 cosmetic warnings |
 | 4 | Remotion video render | PASS | `bun run video:render:sample` → 7MB valid mp4, exit 0 |
-| 5 | RLS / DB security | **FAIL — BLOCKER** | live anon read of PII + anon DELETE 204 (see above) |
-| 6 | AI/TTS proxies | WARN | no Clerk-JWT check (quota-burn risk); in-memory rate-limit only |
+| 5 | RLS / DB security | **FIXED 2026-05-25 PM** | migration applied to prod + truncate; negative test 22/0 — anon SELECT/INSERT/DELETE blocked (see PM session above) |
+| 6 | AI/TTS proxies | **FIXED 2026-05-25 PM** | Clerk-JWT (RS256/JWKS) now required on generate+tts; in-memory rate-limit retained |
 | 7 | Payments (Creem) | PASS | webhook HMAC timing-safe; checkout via server proxy, no card data client-side |
 | 8 | Secrets | PASS | .env gitignored+untracked; server keys no VITE_ prefix; VITE_GEMINI key DEV-only |
 | 9 | Child-safety (text) | PASS | content-moderation.js EN+HE blocklist + prompt-injection guard, 55 tests, wired into all creation flows |
-| 10 | GEO/AEO | ~97 | plain-script JSON-LD multi-schema, 1 H1, canonical, noscript, robots, sitemap. Gaps: llms.txt=SPA shell, apex→www 307 |
+| 10 | GEO/AEO | ~97 | plain-script JSON-LD multi-schema, 1 H1, canonical, noscript, robots, sitemap. llms.txt FIXED (real static file 2026-05-25 PM); apex→www 307 remains |
 | 11 | i18n/RTL/a11y | PASS/partial | he/en/yi, dir=rtl in 80 files, ErrorBoundary, 17/21 loading states; recommend /rams pass |
 | 12 | Video MVP (unmerged branch) | partial | Player preview + CLI render work; prod async render-worker NOT wired; migration DRAFT assumes `stories`≠live `books`; video moderation = allow-by-default stub. Ship WITHOUT it. |
 
