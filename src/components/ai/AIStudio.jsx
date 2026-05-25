@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input'; // New import for Input component
 import ModelSelector, { getRoutingIdForUiModel, isUiModelWired } from './ModelSelector';
 import SmartAutoSelector from './SmartAutoSelector';
 import TextOverlay from './TextOverlay'; // Import the new component
+import StoryVideoButton from '@/components/storyVideo/StoryVideoButton'; // Story → Video MVP (Remotion + Ken Burns)
 import { GenerateImage, UploadFile } from '@/integrations/Core'; // New imports for integrations
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { pickBestModel } from '@/lib/smartModelPicker';
@@ -41,7 +42,8 @@ export default function AIStudio({
   onModelChange,
   userTier = "free",
   credits = { used: 0, total: 50 },
-  currentLanguage = "english"
+  currentLanguage = "english",
+  story = null // Optional: a story ({ pages:[], language, genre }) enables "צור וידאו מהסיפור"
 }) {
   const [selectedCategory, setSelectedCategory] = useState("image");
   const [mode, setMode] = useState('simple');
@@ -384,7 +386,16 @@ export default function AIStudio({
           )}
         </TabsContent>
 
-        <TabsContent value="video" className="mt-6">
+        <TabsContent value="video" className="mt-6 space-y-6">
+           {/* Story → Video (MVP: Remotion + Ken Burns + existing narration).
+               Shown when a story with pages is available. */}
+           {story && Array.isArray(story.pages) && story.pages.length > 0 && (
+             <StoryVideoButton
+               story={story}
+               userTier={userTier}
+               usedThisMonth={credits?.videosUsed ?? 0}
+             />
+           )}
            <ModelSelector
               category="video"
               selectedModel={currentModel}

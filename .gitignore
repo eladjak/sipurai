@@ -38,3 +38,7 @@ docs/guides/
 .claude/worktrees/
 .claude/cc10x/
 .claude/settings.local.json
+
+# Remotion render output + cache
+out/
+.remotion/
