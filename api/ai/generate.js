@@ -7,6 +7,8 @@
  * type: "text" | "image"
  */
 
+import { requireClerkAuth } from '../_lib/verifyClerk.js';
+
 // ─── Simple in-memory rate limiter (per IP, resets every minute) ─────────────
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -97,7 +99,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return res.status(204).end();
   }
 
@@ -106,6 +108,14 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Auth: require a valid Clerk session JWT so anonymous callers can't burn
+  // Gemini/OpenAI quota. (Verifies RS256 signature against Clerk JWKS.)
+  const auth = await requireClerkAuth(req);
+  if (!auth.ok) {
+    log('UNAUTHORIZED', { reason: auth.reason });
+    return res.status(401).json({ error: 'Authentication required.' });
   }
 
   // Rate limit

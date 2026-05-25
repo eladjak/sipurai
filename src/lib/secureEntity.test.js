@@ -60,16 +60,16 @@ describe('createSecureEntity — authentication', () => {
   });
 
   it('allows create when User.me() returns a valid user', async () => {
-    mockUserMe.mockResolvedValue({ email: 'user@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_xyz', email: 'user@example.com' });
     const entity = makeEntity();
     const secure = createSecureEntity(entity);
 
     const result = await secure.create({ title: 'Book' });
     expect(entity.create).toHaveBeenCalledWith({
       title: 'Book',
-      created_by: 'user@example.com',
+      created_by: 'user_xyz',
     });
-    expect(result).toMatchObject({ title: 'Book', created_by: 'user@example.com' });
+    expect(result).toMatchObject({ title: 'Book', created_by: 'user_xyz' });
   });
 
   it('throws when User.me() returns null on update', async () => {
@@ -166,8 +166,8 @@ describe('createSecureEntity — create auto-injects owner', () => {
     vi.clearAllMocks();
   });
 
-  it('injects created_by (default ownerField) on create', async () => {
-    mockUserMe.mockResolvedValue({ email: 'alice@example.com' });
+  it('injects created_by = Clerk user id (default ownerField) on create', async () => {
+    mockUserMe.mockResolvedValue({ id: 'user_alice', email: 'alice@example.com' });
     const entity = makeEntity();
     const secure = createSecureEntity(entity);
 
@@ -176,12 +176,12 @@ describe('createSecureEntity — create auto-injects owner', () => {
     expect(entity.create).toHaveBeenCalledWith({
       title: 'My Book',
       genre: 'fantasy',
-      created_by: 'alice@example.com',
+      created_by: 'user_alice',
     });
   });
 
   it('does not overwrite existing data keys with the owner field', async () => {
-    mockUserMe.mockResolvedValue({ email: 'bob@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_bob', email: 'bob@example.com' });
     const entity = makeEntity();
     const secure = createSecureEntity(entity);
 
@@ -190,7 +190,20 @@ describe('createSecureEntity — create auto-injects owner', () => {
     const call = entity.create.mock.calls[0][0];
     expect(call.title).toBe('Story');
     expect(call.extra).toBe('value');
-    expect(call.created_by).toBe('bob@example.com');
+    expect(call.created_by).toBe('user_bob');
+  });
+
+  it('stores the EMAIL (not the id) when ownerField is user_email', async () => {
+    mockUserMe.mockResolvedValue({ id: 'user_dave', email: 'dave@example.com' });
+    const entity = makeEntity();
+    const secure = createSecureEntity(entity, { ownerField: 'user_email' });
+
+    await secure.create({ message: 'X followed you' });
+
+    expect(entity.create).toHaveBeenCalledWith({
+      message: 'X followed you',
+      user_email: 'dave@example.com',
+    });
   });
 });
 
@@ -249,8 +262,8 @@ describe('createSecureEntity — custom ownerField', () => {
     vi.clearAllMocks();
   });
 
-  it('injects custom ownerField on create', async () => {
-    mockUserMe.mockResolvedValue({ email: 'carol@example.com' });
+  it('injects custom ownerField (user_id) = Clerk id on create', async () => {
+    mockUserMe.mockResolvedValue({ id: 'user_carol', email: 'carol@example.com' });
     const entity = makeEntity();
     const secure = createSecureEntity(entity, { ownerField: 'user_id' });
 
@@ -258,14 +271,14 @@ describe('createSecureEntity — custom ownerField', () => {
 
     expect(entity.create).toHaveBeenCalledWith({
       badge: 'first-book',
-      user_id: 'carol@example.com',
+      user_id: 'user_carol',
     });
   });
 
   it('checks custom ownerField on update', async () => {
-    mockUserMe.mockResolvedValue({ email: 'carol@example.com' });
+    mockUserMe.mockResolvedValue({ id: 'user_carol', email: 'carol@example.com' });
     const records = {
-      b1: { id: 'b1', user_id: 'carol@example.com', badge: 'first-book' },
+      b1: { id: 'b1', user_id: 'user_carol', badge: 'first-book' },
     };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity, { ownerField: 'user_id' });

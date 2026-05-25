@@ -1,0 +1,41 @@
+# Sipurai (סיפוראי)
+
+> Sipurai is an AI-powered platform for creating, sharing, and printing
+> personalized children's books. A child or parent chooses characters, art
+> style, language (Hebrew, English, or Yiddish), and genre — and the AI writes
+> a complete illustrated story. Hebrew-first with full RTL support.
+
+Sipurai turns a few choices into a finished, illustrated, child-safe book. The
+creation flow generates the story text and the illustrations, keeps characters
+consistent across pages, and supports reading the result aloud with natural
+text-to-speech. Finished books can be shared to a community gallery, read
+online, exported, and printed on demand.
+
+## Key features
+
+- AI story generation tailored to the child's age, language, and chosen genre
+- AI illustration generation with cross-page character consistency
+- Multilingual: Hebrew, English, Yiddish — all with right-to-left support
+- Text-to-speech narration (natural cloud voices)
+- Community gallery for sharing and discovering public books
+- Gamification: XP, levels, badges, and streaks
+- Print-on-demand export to physical books
+
+## Pages
+
+- Home: https://www.sipurai.ai/ — dashboard, featured books, daily prompt
+- Create a book: https://www.sipurai.ai/CreativeStoryStudio — main creation flow
+- Community: https://www.sipurai.ai/Community — shared public books
+- Library: https://www.sipurai.ai/Library — your saved books
+- Story ideas: https://www.sipurai.ai/StoryIdeas — AI idea generator
+
+## Safety
+
+All generated content is intended to be age-appropriate and child-safe. No
+scary or violent content. Child information entered during book creation is
+private to the account that created it and is not publicly readable.
+
+## Contact
+
+- Website: https://www.sipurai.ai
+- Analytics (internal): https://analytics.sipurai.ai

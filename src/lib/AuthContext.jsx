@@ -4,6 +4,7 @@ import { User } from '@/entities/User';
 import { setUser as setSentryUser } from '@/lib/errorTracking';
 import { identifyUser } from '@/lib/analytics';
 import { setClerkTokenGetter } from '@/lib/supabaseClient';
+import { setApiTokenGetter } from '@/lib/apiAuth';
 
 const AuthContext = createContext();
 
@@ -30,10 +31,15 @@ const ClerkAuthProvider = ({ children }) => {
   useEffect(() => {
     if (isSignedIn && getToken) {
       setClerkTokenGetter(getToken);
+      setApiTokenGetter(getToken);
     } else {
       setClerkTokenGetter(null);
+      setApiTokenGetter(null);
     }
-    return () => setClerkTokenGetter(null);
+    return () => {
+      setClerkTokenGetter(null);
+      setApiTokenGetter(null);
+    };
   }, [isSignedIn, getToken]);
 
   // Sync the Clerk user to the imperative User module so

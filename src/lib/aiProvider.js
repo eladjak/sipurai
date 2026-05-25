@@ -8,6 +8,8 @@
  * External interface (invokeLLM, generateImage, base64ToFile) is unchanged.
  */
 
+import { getApiAuthHeaders } from '@/lib/apiAuth';
+
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
@@ -80,9 +82,10 @@ async function proxyCall(type, prompt, options = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
+    const authHeaders = await getApiAuthHeaders();
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ prompt, type, options }),
       signal: ctrl.signal,
     });

@@ -10,6 +10,8 @@
  * Keeps API keys server-side. Created 2026-05-08 night per Elad.
  */
 
+import { requireClerkAuth } from '../_lib/verifyClerk.js';
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 12;
 const MAX_TEXT_LENGTH = 4000;
@@ -45,11 +47,19 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return res.status(204).end();
   }
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Auth: require a valid Clerk session JWT so anonymous callers can't burn
+  // OpenAI/Gemini TTS quota.
+  const auth = await requireClerkAuth(req);
+  if (!auth.ok) {
+    log('UNAUTHORIZED', auth.reason);
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
   if (!checkRateLimit(ip)) {
