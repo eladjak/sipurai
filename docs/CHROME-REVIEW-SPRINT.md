@@ -17,7 +17,7 @@
 
 **Start the dev server first:**
 ```bash
-cd ~/projects/ey.ai-kids-playground
+cd ~/projects/sipurai
 npm run dev
 ```
 
@@ -441,7 +441,7 @@ When an issue is found:
 1. **Document it** — note the page, component, and exact problem
 2. **Find the source:**
    ```bash
-   cd ~/projects/ey.ai-kids-playground
+   cd ~/projects/sipurai
    grep -r "hardcoded text" src/ --include="*.jsx"
    ```
 3. **Fix the code** — follow existing patterns:
