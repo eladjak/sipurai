@@ -1,7 +1,23 @@
 # Sipurai - Progress & Analysis Report
 
-## Status: LAUNCHED · comprehensive QA · Sentry race-condition fixed · yi locale duplicate cleaned (2026-05-15)
-## Last Updated: 2026-05-15 11:05 IDT
+## Status: LAUNCHED · build OK · 231 tests pass · production smoke 16/16 green (2026-05-25)
+## Last Updated: 2026-05-25 07:35 IDT
+
+### Session 2026-05-25 — Health check + production smoke test fixed
+**Status:** build OK (exit 0, dist regenerated) · 231 tests pass (12/13 files; 1 file OOM = known Node worker heap infra, not a regression) · working tree was clean except one stray untracked file · live prod 16/16 green
+
+| # | What | Status |
+|---|------|--------|
+| 1 | Assessed project state: build + tests + git. Build clean, 231/231 tests pass, no uncommitted source changes. Site already LAUNCHED at sipurai.ai (GEO 97). | DONE — no in-flight/half-done work found |
+| 2 | `scripts/e2e-smoke.ts` (untracked, written 2026-05-21) targeted a WRONG route schema — `/pricing`, `/auth/login`, `/signup`, `/register`, `/dashboard`, `/he/*` — none exist in this app. Would have produced false failures. | FIXED — rewrote against real routes (verified from App.jsx + live robots.txt + sitemap): `/ /blog /contact /privacy /terms` (public) + `/Pricing /sign-in /sign-up /Library /Characters /StoryIdeas /Settings` (capitalized app routes) + sitemap/robots/manifest integrity. Accounts for Vercel SPA rewrite (all non-/api → index.html 200). Added `BASE` env override + `bun run smoke`. |
+| 3 | Ran corrected smoke against https://www.sipurai.ai — read-only GETs, no signup/payment | PASS — 16/16 green |
+| 4 | Commit befe706 (LOCAL only, NOT pushed): `test(smoke): fix e2e-smoke to real route schema + add bun run smoke` | DONE |
+
+**`tsc` (typecheck script) reports ~1546 errors** — these are JS-prop-inference noise from running `tsc --checkJs` against an untyped JSX codebase (TS2322 "children does not exist on IntrinsicAttributes" etc.), NOT functional defects. This project's gate is vitest + `vite build` (per CLAUDE.md "No TypeScript strict mode" + iteration protocol line "פרויקט JSX - אין tsc strict"). Not chased — out of scope, would be a large noise-suppression effort with no functional payoff.
+
+**Needs Elad (not done — outward/irreversible):** (a) `git push` of befe706 to origin/main + Vercel deploy if desired (smoke test is dev-only tooling, deploy optional). (b) Two pre-existing deferred items from prior sessions remain: `/Settings` renders blank for unauthed users (add sign-in CTA), and the auth-gated routes silently fall through to blank for guests (intentional but could show a clearer CTA). (c) Optional: stale docs GAPS-AND-REQUIREMENTS.md (Feb 27, references retired Base44 stack — now Clerk+Supabase) could be archived.
+
+---
 
 ### Session 2026-05-15 — Live UI smoke + tiny bugs (Sprint 7.25d)
 **Status:** build OK · 30/30 lib tests pass · live dev http://localhost:5173 verified across 8 routes
