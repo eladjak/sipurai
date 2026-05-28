@@ -70,7 +70,13 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{ text: fullPrompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 400 }
+        // thinkingBudget:0 — without it gemini-2.5-flash burns the whole budget on hidden
+        // "thinking" and the visible answer comes back empty/truncated. Bumped to 600.
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 600,
+          thinkingConfig: { thinkingBudget: 0 }
+        }
       })
     });
 
