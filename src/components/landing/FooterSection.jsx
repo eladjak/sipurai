@@ -11,6 +11,7 @@ const FooterSection = () => {
     { label: t('landing.footer.privacy'), href: '/privacy', external: false },
     { label: t('landing.footer.terms'), href: '/terms', external: false },
     { label: t('landing.footer.contact'), href: '/Contact', external: false },
+    { label: isRTL ? 'קורות חיים' : 'CV', href: '/cv-elad-yaakobovitch-he.pdf', external: true },
   ];
 
   const socialLinks = [];
