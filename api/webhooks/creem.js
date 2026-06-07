@@ -10,10 +10,25 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
+// Disable Vercel's automatic body parsing so we can read the EXACT raw bytes.
+// Creem signs the raw request body; re-serializing a parsed object (JSON.stringify)
+// produces different bytes (key order/whitespace) and the HMAC never matches → every
+// valid webhook 401s → paid subscriptions never update.
+export const config = { api: { bodyParser: false } };
+
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+/** Read the raw request body as a Buffer (body parser is disabled above). */
+async function readRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
 
 /**
  * Verify Creem webhook HMAC-SHA256 signature.
@@ -61,15 +76,25 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Missing signature' });
   }
 
-  const rawBody =
-    typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  let rawBody;
+  try {
+    rawBody = await readRawBody(req);
+  } catch {
+    return res.status(400).json({ error: 'Could not read body' });
+  }
+
   const isValid = verifySignature(rawBody, signature, webhookSecret);
   if (!isValid) {
     console.warn('[creem-webhook] Invalid signature');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
   const eventType = event?.type || event?.event_type;
 
   console.info('[creem-webhook] Received event:', eventType);
