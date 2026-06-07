@@ -647,7 +647,7 @@ export default function BookView() {
             />
 
             {/* Edit — owner only */}
-            {book && !isGuest && book.created_by === user?.email && (
+            {book && !isGuest && book.created_by === user?.id && (
               <Link to={`${createPageUrl("BookCreation")}?id=${book.id}`}>
                 <Button
                   variant="outline"

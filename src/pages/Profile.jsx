@@ -118,7 +118,7 @@ export default function Profile() {
           return;
         }
 
-        const allBooks = await Book.filter({ created_by: user.email }, "-created_date");
+        const allBooks = await Book.filter({ created_by: user.id }, "-created_date");
         const recentBooksData = allBooks.slice(0, 3);
 
         const formattedUser = {

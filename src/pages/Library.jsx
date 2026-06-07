@@ -68,8 +68,8 @@ export default function Library() {
   const loadBooks = async () => {
     try {
       setIsLoading(true);
-      if (hookUser?.email) {
-        const loadedBooks = await Book.filter({ created_by: hookUser.email });
+      if (hookUser?.id) {
+        const loadedBooks = await Book.filter({ created_by: hookUser.id });
         setBooks(loadedBooks);
       }
     } catch (error) {

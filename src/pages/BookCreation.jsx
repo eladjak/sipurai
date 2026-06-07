@@ -167,7 +167,7 @@ export default function BookCreation() {
 
       // Use hook user for ownership check (no extra network request needed)
       const currentUser = hookUser;
-      setIsOwner(currentUser ? bookData.created_by === currentUser.email : false);
+      setIsOwner(currentUser ? bookData.created_by === currentUser.id : false);
 
       const pagesData = await Page.filter({ book_id: bookId }, "page_number");
       setPages(pagesData);

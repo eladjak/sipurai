@@ -8,9 +8,22 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://furviizyohryyqubosut.supabase.co';
-const SERVICE_ROLE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1cnZpaXp5b2hyeXlxdWJvc3V0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU2Mjk1NCwiZXhwIjoyMDg5MTM4OTU0fQ.XfE0wLgSL-3q8ZuFyXvVjh7muFTFmXFkkhTk7e_g-RA';
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  'https://furviizyohryyqubosut.supabase.co';
+// SECURITY: never hardcode the service-role key (it bypasses RLS). Provide it via env.
+// The previously hardcoded key was committed to git history and MUST be rotated in the
+// Supabase dashboard (Settings → API → rotate service_role).
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SERVICE_ROLE_KEY) {
+  console.error(
+    'Missing SUPABASE_SERVICE_ROLE_KEY env var.\n' +
+      'Run: SUPABASE_SERVICE_ROLE_KEY=<key> node scripts/setup-supabase-storage.mjs'
+  );
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
