@@ -105,7 +105,7 @@ export default function FeedbackPage() {
 
       // Check if user is owner
       if (user) {
-        setIsOwner(bookData.created_by === user.email);
+        setIsOwner(bookData.created_by === user.id);
       }
 
       // Check if user is collaborator

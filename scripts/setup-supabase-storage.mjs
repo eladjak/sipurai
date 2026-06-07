@@ -12,12 +12,15 @@ const SUPABASE_URL =
   process.env.SUPABASE_URL ||
   process.env.VITE_SUPABASE_URL ||
   'https://furviizyohryyqubosut.supabase.co';
-// Server-only setup script. NEVER hardcode the service_role key (it bypasses RLS).
-// Provide it via env: SUPABASE_SERVICE_ROLE_KEY=... node scripts/setup-supabase-storage.mjs
+// SECURITY: never hardcode the service-role key (it bypasses RLS). Provide it via env.
+// The previously hardcoded key was committed to git history and MUST be rotated in the
+// Supabase dashboard (Settings → API → rotate service_role).
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 if (!SERVICE_ROLE_KEY) {
   console.error(
-    'Missing SUPABASE_SERVICE_ROLE_KEY env var. Set it before running this one-time setup script.'
+    'Missing SUPABASE_SERVICE_ROLE_KEY env var.\n' +
+      'Run: SUPABASE_SERVICE_ROLE_KEY=<key> node scripts/setup-supabase-storage.mjs'
   );
   process.exit(1);
 }

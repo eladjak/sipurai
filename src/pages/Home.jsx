@@ -158,7 +158,7 @@ export default function Home() {
 
         // Re-fetch user books with correct email after we have the user
         const ownedBooks = user
-          ? await Book.filter({ created_by: user.email }, "-created_date", 10)
+          ? await Book.filter({ created_by: user.id }, "-created_date", 10)
           : [];
 
         const drafts = ownedBooks.filter(b => b.status !== "complete");

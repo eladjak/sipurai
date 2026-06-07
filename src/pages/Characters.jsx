@@ -56,8 +56,8 @@ export default function Characters() {
       setIsLoading(true);
       const data = await Character.list("-created_date");
       // Filter to only show current user's characters (privacy)
-      const userChars = user?.email
-        ? data.filter(c => c.created_by === user.email)
+      const userChars = user?.id
+        ? data.filter(c => c.created_by === user.id)
         : [];
       setCharacters(userChars);
     } catch (error) {

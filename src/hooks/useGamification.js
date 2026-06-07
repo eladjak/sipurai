@@ -183,7 +183,7 @@ export default function useGamification() {
       setUser(currentUser);
 
       // Load books for stats
-      const books = await Book.filter({ created_by: currentUser.email });
+      const books = await Book.filter({ created_by: currentUser.id });
 
       // Compute stats from real data
       const genres = new Set(books.map(b => b.genre).filter(Boolean));
