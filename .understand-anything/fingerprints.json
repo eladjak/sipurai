@@ -1,0 +1,5437 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "f3cea14448d4fdd2019b9b8820bcb570802e275d",
+  "generatedAt": "2026-06-08T09:29:18.869Z",
+  "files": {
+    "api/_lib/verifyClerk.js": {
+      "filePath": "api/_lib/verifyClerk.js",
+      "contentHash": "4062a9c6a4c5a4189410ead89c4f833be5ced2294c584565e8b947c06fa1247b",
+      "functions": [
+        {
+          "name": "b64urlToBuffer",
+          "params": [
+            "s"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "decodeJwt",
+          "params": [
+            "token"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "hostFromPublishableKey",
+          "params": [
+            "pk"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "resolveIssuer",
+          "params": [],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "resolveJwksUrl",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "resolveAuthorizedParties",
+          "params": [],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "fetchJwks",
+          "params": [
+            "url"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "getJwks",
+          "params": [
+            "url"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "jwkToPem",
+          "params": [
+            "jwk"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "verifySignature",
+          "params": [
+            "jwk",
+            "signingInput",
+            "signature"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "verifyClerkToken",
+          "params": [
+            "token"
+          ],
+          "exported": true,
+          "lineCount": 82
+        },
+        {
+          "name": "requireClerkAuth",
+          "params": [
+            "req"
+          ],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:crypto",
+          "specifiers": [
+            "createPublicKey",
+            "createVerify"
+          ]
+        }
+      ],
+      "exports": [
+        "resolveIssuer",
+        "verifyClerkToken",
+        "requireClerkAuth"
+      ],
+      "totalLines": 256,
+      "hasStructuralAnalysis": true
+    },
+    "api/ai/gemini-image.js": {
+      "filePath": "api/ai/gemini-image.js",
+      "contentHash": "dc7f1e7f377b5de5d1429b7156e502ebd38aa7aaaa821fc6f41265989b492a13",
+      "functions": [
+        {
+          "name": "geminiProImage",
+          "params": [
+            "apiKey",
+            "prompt"
+          ],
+          "exported": true,
+          "lineCount": 66
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "geminiProImage"
+      ],
+      "totalLines": 82,
+      "hasStructuralAnalysis": true
+    },
+    "api/ai/generate.js": {
+      "filePath": "api/ai/generate.js",
+      "contentHash": "9497a420e67f4aa946e475b7cf953420a0b0051d15466d9d54164cacc093cb38",
+      "functions": [
+        {
+          "name": "checkRateLimit",
+          "params": [
+            "ip"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "log",
+          "params": [
+            "label",
+            "data"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "convertSchemaToGemini",
+          "params": [
+            "schema"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "handler",
+          "params": [
+            "req",
+            "res"
+          ],
+          "exported": true,
+          "lineCount": 113
+        },
+        {
+          "name": "handleText",
+          "params": [
+            "apiKey",
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 65
+        },
+        {
+          "name": "handleImage",
+          "params": [
+            "apiKey",
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 67
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../_lib/verifyClerk.js",
+          "specifiers": [
+            "requireClerkAuth"
+          ]
+        }
+      ],
+      "exports": [
+        "handler"
+      ],
+      "totalLines": 344,
+      "hasStructuralAnalysis": true
+    },
+    "api/ai/openai-image-edit.js": {
+      "filePath": "api/ai/openai-image-edit.js",
+      "contentHash": "422d4f00f7f8c1c784303593f037d71ebf8a774387c287f4761998df6816b294",
+      "functions": [
+        {
+          "name": "openaiImageEdit",
+          "params": [
+            "apiKey",
+            "prompt"
+          ],
+          "exported": true,
+          "lineCount": 45
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "openaiImageEdit"
+      ],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "api/ai/openai-image.js": {
+      "filePath": "api/ai/openai-image.js",
+      "contentHash": "7e4218aae2f55987ca3af904894631109941d3729dd70e1a7c537218e9ef1887",
+      "functions": [
+        {
+          "name": "openaiImage",
+          "params": [
+            "apiKey",
+            "prompt"
+          ],
+          "exported": true,
+          "lineCount": 38
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "openaiImage"
+      ],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
+    "api/ai/tts.js": {
+      "filePath": "api/ai/tts.js",
+      "contentHash": "b93232765873c91e50a8a864b448b29439a00a17d9aedb3f1a82b403f6e025ac",
+      "functions": [
+        {
+          "name": "checkRateLimit",
+          "params": [
+            "ip"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "log",
+          "params": [
+            "msg",
+            "extra"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "handler",
+          "params": [
+            "req",
+            "res"
+          ],
+          "exported": true,
+          "lineCount": 67
+        },
+        {
+          "name": "openaiTts",
+          "params": [
+            "res",
+            "apiKey",
+            "text",
+            "voice",
+            "format",
+            "instructions"
+          ],
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "geminiTts",
+          "params": [
+            "res",
+            "apiKey",
+            "text",
+            "voice"
+          ],
+          "exported": false,
+          "lineCount": 43
+        },
+        {
+          "name": "pcmToWav",
+          "params": [
+            "pcm",
+            "sampleRate",
+            "channels",
+            "bitsPerSample"
+          ],
+          "exported": false,
+          "lineCount": 20
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../_lib/verifyClerk.js",
+          "specifiers": [
+            "requireClerkAuth"
+          ]
+        }
+      ],
+      "exports": [
+        "handler"
+      ],
+      "totalLines": 207,
+      "hasStructuralAnalysis": true
+    },
+    "api/chat-faq.js": {
+      "filePath": "api/chat-faq.js",
+      "contentHash": "af2afe158512f8a29980b32b9e84eacf31fb86e2d8f55d1a0898db3bb375eb99",
+      "functions": [
+        {
+          "name": "handler",
+          "params": [
+            "req",
+            "res"
+          ],
+          "exported": true,
+          "lineCount": 62
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "handler"
+      ],
+      "totalLines": 99,
+      "hasStructuralAnalysis": true
+    },
+    "api/payments/checkout.js": {
+      "filePath": "api/payments/checkout.js",
+      "contentHash": "64d6044ebf1d42a7dda572ce54a5b97dbe7d86cdc2eb8525421f027614a84eee",
+      "functions": [
+        {
+          "name": "handler",
+          "params": [
+            "req",
+            "res"
+          ],
+          "exported": true,
+          "lineCount": 76
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "handler"
+      ],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "api/webhooks/creem.js": {
+      "filePath": "api/webhooks/creem.js",
+      "contentHash": "bf2985f75b16b7a57e9a96381686a19e2bf73c530268d5cb9fb118ff4f93d0db",
+      "functions": [
+        {
+          "name": "readRawBody",
+          "params": [
+            "req"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "verifySignature",
+          "params": [
+            "rawBody",
+            "signature",
+            "secret"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "getPlanFromProductId",
+          "params": [
+            "productId"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "handler",
+          "params": [
+            "req",
+            "res"
+          ],
+          "exported": true,
+          "lineCount": 123
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@supabase/supabase-js",
+          "specifiers": [
+            "createClient"
+          ]
+        },
+        {
+          "source": "crypto",
+          "specifiers": [
+            "crypto"
+          ]
+        }
+      ],
+      "exports": [
+        "config",
+        "handler"
+      ],
+      "totalLines": 184,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useAutoSave.js": {
+      "filePath": "src/hooks/useAutoSave.js",
+      "contentHash": "e28a4c5b7d299d8c3b5bc33fca0b914a5d20d16f7bc8631586227c067087c9d7",
+      "functions": [
+        {
+          "name": "useAutoSave",
+          "params": [
+            "key",
+            "data"
+          ],
+          "exported": true,
+          "lineCount": 98
+        },
+        {
+          "name": "loadAutoSaved",
+          "params": [
+            "key"
+          ],
+          "exported": true,
+          "lineCount": 17
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useRef",
+            "useCallback"
+          ]
+        }
+      ],
+      "exports": [
+        "useAutoSave",
+        "loadAutoSaved"
+      ],
+      "totalLines": 138,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useBook.js": {
+      "filePath": "src/hooks/useBook.js",
+      "contentHash": "e1f88571b250585be1bc32ef4837c8a5cbbb3992589e1b998a7e6eeed25d6252",
+      "functions": [
+        {
+          "name": "useBook",
+          "params": [
+            "bookId"
+          ],
+          "exported": true,
+          "lineCount": 46
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useRef",
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery",
+            "useQueryClient",
+            "QueryClient"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/Page",
+          "specifiers": [
+            "Page"
+          ]
+        }
+      ],
+      "exports": [
+        "useBook"
+      ],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useCharacterSelector.js": {
+      "filePath": "src/hooks/useCharacterSelector.js",
+      "contentHash": "a6995472f5f71aab53bb3023173238f677e4a0f2cd08b5418966565bbe974613",
+      "functions": [
+        {
+          "name": "useCharacterSelector",
+          "params": [],
+          "exported": true,
+          "lineCount": 68
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useRef"
+          ]
+        },
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery",
+            "useQueryClient",
+            "QueryClient"
+          ]
+        },
+        {
+          "source": "@/entities/Character",
+          "specifiers": [
+            "Character"
+          ]
+        }
+      ],
+      "exports": [
+        "useCharacterSelector"
+      ],
+      "totalLines": 78,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useCurrentUser.js": {
+      "filePath": "src/hooks/useCurrentUser.js",
+      "contentHash": "da9ee079a7205b84981942fa35bc100957ef1d070541365a033c769cb10f09e3",
+      "functions": [
+        {
+          "name": "useCurrentUser",
+          "params": [],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@/lib/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        }
+      ],
+      "exports": [
+        "useCurrentUser"
+      ],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useFollow.js": {
+      "filePath": "src/hooks/useFollow.js",
+      "contentHash": "5c023a565d53fcbb17536cad722c7abb7e56692fb9ec466ef360260d94ef0165",
+      "functions": [
+        {
+          "name": "resolveClerkId",
+          "params": [
+            "email"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "useFollow",
+          "params": [
+            "targetEmail"
+          ],
+          "exported": true,
+          "lineCount": 107
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useRef",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery",
+            "useMutation",
+            "useQueryClient",
+            "QueryClient"
+          ]
+        },
+        {
+          "source": "@/entities/Follow",
+          "specifiers": [
+            "Follow"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/lib/supabaseClient",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/profiles",
+          "specifiers": [
+            "followUserByEmail",
+            "unfollowUserByEmail",
+            "notifyUserByEmail"
+          ]
+        },
+        {
+          "source": "@/lib/analytics",
+          "specifiers": [
+            "trackEvent"
+          ]
+        }
+      ],
+      "exports": [
+        "useFollow"
+      ],
+      "totalLines": 157,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useGamification.js": {
+      "filePath": "src/hooks/useGamification.js",
+      "contentHash": "28a07510e6e7dee9c8282d970601c26bdbe161802e36634200f75ee10434379c",
+      "functions": [
+        {
+          "name": "getLevelFromXP",
+          "params": [
+            "xp"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "getNextLevelXP",
+          "params": [
+            "level"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "useGamification",
+          "params": [],
+          "exported": true,
+          "lineCount": 313
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback",
+            "useRef"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/UserBadge",
+          "specifiers": [
+            "UserBadge"
+          ]
+        },
+        {
+          "source": "@/lib/analytics",
+          "specifiers": [
+            "trackEvent"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "captureError"
+          ]
+        }
+      ],
+      "exports": [
+        "useGamification",
+        "XP_EVENTS",
+        "LEVEL_THRESHOLDS",
+        "BADGE_DEFINITIONS",
+        "getLevelFromXP",
+        "getNextLevelXP"
+      ],
+      "totalLines": 468,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useNotifications.js": {
+      "filePath": "src/hooks/useNotifications.js",
+      "contentHash": "1424a359e3239d5783e0b0f3006f00d1ef0ac48bd7bde55dab1f620c5c90e989",
+      "functions": [
+        {
+          "name": "useNotifications",
+          "params": [],
+          "exported": true,
+          "lineCount": 84
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useRef",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery",
+            "useMutation",
+            "useQueryClient",
+            "QueryClient"
+          ]
+        },
+        {
+          "source": "@/entities/Notification",
+          "specifiers": [
+            "Notification"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        }
+      ],
+      "exports": [
+        "useNotifications"
+      ],
+      "totalLines": 114,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useSanityContent.js": {
+      "filePath": "src/hooks/useSanityContent.js",
+      "contentHash": "bcc25b637fb4c9c7056d0bb029d68ad211b944a5159a4679f05dc3b577cd9fb8",
+      "functions": [
+        {
+          "name": "useSanityQuery",
+          "params": [
+            "queryKey",
+            "query"
+          ],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "useBlogPosts",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "useBlogPost",
+          "params": [
+            "slug"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "useFeaturedBlogPosts",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "useBlogPostsByTag",
+          "params": [
+            "tag"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "useLandingPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "useAuthors",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "useTags",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery"
+          ]
+        },
+        {
+          "source": "@/lib/sanityClient",
+          "specifiers": [
+            "sanityClient"
+          ]
+        },
+        {
+          "source": "@/lib/sanityQueries",
+          "specifiers": [
+            "BLOG_POSTS_QUERY",
+            "BLOG_POST_BY_SLUG_QUERY",
+            "FEATURED_BLOG_POSTS_QUERY",
+            "BLOG_POSTS_BY_TAG_QUERY",
+            "LANDING_PAGE_QUERY",
+            "AUTHORS_QUERY",
+            "TAGS_QUERY"
+          ]
+        }
+      ],
+      "exports": [
+        "useSanityQuery",
+        "useBlogPosts",
+        "useBlogPost",
+        "useFeaturedBlogPosts",
+        "useBlogPostsByTag",
+        "useLandingPage",
+        "useAuthors",
+        "useTags"
+      ],
+      "totalLines": 117,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useSubscription.js": {
+      "filePath": "src/hooks/useSubscription.js",
+      "contentHash": "be4c1dbbb4230ecd085606d8a29f382a0e0bbe3f33de1e9ab8a4631cd3a0d36d",
+      "functions": [
+        {
+          "name": "useSubscription",
+          "params": [],
+          "exported": true,
+          "lineCount": 57
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useRef"
+          ]
+        },
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "useQuery",
+            "useQueryClient",
+            "QueryClient"
+          ]
+        },
+        {
+          "source": "@/lib/supabaseClient",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        }
+      ],
+      "exports": [
+        "useSubscription"
+      ],
+      "totalLines": 69,
+      "hasStructuralAnalysis": true
+    },
+    "src/hooks/useTTS.js": {
+      "filePath": "src/hooks/useTTS.js",
+      "contentHash": "4b54369dc01a9e625451bcd7dc264ec0be3588a28b93130d59e60ce74d3d2891",
+      "functions": [
+        {
+          "name": "useTTS",
+          "params": [],
+          "exported": true,
+          "lineCount": 167
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback",
+            "useRef"
+          ]
+        },
+        {
+          "source": "../lib/ttsProvider",
+          "specifiers": [
+            "synthesize",
+            "getDefaultVoice"
+          ]
+        }
+      ],
+      "exports": [
+        "useTTS"
+      ],
+      "totalLines": 184,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/aiProvider.js": {
+      "filePath": "src/lib/aiProvider.js",
+      "contentHash": "9e8c53bb870fed5ccf9de3f0c74af6bf584505da46f073fae909e7678aabb7f2",
+      "functions": [
+        {
+          "name": "useDirectApi",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "getApiKey",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "convertSchemaToGemini",
+          "params": [
+            "schema"
+          ],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "proxyCall",
+          "params": [
+            "type",
+            "prompt"
+          ],
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "invokeLLM",
+          "params": [],
+          "exported": true,
+          "lineCount": 81
+        },
+        {
+          "name": "generateImage",
+          "params": [],
+          "exported": true,
+          "lineCount": 69
+        },
+        {
+          "name": "base64ToFile",
+          "params": [
+            "base64"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@/lib/apiAuth",
+          "specifiers": [
+            "getApiAuthHeaders"
+          ]
+        }
+      ],
+      "exports": [
+        "invokeLLM",
+        "generateImage",
+        "base64ToFile"
+      ],
+      "totalLines": 304,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/analytics.js": {
+      "filePath": "src/lib/analytics.js",
+      "contentHash": "4adb1707da7347d1d91e39a7f8f3411a4b822c1e4b59795ed18aadea6201ced9",
+      "functions": [
+        {
+          "name": "trackEvent",
+          "params": [
+            "name"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "trackPageView",
+          "params": [
+            "pageName"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "identifyUser",
+          "params": [
+            "user"
+          ],
+          "exported": true,
+          "lineCount": 12
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "trackEvent",
+        "trackPageView",
+        "identifyUser"
+      ],
+      "totalLines": 73,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/apiAuth.js": {
+      "filePath": "src/lib/apiAuth.js",
+      "contentHash": "04051f99b9a4354a402a060fb3f3d1152689e034f06e354d027220c3c1fb66fc",
+      "functions": [
+        {
+          "name": "setApiTokenGetter",
+          "params": [
+            "fn"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getApiAuthHeaders",
+          "params": [],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "setApiTokenGetter",
+        "getApiAuthHeaders"
+      ],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/AuthContext.jsx": {
+      "filePath": "src/lib/AuthContext.jsx",
+      "contentHash": "9358cd364bcbf34b8091cd22a817c7448e0534e9d0df99f00cea47502e28fbd8",
+      "functions": [
+        {
+          "name": "AuthProvider",
+          "params": [],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "ClerkAuthProvider",
+          "params": [],
+          "exported": false,
+          "lineCount": 110
+        },
+        {
+          "name": "FallbackAuthProvider",
+          "params": [],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "useAuth",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "createContext",
+            "useContext",
+            "useEffect",
+            "useMemo"
+          ]
+        },
+        {
+          "source": "@clerk/clerk-react",
+          "specifiers": [
+            "useUser",
+            "useClerkAuth",
+            "useClerk"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "setSentryUser"
+          ]
+        },
+        {
+          "source": "@/lib/analytics",
+          "specifiers": [
+            "identifyUser"
+          ]
+        },
+        {
+          "source": "@/lib/supabaseClient",
+          "specifiers": [
+            "setClerkTokenGetter"
+          ]
+        },
+        {
+          "source": "@/lib/apiAuth",
+          "specifiers": [
+            "setApiTokenGetter"
+          ]
+        },
+        {
+          "source": "@/lib/profiles",
+          "specifiers": [
+            "ensureProfile"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthProvider",
+        "FallbackAuthProvider",
+        "useAuth"
+      ],
+      "totalLines": 168,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/creem.js": {
+      "filePath": "src/lib/creem.js",
+      "contentHash": "3630bd3724df8217eff3d7c6a917ccbce2cde9cf54665427fc0e342c4402b89a",
+      "functions": [
+        {
+          "name": "openCheckout",
+          "params": [
+            "planId",
+            "userEmail"
+          ],
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "getUserPlan",
+          "params": [
+            "user"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "PLANS",
+        "openCheckout",
+        "getUserPlan"
+      ],
+      "totalLines": 155,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/errorTracking.js": {
+      "filePath": "src/lib/errorTracking.js",
+      "contentHash": "54f5114bfa6cca044e9c9d719e66191260f4844f8b0743711d5d572e55ce6822",
+      "functions": [
+        {
+          "name": "initErrorTracking",
+          "params": [],
+          "exported": true,
+          "lineCount": 66
+        },
+        {
+          "name": "captureError",
+          "params": [
+            "error"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "setUser",
+          "params": [
+            "user"
+          ],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "initErrorTracking",
+        "captureError",
+        "setUser"
+      ],
+      "totalLines": 126,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/NavigationTracker.jsx": {
+      "filePath": "src/lib/NavigationTracker.jsx",
+      "contentHash": "66cde5d3ef99aaca06eea3785f7ca7efd9a6962798fbea89c94cfa040ab2d5de",
+      "functions": [
+        {
+          "name": "NavigationTracker",
+          "params": [],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useLocation"
+          ]
+        },
+        {
+          "source": "@/pages.config",
+          "specifiers": [
+            "pagesConfig"
+          ]
+        }
+      ],
+      "exports": [
+        "NavigationTracker"
+      ],
+      "totalLines": 18,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/PageNotFound.jsx": {
+      "filePath": "src/lib/PageNotFound.jsx",
+      "contentHash": "9b8b77eaa2ce45116eef1b29a32761c18276d6a518696abe998adfd30b69b9a3",
+      "functions": [
+        {
+          "name": "PageNotFound",
+          "params": [],
+          "exported": true,
+          "lineCount": 60
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useLocation"
+          ]
+        },
+        {
+          "source": "@/lib/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [
+        "PageNotFound"
+      ],
+      "totalLines": 66,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/profiles.js": {
+      "filePath": "src/lib/profiles.js",
+      "contentHash": "fb75fc2d6e83a640e8444bc21047dc19d3f0ff84b1ce1101186e476962c63d95",
+      "functions": [
+        {
+          "name": "ensureProfile",
+          "params": [
+            "user"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "followUserByEmail",
+          "params": [
+            "targetEmail"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "unfollowUserByEmail",
+          "params": [
+            "targetEmail"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "notifyUserByEmail",
+          "params": [],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabaseClient",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "ensureProfile",
+        "followUserByEmail",
+        "unfollowUserByEmail",
+        "notifyUserByEmail"
+      ],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/query-client.js": {
+      "filePath": "src/lib/query-client.js",
+      "contentHash": "73c984ce07a6dec4e670302d76e00ebbd8d77ffceb58431859c5a9f64284c838",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@tanstack/react-query",
+          "specifiers": [
+            "QueryClient"
+          ]
+        }
+      ],
+      "exports": [
+        "queryClientInstance"
+      ],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/resultHelper.js": {
+      "filePath": "src/lib/resultHelper.js",
+      "contentHash": "48225dcf3b4621774df6850c117598611682720b436938d53754e5e4252db0a6",
+      "functions": [
+        {
+          "name": "safeAsync",
+          "params": [
+            "fn"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [
+        {
+          "name": "Result",
+          "methods": [
+            "constructor",
+            "ok",
+            "err",
+            "unwrap",
+            "unwrapOr",
+            "value",
+            "error",
+            "map",
+            "mapErr"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 43
+        }
+      ],
+      "imports": [],
+      "exports": [
+        "Result",
+        "safeAsync"
+      ],
+      "totalLines": 71,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/sanityClient.js": {
+      "filePath": "src/lib/sanityClient.js",
+      "contentHash": "1f3b97ab35b829f5b30b547b657dc9b4cc82b982a80cbe8816059e58b731a65c",
+      "functions": [
+        {
+          "name": "urlFor",
+          "params": [
+            "source"
+          ],
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@sanity/client",
+          "specifiers": [
+            "createClient"
+          ]
+        },
+        {
+          "source": "@sanity/image-url",
+          "specifiers": [
+            "imageUrlBuilder"
+          ]
+        }
+      ],
+      "exports": [
+        "sanityClient",
+        "urlFor"
+      ],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/sanityQueries.js": {
+      "filePath": "src/lib/sanityQueries.js",
+      "contentHash": "c8f8628df0fa5f4d80fd20c290d93a838d17e0ca3e0f3897a657a27d8e4bd17c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "BLOG_POSTS_QUERY",
+        "BLOG_POST_BY_SLUG_QUERY",
+        "FEATURED_BLOG_POSTS_QUERY",
+        "BLOG_POSTS_BY_TAG_QUERY",
+        "LANDING_PAGE_QUERY",
+        "AUTHORS_QUERY",
+        "TAGS_QUERY"
+      ],
+      "totalLines": 125,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/sceneGenerator.js": {
+      "filePath": "src/lib/sceneGenerator.js",
+      "contentHash": "3b640d5408ffcb0ff60edf4c34449f77208eb0fb294b2d5a2314ac310b3f8f0c",
+      "functions": [
+        {
+          "name": "clampSceneCount",
+          "params": [
+            "n"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "makeId",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "buildPrompt",
+          "params": [],
+          "exported": false,
+          "lineCount": 62
+        },
+        {
+          "name": "buildFallback",
+          "params": [],
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "normalizeRawScene",
+          "params": [
+            "raw",
+            "fallbackTitle"
+          ],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "generateScenePlan",
+          "params": [],
+          "exported": true,
+          "lineCount": 89
+        },
+        {
+          "name": "generateSceneImagePrompt",
+          "params": [],
+          "exported": true,
+          "lineCount": 52
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "InvokeLLM"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "buildSafetyPromptPrefix",
+            "sanitizeAIOutput"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "captureError"
+          ]
+        }
+      ],
+      "exports": [
+        "generateScenePlan",
+        "generateSceneImagePrompt",
+        "__internal"
+      ],
+      "totalLines": 346,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/secureEntity.js": {
+      "filePath": "src/lib/secureEntity.js",
+      "contentHash": "848483100f53c48db719fe8b4e1a7972bfb510fca15de98c0a95e81a62aedb66",
+      "functions": [
+        {
+          "name": "createSecureEntity",
+          "params": [
+            "entity"
+          ],
+          "exported": true,
+          "lineCount": 54
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        }
+      ],
+      "exports": [
+        "createSecureEntity"
+      ],
+      "totalLines": 69,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/seo.js": {
+      "filePath": "src/lib/seo.js",
+      "contentHash": "758308a6a7b22f0a29aaa4b62bd594ade7de71b74d8856677fb16aa6c56510bd",
+      "functions": [
+        {
+          "name": "updateMeta",
+          "params": [],
+          "exported": true,
+          "lineCount": 58
+        },
+        {
+          "name": "resetMeta",
+          "params": [],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "useSEO",
+          "params": [
+            "pageName"
+          ],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        }
+      ],
+      "exports": [
+        "PAGE_META",
+        "updateMeta",
+        "resetMeta",
+        "useSEO"
+      ],
+      "totalLines": 209,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/smartModelPicker.js": {
+      "filePath": "src/lib/smartModelPicker.js",
+      "contentHash": "915c7de64120a05eb2b93821003c6df2389f5f0aa6d0af0eb52bc0eafae266ef",
+      "functions": [
+        {
+          "name": "hasHebrew",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "canAccess",
+          "params": [
+            "model",
+            "userTier"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "pickBestModel",
+          "params": [],
+          "exported": true,
+          "lineCount": 67
+        },
+        {
+          "name": "getModelRouting",
+          "params": [
+            "modelId"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "isModelSupported",
+          "params": [
+            "modelId"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "SUPPORTED_MODEL_IDS",
+        "MODEL_REGISTRY",
+        "pickBestModel",
+        "getModelRouting",
+        "isModelSupported"
+      ],
+      "totalLines": 175,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyBible.js": {
+      "filePath": "src/lib/storyBible.js",
+      "contentHash": "7147b8841bb0a5c55a0a0a79aa98217b6817c97017f05c28b18fc3561b1d353c",
+      "functions": [
+        {
+          "name": "getNarrationPreset",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "generateStoryBible",
+          "params": [
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 47
+        },
+        {
+          "name": "characterPromptFor",
+          "params": [
+            "bible"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "imagePromptFor",
+          "params": [
+            "bible",
+            "pageIndex"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "narrationDirectiveFor",
+          "params": [
+            "bible",
+            "pageIndex"
+          ],
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "InvokeLLM"
+          ]
+        }
+      ],
+      "exports": [
+        "NARRATION_PRESETS",
+        "getNarrationPreset",
+        "generateStoryBible",
+        "characterPromptFor",
+        "imagePromptFor",
+        "narrationDirectiveFor"
+      ],
+      "totalLines": 208,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/budget.js": {
+      "filePath": "src/lib/storyVideo/budget.js",
+      "contentHash": "28414e6ad698fcf63f571ad11841aff2786f942d75e7e9c4da9b044819dea1cb",
+      "functions": [
+        {
+          "name": "fnv1a",
+          "params": [
+            "str"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "storyVideoCacheKey",
+          "params": [],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "checkRenderBudget",
+          "params": [],
+          "exported": true,
+          "lineCount": 38
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "RENDER_BUDGET_BY_TIER",
+        "fnv1a",
+        "storyVideoCacheKey",
+        "checkRenderBudget"
+      ],
+      "totalLines": 124,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/constants.js": {
+      "filePath": "src/lib/storyVideo/constants.js",
+      "contentHash": "297ef1d5f2357bff519ac11f8294aad0f8311fa5ce68889086ed2f4c63c7cee3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "FPS",
+        "VIDEO_WIDTH",
+        "VIDEO_HEIGHT",
+        "DEFAULT_SCENE_MS",
+        "MIN_SCENE_MS",
+        "SCENE_TAIL_PADDING_MS",
+        "TRANSITION_MS",
+        "MUSIC_VOLUME",
+        "NARRATION_VOLUME",
+        "KEN_BURNS_ZOOM_FROM",
+        "KEN_BURNS_ZOOM_TO",
+        "KEN_BURNS_PAN_FRACTION",
+        "RTL_LANGUAGES",
+        "DEFAULT_MUSIC_BED",
+        "VIDEO_STATUS"
+      ],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/index.js": {
+      "filePath": "src/lib/storyVideo/index.js",
+      "contentHash": "54cbb5a4d89d549ce0334461ef4f3137a7562f7709e95eaf03dbaa11424f0f16",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "buildRenderInput",
+        "synthesizeNarration"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/moderation.js": {
+      "filePath": "src/lib/storyVideo/moderation.js",
+      "contentHash": "102f046f329f7707351b532c7ae74b197034bcee82b06a844da90acccca28e14",
+      "functions": [
+        {
+          "name": "moderateStory",
+          "params": [
+            "input"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "noopModerator",
+          "params": [],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "moderateStory",
+        "noopModerator"
+      ],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/music.js": {
+      "filePath": "src/lib/storyVideo/music.js",
+      "contentHash": "a62abbd07e164525ea321a6571759d3d06b6f34cf52b0b721d78707954fc78c7",
+      "functions": [
+        {
+          "name": "moodForGenre",
+          "params": [
+            "genre"
+          ],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "resolveMusicBed",
+          "params": [],
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./constants.js",
+          "specifiers": [
+            "DEFAULT_MUSIC_BED",
+            "MUSIC_VOLUME"
+          ]
+        }
+      ],
+      "exports": [
+        "moodForGenre",
+        "resolveMusicBed"
+      ],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/pipeline.js": {
+      "filePath": "src/lib/storyVideo/pipeline.js",
+      "contentHash": "5b4f65af207cfad6b2885502354ef3933ba83257b702a303794b07a9661fae97",
+      "functions": [
+        {
+          "name": "synthesizeNarration",
+          "params": [
+            "scenes",
+            "opts"
+          ],
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "buildRenderInput",
+          "params": [
+            "story"
+          ],
+          "exported": true,
+          "lineCount": 94
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../resultHelper.js",
+          "specifiers": [
+            "Result"
+          ]
+        },
+        {
+          "source": "../ttsProvider.js",
+          "specifiers": [
+            "getDefaultVoice"
+          ]
+        },
+        {
+          "source": "./timing.js",
+          "specifiers": [
+            "buildTimeline",
+            "normalizePage",
+            "isRtlLanguage"
+          ]
+        },
+        {
+          "source": "./music.js",
+          "specifiers": [
+            "resolveMusicBed"
+          ]
+        },
+        {
+          "source": "./moderation.js",
+          "specifiers": [
+            "moderateStory",
+            "noopModerator"
+          ]
+        },
+        {
+          "source": "./budget.js",
+          "specifiers": [
+            "storyVideoCacheKey",
+            "checkRenderBudget"
+          ]
+        },
+        {
+          "source": "./constants.js",
+          "specifiers": [
+            "VIDEO_WIDTH",
+            "VIDEO_HEIGHT",
+            "FPS"
+          ]
+        }
+      ],
+      "exports": [
+        "synthesizeNarration",
+        "buildRenderInput"
+      ],
+      "totalLines": 173,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/renderQueue.js": {
+      "filePath": "src/lib/storyVideo/renderQueue.js",
+      "contentHash": "4d2ece86dfa65d4aea2c034c957346ab6809cf014503b3c340ca6bf0bbfa5987",
+      "functions": [
+        {
+          "name": "createRenderJob",
+          "params": [],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "canTransition",
+          "params": [
+            "from",
+            "to"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "transition",
+          "params": [
+            "job",
+            "to"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "isTerminal",
+          "params": [
+            "status"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./constants.js",
+          "specifiers": [
+            "VIDEO_STATUS"
+          ]
+        }
+      ],
+      "exports": [
+        "createRenderJob",
+        "canTransition",
+        "transition",
+        "isTerminal"
+      ],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/storyVideo/timing.js": {
+      "filePath": "src/lib/storyVideo/timing.js",
+      "contentHash": "9975a172d707f457db431b256238393c5e3f046ecff9253456d5e0f12fc0dd72",
+      "functions": [
+        {
+          "name": "msToFrames",
+          "params": [
+            "ms"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "framesToMs",
+          "params": [
+            "frames"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "isRtlLanguage",
+          "params": [
+            "language"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "normalizePage",
+          "params": [
+            "page",
+            "index"
+          ],
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "firstNumber",
+          "params": [
+            "...vals"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "sceneDurationMs",
+          "params": [
+            "narrationMs"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "buildTimeline",
+          "params": [
+            "pages"
+          ],
+          "exported": true,
+          "lineCount": 39
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./constants.js",
+          "specifiers": [
+            "FPS",
+            "DEFAULT_SCENE_MS",
+            "MIN_SCENE_MS",
+            "SCENE_TAIL_PADDING_MS",
+            "RTL_LANGUAGES"
+          ]
+        }
+      ],
+      "exports": [
+        "msToFrames",
+        "framesToMs",
+        "isRtlLanguage",
+        "normalizePage",
+        "sceneDurationMs",
+        "buildTimeline"
+      ],
+      "totalLines": 139,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/supabaseClient.js": {
+      "filePath": "src/lib/supabaseClient.js",
+      "contentHash": "c996e21bba129692acc0a47f7bb60fde62bccb2047ed87b49037adb9d26a79f9",
+      "functions": [
+        {
+          "name": "setClerkTokenGetter",
+          "params": [
+            "fn"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "uploadFileToSupabase",
+          "params": [
+            "file"
+          ],
+          "exported": true,
+          "lineCount": 22
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@supabase/supabase-js",
+          "specifiers": [
+            "createClient"
+          ]
+        }
+      ],
+      "exports": [
+        "setClerkTokenGetter",
+        "supabase",
+        "uploadFileToSupabase"
+      ],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/supabaseEntity.js": {
+      "filePath": "src/lib/supabaseEntity.js",
+      "contentHash": "3fc1fed9943466815e0eaef96d8f66e81eaf11487c7798f9a75278a54fea8ba6",
+      "functions": [
+        {
+          "name": "parseSort",
+          "params": [
+            "sort"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "createSupabaseEntity",
+          "params": [
+            "tableName"
+          ],
+          "exported": true,
+          "lineCount": 156
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./supabaseClient",
+          "specifiers": [
+            "supabase"
+          ]
+        }
+      ],
+      "exports": [
+        "createSupabaseEntity"
+      ],
+      "totalLines": 190,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/ttsProvider.js": {
+      "filePath": "src/lib/ttsProvider.js",
+      "contentHash": "7d1fb99fc85e4df86f8b15e29cec4995ab7f9f7b438b973020666d41dfed0447",
+      "functions": [
+        {
+          "name": "synthesize",
+          "params": [],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "getDefaultVoice",
+          "params": [
+            "provider"
+          ],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@/lib/apiAuth",
+          "specifiers": [
+            "getApiAuthHeaders"
+          ]
+        }
+      ],
+      "exports": [
+        "synthesize",
+        "VOICES",
+        "getDefaultVoice"
+      ],
+      "totalLines": 54,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/utils.js": {
+      "filePath": "src/lib/utils.js",
+      "contentHash": "917f1465a64346f1b76178074a09ac5cd63e96fe12eb740311a73f0f27d8487e",
+      "functions": [
+        {
+          "name": "cn",
+          "params": [
+            "...inputs"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "clsx",
+          "specifiers": [
+            "clsx"
+          ]
+        },
+        {
+          "source": "tailwind-merge",
+          "specifiers": [
+            "twMerge"
+          ]
+        }
+      ],
+      "exports": [
+        "cn",
+        "isIframe"
+      ],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "src/lib/VisualEditAgent.jsx": {
+      "filePath": "src/lib/VisualEditAgent.jsx",
+      "contentHash": "0f069176b6ef5826ebb047e833ac0c32df1c507c7d43aca9b9bfb823b74daf1c",
+      "functions": [
+        {
+          "name": "VisualEditAgent",
+          "params": [],
+          "exported": true,
+          "lineCount": 645
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useRef",
+            "useState"
+          ]
+        },
+        {
+          "source": "tailwind-merge",
+          "specifiers": [
+            "twMerge"
+          ]
+        }
+      ],
+      "exports": [
+        "VisualEditAgent"
+      ],
+      "totalLines": 648,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Blog.jsx": {
+      "filePath": "src/pages/Blog.jsx",
+      "contentHash": "322dd2490898e832d22d96e680af9e7f02e285c1c6daa687a69e7ac25709aefd",
+      "functions": [
+        {
+          "name": "PostSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "EmptyState",
+          "params": [],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "Blog",
+          "params": [],
+          "exported": true,
+          "lineCount": 197
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "useState",
+            "useMemo",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ChevronDown"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/hooks/useSanityContent",
+          "specifiers": [
+            "useBlogPosts"
+          ]
+        },
+        {
+          "source": "@/components/blog/BlogCard",
+          "specifiers": [
+            "BlogCard"
+          ]
+        },
+        {
+          "source": "@/components/blog/BlogHeader",
+          "specifiers": [
+            "BlogHeader"
+          ]
+        },
+        {
+          "source": "@/components/blog/BlogSidebar",
+          "specifiers": [
+            "BlogSidebar"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        },
+        {
+          "source": "@/data/blogPosts",
+          "specifiers": [
+            "DEMO_POSTS"
+          ]
+        }
+      ],
+      "exports": [
+        "Blog"
+      ],
+      "totalLines": 270,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/BlogPost.jsx": {
+      "filePath": "src/pages/BlogPost.jsx",
+      "contentHash": "0fcd56adff7849ca1ffbda3d61186b92aa4db56daf43dc8a2e85610c207cfd07",
+      "functions": [
+        {
+          "name": "getMockPost",
+          "params": [
+            "slug"
+          ],
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "TableOfContents",
+          "params": [],
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "AuthorCard",
+          "params": [],
+          "exported": false,
+          "lineCount": 39
+        },
+        {
+          "name": "ShareButtons",
+          "params": [],
+          "exported": false,
+          "lineCount": 50
+        },
+        {
+          "name": "PostSkeleton",
+          "params": [],
+          "exported": false,
+          "lineCount": 22
+        },
+        {
+          "name": "BlogPost",
+          "params": [],
+          "exported": true,
+          "lineCount": 210
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useMemo"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useParams",
+            "Link",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "ArrowRight",
+            "Calendar",
+            "Clock",
+            "User",
+            "Share2",
+            "Copy",
+            "Check",
+            "BookOpen",
+            "List"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/hooks/useSanityContent",
+          "specifiers": [
+            "useBlogPost"
+          ]
+        },
+        {
+          "source": "@/lib/sanityClient",
+          "specifiers": [
+            "urlFor"
+          ]
+        },
+        {
+          "source": "@/components/blog/PortableText",
+          "specifiers": [
+            "PortableText",
+            "extractHeadings"
+          ]
+        },
+        {
+          "source": "@/components/blog/BlogCard",
+          "specifiers": [
+            "BlogCard"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        },
+        {
+          "source": "@/data/blogPosts",
+          "specifiers": [
+            "DEMO_POSTS",
+            "getPostBySlug"
+          ]
+        }
+      ],
+      "exports": [
+        "BlogPost"
+      ],
+      "totalLines": 420,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/BookCreation.jsx": {
+      "filePath": "src/pages/BookCreation.jsx",
+      "contentHash": "efc6bc8eb23edb3990dd9c7b7892a7aa66bd2b081cf8a8a9f3000195fb50dc37",
+      "functions": [
+        {
+          "name": "BookCreation",
+          "params": [],
+          "exported": true,
+          "lineCount": 840
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "useGamification"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/Page",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "GenerateImage",
+            "InvokeLLM"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "buildSafetyPromptPrefix",
+            "sanitizeAIOutput"
+          ]
+        },
+        {
+          "source": "@/utils/bookRateLimit",
+          "specifiers": [
+            "canCreateBook",
+            "recordBookCreation"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Edit",
+            "Eye",
+            "Share2",
+            "ArrowLeft",
+            "Sparkles"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/tabs",
+          "specifiers": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/entities/Collaboration",
+          "specifiers": [
+            "Collaboration"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "captureError"
+          ]
+        },
+        {
+          "source": "../components/bookCreation/GenerationSteps",
+          "specifiers": [
+            "GenerationSteps"
+          ]
+        },
+        {
+          "source": "../components/bookCreation/BookEditorTab",
+          "specifiers": [
+            "BookEditorTab"
+          ]
+        },
+        {
+          "source": "../components/bookCreation/BookStylingTab",
+          "specifiers": [
+            "BookStylingTab"
+          ]
+        },
+        {
+          "source": "../components/bookCreation/ShareOptions",
+          "specifiers": [
+            "ShareOptions"
+          ]
+        },
+        {
+          "source": "../components/bookCreation/DraftView",
+          "specifiers": [
+            "DraftView"
+          ]
+        },
+        {
+          "source": "../components/bookCreation/AutoSaveIndicator",
+          "specifiers": [
+            "AutoSaveIndicator"
+          ]
+        },
+        {
+          "source": "@/hooks/useAutoSave",
+          "specifiers": [
+            "useAutoSave",
+            "loadAutoSaved"
+          ]
+        },
+        {
+          "source": "@/utils/book-translations",
+          "specifiers": [
+            "getBookTranslation"
+          ]
+        }
+      ],
+      "exports": [
+        "BookCreation"
+      ],
+      "totalLines": 878,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/BookView.jsx": {
+      "filePath": "src/pages/BookView.jsx",
+      "contentHash": "f3c3332cdff4d3320cdffdda287d200aa00b302e36fef5758873220bcc7532ef",
+      "functions": [
+        {
+          "name": "loadConfetti",
+          "params": [],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "BookView",
+          "params": [],
+          "exported": true,
+          "lineCount": 949
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback",
+            "useRef"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/Page",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "@/entities/PublicBook",
+          "specifiers": [
+            "PublicBook",
+            "PublicPage"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "ArrowRight",
+            "ChevronLeft",
+            "ChevronRight",
+            "Home",
+            "Download",
+            "Maximize",
+            "Minimize",
+            "Moon",
+            "Sun",
+            "ZoomIn",
+            "ZoomOut",
+            "Loader2",
+            "PenTool",
+            "BookOpen",
+            "Share2",
+            "Plus",
+            "LogIn"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/components/bookReader/PageFlip",
+          "specifiers": [
+            "PageFlip"
+          ]
+        },
+        {
+          "source": "@/components/bookReader/TTSControls",
+          "specifiers": [
+            "TTSControls",
+            "getStoredTTSEngine"
+          ]
+        },
+        {
+          "source": "@/hooks/useTTS",
+          "specifiers": [
+            "useTTS"
+          ]
+        },
+        {
+          "source": "@/utils/pdfExporter",
+          "specifiers": [
+            "exportBookToPDF"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "useGamification"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        },
+        {
+          "source": "@/lib/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        }
+      ],
+      "exports": [
+        "BookView"
+      ],
+      "totalLines": 996,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/BookWizard.jsx": {
+      "filePath": "src/pages/BookWizard.jsx",
+      "contentHash": "81d278ec0e3aab452be4ed3af533ba1ee21f5c1bf55652980bbbf5b02cf86e31",
+      "functions": [
+        {
+          "name": "getDraftKeys",
+          "params": [],
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "getLatestDraft",
+          "params": [],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "pruneOldDrafts",
+          "params": [],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "clearDraft",
+          "params": [
+            "key"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "clearAllDrafts",
+          "params": [],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "BookWizard",
+          "params": [],
+          "exported": true,
+          "lineCount": 1369
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useRef",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/Page",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "@/entities/Follow",
+          "specifiers": [
+            "Follow"
+          ]
+        },
+        {
+          "source": "@/lib/supabaseClient",
+          "specifiers": [
+            "supabase"
+          ]
+        },
+        {
+          "source": "@/lib/profiles",
+          "specifiers": [
+            "notifyUserByEmail"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ChevronLeft",
+            "ChevronRight",
+            "BookOpen",
+            "Sparkles",
+            "Trash2"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "InvokeLLM",
+            "GenerateImage"
+          ]
+        },
+        {
+          "source": "@/lib/storyBible",
+          "specifiers": [
+            "generateStoryBible"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "moderateInput",
+            "buildSafetyPromptPrefix",
+            "sanitizeAIOutput"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "checkAgeAppropriateLanguage"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "useGamification"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "canvas-confetti",
+          "specifiers": [
+            "confetti"
+          ]
+        },
+        {
+          "source": "@/lib/analytics",
+          "specifiers": [
+            "trackEvent"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "captureError"
+          ]
+        },
+        {
+          "source": "@/components/wizard/WizardProgress",
+          "specifiers": [
+            "WizardProgress"
+          ]
+        },
+        {
+          "source": "@/components/wizard/TopicStep",
+          "specifiers": [
+            "TopicStep"
+          ]
+        },
+        {
+          "source": "@/components/shared/CharacterPicker",
+          "specifiers": [
+            "CharacterPicker"
+          ]
+        },
+        {
+          "source": "@/components/wizard/PreviewEditStep",
+          "specifiers": [
+            "PreviewEditStep"
+          ]
+        },
+        {
+          "source": "@/components/wizard/SaveStep",
+          "specifiers": [
+            "SaveStep"
+          ]
+        },
+        {
+          "source": "@/components/storyBuilder/StoryStructure",
+          "specifiers": [
+            "StoryStructure"
+          ]
+        },
+        {
+          "source": "@/components/shared/LoadingOverlay",
+          "specifiers": [
+            "LoadingOverlay"
+          ]
+        },
+        {
+          "source": "@/components/shared/FriendlyError",
+          "specifiers": [
+            "FriendlyError"
+          ]
+        }
+      ],
+      "exports": [
+        "BookWizard"
+      ],
+      "totalLines": 1461,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/CharacterEditor.jsx": {
+      "filePath": "src/pages/CharacterEditor.jsx",
+      "contentHash": "986361e5ca04e02ef33b8a4b94ca347ba50a0a3ed62a45df515ee8775cae8d6a",
+      "functions": [
+        {
+          "name": "CharacterEditor",
+          "params": [],
+          "exported": true,
+          "lineCount": 526
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/Character",
+          "specifiers": [
+            "Character"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "useGamification"
+          ]
+        },
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "GenerateImage",
+            "InvokeLLM"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "buildSafetyPromptPrefix"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/components/ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardDescription",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/components/ui/alert-dialog",
+          "specifiers": [
+            "AlertDialog",
+            "AlertDialogAction",
+            "AlertDialogCancel",
+            "AlertDialogContent",
+            "AlertDialogDescription",
+            "AlertDialogFooter",
+            "AlertDialogHeader",
+            "AlertDialogTitle",
+            "AlertDialogTrigger"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Loader2",
+            "Sparkles",
+            "Wand2",
+            "User",
+            "Save",
+            "ArrowLeft",
+            "Trash2",
+            "Eye",
+            "Palette",
+            "Star"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        }
+      ],
+      "exports": [
+        "CharacterEditor"
+      ],
+      "totalLines": 573,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Characters.jsx": {
+      "filePath": "src/pages/Characters.jsx",
+      "contentHash": "f4c7987275b86c6e714c396884ba4580a91aa424dd130ef3684bd657ff89f257",
+      "functions": [
+        {
+          "name": "Characters",
+          "params": [],
+          "exported": true,
+          "lineCount": 363
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/Character",
+          "specifiers": [
+            "Character"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Users2",
+            "Plus",
+            "Search",
+            "User",
+            "Sparkles",
+            "Grid3x3",
+            "List"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        }
+      ],
+      "exports": [
+        "Characters"
+      ],
+      "totalLines": 392,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Community.jsx": {
+      "filePath": "src/pages/Community.jsx",
+      "contentHash": "cb95c8cb662dc8c37acbec5f26226bef15816c180a91644695121958286a057f",
+      "functions": [
+        {
+          "name": "CommunityPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 738
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/Community",
+          "specifiers": [
+            "Community"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/entities/Comment",
+          "specifiers": [
+            "Comment"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "useGamification"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "captureError"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "verifyParentalPin",
+            "isPinSet"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Search",
+            "Filter",
+            "Users",
+            "Tag",
+            "BookOpen",
+            "Star",
+            "ChevronDown",
+            "X",
+            "Sparkles",
+            "Lock",
+            "Globe"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogFooter",
+            "DialogDescription"
+          ]
+        },
+        {
+          "source": "@/components/ui/tabs",
+          "specifiers": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ]
+        },
+        {
+          "source": "@/components/ui/dropdown-menu",
+          "specifiers": [
+            "DropdownMenu",
+            "DropdownMenuContent",
+            "DropdownMenuItem",
+            "DropdownMenuTrigger"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "../components/community/CommunityPost",
+          "specifiers": [
+            "CommunityPost"
+          ]
+        },
+        {
+          "source": "../components/community/FeaturedStory",
+          "specifiers": [
+            "FeaturedStory"
+          ]
+        },
+        {
+          "source": "../components/community/ShareBookModal",
+          "specifiers": [
+            "ShareBookModal"
+          ]
+        }
+      ],
+      "exports": [
+        "CommunityPage"
+      ],
+      "totalLines": 787,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/CommunityPost.jsx": {
+      "filePath": "src/pages/CommunityPost.jsx",
+      "contentHash": "40b3cc597124270550a3c06ebae6ab2f98d2ad65ae7ec1ec06b62307d3b627df",
+      "functions": [
+        {
+          "name": "CommunityPost",
+          "params": [],
+          "exported": true,
+          "lineCount": 525
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/Community",
+          "specifiers": [
+            "Community"
+          ]
+        },
+        {
+          "source": "@/entities/Comment",
+          "specifiers": [
+            "Comment"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/components/social/FollowButton",
+          "specifiers": [
+            "FollowButton"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "moderateInput"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "Heart",
+            "MessageSquare",
+            "Share2",
+            "Tag",
+            "Calendar",
+            "Send",
+            "BookOpen",
+            "Sparkles"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle",
+            "CardFooter"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "date-fns",
+          "specifiers": [
+            "format"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "../components/community/CommentItem",
+          "specifiers": [
+            "CommentItem"
+          ]
+        }
+      ],
+      "exports": [
+        "CommunityPost"
+      ],
+      "totalLines": 563,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Contact.jsx": {
+      "filePath": "src/pages/Contact.jsx",
+      "contentHash": "78074c4a7e05fe1c81088c73beeb6bf395ba46c1def714427ccc6c0c0249e0b1",
+      "functions": [
+        {
+          "name": "Contact",
+          "params": [],
+          "exported": true,
+          "lineCount": 231
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Mail",
+            "MessageSquare",
+            "Send",
+            "CheckCircle"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "@/components/ui/textarea",
+          "specifiers": [
+            "Textarea"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        }
+      ],
+      "exports": [
+        "Contact"
+      ],
+      "totalLines": 252,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Feedback.jsx": {
+      "filePath": "src/pages/Feedback.jsx",
+      "contentHash": "628afdcb21482fe4f090c85091e6cbf5a31d61f7dee17137200258aac43d764f",
+      "functions": [
+        {
+          "name": "FeedbackPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 537
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useNavigate",
+            "Link",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/Page",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "@/entities/Feedback",
+          "specifiers": [
+            "Feedback"
+          ]
+        },
+        {
+          "source": "@/entities/Collaboration",
+          "specifiers": [
+            "Collaboration"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ArrowLeft",
+            "ArrowRight",
+            "Star",
+            "MessageSquare",
+            "BookOpen",
+            "ChevronRight",
+            "ChevronLeft",
+            "Lightbulb",
+            "CheckCircle",
+            "Filter",
+            "X"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/dropdown-menu",
+          "specifiers": [
+            "DropdownMenu",
+            "DropdownMenuContent",
+            "DropdownMenuItem",
+            "DropdownMenuTrigger"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "../components/feedback/FeedbackList",
+          "specifiers": [
+            "FeedbackList"
+          ]
+        },
+        {
+          "source": "../components/feedback/FeedbackForm",
+          "specifiers": [
+            "FeedbackForm"
+          ]
+        },
+        {
+          "source": "../components/feedback/FeedbackStats",
+          "specifiers": [
+            "FeedbackStats"
+          ]
+        },
+        {
+          "source": "../components/feedback/FeedbackContext",
+          "specifiers": [
+            "FeedbackContext"
+          ]
+        }
+      ],
+      "exports": [
+        "FeedbackPage"
+      ],
+      "totalLines": 577,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Home.jsx": {
+      "filePath": "src/pages/Home.jsx",
+      "contentHash": "ae8c252a508101badeefde6fc6942649c9c2b39d72a34ca513f6a9fe6abb9986",
+      "functions": [
+        {
+          "name": "Home",
+          "params": [],
+          "exported": true,
+          "lineCount": 398
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useSearchParams",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/lib/creem",
+          "specifiers": [
+            "openCheckout"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "InvokeLLM"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "buildSafetyPromptPrefix"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "useGamification"
+          ]
+        },
+        {
+          "source": "@/lib/errorTracking",
+          "specifiers": [
+            "captureError"
+          ]
+        },
+        {
+          "source": "@/components/onboarding/OnboardingWizard",
+          "specifiers": [
+            "OnboardingWizard"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/components/home/UserWelcomeCard",
+          "specifiers": [
+            "UserWelcomeCard"
+          ]
+        },
+        {
+          "source": "@/components/home/DailyPromptCard",
+          "specifiers": [
+            "DailyPromptCard"
+          ]
+        },
+        {
+          "source": "@/components/home/DraftBooksSection",
+          "specifiers": [
+            "DraftBooksSection"
+          ]
+        },
+        {
+          "source": "@/components/home/FeaturedBooksSection",
+          "specifiers": [
+            "FeaturedBooksSection"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "BookOpen",
+            "Sparkles",
+            "Wand2"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        }
+      ],
+      "exports": [
+        "Home"
+      ],
+      "totalLines": 427,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/LandingPage.jsx": {
+      "filePath": "src/pages/LandingPage.jsx",
+      "contentHash": "3a2addd5987df0c6c52d879d4d035796171574a68160bef3d444398983d901b4",
+      "functions": [
+        {
+          "name": "LandingPage",
+          "params": [],
+          "exported": false,
+          "lineCount": 27
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        },
+        {
+          "source": "@/components/landing/LandingNav",
+          "specifiers": [
+            "LandingNav"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        },
+        {
+          "source": "@/components/landing/HeroSection",
+          "specifiers": [
+            "HeroSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/StatsSection",
+          "specifiers": [
+            "StatsSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/FeaturesSection",
+          "specifiers": [
+            "FeaturesSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/ShowcaseSection",
+          "specifiers": [
+            "ShowcaseSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/WhyUsSection",
+          "specifiers": [
+            "WhyUsSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/HowItWorksSection",
+          "specifiers": [
+            "HowItWorksSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/PricingSection",
+          "specifiers": [
+            "PricingSection"
+          ]
+        },
+        {
+          "source": "@/components/landing/FAQChat",
+          "specifiers": [
+            "FAQChat"
+          ]
+        },
+        {
+          "source": "@/components/landing/CTASection",
+          "specifiers": [
+            "CTASection"
+          ]
+        },
+        {
+          "source": "@/components/landing/FooterSection",
+          "specifiers": [
+            "FooterSection"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Leaderboard.jsx": {
+      "filePath": "src/pages/Leaderboard.jsx",
+      "contentHash": "10457c3d08308d3077fbbdf29316515cc3c8a4e6df929f707cfaaff002f4d09a",
+      "functions": [
+        {
+          "name": "Leaderboard",
+          "params": [],
+          "exported": true,
+          "lineCount": 650
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "getLevelFromXP"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Trophy",
+            "Medal",
+            "Award",
+            "Search",
+            "CalendarRange",
+            "Clock",
+            "BookOpen",
+            "Users",
+            "Shield",
+            "Calendar",
+            "Sparkles",
+            "Zap",
+            "Flame"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent"
+          ]
+        },
+        {
+          "source": "@/components/ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/components/ui/pagination",
+          "specifiers": [
+            "Pagination",
+            "PaginationContent",
+            "PaginationEllipsis",
+            "PaginationItem",
+            "PaginationLink",
+            "PaginationNext",
+            "PaginationPrevious"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        }
+      ],
+      "exports": [
+        "Leaderboard"
+      ],
+      "totalLines": 682,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Library.jsx": {
+      "filePath": "src/pages/Library.jsx",
+      "contentHash": "a6629ab8c697a18ed17147e3e0db93c8f45130e0fa7377b67045e9698e852703",
+      "functions": [
+        {
+          "name": "Library",
+          "params": [],
+          "exported": true,
+          "lineCount": 419
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/entities/Page",
+          "specifiers": [
+            "Page"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "PlusCircle",
+            "Search",
+            "BookOpen",
+            "Filter",
+            "X",
+            "LayoutGrid",
+            "List",
+            "Sparkles"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/select",
+          "specifiers": [
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/skeleton",
+          "specifiers": [
+            "Skeleton"
+          ]
+        },
+        {
+          "source": "@/components/ui/tabs",
+          "specifiers": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence"
+          ]
+        },
+        {
+          "source": "../components/library/BookCard",
+          "specifiers": [
+            "BookCard"
+          ]
+        },
+        {
+          "source": "../components/library/EmptyState",
+          "specifiers": [
+            "EmptyState"
+          ]
+        }
+      ],
+      "exports": [
+        "Library"
+      ],
+      "totalLines": 461,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Pricing.jsx": {
+      "filePath": "src/pages/Pricing.jsx",
+      "contentHash": "b0ba22636d41d8c46604f063fcff76136351693af2310fcc06c2bb32a1b0479f",
+      "functions": [
+        {
+          "name": "Pricing",
+          "params": [],
+          "exported": true,
+          "lineCount": 48
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "@/components/landing/PricingSection",
+          "specifiers": [
+            "PricingSection"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [
+        "Pricing"
+      ],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/PrivacyPolicy.jsx": {
+      "filePath": "src/pages/PrivacyPolicy.jsx",
+      "contentHash": "4da1fd2eb61089431031535c31c94900951a01136f1f3ea59d67a8db5bc04223",
+      "functions": [
+        {
+          "name": "PrivacyPolicy",
+          "params": [],
+          "exported": false,
+          "lineCount": 93
+        },
+        {
+          "name": "renderBold",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Shield",
+            "BookOpen",
+            "ArrowLeft",
+            "ArrowRight"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 350,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Profile.jsx": {
+      "filePath": "src/pages/Profile.jsx",
+      "contentHash": "7ff5157a54a01740d12a8f12f24ddd027f6daf0b1a28863292c95528121f531c",
+      "functions": [
+        {
+          "name": "Profile",
+          "params": [],
+          "exported": true,
+          "lineCount": 762
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "@/utils",
+          "specifiers": [
+            "createPageUrl"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/entities/Book",
+          "specifiers": [
+            "Book"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/entities/UserBadge",
+          "specifiers": [
+            "UserBadge"
+          ]
+        },
+        {
+          "source": "@/hooks/useGamification",
+          "specifiers": [
+            "BADGE_DEFINITIONS"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/components/social/FollowButton",
+          "specifiers": [
+            "FollowButton"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Edit",
+            "Camera",
+            "Trophy",
+            "BookOpen",
+            "ChevronRight",
+            "Star",
+            "Clock",
+            "Sparkles",
+            "Calendar",
+            "Loader2",
+            "Zap",
+            "Plus",
+            "FileText",
+            "BarChart3"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarFallback",
+            "AvatarImage"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "@/components/ui/tabs",
+          "specifiers": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/dialog",
+          "specifiers": [
+            "Dialog",
+            "DialogContent",
+            "DialogHeader",
+            "DialogTitle",
+            "DialogFooter",
+            "DialogDescription"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "../components/gamification/BadgeDisplay",
+          "specifiers": [
+            "BadgeDisplay"
+          ]
+        },
+        {
+          "source": "../components/profile/AvatarSelector",
+          "specifiers": [
+            "AvatarSelector"
+          ]
+        },
+        {
+          "source": "../components/profile/UserStats",
+          "specifiers": [
+            "UserStats"
+          ]
+        },
+        {
+          "source": "../components/profile/AchievementList",
+          "specifiers": [
+            "AchievementList"
+          ]
+        },
+        {
+          "source": "../components/profile/RecentActivity",
+          "specifiers": [
+            "RecentActivity"
+          ]
+        },
+        {
+          "source": "../components/profile/MyBooksSection",
+          "specifiers": [
+            "MyBooksSection"
+          ]
+        }
+      ],
+      "exports": [
+        "Profile"
+      ],
+      "totalLines": 817,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/Settings.jsx": {
+      "filePath": "src/pages/Settings.jsx",
+      "contentHash": "a5a595a1723243bf4d020030f9612f29914224a192a025cdd3732c925ab6605d",
+      "functions": [
+        {
+          "name": "SettingRow",
+          "params": [],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "SettingCard",
+          "params": [],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "BillingTab",
+          "params": [],
+          "exported": false,
+          "lineCount": 156
+        },
+        {
+          "name": "Settings",
+          "params": [],
+          "exported": true,
+          "lineCount": 524
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/entities/User",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/input",
+          "specifiers": [
+            "Input"
+          ]
+        },
+        {
+          "source": "@/components/ui/label",
+          "specifiers": [
+            "Label"
+          ]
+        },
+        {
+          "source": "@/components/ui/switch",
+          "specifiers": [
+            "Switch"
+          ]
+        },
+        {
+          "source": "@/components/ui/tabs",
+          "specifiers": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ]
+        },
+        {
+          "source": "@/components/ui/alert-dialog",
+          "specifiers": [
+            "AlertDialog",
+            "AlertDialogAction",
+            "AlertDialogCancel",
+            "AlertDialogContent",
+            "AlertDialogDescription",
+            "AlertDialogFooter",
+            "AlertDialogHeader",
+            "AlertDialogTitle",
+            "AlertDialogTrigger"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "SettingsIcon",
+            "UserIcon",
+            "Palette",
+            "Globe",
+            "Volume2",
+            "Sparkles",
+            "CreditCard",
+            "Shield",
+            "Bell",
+            "Loader2",
+            "LogOut",
+            "Sun",
+            "Moon",
+            "Clock",
+            "Check",
+            "Crown",
+            "Type",
+            "AlignJustify"
+          ]
+        },
+        {
+          "source": "../components/ai/AIStudio",
+          "specifiers": [
+            "AIStudio"
+          ]
+        },
+        {
+          "source": "../components/ai/AIProvidersPanel",
+          "specifiers": [
+            "AIProvidersPanel"
+          ]
+        },
+        {
+          "source": "@/components/ui/avatar",
+          "specifiers": [
+            "Avatar",
+            "AvatarImage",
+            "AvatarFallback"
+          ]
+        },
+        {
+          "source": "../components/settings/ParentalControls",
+          "specifiers": [
+            "ParentalControls"
+          ]
+        },
+        {
+          "source": "@/lib/creem",
+          "specifiers": [
+            "PLANS",
+            "openCheckout"
+          ]
+        },
+        {
+          "source": "@/hooks/useSubscription",
+          "specifiers": [
+            "useSubscription"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        }
+      ],
+      "exports": [
+        "Settings"
+      ],
+      "totalLines": 769,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/SignIn.jsx": {
+      "filePath": "src/pages/SignIn.jsx",
+      "contentHash": "3a37488d8f6bb0f5d4c210f94323d0231bb1741d012520e7ce1c6810cf4eaa89",
+      "functions": [
+        {
+          "name": "SignIn",
+          "params": [],
+          "exported": false,
+          "lineCount": 37
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@clerk/clerk-react",
+          "specifiers": [
+            "ClerkSignIn"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "BookOpen"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useSearchParams"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/SignUp.jsx": {
+      "filePath": "src/pages/SignUp.jsx",
+      "contentHash": "e64ae6aaa47113f3b15dc6eca8d5436f868011c88ceb5aa5884d91b9cb0890b5",
+      "functions": [
+        {
+          "name": "SignUp",
+          "params": [],
+          "exported": false,
+          "lineCount": 30
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@clerk/clerk-react",
+          "specifiers": [
+            "ClerkSignUp"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "BookOpen"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/StoryIdeas.jsx": {
+      "filePath": "src/pages/StoryIdeas.jsx",
+      "contentHash": "67c1283c4f91dbfd3889b1faa6527328ee74d0e0fcbaef24adfc8fabf4e5c98d",
+      "functions": [
+        {
+          "name": "StoryIdeas",
+          "params": [],
+          "exported": true,
+          "lineCount": 303
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/entities/StoryIdea",
+          "specifiers": [
+            "StoryIdea"
+          ]
+        },
+        {
+          "source": "@/hooks/useCurrentUser",
+          "specifiers": [
+            "useCurrentUser"
+          ]
+        },
+        {
+          "source": "@/integrations/Core",
+          "specifiers": [
+            "InvokeLLM"
+          ]
+        },
+        {
+          "source": "@/utils/content-moderation",
+          "specifiers": [
+            "moderateInput",
+            "buildSafetyPromptPrefix"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Lightbulb",
+            "Sparkles",
+            "BookOpen",
+            "Save",
+            "RefreshCw",
+            "Star"
+          ]
+        },
+        {
+          "source": "@/components/ui/button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "@/components/ui/card",
+          "specifiers": [
+            "Card",
+            "CardContent",
+            "CardHeader",
+            "CardTitle"
+          ]
+        },
+        {
+          "source": "@/components/ui/use-toast",
+          "specifiers": [
+            "useToast"
+          ]
+        },
+        {
+          "source": "@/components/ui/badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "@/components/ui/tabs",
+          "specifiers": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ]
+        },
+        {
+          "source": "../components/storyIdeas/IdeaGenerator",
+          "specifiers": [
+            "IdeaGenerator"
+          ]
+        },
+        {
+          "source": "../components/storyIdeas/SavedIdeas",
+          "specifiers": [
+            "SavedIdeas"
+          ]
+        },
+        {
+          "source": "../components/storyIdeas/DailyPrompt",
+          "specifiers": [
+            "DailyPrompt"
+          ]
+        }
+      ],
+      "exports": [
+        "StoryIdeas"
+      ],
+      "totalLines": 332,
+      "hasStructuralAnalysis": true
+    },
+    "src/pages/TermsOfService.jsx": {
+      "filePath": "src/pages/TermsOfService.jsx",
+      "contentHash": "fbfdba71036fc74db95c8c366e9954ef7dc0c7279b1eac68a8f4e43fc5b7e2a7",
+      "functions": [
+        {
+          "name": "TermsOfService",
+          "params": [],
+          "exported": false,
+          "lineCount": 98
+        },
+        {
+          "name": "renderBold",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "ScrollText",
+            "BookOpen",
+            "ArrowLeft",
+            "ArrowRight"
+          ]
+        },
+        {
+          "source": "@/components/i18n/i18nProvider",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "@/lib/seo",
+          "specifiers": [
+            "updateMeta",
+            "resetMeta"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 372,
+      "hasStructuralAnalysis": true
+    }
+  }
+}
