@@ -1,0 +1,565 @@
+{
+  "scriptCompleted": true,
+  "name": "sipurai",
+  "description": "AI kids storybook creator (Vite + React + Supabase). Pages, lib services, hooks, and serverless API.",
+  "languages": [
+    "javascript"
+  ],
+  "frameworks": [
+    "React",
+    "Vite",
+    "Supabase",
+    "Clerk"
+  ],
+  "files": [
+    {
+      "path": "api/_lib/verifyClerk.js",
+      "language": "javascript",
+      "sizeLines": 255,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/ai/gemini-image.js",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/ai/generate.js",
+      "language": "javascript",
+      "sizeLines": 343,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/ai/openai-image-edit.js",
+      "language": "javascript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/ai/openai-image.js",
+      "language": "javascript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/ai/tts.js",
+      "language": "javascript",
+      "sizeLines": 206,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/chat-faq.js",
+      "language": "javascript",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/payments/checkout.js",
+      "language": "javascript",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "api/webhooks/creem.js",
+      "language": "javascript",
+      "sizeLines": 183,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useAutoSave.js",
+      "language": "javascript",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useBook.js",
+      "language": "javascript",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useCharacterSelector.js",
+      "language": "javascript",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useCurrentUser.js",
+      "language": "javascript",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useFollow.js",
+      "language": "javascript",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useGamification.js",
+      "language": "javascript",
+      "sizeLines": 467,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useNotifications.js",
+      "language": "javascript",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useSanityContent.js",
+      "language": "javascript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useSubscription.js",
+      "language": "javascript",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/hooks/useTTS.js",
+      "language": "javascript",
+      "sizeLines": 183,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/aiProvider.js",
+      "language": "javascript",
+      "sizeLines": 303,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/analytics.js",
+      "language": "javascript",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/apiAuth.js",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/AuthContext.jsx",
+      "language": "javascript",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/creem.js",
+      "language": "javascript",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/errorTracking.js",
+      "language": "javascript",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/NavigationTracker.jsx",
+      "language": "javascript",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/PageNotFound.jsx",
+      "language": "javascript",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/profiles.js",
+      "language": "javascript",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/query-client.js",
+      "language": "javascript",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/resultHelper.js",
+      "language": "javascript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/sanityClient.js",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/sanityQueries.js",
+      "language": "javascript",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/sceneGenerator.js",
+      "language": "javascript",
+      "sizeLines": 345,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/secureEntity.js",
+      "language": "javascript",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/seo.js",
+      "language": "javascript",
+      "sizeLines": 208,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/smartModelPicker.js",
+      "language": "javascript",
+      "sizeLines": 174,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyBible.js",
+      "language": "javascript",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/budget.js",
+      "language": "javascript",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/constants.js",
+      "language": "javascript",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/index.js",
+      "language": "javascript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/moderation.js",
+      "language": "javascript",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/music.js",
+      "language": "javascript",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/pipeline.js",
+      "language": "javascript",
+      "sizeLines": 172,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/renderQueue.js",
+      "language": "javascript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/storyVideo/timing.js",
+      "language": "javascript",
+      "sizeLines": 138,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/supabaseClient.js",
+      "language": "javascript",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/supabaseEntity.js",
+      "language": "javascript",
+      "sizeLines": 189,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/ttsProvider.js",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/utils.js",
+      "language": "javascript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/VisualEditAgent.jsx",
+      "language": "javascript",
+      "sizeLines": 647,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Blog.jsx",
+      "language": "javascript",
+      "sizeLines": 269,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/BlogPost.jsx",
+      "language": "javascript",
+      "sizeLines": 419,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/BookCreation.jsx",
+      "language": "javascript",
+      "sizeLines": 877,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/BookView.jsx",
+      "language": "javascript",
+      "sizeLines": 995,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/BookWizard.jsx",
+      "language": "javascript",
+      "sizeLines": 1460,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/CharacterEditor.jsx",
+      "language": "javascript",
+      "sizeLines": 572,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Characters.jsx",
+      "language": "javascript",
+      "sizeLines": 391,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Community.jsx",
+      "language": "javascript",
+      "sizeLines": 786,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/CommunityPost.jsx",
+      "language": "javascript",
+      "sizeLines": 562,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Contact.jsx",
+      "language": "javascript",
+      "sizeLines": 251,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Feedback.jsx",
+      "language": "javascript",
+      "sizeLines": 576,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Home.jsx",
+      "language": "javascript",
+      "sizeLines": 426,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/LandingPage.jsx",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Leaderboard.jsx",
+      "language": "javascript",
+      "sizeLines": 681,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Library.jsx",
+      "language": "javascript",
+      "sizeLines": 460,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Pricing.jsx",
+      "language": "javascript",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/PrivacyPolicy.jsx",
+      "language": "javascript",
+      "sizeLines": 349,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Profile.jsx",
+      "language": "javascript",
+      "sizeLines": 816,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/Settings.jsx",
+      "language": "javascript",
+      "sizeLines": 768,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/SignIn.jsx",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/SignUp.jsx",
+      "language": "javascript",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/StoryIdeas.jsx",
+      "language": "javascript",
+      "sizeLines": 331,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/pages/TermsOfService.jsx",
+      "language": "javascript",
+      "sizeLines": 371,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 73,
+  "filteredByIgnore": 239,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    "api/_lib/verifyClerk.js": [],
+    "api/ai/gemini-image.js": [],
+    "api/ai/generate.js": [
+      "api/_lib/verifyClerk.js"
+    ],
+    "api/ai/openai-image-edit.js": [],
+    "api/ai/openai-image.js": [],
+    "api/ai/tts.js": [
+      "api/_lib/verifyClerk.js"
+    ],
+    "api/chat-faq.js": [],
+    "api/payments/checkout.js": [],
+    "api/webhooks/creem.js": [],
+    "src/hooks/useAutoSave.js": [],
+    "src/hooks/useBook.js": [],
+    "src/hooks/useCharacterSelector.js": [],
+    "src/hooks/useCurrentUser.js": [],
+    "src/hooks/useFollow.js": [],
+    "src/hooks/useGamification.js": [],
+    "src/hooks/useNotifications.js": [],
+    "src/hooks/useSanityContent.js": [],
+    "src/hooks/useSubscription.js": [],
+    "src/hooks/useTTS.js": [
+      "src/lib/ttsProvider.js"
+    ],
+    "src/lib/aiProvider.js": [],
+    "src/lib/analytics.js": [],
+    "src/lib/apiAuth.js": [],
+    "src/lib/AuthContext.jsx": [],
+    "src/lib/creem.js": [],
+    "src/lib/errorTracking.js": [],
+    "src/lib/NavigationTracker.jsx": [],
+    "src/lib/PageNotFound.jsx": [],
+    "src/lib/profiles.js": [
+      "src/lib/supabaseClient.js"
+    ],
+    "src/lib/query-client.js": [],
+    "src/lib/resultHelper.js": [],
+    "src/lib/sanityClient.js": [],
+    "src/lib/sanityQueries.js": [],
+    "src/lib/sceneGenerator.js": [],
+    "src/lib/secureEntity.js": [],
+    "src/lib/seo.js": [],
+    "src/lib/smartModelPicker.js": [],
+    "src/lib/storyBible.js": [],
+    "src/lib/storyVideo/budget.js": [],
+    "src/lib/storyVideo/constants.js": [],
+    "src/lib/storyVideo/index.js": [],
+    "src/lib/storyVideo/moderation.js": [],
+    "src/lib/storyVideo/music.js": [
+      "src/lib/storyVideo/constants.js"
+    ],
+    "src/lib/storyVideo/pipeline.js": [
+      "src/lib/resultHelper.js",
+      "src/lib/storyVideo/budget.js",
+      "src/lib/storyVideo/constants.js",
+      "src/lib/storyVideo/moderation.js",
+      "src/lib/storyVideo/music.js",
+      "src/lib/storyVideo/timing.js",
+      "src/lib/ttsProvider.js"
+    ],
+    "src/lib/storyVideo/renderQueue.js": [
+      "src/lib/storyVideo/constants.js"
+    ],
+    "src/lib/storyVideo/timing.js": [
+      "src/lib/storyVideo/constants.js"
+    ],
+    "src/lib/supabaseClient.js": [],
+    "src/lib/supabaseEntity.js": [
+      "src/lib/supabaseClient.js"
+    ],
+    "src/lib/ttsProvider.js": [],
+    "src/lib/utils.js": [],
+    "src/lib/VisualEditAgent.jsx": [],
+    "src/pages/Blog.jsx": [],
+    "src/pages/BlogPost.jsx": [],
+    "src/pages/BookCreation.jsx": [],
+    "src/pages/BookView.jsx": [],
+    "src/pages/BookWizard.jsx": [],
+    "src/pages/CharacterEditor.jsx": [],
+    "src/pages/Characters.jsx": [],
+    "src/pages/Community.jsx": [],
+    "src/pages/CommunityPost.jsx": [],
+    "src/pages/Contact.jsx": [],
+    "src/pages/Feedback.jsx": [],
+    "src/pages/Home.jsx": [],
+    "src/pages/LandingPage.jsx": [],
+    "src/pages/Leaderboard.jsx": [],
+    "src/pages/Library.jsx": [],
+    "src/pages/Pricing.jsx": [],
+    "src/pages/PrivacyPolicy.jsx": [],
+    "src/pages/Profile.jsx": [],
+    "src/pages/Settings.jsx": [],
+    "src/pages/SignIn.jsx": [],
+    "src/pages/SignUp.jsx": [],
+    "src/pages/StoryIdeas.jsx": [],
+    "src/pages/TermsOfService.jsx": []
+  },
+  "stats": {
+    "filesScanned": 73,
+    "byCategory": {
+      "code": 73
+    },
+    "byLanguage": {
+      "javascript": 73
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# Scoped UA run — core dirs only (cost control)
+/*
+!src/
+src/*
+!src/pages/
+!src/lib/
+!src/hooks/
+!api/
+# noise within scope
+src/pages/__tests__/
+*.test.js
+*.test.jsx

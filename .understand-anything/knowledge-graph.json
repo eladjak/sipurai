@@ -1,0 +1,1752 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "sipurai",
+    "languages": [
+      "javascript"
+    ],
+    "frameworks": [
+      "React",
+      "Vite",
+      "Supabase",
+      "Clerk"
+    ],
+    "description": "AI kids storybook creator (Vite + React + Supabase + Clerk). Scoped UA graph: src/pages, src/lib, src/hooks, and the serverless api/.",
+    "analyzedAt": "2026-06-08T09:28:42.532Z",
+    "gitCommitHash": "f3cea14448d4fdd2019b9b8820bcb570802e275d",
+    "scopeNote": "Scoped run (cost control): src/pages, src/lib (incl. storyVideo), src/hooks, api/. Excludes src/components/ui (shadcn), assets, tests, entities/integrations/data."
+  },
+  "nodes": [
+    {
+      "id": "file:src/lib/resultHelper.js",
+      "type": "file",
+      "name": "resultHelper.js",
+      "filePath": "src/lib/resultHelper.js",
+      "summary": "Result/error helper (railway-style) used across the story-video pipeline.",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/storyVideo/budget.js",
+      "type": "file",
+      "name": "budget.js",
+      "filePath": "src/lib/storyVideo/budget.js",
+      "summary": "Story-video cost/budget computation.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/storyVideo/moderation.js",
+      "type": "file",
+      "name": "moderation.js",
+      "filePath": "src/lib/storyVideo/moderation.js",
+      "summary": "Content moderation gate for story-video generation.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/storyVideo/pipeline.js",
+      "type": "file",
+      "name": "pipeline.js",
+      "filePath": "src/lib/storyVideo/pipeline.js",
+      "summary": "Story-video pipeline orchestrator — composes budget, moderation, music, timing, tts, resultHelper.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/storyVideo/constants.js",
+      "type": "file",
+      "name": "constants.js",
+      "filePath": "src/lib/storyVideo/constants.js",
+      "summary": "Story-video constants/config.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/storyVideo/music.js",
+      "type": "file",
+      "name": "music.js",
+      "filePath": "src/lib/storyVideo/music.js",
+      "summary": "Background music selection for story videos.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/storyVideo/renderQueue.js",
+      "type": "file",
+      "name": "renderQueue.js",
+      "filePath": "src/lib/storyVideo/renderQueue.js",
+      "summary": "Render job queue management.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/storyVideo/timing.js",
+      "type": "file",
+      "name": "timing.js",
+      "filePath": "src/lib/storyVideo/timing.js",
+      "summary": "Scene/audio timing computation for the video.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:api/_lib/verifyClerk.js",
+      "type": "file",
+      "name": "verifyClerk.js",
+      "filePath": "api/_lib/verifyClerk.js",
+      "summary": "Shared serverless helper: verifies the Clerk JWT on incoming API requests (12 fns).",
+      "tags": [
+        "api",
+        "serverless",
+        "auth",
+        "data"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:api/ai/generate.js",
+      "type": "file",
+      "name": "generate.js",
+      "filePath": "api/ai/generate.js",
+      "summary": "Serverless Gemini text/structured-generation proxy (keeps API key server-side).",
+      "tags": [
+        "api",
+        "serverless",
+        "ai"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:api/ai/tts.js",
+      "type": "file",
+      "name": "tts.js",
+      "filePath": "api/ai/tts.js",
+      "summary": "Serverless TTS endpoint.",
+      "tags": [
+        "api",
+        "serverless",
+        "ai",
+        "story-video"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/profiles.js",
+      "type": "file",
+      "name": "profiles.js",
+      "filePath": "src/lib/profiles.js",
+      "summary": "Profile row ensure/load helpers keyed off the Clerk user.",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/supabaseClient.js",
+      "type": "file",
+      "name": "supabaseClient.js",
+      "filePath": "src/lib/supabaseClient.js",
+      "summary": "Shared Supabase client; Clerk JWT injected into every request so RLS can identify the user. The data-access root.",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/supabaseEntity.js",
+      "type": "file",
+      "name": "supabaseEntity.js",
+      "filePath": "src/lib/supabaseEntity.js",
+      "summary": "Supabase entity adapter — Base44-style {list,filter,get,create,update,delete} API over Supabase tables.",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:api/ai/gemini-image.js",
+      "type": "file",
+      "name": "gemini-image.js",
+      "filePath": "api/ai/gemini-image.js",
+      "summary": "Serverless Gemini image generation endpoint.",
+      "tags": [
+        "api",
+        "serverless",
+        "ai"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:api/ai/openai-image-edit.js",
+      "type": "file",
+      "name": "openai-image-edit.js",
+      "filePath": "api/ai/openai-image-edit.js",
+      "summary": "Serverless OpenAI image-edit endpoint.",
+      "tags": [
+        "api",
+        "serverless",
+        "ai"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:api/ai/openai-image.js",
+      "type": "file",
+      "name": "openai-image.js",
+      "filePath": "api/ai/openai-image.js",
+      "summary": "Serverless OpenAI image generation endpoint.",
+      "tags": [
+        "api",
+        "serverless",
+        "ai"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:api/chat-faq.js",
+      "type": "file",
+      "name": "chat-faq.js",
+      "filePath": "api/chat-faq.js",
+      "summary": "Serverless FAQ chat endpoint.",
+      "tags": [
+        "api",
+        "serverless"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:api/payments/checkout.js",
+      "type": "file",
+      "name": "checkout.js",
+      "filePath": "api/payments/checkout.js",
+      "summary": "Serverless Creem checkout session creation.",
+      "tags": [
+        "api",
+        "serverless",
+        "billing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:api/webhooks/creem.js",
+      "type": "file",
+      "name": "creem.js",
+      "filePath": "api/webhooks/creem.js",
+      "summary": "Serverless Creem webhook handler (subscription lifecycle).",
+      "tags": [
+        "api",
+        "serverless",
+        "billing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/hooks/useAutoSave.js",
+      "type": "file",
+      "name": "useAutoSave.js",
+      "filePath": "src/hooks/useAutoSave.js",
+      "summary": "Debounced auto-save for editors.",
+      "tags": [
+        "hook",
+        "react",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useBook.js",
+      "type": "file",
+      "name": "useBook.js",
+      "filePath": "src/hooks/useBook.js",
+      "summary": "Loads/persists a book entity.",
+      "tags": [
+        "hook",
+        "react",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useCharacterSelector.js",
+      "type": "file",
+      "name": "useCharacterSelector.js",
+      "filePath": "src/hooks/useCharacterSelector.js",
+      "summary": "Character selection state for book/scene creation.",
+      "tags": [
+        "hook",
+        "react",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useCurrentUser.js",
+      "type": "file",
+      "name": "useCurrentUser.js",
+      "filePath": "src/hooks/useCurrentUser.js",
+      "summary": "Returns the current authenticated user (Clerk).",
+      "tags": [
+        "hook",
+        "react",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useFollow.js",
+      "type": "file",
+      "name": "useFollow.js",
+      "filePath": "src/hooks/useFollow.js",
+      "summary": "Follow/unfollow social graph actions.",
+      "tags": [
+        "hook",
+        "react",
+        "state",
+        "social-gamification"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/hooks/useGamification.js",
+      "type": "file",
+      "name": "useGamification.js",
+      "filePath": "src/hooks/useGamification.js",
+      "summary": "Gamification state (XP, levels, badges) — largest hook (467L).",
+      "tags": [
+        "hook",
+        "react",
+        "state",
+        "social-gamification"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/hooks/useNotifications.js",
+      "type": "file",
+      "name": "useNotifications.js",
+      "filePath": "src/hooks/useNotifications.js",
+      "summary": "In-app notifications feed.",
+      "tags": [
+        "hook",
+        "react",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useSanityContent.js",
+      "type": "file",
+      "name": "useSanityContent.js",
+      "filePath": "src/hooks/useSanityContent.js",
+      "summary": "Fetches Sanity CMS content (blog).",
+      "tags": [
+        "hook",
+        "react",
+        "state",
+        "content-seo"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useSubscription.js",
+      "type": "file",
+      "name": "useSubscription.js",
+      "filePath": "src/hooks/useSubscription.js",
+      "summary": "Current subscription/plan state.",
+      "tags": [
+        "hook",
+        "react",
+        "state",
+        "billing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/hooks/useTTS.js",
+      "type": "file",
+      "name": "useTTS.js",
+      "filePath": "src/hooks/useTTS.js",
+      "summary": "TTS playback hook (wraps tts api/provider).",
+      "tags": [
+        "hook",
+        "react",
+        "state",
+        "story-video"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/aiProvider.js",
+      "type": "file",
+      "name": "aiProvider.js",
+      "filePath": "src/lib/aiProvider.js",
+      "summary": "AI text+image generation via Gemini, proxied through /api/ai/generate (key stays server-side).",
+      "tags": [
+        "lib",
+        "service",
+        "ai"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/analytics.js",
+      "type": "file",
+      "name": "analytics.js",
+      "filePath": "src/lib/analytics.js",
+      "summary": "Analytics event helpers (identify/track).",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/apiAuth.js",
+      "type": "file",
+      "name": "apiAuth.js",
+      "filePath": "src/lib/apiAuth.js",
+      "summary": "Builds auth headers (Clerk token) for serverless /api calls.",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/AuthContext.jsx",
+      "type": "file",
+      "name": "AuthContext.jsx",
+      "filePath": "src/lib/AuthContext.jsx",
+      "summary": "Clerk-backed AuthProvider wiring Clerk + Supabase token getter + Sentry + analytics + ensureProfile.",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/creem.js",
+      "type": "file",
+      "name": "creem.js",
+      "filePath": "src/lib/creem.js",
+      "summary": "Creem payment/subscription client integration.",
+      "tags": [
+        "lib",
+        "service",
+        "billing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/errorTracking.js",
+      "type": "file",
+      "name": "errorTracking.js",
+      "filePath": "src/lib/errorTracking.js",
+      "summary": "Sentry error-tracking setup + user tagging.",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/NavigationTracker.jsx",
+      "type": "file",
+      "name": "NavigationTracker.jsx",
+      "filePath": "src/lib/NavigationTracker.jsx",
+      "summary": "Module `NavigationTracker` — 1 fn(s), 17L.",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/PageNotFound.jsx",
+      "type": "file",
+      "name": "PageNotFound.jsx",
+      "filePath": "src/lib/PageNotFound.jsx",
+      "summary": "Module `PageNotFound` — 1 fn(s), 65L.",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/query-client.js",
+      "type": "file",
+      "name": "query-client.js",
+      "filePath": "src/lib/query-client.js",
+      "summary": "React Query client singleton.",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/sanityClient.js",
+      "type": "file",
+      "name": "sanityClient.js",
+      "filePath": "src/lib/sanityClient.js",
+      "summary": "Sanity CMS client (blog/marketing content).",
+      "tags": [
+        "lib",
+        "service",
+        "content-seo"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/sanityQueries.js",
+      "type": "file",
+      "name": "sanityQueries.js",
+      "filePath": "src/lib/sanityQueries.js",
+      "summary": "GROQ queries for Sanity content.",
+      "tags": [
+        "lib",
+        "service",
+        "content-seo"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/sceneGenerator.js",
+      "type": "file",
+      "name": "sceneGenerator.js",
+      "filePath": "src/lib/sceneGenerator.js",
+      "summary": "Generates storybook scenes (prompt construction + image orchestration).",
+      "tags": [
+        "lib",
+        "service",
+        "ai"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/secureEntity.js",
+      "type": "file",
+      "name": "secureEntity.js",
+      "filePath": "src/lib/secureEntity.js",
+      "summary": "Wraps entity access with auth/ownership checks (secure CRUD).",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/seo.js",
+      "type": "file",
+      "name": "seo.js",
+      "filePath": "src/lib/seo.js",
+      "summary": "SEO/meta + JSON-LD helpers per route.",
+      "tags": [
+        "lib",
+        "service",
+        "content-seo"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/smartModelPicker.js",
+      "type": "file",
+      "name": "smartModelPicker.js",
+      "filePath": "src/lib/smartModelPicker.js",
+      "summary": "Selects the cost/quality-appropriate AI model per task.",
+      "tags": [
+        "lib",
+        "service",
+        "ai"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/storyBible.js",
+      "type": "file",
+      "name": "storyBible.js",
+      "filePath": "src/lib/storyBible.js",
+      "summary": "Maintains the story bible (characters, continuity) used to keep generations consistent.",
+      "tags": [
+        "lib",
+        "service",
+        "ai"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/lib/storyVideo/index.js",
+      "type": "file",
+      "name": "index.js",
+      "filePath": "src/lib/storyVideo/index.js",
+      "summary": "Story-video module barrel.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/ttsProvider.js",
+      "type": "file",
+      "name": "ttsProvider.js",
+      "filePath": "src/lib/ttsProvider.js",
+      "summary": "Text-to-speech provider abstraction.",
+      "tags": [
+        "lib",
+        "service",
+        "story-video"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/utils.js",
+      "type": "file",
+      "name": "utils.js",
+      "filePath": "src/lib/utils.js",
+      "summary": "Misc utilities (cn/classnames etc.).",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/lib/VisualEditAgent.jsx",
+      "type": "file",
+      "name": "VisualEditAgent.jsx",
+      "filePath": "src/lib/VisualEditAgent.jsx",
+      "summary": "In-app visual editing agent component (largest lib file, 648L).",
+      "tags": [
+        "lib",
+        "service"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/Blog.jsx",
+      "type": "file",
+      "name": "Blog.jsx",
+      "filePath": "src/pages/Blog.jsx",
+      "summary": "Route page `Blog` (269L).",
+      "tags": [
+        "page",
+        "react",
+        "ui",
+        "content-seo"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/BlogPost.jsx",
+      "type": "file",
+      "name": "BlogPost.jsx",
+      "filePath": "src/pages/BlogPost.jsx",
+      "summary": "Route page `BlogPost` (419L).",
+      "tags": [
+        "page",
+        "react",
+        "ui",
+        "content-seo"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/BookCreation.jsx",
+      "type": "file",
+      "name": "BookCreation.jsx",
+      "filePath": "src/pages/BookCreation.jsx",
+      "summary": "Route page `BookCreation` (877L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/BookView.jsx",
+      "type": "file",
+      "name": "BookView.jsx",
+      "filePath": "src/pages/BookView.jsx",
+      "summary": "Route page `BookView` (995L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/BookWizard.jsx",
+      "type": "file",
+      "name": "BookWizard.jsx",
+      "filePath": "src/pages/BookWizard.jsx",
+      "summary": "Route page `BookWizard` (1460L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/CharacterEditor.jsx",
+      "type": "file",
+      "name": "CharacterEditor.jsx",
+      "filePath": "src/pages/CharacterEditor.jsx",
+      "summary": "Route page `CharacterEditor` (572L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/Characters.jsx",
+      "type": "file",
+      "name": "Characters.jsx",
+      "filePath": "src/pages/Characters.jsx",
+      "summary": "Route page `Characters` (392L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/Community.jsx",
+      "type": "file",
+      "name": "Community.jsx",
+      "filePath": "src/pages/Community.jsx",
+      "summary": "Route page `Community` (786L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/CommunityPost.jsx",
+      "type": "file",
+      "name": "CommunityPost.jsx",
+      "filePath": "src/pages/CommunityPost.jsx",
+      "summary": "Route page `CommunityPost` (563L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/Contact.jsx",
+      "type": "file",
+      "name": "Contact.jsx",
+      "filePath": "src/pages/Contact.jsx",
+      "summary": "Route page `Contact` (251L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/Feedback.jsx",
+      "type": "file",
+      "name": "Feedback.jsx",
+      "filePath": "src/pages/Feedback.jsx",
+      "summary": "Route page `Feedback` (577L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/Home.jsx",
+      "type": "file",
+      "name": "Home.jsx",
+      "filePath": "src/pages/Home.jsx",
+      "summary": "Route page `Home` (426L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/LandingPage.jsx",
+      "type": "file",
+      "name": "LandingPage.jsx",
+      "filePath": "src/pages/LandingPage.jsx",
+      "summary": "Route page `LandingPage` (44L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/pages/Leaderboard.jsx",
+      "type": "file",
+      "name": "Leaderboard.jsx",
+      "filePath": "src/pages/Leaderboard.jsx",
+      "summary": "Route page `Leaderboard` (681L).",
+      "tags": [
+        "page",
+        "react",
+        "ui",
+        "social-gamification"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/Library.jsx",
+      "type": "file",
+      "name": "Library.jsx",
+      "filePath": "src/pages/Library.jsx",
+      "summary": "Route page `Library` (460L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/Pricing.jsx",
+      "type": "file",
+      "name": "Pricing.jsx",
+      "filePath": "src/pages/Pricing.jsx",
+      "summary": "Route page `Pricing` (60L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/pages/PrivacyPolicy.jsx",
+      "type": "file",
+      "name": "PrivacyPolicy.jsx",
+      "filePath": "src/pages/PrivacyPolicy.jsx",
+      "summary": "Route page `PrivacyPolicy` (349L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/Profile.jsx",
+      "type": "file",
+      "name": "Profile.jsx",
+      "filePath": "src/pages/Profile.jsx",
+      "summary": "Route page `Profile` (816L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/Settings.jsx",
+      "type": "file",
+      "name": "Settings.jsx",
+      "filePath": "src/pages/Settings.jsx",
+      "summary": "Route page `Settings` (768L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:src/pages/SignIn.jsx",
+      "type": "file",
+      "name": "SignIn.jsx",
+      "filePath": "src/pages/SignIn.jsx",
+      "summary": "Route page `SignIn` (44L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/pages/SignUp.jsx",
+      "type": "file",
+      "name": "SignUp.jsx",
+      "filePath": "src/pages/SignUp.jsx",
+      "summary": "Route page `SignUp` (37L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:src/pages/StoryIdeas.jsx",
+      "type": "file",
+      "name": "StoryIdeas.jsx",
+      "filePath": "src/pages/StoryIdeas.jsx",
+      "summary": "Route page `StoryIdeas` (331L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:src/pages/TermsOfService.jsx",
+      "type": "file",
+      "name": "TermsOfService.jsx",
+      "filePath": "src/pages/TermsOfService.jsx",
+      "summary": "Route page `TermsOfService` (371L).",
+      "tags": [
+        "page",
+        "react",
+        "ui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:src/lib/supabaseEntity.js:parseSort",
+      "type": "function",
+      "name": "parseSort",
+      "filePath": "src/lib/supabaseEntity.js",
+      "summary": "`parseSort(sort)` in supabaseEntity.js (L18-24).",
+      "tags": [
+        "lib",
+        "service",
+        "auth",
+        "data"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/lib/supabaseEntity.js",
+      "target": "function:src/lib/supabaseEntity.js:parseSort",
+      "type": "contains",
+      "weight": 1
+    },
+    {
+      "source": "file:api/ai/generate.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:api/ai/tts.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/hooks/useTTS.js",
+      "target": "file:src/lib/ttsProvider.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/profiles.js",
+      "target": "file:src/lib/supabaseClient.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/music.js",
+      "target": "file:src/lib/storyVideo/constants.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/resultHelper.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/budget.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/constants.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/moderation.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/music.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/timing.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/ttsProvider.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/renderQueue.js",
+      "target": "file:src/lib/storyVideo/constants.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/storyVideo/timing.js",
+      "target": "file:src/lib/storyVideo/constants.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/supabaseEntity.js",
+      "target": "file:src/lib/supabaseClient.js",
+      "type": "imports",
+      "weight": 0.7
+    },
+    {
+      "source": "file:src/lib/supabaseEntity.js",
+      "target": "file:src/lib/supabaseClient.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/secureEntity.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/AuthContext.jsx",
+      "target": "file:src/lib/supabaseClient.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/AuthContext.jsx",
+      "target": "file:src/lib/apiAuth.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/AuthContext.jsx",
+      "target": "file:src/lib/profiles.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/AuthContext.jsx",
+      "target": "file:src/lib/errorTracking.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/AuthContext.jsx",
+      "target": "file:src/lib/analytics.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/profiles.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useCurrentUser.js",
+      "target": "file:src/lib/AuthContext.jsx",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/aiProvider.js",
+      "target": "file:src/lib/apiAuth.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/aiProvider.js",
+      "target": "file:api/ai/generate.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/aiProvider.js",
+      "target": "file:src/lib/smartModelPicker.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/sceneGenerator.js",
+      "target": "file:src/lib/aiProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/sceneGenerator.js",
+      "target": "file:src/lib/storyBible.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyBible.js",
+      "target": "file:src/lib/aiProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/ai/gemini-image.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/ai/generate.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/ai/tts.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/ai/openai-image.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/ai/openai-image-edit.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/chat-faq.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/budget.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/moderation.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/music.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/timing.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/constants.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/storyVideo/renderQueue.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/ttsProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/pipeline.js",
+      "target": "file:src/lib/resultHelper.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/storyVideo/index.js",
+      "target": "file:src/lib/storyVideo/pipeline.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useTTS.js",
+      "target": "file:src/lib/ttsProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/ttsProvider.js",
+      "target": "file:api/ai/tts.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useSubscription.js",
+      "target": "file:src/lib/creem.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/creem.js",
+      "target": "file:src/lib/apiAuth.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:api/payments/checkout.js",
+      "target": "file:api/_lib/verifyClerk.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useSanityContent.js",
+      "target": "file:src/lib/sanityClient.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/lib/sanityClient.js",
+      "target": "file:src/lib/sanityQueries.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useGamification.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useFollow.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useNotifications.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useBook.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/hooks/useCharacterSelector.js",
+      "target": "file:src/lib/supabaseEntity.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookWizard.jsx",
+      "target": "file:src/lib/sceneGenerator.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookWizard.jsx",
+      "target": "file:src/lib/storyBible.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookWizard.jsx",
+      "target": "file:src/hooks/useBook.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookWizard.jsx",
+      "target": "file:src/hooks/useCharacterSelector.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookWizard.jsx",
+      "target": "file:src/lib/aiProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookCreation.jsx",
+      "target": "file:src/lib/sceneGenerator.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookCreation.jsx",
+      "target": "file:src/hooks/useBook.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookCreation.jsx",
+      "target": "file:src/hooks/useAutoSave.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookView.jsx",
+      "target": "file:src/hooks/useBook.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookView.jsx",
+      "target": "file:src/lib/storyVideo/index.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BookView.jsx",
+      "target": "file:src/hooks/useTTS.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/CharacterEditor.jsx",
+      "target": "file:src/hooks/useCharacterSelector.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/CharacterEditor.jsx",
+      "target": "file:src/lib/aiProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Characters.jsx",
+      "target": "file:src/hooks/useCharacterSelector.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Library.jsx",
+      "target": "file:src/hooks/useBook.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Community.jsx",
+      "target": "file:src/hooks/useFollow.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Community.jsx",
+      "target": "file:src/hooks/useNotifications.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/CommunityPost.jsx",
+      "target": "file:src/hooks/useFollow.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Leaderboard.jsx",
+      "target": "file:src/hooks/useGamification.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Profile.jsx",
+      "target": "file:src/hooks/useCurrentUser.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Profile.jsx",
+      "target": "file:src/hooks/useGamification.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Settings.jsx",
+      "target": "file:src/hooks/useCurrentUser.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Settings.jsx",
+      "target": "file:src/hooks/useSubscription.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Pricing.jsx",
+      "target": "file:src/hooks/useSubscription.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Pricing.jsx",
+      "target": "file:src/lib/creem.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Blog.jsx",
+      "target": "file:src/hooks/useSanityContent.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Blog.jsx",
+      "target": "file:src/lib/seo.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BlogPost.jsx",
+      "target": "file:src/hooks/useSanityContent.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/BlogPost.jsx",
+      "target": "file:src/lib/seo.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Home.jsx",
+      "target": "file:src/lib/seo.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/LandingPage.jsx",
+      "target": "file:src/lib/seo.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/StoryIdeas.jsx",
+      "target": "file:src/lib/aiProvider.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/Feedback.jsx",
+      "target": "file:src/hooks/useCurrentUser.js",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/SignIn.jsx",
+      "target": "file:src/lib/AuthContext.jsx",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:src/pages/SignUp.jsx",
+      "target": "file:src/lib/AuthContext.jsx",
+      "type": "depends_on",
+      "weight": 0.6
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:auth-data",
+      "name": "Auth & Data Foundation",
+      "description": "Supabase client (Clerk-JWT), entity adapters, AuthContext, apiAuth, profiles, and serverless Clerk verification — the auth/RLS spine.",
+      "nodeIds": [
+        "file:api/_lib/verifyClerk.js",
+        "file:src/lib/profiles.js",
+        "file:src/lib/supabaseClient.js",
+        "file:src/lib/supabaseEntity.js",
+        "file:src/hooks/useCurrentUser.js",
+        "file:src/lib/apiAuth.js",
+        "file:src/lib/AuthContext.jsx",
+        "file:src/lib/secureEntity.js"
+      ]
+    },
+    {
+      "id": "layer:ai-generation",
+      "name": "AI Story Generation",
+      "description": "AI provider, scene generator, story bible, model picker, and the serverless AI image/text/tts endpoints that produce storybook content.",
+      "nodeIds": [
+        "file:api/ai/generate.js",
+        "file:api/ai/tts.js",
+        "file:api/ai/gemini-image.js",
+        "file:api/ai/openai-image-edit.js",
+        "file:api/ai/openai-image.js",
+        "file:src/lib/aiProvider.js",
+        "file:src/lib/sceneGenerator.js",
+        "file:src/lib/smartModelPicker.js",
+        "file:src/lib/storyBible.js",
+        "file:src/lib/ttsProvider.js"
+      ]
+    },
+    {
+      "id": "layer:story-video",
+      "name": "Story-Video Pipeline",
+      "description": "The story-video module: pipeline orchestrator + budget, moderation, music, timing, render queue, constants, and the useTTS hook.",
+      "nodeIds": [
+        "file:src/lib/resultHelper.js",
+        "file:src/lib/storyVideo/budget.js",
+        "file:src/lib/storyVideo/moderation.js",
+        "file:src/lib/storyVideo/pipeline.js",
+        "file:src/lib/storyVideo/constants.js",
+        "file:src/lib/storyVideo/music.js",
+        "file:src/lib/storyVideo/renderQueue.js",
+        "file:src/lib/storyVideo/timing.js",
+        "file:src/hooks/useTTS.js",
+        "file:src/lib/storyVideo/index.js"
+      ]
+    },
+    {
+      "id": "layer:billing",
+      "name": "Billing & Subscription",
+      "description": "Creem payment client, checkout + webhook serverless endpoints, and the subscription hook.",
+      "nodeIds": [
+        "file:api/payments/checkout.js",
+        "file:api/webhooks/creem.js",
+        "file:src/hooks/useSubscription.js",
+        "file:src/lib/creem.js"
+      ]
+    },
+    {
+      "id": "layer:social-gamification",
+      "name": "Social & Gamification",
+      "description": "Gamification, follow, notifications, book/character state hooks plus auto-save.",
+      "nodeIds": [
+        "file:src/hooks/useAutoSave.js",
+        "file:src/hooks/useBook.js",
+        "file:src/hooks/useCharacterSelector.js",
+        "file:src/hooks/useFollow.js",
+        "file:src/hooks/useGamification.js",
+        "file:src/hooks/useNotifications.js"
+      ]
+    },
+    {
+      "id": "layer:content-seo",
+      "name": "Content & SEO",
+      "description": "Sanity CMS client/queries, the content hook, SEO/meta helpers, analytics, error tracking, and the FAQ chat endpoint.",
+      "nodeIds": [
+        "file:api/chat-faq.js",
+        "file:src/hooks/useSanityContent.js",
+        "file:src/lib/analytics.js",
+        "file:src/lib/errorTracking.js",
+        "file:src/lib/sanityClient.js",
+        "file:src/lib/sanityQueries.js",
+        "file:src/lib/seo.js"
+      ]
+    },
+    {
+      "id": "layer:pages",
+      "name": "Pages (Routes)",
+      "description": "All Vite/React route pages: book creation/wizard/view, characters, community, leaderboard, profile, settings, blog, marketing and legal pages.",
+      "nodeIds": [
+        "file:src/pages/Blog.jsx",
+        "file:src/pages/BlogPost.jsx",
+        "file:src/pages/BookCreation.jsx",
+        "file:src/pages/BookView.jsx",
+        "file:src/pages/BookWizard.jsx",
+        "file:src/pages/CharacterEditor.jsx",
+        "file:src/pages/Characters.jsx",
+        "file:src/pages/Community.jsx",
+        "file:src/pages/CommunityPost.jsx",
+        "file:src/pages/Contact.jsx",
+        "file:src/pages/Feedback.jsx",
+        "file:src/pages/Home.jsx",
+        "file:src/pages/LandingPage.jsx",
+        "file:src/pages/Leaderboard.jsx",
+        "file:src/pages/Library.jsx",
+        "file:src/pages/Pricing.jsx",
+        "file:src/pages/PrivacyPolicy.jsx",
+        "file:src/pages/Profile.jsx",
+        "file:src/pages/Settings.jsx",
+        "file:src/pages/SignIn.jsx",
+        "file:src/pages/SignUp.jsx",
+        "file:src/pages/StoryIdeas.jsx",
+        "file:src/pages/TermsOfService.jsx"
+      ]
+    },
+    {
+      "id": "layer:utilities",
+      "name": "Shared Utilities",
+      "description": "Remaining shared utilities (query client, generic utils, visual edit agent, navigation/404).",
+      "nodeIds": [
+        "file:src/lib/NavigationTracker.jsx",
+        "file:src/lib/PageNotFound.jsx",
+        "file:src/lib/query-client.js",
+        "file:src/lib/utils.js",
+        "file:src/lib/VisualEditAgent.jsx"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Auth & Data Foundation",
+      "description": "Supabase client injects the Clerk JWT so RLS works; the entity adapter gives a Base44-style CRUD API; AuthContext wires it all.",
+      "nodeIds": [
+        "file:src/lib/supabaseClient.js",
+        "file:src/lib/supabaseEntity.js",
+        "file:src/lib/AuthContext.jsx"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Serverless auth gate",
+      "description": "Every /api route verifies the Clerk token via the shared verifyClerk helper before doing work.",
+      "nodeIds": [
+        "file:api/_lib/verifyClerk.js",
+        "file:api/ai/generate.js"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "AI story generation",
+      "description": "aiProvider proxies Gemini; sceneGenerator + storyBible turn a prompt into consistent illustrated scenes.",
+      "nodeIds": [
+        "file:src/lib/aiProvider.js",
+        "file:src/lib/sceneGenerator.js",
+        "file:src/lib/storyBible.js"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "The Book Wizard",
+      "description": "The largest page (1460L) — orchestrates character selection, scene generation and the story bible into a finished book.",
+      "nodeIds": [
+        "file:src/pages/BookWizard.jsx",
+        "file:src/hooks/useBook.js"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Story-video pipeline",
+      "description": "pipeline.js composes budget, moderation, music, timing, tts and render queue into a generated video.",
+      "nodeIds": [
+        "file:src/lib/storyVideo/pipeline.js",
+        "file:src/lib/storyVideo/timing.js",
+        "file:src/hooks/useTTS.js"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Billing",
+      "description": "Creem client + checkout/webhook endpoints gate premium features via the subscription hook.",
+      "nodeIds": [
+        "file:src/lib/creem.js",
+        "file:api/payments/checkout.js",
+        "file:src/hooks/useSubscription.js"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Social, gamification & content",
+      "description": "Community/leaderboard/profile pages run on the gamification + follow hooks; blog runs on Sanity + SEO.",
+      "nodeIds": [
+        "file:src/hooks/useGamification.js",
+        "file:src/pages/Community.jsx",
+        "file:src/hooks/useSanityContent.js"
+      ]
+    }
+  ]
+}
