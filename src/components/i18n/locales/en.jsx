@@ -1042,6 +1042,9 @@ export default {
       cleared: "Draft cleared",
       clear: "Clear draft",
       untitled: "Untitled draft"
+    },
+    idea: {
+      prefilled: "Idea prefilled — edit and continue"
     }
   },
   characters: {
@@ -1337,7 +1340,17 @@ export default {
     language: "Language",
     createdOn: "Created on",
     edit: "Edit",
-    delete: "Delete"
+    delete: "Delete",
+    editTitle: "Edit Idea",
+    titleLabel: "Title",
+    descLabel: "Description",
+    titleRequired: "Please enter a title for the idea",
+    updateSuccess: "Idea updated",
+    updateFailed: "Couldn't update the idea, please try again",
+    deleteTitle: "Delete Idea",
+    deleteConfirm: "Are you sure you want to delete this idea? This can't be undone.",
+    deleteSuccess: "Idea deleted",
+    deleteFailed: "Couldn't delete the idea, please try again"
   },
   ideaResult: {
     title: "Your Story Idea is Ready!",
@@ -1363,7 +1376,7 @@ export default {
     title: "Daily Story Prompt",
     subtitle: "From today's featured story prompt",
     use: "Use this prompt",
-    dismiss: "Dismiss",
+    dismiss: "Save to my ideas",
     refreshAriaLabel: "Refresh prompt"
   },
   artStyles: {

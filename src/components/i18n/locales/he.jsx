@@ -1040,6 +1040,9 @@ export default {
       cleared: "הטיוטה נמחקה",
       clear: "מחק טיוטה",
       untitled: "טיוטה ללא שם"
+    },
+    idea: {
+      prefilled: "הרעיון מולא אוטומטית — אפשר לערוך ולהמשיך"
     }
   },
   characters: {
@@ -1332,7 +1335,17 @@ export default {
     language: "שפה",
     createdOn: "נוצר ב",
     edit: "ערוך",
-    delete: "מחק"
+    delete: "מחק",
+    editTitle: "עריכת הרעיון",
+    titleLabel: "כותרת",
+    descLabel: "תיאור",
+    titleRequired: "יש להזין כותרת לרעיון",
+    updateSuccess: "הרעיון עודכן",
+    updateFailed: "עדכון הרעיון נכשל, נסו שוב",
+    deleteTitle: "מחיקת רעיון",
+    deleteConfirm: "האם אתם בטוחים שברצונכם למחוק את הרעיון הזה? לא ניתן לבטל פעולה זו.",
+    deleteSuccess: "הרעיון נמחק",
+    deleteFailed: "מחיקת הרעיון נכשלה, נסו שוב"
   },
   ideaResult: {
     title: "רעיון הסיפור שלך מוכן!",
@@ -1358,7 +1371,7 @@ export default {
     title: "רעיון יומי לסיפור",
     subtitle: "מתוך רעיון הסיפור היומי המוצג",
     use: "השתמש ברעיון זה",
-    dismiss: "סגור",
+    dismiss: "שמור לרעיונות שלי",
     refreshAriaLabel: "רענן רעיון"
   },
   artStyles: {

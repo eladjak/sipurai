@@ -211,6 +211,37 @@ export default function BookWizard() {
     };
   }, [currentStep, selectedTopic, customIdea, selectedCharacters, bookData, generatedOutline, saveDraft, isLoading, isCreating]);
 
+  // Prefill from a "Use this idea" handoff (set by the Story Ideas page).
+  // Runs once on mount, before the draft-restore prompt.
+  useEffect(() => {
+    let pending = null;
+    try {
+      const raw = sessionStorage.getItem("sipurai_pending_idea");
+      if (raw) {
+        pending = JSON.parse(raw);
+        sessionStorage.removeItem("sipurai_pending_idea");
+      }
+    } catch {
+      pending = null;
+    }
+    if (pending && (pending.title || pending.description)) {
+      const ideaText = [pending.title, pending.description].filter(Boolean).join(" — ");
+      if (ideaText) setCustomIdea(ideaText);
+      setBookData((prev) => ({
+        ...prev,
+        title: pending.title || prev.title,
+        description: pending.description || prev.description,
+        moral: pending.moral || prev.moral,
+      }));
+      toast({
+        title: t("wizard.idea.prefilled"),
+        className: "bg-purple-100 text-purple-900 dark:bg-purple-900/50 dark:text-purple-100",
+      });
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Restore draft on mount
   useEffect(() => {
     const draft = getLatestDraft();
