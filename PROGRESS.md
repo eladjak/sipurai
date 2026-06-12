@@ -1,7 +1,17 @@
 # Sipurai - Progress & Analysis Report
 
 ## Status: LAUNCHED · build OK · 231 tests pass · production smoke 16/16 green (2026-05-25)
-## Last Updated: 2026-05-25 07:35 IDT
+## Last Updated: 2026-06-12 (Shabbat deep-iteration)
+
+### Session 2026-06-12 — Story Ideas dead-button fix (PR #1, NOT merged)
+**Worktree:** `~/projects/sipurai-shabbat` on `shabbat/ui-states-polish` (off `main`; main WIP `feat/story-video-mvp` untouched).
+**Gap found (definition-of-done violation):** the Story Ideas page rendered `SavedIdeas` + `DailyPrompt` with the wrong props →
+- Saved tab: Use / Edit / Delete / "Generate new" buttons all inert (handlers never passed).
+- Daily tab: `DailyPrompt` got no `prompt` → returned `null` → blank tab.
+- `isLoading` declared but never rendered (no skeleton).
+**Fixed (UI→logic→DB→i18n):** Use idea (sessionStorage handoff → BookWizard prefill on mount), Edit (Dialog → `StoryIdea.update`), Delete (AlertDialog confirm → `StoryIdea.delete`), Generate-new (tab switch), Daily tab (lazy daily-prompt gen w/ cache + Refresh + Save), loading skeletons for both tabs, `aria-label` on icon buttons, full he/en/yi parity, RTL-correct dialogs.
+**Verification:** `npm run build` exit 0 · configured `vitest run` exit 0 · no new lint errors · Vercel **Preview deploy PASSED** (`7896bf0`) · GitGuardian clean · prod `www.sipurai.ai` HTTP 200 (untouched).
+**Left for Elad:** merge PR #1 after GitHub Actions `test`/`e2e` go green (still pending at session end). Not auto-merged — live + Clerk-gated site, safe-live-refactor protocol. GEO unchanged (nothing on prod; UI-state changes don't affect SEO). Files: `src/pages/StoryIdeas.jsx`, `src/pages/BookWizard.jsx`, `src/components/storyIdeas/SavedIdeas.jsx`, `src/components/i18n/locales/{he,en,yi}.jsx`.
 
 ### Session 2026-05-25 — Health check + production smoke test fixed
 **Status:** build OK (exit 0, dist regenerated) · 231 tests pass (12/13 files; 1 file OOM = known Node worker heap infra, not a regression) · working tree was clean except one stray untracked file · live prod 16/16 green
