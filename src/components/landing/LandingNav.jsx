@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { useAuth } from '@/lib/AuthContext';
 
+/* Wordmark letters for the staggered logo entrance/hover wave.
+   LTR order enforced by `.logo-anim { direction: ltr }` (bidi gotcha #2). */
+const WORDMARK_LETTERS = ['S', 'i', 'p', 'u', 'r', 'a', 'i'];
+
 const LandingNav = () => {
   const { t, isRTL, language, changeLanguage, languages } = useI18n();
   const { isAuthenticated } = useAuth();
@@ -76,11 +80,18 @@ const LandingNav = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo — staggered letters + icon tilt (logo-animation-pattern.md) */}
           <Link to="/" aria-label="Sipurai - Go to homepage" className="flex items-center gap-2">
-            <BookOpen className={`h-8 w-8 text-purple-600 ${scrolled ? '' : 'text-white'}`} aria-hidden="true" />
+            <BookOpen className={`logo-icon-anim h-8 w-8 text-purple-600 ${scrolled ? '' : 'text-white'}`} aria-hidden="true" />
             <span className={`text-xl font-bold ${scrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}>
-              Sipurai
+              <span className="sr-only">Sipurai</span>
+              <span className="logo-anim" aria-hidden="true">
+                {WORDMARK_LETTERS.map((ch, i) => (
+                  <span key={i} className="logo-anim__ch" style={{ '--i': i }}>
+                    {ch}
+                  </span>
+                ))}
+              </span>
             </span>
           </Link>
 
