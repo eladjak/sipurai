@@ -1,34 +1,59 @@
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { StoryIdea } from "@/entities/StoryIdea";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   InvokeLLM
 } from "@/integrations/Core";
+import { createPageUrl } from "@/utils";
 import { moderateInput, buildSafetyPromptPrefix } from "@/utils/content-moderation";
-import { 
-  Lightbulb, 
-  Sparkles, 
-  BookOpen, 
+import {
+  Lightbulb,
+  Sparkles,
+  BookOpen,
   Save,
   RefreshCw,
-  Heart,
   Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Import components
 import IdeaGenerator from "../components/storyIdeas/IdeaGenerator";
 import SavedIdeas from "../components/storyIdeas/SavedIdeas";
 import DailyPrompt from "../components/storyIdeas/DailyPrompt";
 
+// Session key used to hand an idea off to the BookWizard for prefill.
+const PENDING_IDEA_KEY = "sipurai_pending_idea";
+
 export default function StoryIdeas() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { t, language, isRTL } = useI18n();
   const { user: hookUser } = useCurrentUser();
   // currentLanguage: the AI generation language (from user profile, may differ from UI language)
@@ -36,6 +61,17 @@ export default function StoryIdeas() {
   const [savedIdeas, setSavedIdeas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("generate");
+
+  // Edit-in-place dialog state for a saved idea
+  const [editingIdea, setEditingIdea] = useState(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  // Delete confirmation state
+  const [deletingId, setDeletingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Daily prompt tab state
+  const [dailyPrompt, setDailyPrompt] = useState(null);
+  const [isDailyLoading, setIsDailyLoading] = useState(false);
 
   // New state for idea generation within this page
   const [ideaParams, setIdeaParams] = useState({
@@ -190,6 +226,138 @@ export default function StoryIdeas() {
       }
   };
 
+  // --- Saved-idea actions (previously dead — now wired end-to-end) ---
+
+  // "Use idea": stash the idea and jump into the book wizard, which prefills
+  // the topic/title/description on mount.
+  const handleUseIdea = (idea) => {
+    if (!idea) return;
+    try {
+      sessionStorage.setItem(
+        PENDING_IDEA_KEY,
+        JSON.stringify({
+          title: idea.title || "",
+          description: idea.description || "",
+          moral: idea.moral_lesson || "",
+          language: idea.language || currentLanguage,
+        })
+      );
+    } catch {
+      // sessionStorage unavailable (private mode) — navigate anyway.
+    }
+    navigate(createPageUrl("BookWizard"));
+  };
+
+  const handleEditIdea = (idea) => {
+    setEditingIdea({ ...idea });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingIdea?.id) return;
+    if (!editingIdea.title?.trim()) {
+      toast({ variant: "destructive", description: t("savedIdeas.titleRequired") });
+      return;
+    }
+    try {
+      setIsSavingEdit(true);
+      await StoryIdea.update(editingIdea.id, {
+        title: editingIdea.title.trim(),
+        description: editingIdea.description?.trim() || "",
+      });
+      toast({ description: t("savedIdeas.updateSuccess") });
+      setEditingIdea(null);
+      await handleIdeaSaved();
+    } catch (error) {
+      toast({ variant: "destructive", description: t("savedIdeas.updateFailed") });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      setIsDeleting(true);
+      await StoryIdea.delete(deletingId);
+      toast({ description: t("savedIdeas.deleteSuccess") });
+      setDeletingId(null);
+      await handleIdeaSaved();
+    } catch (error) {
+      toast({ variant: "destructive", description: t("savedIdeas.deleteFailed") });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // --- Daily prompt (previously a blank tab — DailyPrompt never received data) ---
+  const generateDailyPrompt = async ({ force = false } = {}) => {
+    try {
+      setIsDailyLoading(true);
+      const today = new Date().toDateString();
+      if (!force) {
+        const cached = localStorage.getItem("dailyPrompt");
+        const cacheDate = localStorage.getItem("dailyPromptDate");
+        if (cached && cacheDate === today) {
+          setDailyPrompt(JSON.parse(cached));
+          setIsDailyLoading(false);
+          return;
+        }
+      }
+
+      const safetyPrefix = buildSafetyPromptPrefix("5-10");
+      const lang = currentLanguage;
+      const languagePrompt =
+        lang === "hebrew"
+          ? "צור רעיון קצר לסיפור ילדים בעברית לגילאי 5-10. הרעיון צריך להיות מעורר דמיון ומהנה. כלול כותרת קצרה ותיאור קצר (1-2 משפטים). החזר כ-JSON עם השדות title ו-description."
+          : lang === "yiddish"
+          ? "שרייב אַ קורצן, קינד-פֿרײַנדלעכן פּראָמפּט פֿאַר אַ קינדערגעשיכטע פֿאַר קינדער פֿון 5-10 יאָר. כלל אַ קורצן טיטל און אַ קורצע (1-2 זאַץ) באַשרייַבונג. שיק אַלס JSON מיט טיטל און באַשרייַבונג פֿעלדער."
+          : "Generate a creative, child-friendly, short story prompt for children aged 5-10. Include a story title and a brief (1-2 sentence) description. Return as JSON with title and description fields.";
+
+      const result = await InvokeLLM({
+        prompt: safetyPrefix + languagePrompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+      });
+
+      if (result) {
+        setDailyPrompt(result);
+        localStorage.setItem("dailyPrompt", JSON.stringify(result));
+        localStorage.setItem("dailyPromptDate", today);
+      }
+    } catch (error) {
+      toast({ variant: "destructive", description: t("storyIdeas.generateError") });
+    } finally {
+      setIsDailyLoading(false);
+    }
+  };
+
+  // Lazily generate the daily prompt the first time the Daily tab is opened.
+  useEffect(() => {
+    if (activeTab === "daily" && !dailyPrompt && !isDailyLoading) {
+      generateDailyPrompt();
+    }
+  }, [activeTab]);
+
+  const handleSaveDailyPrompt = async () => {
+    if (!dailyPrompt) return;
+    try {
+      await StoryIdea.create({
+        title: dailyPrompt.title,
+        description: dailyPrompt.description,
+        language: currentLanguage,
+      });
+      toast({ description: t("storyIdeas.saveSuccess") });
+      await handleIdeaSaved();
+    } catch (error) {
+      toast({ variant: "destructive", description: t("storyIdeas.saveFailed") });
+    }
+  };
+
 
   return (
     <div className="max-w-6xl mx-auto py-8" dir={isRTL ? "rtl" : "ltr"}>
@@ -311,22 +479,128 @@ export default function StoryIdeas() {
         </TabsContent>
 
         <TabsContent value="saved">
-          <SavedIdeas 
-            ideas={savedIdeas}
-            currentLanguage={currentLanguage}
-            isRTL={isRTL}
-            onIdeaUpdated={handleIdeaSaved}
-          />
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" dir={isRTL ? "rtl" : "ltr"}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-5 w-3/4" />
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <SavedIdeas
+              ideas={savedIdeas}
+              currentLanguage={currentLanguage}
+              isRTL={isRTL}
+              onUseIdea={handleUseIdea}
+              onEditIdea={handleEditIdea}
+              onDeleteIdea={(id) => setDeletingId(id)}
+              onGenerateNew={() => setActiveTab("generate")}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="daily">
-          <DailyPrompt 
-            currentLanguage={currentLanguage}
-            isRTL={isRTL}
-            onIdeaSaved={handleIdeaSaved}
-          />
+          {isDailyLoading ? (
+            <Card className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700 mb-6">
+              <CardHeader className="space-y-2">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="h-5 w-2/5" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-10 w-40 rounded-md" />
+              </CardContent>
+            </Card>
+          ) : (
+            <DailyPrompt
+              prompt={dailyPrompt}
+              isRTL={isRTL}
+              onUse={() => handleUseIdea(dailyPrompt)}
+              onRefresh={() => generateDailyPrompt({ force: true })}
+              onDismiss={handleSaveDailyPrompt}
+            />
+          )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit saved idea dialog */}
+      <Dialog open={!!editingIdea} onOpenChange={(open) => !open && setEditingIdea(null)}>
+        <DialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className={isRTL ? "text-right" : "text-left"}>
+              {t("savedIdeas.editTitle")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" htmlFor="edit-idea-title">
+                {t("savedIdeas.titleLabel")}
+              </label>
+              <Input
+                id="edit-idea-title"
+                value={editingIdea?.title || ""}
+                onChange={(e) => setEditingIdea((prev) => ({ ...prev, title: e.target.value }))}
+                dir={isRTL ? "rtl" : "ltr"}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" htmlFor="edit-idea-desc">
+                {t("savedIdeas.descLabel")}
+              </label>
+              <Textarea
+                id="edit-idea-desc"
+                rows={4}
+                value={editingIdea?.description || ""}
+                onChange={(e) => setEditingIdea((prev) => ({ ...prev, description: e.target.value }))}
+                dir={isRTL ? "rtl" : "ltr"}
+              />
+            </div>
+          </div>
+          <DialogFooter className={isRTL ? "sm:flex-row-reverse sm:justify-start gap-2" : "gap-2"}>
+            <Button variant="outline" onClick={() => setEditingIdea(null)} disabled={isSavingEdit}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="bg-purple-600 hover:bg-purple-700">
+              {isSavingEdit && <RefreshCw className={`h-4 w-4 animate-spin ${isRTL ? "ms-2" : "me-2"}`} />}
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={isRTL ? "text-right" : "text-left"}>
+              {t("savedIdeas.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className={isRTL ? "text-right" : "text-left"}>
+              {t("savedIdeas.deleteConfirm")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={isRTL ? "sm:flex-row-reverse sm:justify-start gap-2" : "gap-2"}>
+            <AlertDialogCancel disabled={isDeleting}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting && <RefreshCw className={`h-4 w-4 animate-spin ${isRTL ? "ms-2" : "me-2"}`} />}
+              {t("savedIdeas.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

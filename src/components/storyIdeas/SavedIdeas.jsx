@@ -69,10 +69,10 @@ export default function SavedIdeas({
               </CardContent>
               <CardFooter className={`flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-3 border-t border-gray-100 dark:border-gray-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                   <Button variant="ghost" size="icon" onClick={() => onEditIdea && onEditIdea(idea)} title={t("savedIdeas.edit")}>
+                   <Button variant="ghost" size="icon" onClick={() => onEditIdea && onEditIdea(idea)} title={t("savedIdeas.edit")} aria-label={t("savedIdeas.edit")}>
                       <Edit className="h-4 w-4 text-blue-500" />
                    </Button>
-                   <Button variant="ghost" size="icon" onClick={() => onDeleteIdea && onDeleteIdea(idea.id)} className="text-red-500 hover:text-red-600" title={t("savedIdeas.delete")}>
+                   <Button variant="ghost" size="icon" onClick={() => onDeleteIdea && onDeleteIdea(idea.id)} className="text-red-500 hover:text-red-600" title={t("savedIdeas.delete")} aria-label={t("savedIdeas.delete")}>
                       <Trash2 className="h-4 w-4" />
                    </Button>
                 </div>
