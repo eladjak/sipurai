@@ -621,9 +621,9 @@
 - **API keys added to .env**: Gemini, Anthropic, OpenAI, Gelato, Lulu
 
 ### API Keys Inventory (found on machine)
-- Gemini: AIzaSyDpAjH5T4s... (ACTIVE — in .env as VITE_GEMINI_API_KEY)
-- Anthropic: sk-ant-api03-jNxf... (stored for future use)
-- OpenAI: sk-proj-ve-nzd8j... (stored for future use)
+- Gemini: [REDACTED] (ACTIVE — in gitignored .env as VITE_GEMINI_API_KEY)
+- Anthropic: [REDACTED] (in gitignored .env)
+- OpenAI: [REDACTED] (in gitignored .env)
 - Supabase: 4 existing projects found (need new one for Sipurai)
 - Clerk: haderech-next project found
 
