@@ -1,5 +1,12 @@
 # Sipurai - Progress & Analysis Report
 
+## 2026-06-14 — Launch-readiness pass (autonomous, team-build + safe-live-refactor)
+**Verdict: NOT launch-ready — one high-stakes blocker. NO RLS/prod-Supabase data touched.** Full scorecard: `docs/LAUNCH-READINESS-2026-06-14.md`.
+- 🚨 **#1 BLOCKER (needs Elad + preview deploy):** `origin/main` (= prod) is OUT OF SYNC with the prod DB. The Clerk-`sub` ownership migration was applied to prod 2026-05-25 (RLS keys on `auth.jwt()->>'sub'`; `notifications.user_email` column DROPPED → `recipient_id`), but the matching CODE never reached `main` (entangled with the unmergeable `feat/story-video-mvp`). Result on prod: `secureEntity.create` stamps `created_by=email` but RLS requires the Clerk sub → **signed-in users' book INSERTs are REJECTED; Library/Home/Profile read empty; Notification entity references a dropped column.** Fix = cherry-pick the non-video commits (`0d006c5 dde23af 30cdf3a 09e78f2 8c50870 f3cea14`, only PROGRESS.md conflicts — verified) onto origin/main, EXCLUDE Remotion video MVP, **Vercel preview + signed-in smoke vs live RLS + council**, then promote. Not done autonomously — touches the prod-RLS surface I was told not to destabilize.
+- **Fixed (safe, isolated, build-green, PR-ready on `chore/launch-fixes-2026-06-14`, pushed):** (1) `chat-faq` `thinkingBudget:0` + 400→600 (Hebrew answers truncated; claimed deployed 5/28 but NOT on main). (2) **Removed hardcoded `service_role` JWT** from `setup-supabase-storage.mjs` → env-driven. **⚠️ ROTATE that key in Supabase (still in git history).**
+- **jsPDF decision (you asked):** bumped 2.5.2→**4.2.1** on branch `chore/jspdf-v4-bump` (pushed, build-green) — clears the moderate dompurify XSS advisories. BUT the vuln was **not runtime-reachable** here (pdfExporter uses only jsPDF primitives — no `.html()`/html2canvas/dompurify). Safe to merge after one PDF-export smoke. **Separate bigger finding:** Hebrew PDF export is broken (default Helvetica + no RTL → garbled Hebrew) — a focused feature fix, flagged not rushed.
+- **Verified:** `vite build` 0 (both branches) · `vitest` 21/21 lib · prod **200** · GEO **100/100** (nothing merged to main). Local checkout was on `feat/story-video-mvp`; I branched off `origin/main`. Video-branch WIP stashed (`video-branch-wip-...`), not lost.
+
 ## Status: LAUNCHED · build OK · 231 tests pass · production smoke 16/16 green (2026-05-25)
 ## Last Updated: 2026-06-12 (Shabbat deep-iteration)
 
