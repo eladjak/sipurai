@@ -14,7 +14,7 @@ const GEMINI_PRO_IMAGE_MODEL = 'gemini-3-pro-image-preview';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export async function geminiProImage(apiKey, prompt, options = {}) {
-  const { aspectRatio = '1:1' } = options;
+  const { aspectRatio = '1:1', referenceImageBase64 } = options;
 
   // Append child-safety + no-text instructions to match Gemini Fast contract.
   // Pro model is allowed Hebrew text (it handles it well) so we don't strip that.
@@ -22,8 +22,15 @@ export async function geminiProImage(apiKey, prompt, options = {}) {
 
   const url = `${GEMINI_BASE_URL}/${GEMINI_PRO_IMAGE_MODEL}:generateContent`;
 
+  // Character-reference workflow (2026-07-05): attach the reference image as a
+  // multimodal part for cross-page character consistency.
+  const parts = [{ text: safePrompt }];
+  if (referenceImageBase64) {
+    parts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });
+  }
+
   const body = {
-    contents: [{ parts: [{ text: safePrompt }] }],
+    contents: [{ parts }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
       imageConfig: { aspectRatio },

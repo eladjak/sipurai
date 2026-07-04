@@ -2408,7 +2408,17 @@ export default {
     next: "הבא",
     previous: "הקודם",
     coverAriaLabel: "עטיפה",
-    pageAriaLabel: "עמוד {{number}}"
+    pageAriaLabel: "עמוד {{number}}",
+    pageIllustration: "איור עמוד {{page}}"
+  },
+  giftEdition: {
+    title: "אוהבים את הספר? הפכו אותו למתנה",
+    subtitle: "מהדורה מיוחדת עם הקדשה אישית — דיגיטלית מהודרת או ספר מודפס שמגיע עד הבית.",
+    digitalCta: "מעניין אותי — מהדורה דיגיטלית",
+    printCta: "מעניין אותי — ספר מודפס",
+    noChargeNote: "רק מסמנים עניין — בלי תשלום ובלי התחייבות. נעדכן כשהמהדורה תהיה מוכנה.",
+    thanksTitle: "תודה! סימנו את העניין שלכם",
+    thanksBody: "זה עוזר לנו להחליט מה לבנות קודם. נהיה בקשר כשהמהדורה תהיה זמינה."
   },
   installPrompt: {
     message: "התקינו את Sipurai לחוויה הטובה ביותר",

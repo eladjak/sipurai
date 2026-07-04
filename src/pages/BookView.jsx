@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import PageFlip from "@/components/bookReader/PageFlip";
 import TTSControls, { getStoredTTSEngine } from "@/components/bookReader/TTSControls";
+import GiftEditionCTA from "@/components/bookReader/GiftEditionCTA";
 import { useTTS } from "@/hooks/useTTS";
 import { exportBookToPDF } from "@/utils/pdfExporter";
 import useGamification from "@/hooks/useGamification";
@@ -896,6 +897,9 @@ export default function BookView() {
                         </>
                       )}
                     </div>
+
+                    {/* Gift-edition demand gate (measurement only, no payment) */}
+                    <GiftEditionCTA book={book} isGuest={isGuest} nightMode={nightMode} />
                   </div>
                 </motion.div>
               )}

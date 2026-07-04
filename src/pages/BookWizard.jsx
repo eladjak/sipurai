@@ -126,6 +126,9 @@ export default function BookWizard() {
   const [celebrationBook, setCelebrationBook] = useState(null); // { id, title, cover_image }
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTimerRef = useRef(null);
+  // Cover-derived character reference — survives into retryFailedImages so
+  // retried pages keep the same character identity as the original run.
+  const characterReferenceRef = useRef(null);
 
   // Step 3: Book data (preview/edit)
   const [bookData, setBookData] = useState({
@@ -499,7 +502,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
     const retryResults = await Promise.allSettled(
       failures.map(({ pageId, imagePrompt }) =>
-        GenerateImage({ prompt: imagePrompt })
+        GenerateImage({ prompt: imagePrompt, referenceImageBase64: characterReferenceRef.current })
           .then((result) => ({ pageId, url: result?.url || "" }))
           .catch(() => ({ pageId, url: "" }))
       )
@@ -684,6 +687,12 @@ The story should have a clear beginning, middle, and end.`;
       ]);
 
       const coverImage = coverResult?.url || "";
+      // Character consistency (Sprint 24 plumbing, wired 2026-07-05): the cover
+      // establishes the characters' canonical look; its base64 is passed as a
+      // multimodal reference to EVERY page generation so the same child/hero
+      // looks identical on all pages instead of being re-imagined per page.
+      const characterReference = coverResult?.base64 || null;
+      characterReferenceRef.current = characterReference;
 
       // Step 2: Create book entity
       setCreationProgress({
@@ -886,8 +895,11 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
           ? `Featuring: ${sceneCharNames}. `
           : "";
 
-        const imagePrompt = `${consistencyInstruction}${noTextInstruction}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${pageText.image_prompt}. Children's book illustration in ${bookData.art_style} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
-        return GenerateImage({ prompt: imagePrompt })
+        const referenceInstruction = characterReference
+          ? `Use the attached reference image ONLY for the characters' identity — face, hair, skin tone, colors and outfit must match it EXACTLY. Compose a NEW scene per the description. `
+          : "";
+        const imagePrompt = `${consistencyInstruction}${referenceInstruction}${noTextInstruction}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${pageText.image_prompt}. Children's book illustration in ${bookData.art_style} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
+        return GenerateImage({ prompt: imagePrompt, referenceImageBase64: characterReference })
           .then((result) => ({
             url: result?.url || "",
             prompt: imagePrompt,

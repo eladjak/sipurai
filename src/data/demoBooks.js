@@ -160,4 +160,15 @@ const demoBooks = [
   },
 ];
 
+// Attach the generated demo artwork (character-consistent WebP illustrations
+// under public/demo/<id>/, produced by scripts/generate-demo-images.mjs).
+// Derived from id + pageNumber so adding a book needs no manual path wiring.
+// Components fall back to the gradient placeholder when a path is absent.
+for (const book of demoBooks) {
+  book.cover_image = `/demo/${book.id}/cover.webp`;
+  for (const page of book.pages) {
+    page.image = `/demo/${book.id}/page-${page.pageNumber}.webp`;
+  }
+}
+
 export default demoBooks;

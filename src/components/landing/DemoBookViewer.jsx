@@ -115,16 +115,35 @@ const DemoBookViewer = ({ book, open, onClose }) => {
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="flex flex-col items-center justify-center p-8 text-center"
               >
-                {/* Cover illustration area */}
-                <div
-                  className={`w-full max-w-sm aspect-[3/4] rounded-2xl bg-gradient-to-br ${book.cover_gradient} flex flex-col items-center justify-center p-8 mb-6 shadow-xl`}
-                >
-                  <Sparkles className="h-12 w-12 text-white/80 mb-4" />
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 leading-tight">
-                    {book.title.he}
-                  </h2>
-                  <p className="text-white/80 text-sm">{book.title.en}</p>
-                </div>
+                {/* Cover illustration area — real artwork when available,
+                    gradient fallback otherwise. Title is a UI overlay (never
+                    baked into the image). */}
+                {book.cover_image ? (
+                  <div className="w-full max-w-sm aspect-[3/4] rounded-2xl mb-6 shadow-xl relative overflow-hidden">
+                    <img
+                      src={book.cover_image}
+                      alt={language === 'en' ? book.title.en : book.title.he}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-x-0 top-0 pt-5 pb-10 px-4 bg-gradient-to-b from-black/55 via-black/25 to-transparent text-center">
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-1 leading-tight drop-shadow">
+                        {book.title.he}
+                      </h2>
+                      <p className="text-white/85 text-sm drop-shadow">{book.title.en}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className={`w-full max-w-sm aspect-[3/4] rounded-2xl bg-gradient-to-br ${book.cover_gradient} flex flex-col items-center justify-center p-8 mb-6 shadow-xl`}
+                  >
+                    <Sparkles className="h-12 w-12 text-white/80 mb-4" />
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 leading-tight">
+                      {book.title.he}
+                    </h2>
+                    <p className="text-white/80 text-sm">{book.title.en}</p>
+                  </div>
+                )}
 
                 {/* Book metadata */}
                 <div className="flex flex-wrap gap-2 justify-center mb-4">
@@ -162,16 +181,27 @@ const DemoBookViewer = ({ book, open, onClose }) => {
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="flex flex-col p-6 sm:p-8"
               >
-                {/* Illustration placeholder */}
-                <div
-                  className={`w-full aspect-[16/9] rounded-xl bg-gradient-to-br ${book.cover_gradient} opacity-20 flex items-center justify-center mb-6 relative overflow-hidden`}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <p className="text-center text-xs text-gray-600 dark:text-gray-400 opacity-70 max-w-md leading-relaxed">
-                      {page.imagePrompt}
-                    </p>
+                {/* Page illustration — real artwork when available */}
+                {page.image ? (
+                  <div className="w-full aspect-[4/3] sm:aspect-[16/10] rounded-xl mb-6 relative overflow-hidden shadow-md">
+                    <img
+                      src={page.image}
+                      alt={t('demoBookViewer.pageIllustration', { page: currentPage + 1 }) || `איור עמוד ${currentPage + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div
+                    className={`w-full aspect-[16/9] rounded-xl bg-gradient-to-br ${book.cover_gradient} opacity-20 flex items-center justify-center mb-6 relative overflow-hidden`}
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <p className="text-center text-xs text-gray-600 dark:text-gray-400 opacity-70 max-w-md leading-relaxed">
+                        {page.imagePrompt}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Story text */}
                 <div className="flex-1">

@@ -70,19 +70,28 @@ const ShowcaseSection = () => {
               className="min-w-[280px] sm:min-w-0 snap-center group"
             >
               <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
-                {/* Book cover — uses the book's own gradient */}
+                {/* Book cover — real generated artwork when available, gradient fallback */}
                 <div className="relative aspect-[4/5] overflow-hidden">
-                  <div
-                    className={`w-full h-full bg-gradient-to-br ${book.cover_gradient} group-hover:scale-105 transition-transform duration-500`}
-                  />
-                  {/* Title overlay on gradient cover */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-white">
-                    <BookOpen className="h-12 w-12 mb-3 opacity-80" />
-                    <p className="text-center font-bold text-base leading-snug drop-shadow">
+                  {book.cover_image ? (
+                    <img
+                      src={book.cover_image}
+                      alt={book.displayTitle}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div
+                      className={`w-full h-full bg-gradient-to-br ${book.cover_gradient} group-hover:scale-105 transition-transform duration-500`}
+                    />
+                  )}
+                  {/* Title overlay */}
+                  <div className={`absolute inset-0 flex flex-col items-center p-4 text-white ${book.cover_image ? 'justify-start pt-5' : 'justify-center'}`}>
+                    {!book.cover_image && <BookOpen className="h-12 w-12 mb-3 opacity-80" />}
+                    <p className="text-center font-bold text-base leading-snug drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
                       {book.displayTitle}
                     </p>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                  <div className={`absolute inset-0 bg-gradient-to-t from-black/30 via-transparent ${book.cover_image ? 'to-black/35' : 'to-transparent'}`} />
                   {/* Genre badge */}
                   <div
                     className={`absolute top-3 ${isRTL ? 'right-3' : 'left-3'}`}

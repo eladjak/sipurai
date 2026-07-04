@@ -232,8 +232,9 @@ export async function generateImage({ prompt, aspectRatio = '1:1', provider, mod
     ?? 'gemini';
 
   // ── Proxy mode (production) — always for OpenAI + gemini-pro since keys are server-only ──
-  // Also forced when referenceImageBase64 is provided (image-edit endpoint).
-  if (!useDirectApi() || effectiveProvider === 'openai' || effectiveProvider === 'gemini-pro' || referenceImageBase64) {
+  // referenceImageBase64 rides along to the proxy (Gemini multimodal part /
+  // OpenAI image-edit endpoint). In dev-direct mode it is attached below.
+  if (!useDirectApi() || effectiveProvider === 'openai' || effectiveProvider === 'gemini-pro') {
     return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider, referenceImageBase64 });
   }
 
@@ -241,6 +242,12 @@ export async function generateImage({ prompt, aspectRatio = '1:1', provider, mod
   const apiKey = getApiKey();
 
   const safePrompt = `${prompt}\n\nIMPORTANT: This image is for a children's book. It must be completely child-friendly, wholesome, and appropriate for young readers.`;
+
+  // Character-reference workflow: same multimodal part as the server path.
+  const directParts = [{ text: safePrompt }];
+  if (referenceImageBase64) {
+    directParts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });
+  }
 
   const response = await fetch(
     `${GEMINI_BASE_URL}/${GEMINI_IMAGE_MODEL}:generateContent`,
@@ -251,7 +258,7 @@ export async function generateImage({ prompt, aspectRatio = '1:1', provider, mod
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: safePrompt }] }],
+        contents: [{ parts: directParts }],
         generationConfig: {
           responseModalities: ['TEXT', 'IMAGE'],
           imageConfig: { aspectRatio },

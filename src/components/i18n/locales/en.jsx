@@ -2411,7 +2411,17 @@ export default {
     next: "Next",
     previous: "Previous",
     coverAriaLabel: "Cover",
-    pageAriaLabel: "Page {{number}}"
+    pageAriaLabel: "Page {{number}}",
+    pageIllustration: "Illustration for page {{page}}"
+  },
+  giftEdition: {
+    title: "Love this book? Turn it into a gift",
+    subtitle: "A special edition with a personal dedication — a premium digital copy or a printed book delivered to your door.",
+    digitalCta: "I'm interested — digital edition",
+    printCta: "I'm interested — printed book",
+    noChargeNote: "Just registering interest — no payment, no commitment. We'll notify you when the edition is ready.",
+    thanksTitle: "Thanks! We've noted your interest",
+    thanksBody: "This helps us decide what to build first. We'll be in touch when the edition is available."
   },
   installPrompt: {
     message: "Install Sipurai for the best experience",

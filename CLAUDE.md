@@ -5,18 +5,16 @@
 **Domain:** https://sipurai.ai | **Analytics:** https://analytics.sipurai.ai
 הילד/ההורה בוחר דמויות, סגנון, שפה וז'אנר - וה-AI יוצר ספר שלם עם סיפור ואיורים.
 
-## Tech Stack
+## Tech Stack (updated 2026-07-05 — Base44 is RETIRED, do not reference it)
 - **Frontend:** React 18 + Vite (JSX, not TypeScript)
-- **Backend/BaaS:** Base44 SDK (`@base44/sdk`)
-- **UI:** Radix UI + shadcn/ui + Tailwind CSS
-- **Animation:** Framer Motion
-- **State:** React Query (TanStack Query v5)
-- **Routing:** React Router DOM v6
-- **Icons:** Lucide React
-- **Charts:** Recharts
-- **3D:** Three.js
+- **Auth:** Clerk (`@clerk/clerk-react`) — prod instance clerk.sipurai.ai (pk_live), dev instance many-liger-29 (pk_test). ⚠️ The dev instance has NO 'supabase' JWT template → local dev cannot write to the DB (writes run anon and RLS blocks them).
+- **DB/Storage:** Supabase `furviizyohryyqubosut` — RLS locked (2026-05-25): ownership keyed on Clerk `sub` via `auth.jwt()->>'sub'`; PII-safe public views (`public_books`/`public_pages`); `profiles` directory + SECURITY DEFINER RPCs for follows/notifications
+- **Payments:** Creem (4 plans in `src/lib/creem.js`), webhook `api/webhooks/creem.js` (raw-body HMAC)
+- **AI serverless:** `/api/ai/generate` (Gemini text/image + OpenAI image[-edit]), `/api/ai/tts` (OpenAI gpt-4o-mini-tts / Gemini), `/api/chat-faq` — all Clerk-JWT-gated (`api/_lib/verifyClerk.js`, fail-closed)
+- **UI:** Radix UI + shadcn/ui + Tailwind CSS · **Animation:** Framer Motion
+- **State:** React Query v5 · **Routing:** React Router v6 · **Icons:** Lucide
 - **i18n:** Custom (Hebrew, English, Yiddish with RTL)
-- **PDF:** jsPDF + html2canvas
+- **PDF:** jsPDF + Heebo TTF embed + bidi-js visual reordering (`src/utils/pdfExporter.js` + `src/utils/hebrewText.js`) — Hebrew works; test with `node scripts/verify-hebrew-pdf.mjs`
 
 ## Architecture
 ```
@@ -64,11 +62,11 @@ src/
 | Profile | User profile & achievements |
 | Documentation | Work plan & roadmap (embedded) |
 
-## AI Integrations (via Base44)
-- `InvokeLLM` - Text generation (stories, prompts, analysis)
-- `GenerateImage` - Image generation (illustrations, avatars, scene sketches)
-- `UploadFile` - File uploads
-- `SendEmail` / `SendSMS` - Notifications
+## AI Integrations (src/integrations/Core.js → src/lib/aiProvider.js → /api/ai/*)
+- `InvokeLLM` — text generation (Story Bible pipeline in `src/lib/storyBible.js` — ONE structured call per book)
+- `GenerateImage({ prompt, aspectRatio, modelId, referenceImageBase64 })` — illustrations. `referenceImageBase64` = character-consistency reference (cover image → every page), wired through BookWizard since 2026-07-05
+- `synthesize()` (`src/lib/ttsProvider.js`) — cloud TTS with Hebrew narration presets (`NARRATION_PRESETS` in storyBible.js)
+- `UploadFile` — Supabase Storage
 
 ## Current Development Phase
 **Phase 1:** Story Structure Builder Integration (IN PROGRESS)
@@ -97,12 +95,12 @@ src/
 - Shared UI from `components/ui/` (shadcn)
 
 ## Important Notes
-- Base44 handles auth, DB, and AI integrations
-- `requiresAuth: true` in current config (auth enabled)
-- Images cached in localStorage for 24h
-- Entities: `Query` (generic), `User` (auth)
-- Tests configured with vitest + @testing-library/react (see vitest.config.js)
-- No TypeScript strict mode (jsconfig.json)
+- Entities live in `src/entities/*` and wrap `createSecureEntity(createSupabaseEntity(...))` — ownership stamped as `created_by = user.id` (Clerk sub). NEVER compare `created_by` to `user.email` (that regression killed the product for 6 weeks, fixed on `fix/prod-db-reconcile`)
+- Demo showcase books: `src/data/demoBooks.js` + character-consistent artwork in `public/demo/` (regenerate: `node scripts/generate-demo-images.mjs` then `python scripts/compress-demo-images.py`)
+- Gift-edition demand gate: `src/components/bookReader/GiftEditionCTA.jsx` — measurement only (Umami event + Feedback row `feedback_type='gift_edition_interest'`), NO payment until the demand gate passes
+- Tests: vitest + @testing-library/react; 1 known OOM file (infra, not a regression). No TypeScript strict mode (jsconfig.json)
+- Deploys: Vercel project `ey.ai-kids-playground`; previews are SSO-protected (bypass secret in `.vercel/bypass-secret.txt`, gitignored); branch domain `preview.sipurai.ai` bound to `fix/prod-db-reconcile` (needs a Cloudflare CNAME `preview` → `28aedb36648d9e52.vercel-dns-017.com` — Elad gate)
+- E2E against live RLS: `scripts/e2e-newuser-prod-harness.mjs` (needs a fresh Clerk JWT) — proved 10/10 on 2026-07-05
 
 ---
 

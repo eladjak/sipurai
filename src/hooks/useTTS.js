@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { synthesize, getDefaultVoice } from '../lib/ttsProvider';
+import { getNarrationPreset } from '../lib/storyBible';
 
 /**
  * Hook for Text-to-Speech narration with language-aware voice selection.
@@ -57,7 +58,15 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
     try {
       stopCloud();
       const v = voice ?? getDefaultVoice(engine, language);
-      const { url } = await synthesize({ text, provider: engine, voice: v });
+      // Hebrew narration steering (Sprint-24 presets, wired 2026-07-05):
+      // OpenAI voices are EN-tuned; the preset instructions direct warm,
+      // slower Israeli-Hebrew storytelling. OpenAI-only (the Gemini proxy
+      // path has no instructions param).
+      const instructions =
+        engine === 'openai' && (language === 'hebrew' || language === 'yiddish')
+          ? getNarrationPreset('playful').instructions
+          : undefined;
+      const { url } = await synthesize({ text, provider: engine, voice: v, instructions });
       cloudUrlRef.current = url;
       const audio = new Audio(url);
       audio.playbackRate = rate;

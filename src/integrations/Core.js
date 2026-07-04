@@ -32,14 +32,14 @@ export async function InvokeLLM(params) {
 //   - 'gemini-2-5-flash-image'→ Gemini 2.5 Flash (default cost tier)
 //   - undefined               → existing default routing (env / localStorage)
 
-export async function GenerateImage({ prompt, quality, size, modelId, aspectRatio }) {
+export async function GenerateImage({ prompt, quality, size, modelId, aspectRatio, referenceImageBase64 }) {
   if (import.meta.env.DEV) {
-    console.log('[Core.GenerateImage] Starting image generation, prompt length:', prompt?.length, 'modelId:', modelId);
+    console.log('[Core.GenerateImage] Starting image generation, prompt length:', prompt?.length, 'modelId:', modelId, 'hasReference:', !!referenceImageBase64);
   }
 
   // Wrap 3rd-party AI fetch in Result at the boundary (no try/catch in business logic).
   const genResult = await safeAsync(() =>
-    geminiGenerateImage({ prompt, modelId, aspectRatio })
+    geminiGenerateImage({ prompt, modelId, aspectRatio, referenceImageBase64 })
   );
 
   if (genResult.isErr) {
@@ -58,17 +58,19 @@ export async function GenerateImage({ prompt, quality, size, modelId, aspectRati
   const file = base64ToFile(base64, mimeType, `sipurai-${Date.now()}.png`);
 
   // Upload is also wrapped in Result; on failure fall back to inline data URI.
+  // base64 is returned alongside url so callers can chain it as the
+  // referenceImageBase64 of subsequent generations (character consistency).
   const uploadResult = await safeAsync(() => uploadFileToSupabase(file, 'generated'));
   if (uploadResult.isOk) {
     const url = uploadResult.unwrap().file_url;
     if (import.meta.env.DEV) console.log('[Core.GenerateImage] Upload success, URL:', url?.substring(0, 80));
-    return { url };
+    return { url, base64, mimeType };
   }
 
   if (import.meta.env.DEV) {
     console.warn('[Core.GenerateImage] Supabase upload failed, using data URI fallback:', uploadResult.error()?.message);
   }
-  return { url: `data:${mimeType};base64,${base64}` };
+  return { url: `data:${mimeType};base64,${base64}`, base64, mimeType };
 }
 
 // ─── File Upload ────────────────────────────────────────────────────────────

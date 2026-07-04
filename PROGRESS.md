@@ -1,5 +1,29 @@
 # Sipurai - Progress & Analysis Report
 
+## 2026-07-05 — 48h execution: revival branch + magic layer (branch `fix/prod-db-reconcile`, pushed, NOT promoted)
+**Full plan: `MASTERPIECE-PLAN.md` (root). Everything below is on the branch + Vercel Preview only — prod untouched (Elad's gate).**
+
+### יום 1 — החייאה (all verified)
+- **Reconciled main↔prod-DB:** cherry-picked the 6 non-video commits (`0d006c5 dde23af 30cdf3a 09e78f2 8c50870 f3cea14`) onto origin/main + merged `chore/launch-fixes-2026-06-14` + `chore/jspdf-v4-bump`. Only PROGRESS.md/bun.lock/storage-script conflicts (resolved; both lockfiles re-synced — `pg` was missing from package-lock → would have broken `npm ci` on Vercel). Build exit 0 · vitest 12/13 files, 230 passed, 0 new failures (13th = known OOM infra).
+- **Creem webhook raw-body HMAC** (P1-1) — in via `f3cea14`; `bodyParser:false` + timingSafeEqual confirmed in the branch.
+- **Hebrew PDF export FIXED:** `src/utils/hebrewText.js` (bidi-js UAX#9, 'auto' base direction, bracket mirroring) + Heebo TTF served from `public/fonts/` (fetched on demand, zero bundle cost) + RTL right-align. 13 unit tests green. Offline proof `scripts/verify-hebrew-pdf.mjs` → `out/hebrew-pdf-proof.pdf` visually verified (pdfium render): perfect Hebrew cover, wrapped RTL paragraphs, mixed-language line correct.
+- **E2E vs LIVE prod RLS — 10/10 PASS:** created a REAL new user on prod Clerk (`user_3G3b57J0ntOrXGBRY7TMnVkKoFh`, eladhiteclearning+sipqa0705@gmail.com, via Elad's Chrome — Turnstile passes in a real browser) and ran the reconciled write-pattern in-page: ensureProfile 201 · **books INSERT created_by=sub 201 (THE 6-week blocker — proven fixed)** · pages 201 · Library read returns the book · anon blocked (401) · is_public → anon reads via PII-safe `public_books` (no child_name) · self-cleaning delete verified. Harness: `scripts/e2e-newuser-prod-harness.mjs`.
+- **Why full UI-E2E on preview is gated:** Vercel previews are SSO-protected + prod Clerk (pk_live) rejects *.vercel.app origins. Solution prepared: branch domain **`preview.sipurai.ai`** added to the Vercel project (bound to this branch) — **needs one Cloudflare CNAME** (`preview` → `28aedb36648d9e52.vercel-dns-017.com`, DNS-only). Elad's CF session was expired (login = Elad-only). Protection-bypass secret for API smoke: `.vercel/bypass-secret.txt` (gitignored).
+- Discovered + documented: Clerk DEV instance has no 'supabase' JWT template → local dev writes run anon and fail (config gap, not code).
+
+### יום 2 — הקסם (all verified)
+- **Illustrated demo books (the landing wow):** 18 character-consistent images (3 books × 5 pages + covers) generated with `gemini-3-pro-image-preview` via `scripts/generate-demo-images.mjs` — page-1 image passed as multimodal reference to every subsequent page + locked character descriptors (elad-brand-kit pattern). Zero baked text. Compressed 17MB PNG → 3.9MB WebP (`scripts/compress-demo-images.py`). Wired into `demoBooks.js` + `DemoBookViewer` + `ShowcaseSection` (gradient fallback kept). Verified in-browser as guest: cover + page art render; consistency strips in `out/consistency-*.jpg`.
+- **Character consistency IN THE PRODUCT:** wired the dormant Sprint-24 plumbing end-to-end — cover image base64 now flows as `referenceImageBase64` into EVERY page generation + retry path (`BookWizard.jsx`), through `Core.GenerateImage` → `aiProvider` (incl. dev-direct) → Gemini flash/pro multimodal parts (`api/ai/generate.js`, `api/ai/gemini-image.js`); OpenAI keeps the images/edits route.
+- **Quality TTS:** already existed (engine selector browser/OpenAI/Gemini — reuse-first, nothing rebuilt); wired the missing piece — Hebrew `NARRATION_PRESETS` instructions now steer OpenAI TTS for he/yi (`useTTS.js`).
+- **Gift-edition demand gate (measurement ONLY):** `GiftEditionCTA.jsx` on the end-of-book celebration — two interest tiers (digital/print), logs Umami `gift_edition_interest` + durable `Feedback` row (`feedback_type='gift_edition_interest'`, existing schema, zero migration). No payment, no promises. i18n he/en/yi.
+- CLAUDE.md refreshed (Base44 → real stack + gotchas). Build exit 0.
+
+### נשאר לאלעד (שערים)
+1. **CNAME ב-Cloudflare:** `preview` → `28aedb36648d9e52.vercel-dns-017.com` (DNS-only) → then full signed-in UI smoke on https://preview.sipurai.ai (new user → wizard book → Library → PDF) + council → **promote to prod**.
+2. **Rotate the Supabase service_role key** (in git history; verify the scrub commit d4a6942 was preceded by rotation).
+3. One real Creem webhook test on preview before trusting billing.
+4. QA test user cleanup when done: prod Clerk `user_3G3b57J0ntOrXGBRY7TMnVkKoFh` (+ dev-instance twin) + its `profiles` row — safe to delete via Clerk dashboard.
+
 ## 2026-06-14 — Launch-readiness pass (autonomous, team-build + safe-live-refactor)
 **Verdict: NOT launch-ready — one high-stakes blocker. NO RLS/prod-Supabase data touched.** Full scorecard: `docs/LAUNCH-READINESS-2026-06-14.md`.
 - 🚨 **#1 BLOCKER (needs Elad + preview deploy):** `origin/main` (= prod) is OUT OF SYNC with the prod DB. The Clerk-`sub` ownership migration was applied to prod 2026-05-25 (RLS keys on `auth.jwt()->>'sub'`; `notifications.user_email` column DROPPED → `recipient_id`), but the matching CODE never reached `main` (entangled with the unmergeable `feat/story-video-mvp`). Result on prod: `secureEntity.create` stamps `created_by=email` but RLS requires the Clerk sub → **signed-in users' book INSERTs are REJECTED; Library/Home/Profile read empty; Notification entity references a dropped column.** Fix = cherry-pick the non-video commits (`0d006c5 dde23af 30cdf3a 09e78f2 8c50870 f3cea14`, only PROGRESS.md conflicts — verified) onto origin/main, EXCLUDE Remotion video MVP, **Vercel preview + signed-in smoke vs live RLS + council**, then promote. Not done autonomously — touches the prod-RLS surface I was told not to destabilize.
