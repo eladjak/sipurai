@@ -1,5 +1,13 @@
+import { containsHebrew, firstStrongIsRTL, linesToVisualRTL, arrayBufferToBase64 } from './hebrewText';
+
 /**
  * Export a book with its pages to a PDF document.
+ *
+ * Hebrew/Yiddish support (2026-07-05): embeds Heebo TTF (fetched on demand
+ * from /fonts/, zero main-bundle impact) and reorders every line to visual
+ * order via UAX#9 (bidi-js) — jsPDF's default Helvetica has no Hebrew
+ * glyphs and draws characters in visual order, so without this Hebrew
+ * exports were garbled. See rules/hebrew-rtl-web-gotchas.md.
  *
  * @param {Object} book - The book entity
  * @param {Array} pages - Array of page entities (sorted by page_number)
@@ -20,6 +28,34 @@ export async function exportBookToPDF(book, pages, { format = 'a4', onProgress }
     format: isA4 ? 'a4' : 'letter'
   });
 
+  // Detect Hebrew content (book language or actual text) and set up the font.
+  const bookIsRTL =
+    book.language === 'hebrew' ||
+    book.language === 'yiddish' ||
+    containsHebrew(book.title) ||
+    pages.some((p) => containsHebrew(p.text_content));
+  let hebrewFontReady = false;
+  if (bookIsRTL) {
+    hebrewFontReady = await tryLoadHebrewFont(doc);
+  }
+  const setBodyFont = () => {
+    doc.setFont(hebrewFontReady ? 'Heebo' : 'helvetica', 'normal');
+  };
+  setBodyFont();
+
+  /**
+   * Draw text with correct direction handling.
+   * - Wraps with splitTextToSize on the LOGICAL string (width is order-independent)
+   * - Reorders each wrapped line to visual order when it contains Hebrew
+   * - RTL body text is right-aligned at the right margin
+   */
+  const drawText = async (text, x, y, { maxWidth, align = 'left' } = {}) => {
+    if (!text) return;
+    const lines = maxWidth ? doc.splitTextToSize(text, maxWidth) : [text];
+    const visual = await linesToVisualRTL(lines);
+    doc.text(visual, x, y, { align });
+  };
+
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   const totalSteps = pages.length + 1; // +1 for cover
@@ -34,6 +70,7 @@ export async function exportBookToPDF(book, pages, { format = 'a4', onProgress }
   doc.setFillColor(124, 58, 237); // purple-600
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
+  let coverDrawn = false;
   if (book.cover_image) {
     try {
       const img = await loadImage(book.cover_image);
@@ -57,13 +94,17 @@ export async function exportBookToPDF(book, pages, { format = 'a4', onProgress }
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(28);
       const titleY = 30 + imgH + 20;
-      doc.text(book.title || 'My Book', pageWidth / 2, titleY, { align: 'center', maxWidth: contentWidth });
+      await drawText(book.title || 'My Book', pageWidth / 2, titleY, {
+        align: 'center',
+        maxWidth: contentWidth
+      });
+      coverDrawn = true;
     } catch {
-      // Fallback: text-only cover
-      drawTextCover(doc, book, pageWidth, pageHeight, contentWidth);
+      coverDrawn = false;
     }
-  } else {
-    drawTextCover(doc, book, pageWidth, pageHeight, contentWidth);
+  }
+  if (!coverDrawn) {
+    await drawTextCover(doc, book, pageWidth, pageHeight, contentWidth, drawText, bookIsRTL);
   }
 
   reportProgress();
@@ -102,36 +143,65 @@ export async function exportBookToPDF(book, pages, { format = 'a4', onProgress }
       }
     }
 
-    // Text content
+    // Text content — RTL pages are right-aligned at the right margin
     if (page.text_content) {
       doc.setTextColor(30, 30, 30);
       doc.setFontSize(14);
-      const lines = doc.splitTextToSize(page.text_content, contentWidth);
-      doc.text(lines, margin, yPos + 5);
+      const pageIsRTL = firstStrongIsRTL(page.text_content);
+      await drawText(page.text_content, pageIsRTL ? pageWidth - margin : margin, yPos + 5, {
+        maxWidth: contentWidth,
+        align: pageIsRTL ? 'right' : 'left'
+      });
     }
 
     reportProgress();
   }
 
   // Download
-  const fileName = (book.title || 'my-book').replace(/[^a-zA-Z0-9\u0590-\u05FF ]/g, '').replace(/\s+/g, '-');
+  const fileName = (book.title || 'my-book').replace(/[^a-zA-Z0-9֐-׿ ]/g, '').replace(/\s+/g, '-');
   doc.save(`${fileName}.pdf`);
 }
 
-function drawTextCover(doc, book, pageWidth, pageHeight, contentWidth) {
+/**
+ * Fetch Heebo from our own static assets and register it in jsPDF's VFS.
+ * Returns true on success; on failure the caller falls back to Helvetica
+ * (previous behavior) instead of blocking the export.
+ */
+async function tryLoadHebrewFont(doc) {
+  try {
+    const res = await fetch('/fonts/Heebo-Regular.ttf');
+    if (!res.ok) throw new Error(`font fetch ${res.status}`);
+    const buf = await res.arrayBuffer();
+    doc.addFileToVFS('Heebo-Regular.ttf', arrayBufferToBase64(buf));
+    doc.addFont('Heebo-Regular.ttf', 'Heebo', 'normal');
+    return true;
+  } catch (err) {
+    if (import.meta.env?.DEV) console.warn('[pdfExporter] Hebrew font load failed, falling back:', err);
+    return false;
+  }
+}
+
+async function drawTextCover(doc, book, pageWidth, pageHeight, contentWidth, drawText, isRTL) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(32);
-  doc.text(book.title || 'My Book', pageWidth / 2, pageHeight / 3, { align: 'center', maxWidth: contentWidth });
+  await drawText(book.title || 'My Book', pageWidth / 2, pageHeight / 3, {
+    align: 'center',
+    maxWidth: contentWidth
+  });
 
   if (book.child_name) {
     doc.setFontSize(18);
-    doc.text(`A story for ${book.child_name}`, pageWidth / 2, pageHeight / 3 + 20, { align: 'center' });
+    const dedication = isRTL ? `סיפור עבור ${book.child_name}` : `A story for ${book.child_name}`;
+    await drawText(dedication, pageWidth / 2, pageHeight / 3 + 20, { align: 'center' });
   }
 
   if (book.description) {
     doc.setFontSize(12);
     doc.setTextColor(220, 220, 255);
-    doc.text(book.description, pageWidth / 2, pageHeight / 2 + 10, { align: 'center', maxWidth: contentWidth });
+    await drawText(book.description, pageWidth / 2, pageHeight / 2 + 10, {
+      align: 'center',
+      maxWidth: contentWidth
+    });
   }
 }
 
