@@ -1,5 +1,19 @@
 # Sipurai - Progress & Analysis Report
 
+## 2026-07-06 — PROMOTED TO PRODUCTION: fix/prod-db-reconcile → main, 6-week blocker FIXED live ✅ (prod-push run)
+
+**מוזג ל-main (FF, ‏16 קומיטים) ונדחף → Vercel פרס אוטומטית ל-Production (deploy `oi0ofe0c5` = ●Ready).**
+- שער-אימות לפני מיזוג: `vite build`=ירוק (שער-הפריסה האמיתי) · ‏3 preview-deploys של הענף כבר היו ●Ready מ-1d · ה-E2E על prod-Clerk/RLS ‏10/10 (מהריצה הקודמת). (הערה: `tsc -p jsconfig` מראה שגיאות pre-existing בפרויקט-JS-loose + קובץ-vitest אחד עם OOM ידוע — לא רגרסיות, מתועד ב-CLAUDE.md.)
+- **אימות פרוד חי — החוסם-העל נפתר:** `www.sipurai.ai/` → 200 · **באנדל התחלף** `index-JDhVDgS4.js` (השבור) → `index-Ckpl7X-4.js` · בבאנדל-החי: `ownerField:"user_email"`=**0**, `created_by:X.email`=**0**, `created_by:X.id` (Clerk-sub)=**1** → הבעלוּת עכשיו תואמת ל-RLS הפרודי. **משתמש חדש יכול סוף-סוף ליצור ספר.**
+- מה עוד עלה: תיקון webhook Creem (raw-body HMAC) · PDF עברי (Heebo+bidi) · ספרי-דמו מאוירים+עקביות-דמות · GiftEdition demand-gate (מדידה בלבד) · הסרת מפתח service_role מהקוד.
+- בטיחות: ענף-גיבוי `backup/main-pre-prod-push-20260706`. **לא נגעתי בדאטת-משתמשים** — רק קוד-בעלוּת שתואם לסכימת-ה-DB הקיימת מ-25.5.
+
+**📋 נשאר לאלעד (חסמים חיצוניים — לא ניתן אוטונומית, אל תיגע בדאטה):**
+1. **סיבוב מפתח `service_role` ב-Supabase** — הוסר מהקוד אך קיים בהיסטוריית git; לוודא שסובב.
+2. **בדיקת webhook Creem אמיתי אחת** — לוודא שחיוב אמיתי נקלט end-to-end לפני שסומכים על התשלומים.
+3. **CNAME בקלאודפלייר** `preview` → `28aedb36648d9e52.vercel-dns-017.com` (לסאב-דומיין preview.sipurai.ai), אם עדיין רצוי preview נפרד.
+4. **מחיקת משתמש-ה-QA** (`user_3G3b57J0ntOrXGBRY7TMnVkKoFh`) שנוצר בבדיקת-ה-E2E.
+
 ## 2026-07-05 — 48h execution: revival branch + magic layer (branch `fix/prod-db-reconcile`, pushed, NOT promoted)
 **Full plan: `MASTERPIECE-PLAN.md` (root). Everything below is on the branch + Vercel Preview only — prod untouched (Elad's gate).**
 
