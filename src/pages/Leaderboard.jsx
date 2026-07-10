@@ -1,10 +1,8 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { createPageUrl } from "@/utils";
-import { Link } from "react-router-dom";
 import { getLevelFromXP } from "@/hooks/useGamification";
 import {
   Trophy,
@@ -13,12 +11,10 @@ import {
   Search,
   CalendarRange,
   Clock,
-  Star,
   BookOpen,
   Users,
   Shield,
   Calendar,
-  Loader2,
   Sparkles,
   Zap,
   Flame
@@ -27,7 +23,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,12 +43,12 @@ export default function Leaderboard() {
 
   useEffect(() => {
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [hookUser]);
 
   useEffect(() => {
     buildLeaderboard();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [timePeriod, category]);
 
   const loadData = async () => {
@@ -90,38 +85,47 @@ export default function Leaderboard() {
         ? allBooks.filter(b => new Date(b.created_date) >= dateThreshold)
         : allBooks;
 
+      // created_by holds the Clerk sub (user.id) since the 2026-05-25 ownership
+      // migration — NEVER compare it to user.email (see CLAUDE.md). Never show
+      // the raw Clerk id as a display name.
       const userMap = {};
       for (const book of filteredBooks) {
-        const email = book.created_by;
-        if (!email) continue;
+        const creatorId = book.created_by;
+        if (!creatorId) continue;
 
-        if (!userMap[email]) {
-          userMap[email] = {
-            email,
-            name: book.created_by_name || email.split("@")[0],
+        if (!userMap[creatorId]) {
+          const fallbackName = creatorId.includes("@")
+            ? creatorId.split("@")[0] // legacy pre-migration rows stored email
+            : t("common.unknownUser");
+          userMap[creatorId] = {
+            email: creatorId,
+            name: book.created_by_name || fallbackName,
             avatar: "",
             books: 0,
             xp: 0,
             streak: 0,
             level: 1,
-            isCurrentUser: user ? email === user.email : false
+            isCurrentUser: user ? creatorId === user.id : false
           };
         }
-        userMap[email].books += 1;
-        userMap[email].xp += 100;
+        userMap[creatorId].books += 1;
+        userMap[creatorId].xp += 100;
       }
 
       if (user) {
-        if (userMap[user.email]) {
-          userMap[user.email].name = user.display_name || user.full_name || user.email.split("@")[0];
-          userMap[user.email].avatar = user.avatar_url || "";
-          userMap[user.email].xp = user.xp || userMap[user.email].xp;
-          userMap[user.email].level = user.level || getLevelFromXP(userMap[user.email].xp);
-          userMap[user.email].streak = user.streak_days || 0;
+        const selfKey = user.id;
+        const selfName = user.display_name || user.full_name || (user.email ? user.email.split("@")[0] : t("common.unknownUser"));
+        if (userMap[selfKey]) {
+          userMap[selfKey].name = selfName;
+          userMap[selfKey].avatar = user.avatar_url || "";
+          userMap[selfKey].xp = user.xp || userMap[selfKey].xp;
+          userMap[selfKey].level = user.level || getLevelFromXP(userMap[selfKey].xp);
+          userMap[selfKey].streak = user.streak_days || 0;
+          userMap[selfKey].isCurrentUser = true;
         } else {
-          userMap[user.email] = {
+          userMap[selfKey] = {
             email: user.email,
-            name: user.display_name || user.full_name || user.email.split("@")[0],
+            name: selfName,
             avatar: user.avatar_url || "",
             books: 0,
             xp: user.xp || 0,

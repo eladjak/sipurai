@@ -1,6 +1,5 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Heart, Mail, Twitter, Instagram, Facebook, Youtube } from 'lucide-react';
+import { BookOpen, Heart, Mail } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 
 const FooterSection = () => {
@@ -12,7 +11,7 @@ const FooterSection = () => {
     { label: t('landing.footer.privacy'), href: '/privacy', external: false },
     { label: t('landing.footer.terms'), href: '/terms', external: false },
     { label: t('landing.footer.contact'), href: '/Contact', external: false },
-    { label: isRTL ? 'קורות חיים' : 'CV', href: '/cv-elad-yaakobovitch-he.pdf', external: true },
+    { label: isRTL ? 'קורות חיים' : 'CV', href: isRTL ? '/cv-elad-yaakobovitch-he.pdf' : '/cv-elad-yaakobovitch.pdf', external: true },
   ];
 
   const socialLinks = [];

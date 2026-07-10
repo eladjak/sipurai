@@ -16,6 +16,9 @@ dist
 dist-ssr
 *.local
 
+# Local proof/verification artifacts (screenshots, generated PDFs)
+out/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
