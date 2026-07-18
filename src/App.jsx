@@ -19,7 +19,7 @@ const SignUp = lazy(() => import('@/pages/SignUp'));
 import { I18nProvider } from '@/components/i18n/i18nProvider';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { trackPageView } from '@/lib/analytics';
 import { initErrorTracking } from '@/lib/errorTracking';
 
@@ -170,20 +170,25 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <I18nProvider>
-        <ClerkLocaleProvider>
-          <AuthProvider>
-            <QueryClientProvider client={queryClientInstance}>
-              <Router>
-                <NavigationTracker />
-                <AuthenticatedApp />
-              </Router>
-              <Toaster />
-              {import.meta.env.DEV && <VisualEditAgent />}
-            </QueryClientProvider>
-          </AuthProvider>
-        </ClerkLocaleProvider>
-      </I18nProvider>
+      {/* wow-ui-standard: honor prefers-reduced-motion across ALL framer-motion
+          animations app-wide (framer's default is "never"). RM users get
+          instant transitions instead of motion. Triple-belt layer 2 (JS). */}
+      <MotionConfig reducedMotion="user">
+        <I18nProvider>
+          <ClerkLocaleProvider>
+            <AuthProvider>
+              <QueryClientProvider client={queryClientInstance}>
+                <Router>
+                  <NavigationTracker />
+                  <AuthenticatedApp />
+                </Router>
+                <Toaster />
+                {import.meta.env.DEV && <VisualEditAgent />}
+              </QueryClientProvider>
+            </AuthProvider>
+          </ClerkLocaleProvider>
+        </I18nProvider>
+      </MotionConfig>
     </ErrorBoundary>
   )
 }

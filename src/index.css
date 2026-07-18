@@ -224,4 +224,17 @@ a:focus-visible .logo-icon-anim { transform: rotate(-8deg) scale(1.05); }
   .logo-anim__ch, .logo-icon-anim { animation: none; transition: none; }
   a:hover .logo-anim__ch, a:focus-visible .logo-anim__ch,
   a:hover .logo-icon-anim, a:focus-visible .logo-icon-anim { transform: none; }
+
+  /* wow-ui-standard reduced-motion belt (triple-belt layer 1, CSS).
+     Neutralizes decorative CSS transitions/animations for RM users while
+     leaving loading spinners intact (they communicate progress, not decor).
+     framer-motion is separately gated via <MotionConfig reducedMotion="user">. */
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,17 +1,28 @@
+import { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, BookOpen, Star, Award, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useI18n } from "@/components/i18n/i18nProvider";
+import { useCountUp } from "@/hooks/useCountUp";
+
+// wow-ui-standard count-up (principle 13): animates 0→value once when in view,
+// restores the exact final value, and is skipped under reduced-motion.
+function CountUp({ value, active }) {
+  const n = useCountUp(value, active);
+  return <span className="tabular-nums">{n}</span>;
+}
 
 export default function UserStats({ userData }) {
   const { t, isRTL } = useI18n();
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   const completedBadges = userData.badges?.filter(badge => badge.completed) || [];
   const xpProgress = (userData.xp / userData.next_level_xp) * 100;
-  
+
   return (
-    <Card>
+    <Card ref={ref}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Trophy className="h-5 w-5 text-amber-500" />
@@ -26,7 +37,7 @@ export default function UserStats({ userData }) {
               <div>
                 <h3 className="text-white/80 font-medium">{t("userStats.level")}</h3>
                 <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold">{userData.level}</span>
+                  <span className="text-4xl font-bold"><CountUp value={userData.level} active={inView} /></span>
                   <span className="text-lg mb-1">{t("userStats.storyteller")}</span>
                 </div>
               </div>
@@ -65,7 +76,7 @@ export default function UserStats({ userData }) {
               <h3 className="text-blue-800 dark:text-blue-300 font-medium">{t("userStats.books")}</h3>
               <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <p className="text-2xl font-bold mt-2">{userData.total_books}</p>
+            <p className="text-2xl font-bold mt-2"><CountUp value={userData.total_books} active={inView} /></p>
             <p className="text-blue-600/70 dark:text-blue-300/70 text-sm">
               {userData.total_pages} {t("userStats.pages")}
             </p>
@@ -82,7 +93,7 @@ export default function UserStats({ userData }) {
               <h3 className="text-amber-800 dark:text-amber-300 font-medium">{t("userStats.streak")}</h3>
               <Star className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <p className="text-2xl font-bold mt-2">{userData.streak_days}</p>
+            <p className="text-2xl font-bold mt-2"><CountUp value={userData.streak_days} active={inView} /></p>
             <p className="text-amber-600/70 dark:text-amber-300/70 text-sm">
               {t("userStats.keepGoing")}
             </p>
