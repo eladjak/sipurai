@@ -49,6 +49,7 @@ export default {
     tryAgain: "עפּעס איז שיפגעגאנגען. פּרובירט ווידער שפּעטער.",
     retry: "פּרובירט ווידער",
     contact: "קאָנטאַקט",
+    accessibilityStatement: "נגישות דערקלערונג",
     status: {
       draft: "דראַפֿט",
       generating: "שאַפֿן...",
@@ -1447,6 +1448,7 @@ export default {
       blog: "בלאָג",
       terms: "באַדינגונגען",
       privacy: "פּריוואַטקייט",
+      accessibility: "נגישות דערקלערונג",
       contact: "קאָנטאַקט",
       followUs: "פֿאָלג אונדז",
       rights: "אַלע רעכטן רעזערווירט.",

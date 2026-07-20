@@ -105,6 +105,12 @@ export const PAGE_META = {
     description: 'תנאי השימוש בפלטפורמת סיפוראי.',
     url: `${BASE_URL}/terms`,
   },
+  Accessibility: {
+    title: 'הצהרת נגישות',
+    description:
+      'הצהרת הנגישות של סיפוראי — עמידה בת"י 5568 (WCAG 2.0 ברמה AA), מה נגיש באתר, מגבלות ידועות ופרטי רכז הנגישות.',
+    url: `${BASE_URL}/accessibility`,
+  },
 };
 
 /**
