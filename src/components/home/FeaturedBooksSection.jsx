@@ -28,7 +28,7 @@ function BookCardItem({ book, isRTL, t, index = 0 }) {
             <img
               src={book.cover_image}
               alt={book.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -147,7 +147,7 @@ const FeaturedBooksSection = React.memo(function FeaturedBooksSection({ featured
                         <img
                           src={book.cover_image}
                           alt={book.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

@@ -71,7 +71,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
                 <LazyImage
                   src={imageUrl}
                   alt={post.title}
-                  className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105"
+                  className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105 group-focus-within:scale-105"
                 />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -165,7 +165,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
             <LazyImage
               src={imageUrl}
               alt={post.title}
-              className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105"
+              className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105 group-focus-within:scale-105"
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">

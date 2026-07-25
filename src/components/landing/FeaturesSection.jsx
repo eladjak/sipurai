@@ -111,7 +111,7 @@ const FeaturesSection = () => {
                     <img
                       src={feature.image}
                       alt={feature.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
                     />
                     <div className={`absolute inset-0 bg-gradient-to-t ${feature.color} opacity-30`} />
                     <div

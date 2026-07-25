@@ -77,11 +77,11 @@ const ShowcaseSection = () => {
                       src={book.cover_image}
                       alt={book.displayTitle}
                       loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div
-                      className={`w-full h-full bg-gradient-to-br ${book.cover_gradient} group-hover:scale-105 transition-transform duration-500`}
+                      className={`w-full h-full bg-gradient-to-br ${book.cover_gradient} group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500`}
                     />
                   )}
                   {/* Title overlay */}
