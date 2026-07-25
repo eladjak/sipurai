@@ -105,13 +105,13 @@ const FeaturesSection = () => {
                 whileHover={{ scale: 1.03, y: -4 }}
                 className="group"
               >
-                <Card className="h-full border-0 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <Card className="h-full border-0 shadow-sm hover:shadow-xl overflow-hidden">
                   {/* Feature image */}
                   <div className="relative h-40 overflow-hidden">
                     <img
                       src={feature.image}
                       alt={feature.title}
-                      className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 motion-reduce:!transform-none transition-transform duration-500"
                     />
                     <div className={`absolute inset-0 bg-gradient-to-t ${feature.color} opacity-30`} />
                     <div

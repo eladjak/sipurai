@@ -22,13 +22,13 @@ function BookCardItem({ book, isRTL, t, index = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.07 }}
     >
-      <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 h-full group border-0 shadow-md">
+      <Card className="overflow-hidden hover:shadow-2xl h-full group border-0 shadow-md">
         <div className="aspect-square bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 relative overflow-hidden">
           {book.cover_image ? (
             <img
               src={book.cover_image}
               alt={book.title}
-              className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 group-has-[:focus-visible]:scale-105 motion-reduce:!transform-none transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -141,13 +141,13 @@ const FeaturedBooksSection = React.memo(function FeaturedBooksSection({ featured
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: index * 0.07 }}
                 >
-                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 h-full group border-0 shadow-md">
+                  <Card className="overflow-hidden hover:shadow-2xl h-full group border-0 shadow-md">
                     <div className="aspect-[4/3] bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 relative overflow-hidden">
                       {book.cover_image ? (
                         <img
                           src={book.cover_image}
                           alt={book.title}
-                          className="w-full h-full object-cover group-hover:scale-105 group-focus-within:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 group-has-[:focus-visible]:scale-105 motion-reduce:!transform-none transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

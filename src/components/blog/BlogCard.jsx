@@ -63,7 +63,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
         className="col-span-full"
         dir={isRTL ? "rtl" : "ltr"}
       >
-        <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-purple-100 dark:border-purple-900 group">
+        <Card className="overflow-hidden hover:shadow-2xl border-purple-100 dark:border-purple-900 group">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Image */}
             <div className={`relative aspect-video md:aspect-auto overflow-hidden min-h-[260px] ${imageUrl ? 'bg-gray-100 dark:bg-gray-800' : `bg-gradient-to-br ${coverGradient}`}`}>
@@ -71,7 +71,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
                 <LazyImage
                   src={imageUrl}
                   alt={post.title}
-                  className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105 group-focus-within:scale-105"
+                  className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105 group-has-[:focus-visible]:scale-105 motion-reduce:!transform-none"
                 />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -158,14 +158,14 @@ function BlogCard({ post, featured = false, index = 0 }) {
       className="h-full"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <Card className="overflow-hidden h-full flex flex-col hover:shadow-xl transition-all duration-300 border-gray-200 dark:border-gray-800 hover:border-purple-200 dark:hover:border-purple-800 group">
+      <Card className="overflow-hidden h-full flex flex-col hover:shadow-xl border-gray-200 dark:border-gray-800 hover:border-purple-200 dark:hover:border-purple-800 group">
         {/* Image */}
         <Link to={postUrl} className={`block relative aspect-video overflow-hidden shrink-0 ${imageUrl ? 'bg-gray-100 dark:bg-gray-800' : `bg-gradient-to-br ${coverGradient}`}`}>
           {imageUrl ? (
             <LazyImage
               src={imageUrl}
               alt={post.title}
-              className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105 group-focus-within:scale-105"
+              className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105 group-has-[:focus-visible]:scale-105 motion-reduce:!transform-none"
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">

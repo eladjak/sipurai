@@ -171,11 +171,12 @@ button:focus-visible {
     box-shadow:
       inset -2px -2px 6px rgba(0, 0, 0, 0.05),
       4px 4px 12px rgba(0, 0, 0, 0.1);
-    /* Only `transform` is transitioned. box-shadow is a paint property, and
-       tweening it repaints every card in a grid on every frame. The deeper
-       shadow still appears on hover — it arrives with the gesture instead of
-       being animated. */
-    transition: transform 0.2s ease;
+    /* No transition. box-shadow is a paint property, and tweening it repaints
+       every card in a grid on every frame.
+       No transform either: `Card` hard-codes .clay-card, so cards nest — a
+       lift here compounds (three levels deep = 6px) and :focus-within keeps a
+       whole editor panel raised while a control inside it has focus. The
+       affordance is the deeper shadow, applied instantly. */
   }
   /* Touch devices must not latch into a stuck hover state. */
   @media (hover: hover) {
@@ -183,16 +184,14 @@ button:focus-visible {
       box-shadow:
         inset -2px -2px 6px rgba(0, 0, 0, 0.04),
         6px 6px 18px rgba(0, 0, 0, 0.14);
-      transform: translateY(-2px);
     }
   }
   /* Keyboard parity — outside the hover query so it always applies. */
   .clay-card:focus-visible,
-  .clay-card:focus-within {
+  .clay-card:has(:focus-visible) {
     box-shadow:
       inset -2px -2px 6px rgba(0, 0, 0, 0.04),
       6px 6px 18px rgba(0, 0, 0, 0.14);
-    transform: translateY(-2px);
   }
 }
 
@@ -254,20 +253,9 @@ a:focus-visible .logo-icon-anim { transform: rotate(-8deg) scale(1.05); }
     scroll-behavior: auto !important;
   }
 
-  /* Zeroing the duration is NOT enough: a hover rule of equal specificity
-     still APPLIES its transform, it just snaps there. Reset the movement
-     itself. The shadow affordance is kept — only motion is removed. */
-  .clay-card,
-  .clay-card:hover,
-  .clay-card:focus-visible,
-  .clay-card:focus-within {
-    transform: none !important;
-  }
-
-  /* The card-image scale-settle (group-hover:scale-105 + its keyboard
-     parity) is a Tailwind utility, so it is not covered by the rules above. */
-  .group:hover img,
-  .group:focus-within img {
-    transform: none !important;
-  }
+  /* .clay-card no longer transforms at all, so there is nothing to reset here.
+     The card-image scale-settle is a Tailwind utility on a variety of element
+     types (img, wrapper div, gradient div), so it carries its own
+     `motion-reduce:!transform-none` at each call site rather than being reset
+     by an element-type selector here, which silently missed the wrappers. */
 }
