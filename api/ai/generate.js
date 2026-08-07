@@ -283,9 +283,9 @@ async function handleImage(apiKey, prompt, options = {}) {
   // Character-reference workflow (Sprint 24 plumbing → wired 2026-07-05): when
   // a reference image is provided, attach it as a multimodal part so
   // gemini-2.5-flash-image keeps the characters visually identical across pages.
-  const parts = [{ text: safePrompt }];
+  const requestParts = [{ text: safePrompt }];
   if (referenceImageBase64) {
-    parts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });
+    requestParts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });
   }
 
   const url = `${GEMINI_BASE_URL}/${GEMINI_IMAGE_MODEL}:generateContent`;
@@ -298,7 +298,7 @@ async function handleImage(apiKey, prompt, options = {}) {
       'x-goog-api-key': apiKey,
     },
     body: JSON.stringify({
-      contents: [{ parts }],
+      contents: [{ parts: requestParts }],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
         imageConfig: { aspectRatio },
