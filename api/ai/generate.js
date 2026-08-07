@@ -207,7 +207,7 @@ export default async function handler(req, res) {
 // ─── Text Generation ─────────────────────────────────────────────────────────
 
 async function handleText(apiKey, prompt, options = {}) {
-  const { response_json_schema, response_format, temperature, max_tokens } = options;
+  const { response_json_schema, response_format, temperature, max_tokens, thinking_budget } = options;
 
   const wantsJson = !!(response_json_schema || response_format?.type === 'json_object');
   const generationConfig = {};
@@ -224,6 +224,24 @@ async function handleText(apiKey, prompt, options = {}) {
   }
   if (max_tokens !== undefined) {
     generationConfig.maxOutputTokens = max_tokens;
+  }
+
+  // gemini-2.5-flash is a THINKING model, and its thinking tokens are spent out
+  // of `maxOutputTokens` before a single character of the answer is written.
+  // Measured 2026-08-07 against the live API on one page of a children's book:
+  //
+  //   thinking on : finishReason MAX_TOKENS, 1604 thought tokens, 2205 total,
+  //                 answer cut off mid-sentence
+  //   thinking off: finishReason STOP,          0 thought tokens,   631 total,
+  //                 complete answer
+  //
+  // So a ceiling that looks generous can be consumed entirely by reasoning, and
+  // the caller is told only that the JSON was invalid. Callers that know their
+  // task is not a reasoning task can say so. The default is deliberately
+  // unchanged: whether a given prompt benefits from thinking is a judgement
+  // about that prompt, not one this file should make on everyone's behalf.
+  if (thinking_budget !== undefined) {
+    generationConfig.thinkingConfig = { thinkingBudget: thinking_budget };
   }
 
   const response = await fetch(
@@ -256,16 +274,35 @@ async function handleText(apiKey, prompt, options = {}) {
     throw error;
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  // Join EVERY part. Gemini splits long answers across parts, and reading only
+  // `parts[0]` silently truncated them — which, for a JSON response, surfaced
+  // as "AI returned invalid JSON" and sent every reader looking at the parser
+  // instead of at the part that was thrown away.
+  const parts = data.candidates?.[0]?.content?.parts;
+  const text = Array.isArray(parts)
+    ? parts.map((p) => p?.text || '').join('')
+    : undefined;
+
   if (!text) {
     throw new Error('No text generated. The model returned an empty response.');
   }
 
   if (wantsJson) {
+    // A truncated answer is not malformed JSON, it is a cut-off answer, and the
+    // two need different reactions: one is retryable, the other is a bug. Seen
+    // live on 2026-08-07 — an outline call ran away to ~131KB and stopped mid
+    // string, and the only thing the caller was told was "invalid JSON".
+    const truncated = data.candidates?.[0]?.finishReason === 'MAX_TOKENS';
     try {
       return { result: JSON.parse(text) };
     } catch {
-      throw new Error('AI returned invalid JSON. Please try again.');
+      const error = new Error(
+        truncated
+          ? "The model's answer was cut off before it finished. Please try again."
+          : 'AI returned invalid JSON. Please try again.'
+      );
+      error.retryable = true;
+      throw error;
     }
   }
 
