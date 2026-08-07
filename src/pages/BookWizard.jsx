@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
 import { generateStoryBible, imagePromptFor } from "@/lib/storyBible";
 import { moderateInput, buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
-import { checkAgeAppropriateLanguage } from "@/utils/content-moderation";
+import { checkAgeAppropriateLanguage, checkContentSafety } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import confetti from "canvas-confetti";
@@ -438,11 +438,9 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         const sanitizedDescription = sanitizeAIOutput(result.description || "");
         const sanitizedMoral = sanitizeAIOutput(result.moral_lesson || "");
 
-        // Run age-appropriate language check on generated content
-        const ageCheck = checkAgeAppropriateLanguage(sanitizedDescription, ageRange);
-        if (!ageCheck.isAppropriate) {
-          // AI should not generate inappropriate content due to safety prefix,
-          // but double-check just in case
+        // SAFETY GATE (blocking): genuinely unsafe wording must never reach a child.
+        const safety = checkContentSafety(`${sanitizedTitle} ${sanitizedDescription} ${sanitizedMoral}`);
+        if (!safety.isClean) {
           toast({
             variant: "destructive",
             title: t("wizard.error.contentIssue"),
@@ -450,6 +448,26 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
           });
           setIsGeneratingOutline(false);
           return false;
+        }
+
+        // STYLE HINTS (advisory, never blocking). checkAgeAppropriateLanguage
+        // documents itself as "Does NOT block content, but returns flags and
+        // suggestions" — it is a readability linter, not a safety check. Its
+        // `isAppropriate` is simply `flags.length === 0`, so a hint like "keep
+        // sentences under 15 words for ages 3-5" made it false.
+        //
+        // Until 2026-08-07 this was wired as a hard block, and it stopped the
+        // wizard dead at the structure step for essentially every book: the
+        // default age range is "5-10" (minAge 5), which enables the sentence-
+        // length check, and an AI-written 2-3 sentence description almost always
+        // contains a sentence over 15 words. The user got a toast saying their
+        // story was inappropriate for children — for long sentences — and the
+        // wizard silently refused to advance while the API had returned a
+        // perfectly good story. Real blocking belongs to checkContentSafety
+        // above; this stays advisory, as its own contract says.
+        const ageCheck = checkAgeAppropriateLanguage(sanitizedDescription, ageRange);
+        if (!ageCheck.isAppropriate) {
+          console.info("[BookWizard] readability hints (non-blocking):", ageCheck.flags);
         }
 
         const sanitizedResult = { ...result, title: sanitizedTitle, description: sanitizedDescription, moral_lesson: sanitizedMoral };
