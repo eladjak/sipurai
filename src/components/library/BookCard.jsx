@@ -21,7 +21,8 @@ import {
   Star,
   Share2,
   Copy,
-  Loader2
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/components/i18n/i18nProvider";
@@ -43,15 +44,22 @@ function BookCard({ book, viewType = "grid", onDuplicate }) {
     }
   };
   
+  // Every value `books.status` can hold must appear in all three maps. A status
+  // with no entry renders as a card with no badge at all — which is how a book
+  // that failed to build looked exactly like one that succeeded.
   const statusIcons = {
     draft: <Clock className="h-4 w-4 text-yellow-500" aria-hidden="true" />,
     generating: <RotateCw className="h-4 w-4 text-blue-500 animate-spin" aria-hidden="true" />,
+    partial: <RotateCw className="h-4 w-4 text-amber-500" aria-hidden="true" />,
+    failed: <AlertTriangle className="h-4 w-4 text-red-500" aria-hidden="true" />,
     complete: <CheckCircle className="h-4 w-4 text-green-500" aria-hidden="true" />
   };
 
   const statusStyles = {
     draft: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
     generating: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    partial: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800",
     complete: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800"
   };
 
@@ -64,6 +72,8 @@ function BookCard({ book, viewType = "grid", onDuplicate }) {
   const statusLabels = {
     draft: t("bookCard.draft"),
     generating: t("bookCard.generating"),
+    partial: t("bookCard.partial"),
+    failed: t("bookCard.failed"),
     complete: t("bookCard.complete")
   };
 

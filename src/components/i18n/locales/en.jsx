@@ -340,6 +340,8 @@ export default {
     allStatus: "All Status",
     draft: "Draft",
     generating: "Generating",
+    partial: "Still writing",
+    failed: "Building stopped",
     complete: "Complete",
     genre: "Genre",
     allGenres: "All Genres",
@@ -835,6 +837,16 @@ export default {
     loading: "Loading book...",
     bookViewer: "Book Viewer",
     backToLibrary: "Back to Library",
+    building: {
+      starting: "Starting to write this book. The first page will appear here in a moment.",
+      stopped: "This book stopped before a page was written. You can continue from here.",
+      inProgress: "{{ready}} of {{total}} pages ready. The rest are being written now.",
+      missingArt: "{{count}} page(s) still have no illustration.",
+      retryArt: "Draw the rest",
+      paused: "{{ready}} of {{total}} pages ready. Building has stopped.",
+      continue: "Keep building"
+    },
+    resumeFailed: "We could not continue building this book. Please try again shortly.",
     nightMode: "Night mode",
     fullscreen: "Fullscreen",
     downloadPdf: "Download PDF",
@@ -991,6 +1003,7 @@ export default {
       outlineMessage: "We couldn't generate the story. Let's try again!",
       createTitle: "Oops! Couldn't create the book",
       createMessage: "Something went wrong. Let's try again!",
+      nothingGenerated: "We could not write a single page. Please try again.",
       timeoutMessage: "The request took too long. Please try again.",
       titleDescInappropriate: "The title or description contains inappropriate content"
     },
@@ -1007,6 +1020,7 @@ export default {
     },
     progress: {
       checkingContent: "Checking content...",
+      pagesReady: "{{ready}} of {{total}} pages ready",
       creatingStory: "Creating story & cover...",
       savingBook: "Saving book...",
       writingStory: "Writing the story...",
@@ -1470,6 +1484,8 @@ export default {
   bookCard: {
     draft: "Draft",
     generating: "Generating",
+    partial: "Still writing",
+    failed: "Building stopped",
     complete: "Complete",
     for: "For",
     years: "years",

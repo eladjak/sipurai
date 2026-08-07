@@ -4,6 +4,7 @@ import { createPageUrl } from "@/utils";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
+import { readablePages } from "@/lib/bookProgress";
 import { Feedback } from "@/entities/Feedback";
 import { Collaboration } from "@/entities/Collaboration";
 import { User } from "@/entities/User";
@@ -118,7 +119,9 @@ export default function FeedbackPage() {
       setIsCollaborator(collaborations.length > 0);
       
       // Load pages
-      const pagesData = await Page.filter({ book_id: bookId }, "page_number");
+      // Only readable pages — a reviewer cannot give feedback on a page that
+      // has not been written yet.
+      const pagesData = readablePages(await Page.filter({ book_id: bookId }, "page_number"));
       setPages(pagesData);
       
       if (pagesData.length > 0) {

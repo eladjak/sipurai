@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
+import { readablePages } from "@/lib/bookProgress";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useToast } from "@/components/ui/use-toast";
@@ -120,14 +121,28 @@ export default function Library() {
   const duplicateBook = async (book) => {
     try {
       const { id, created_date, created_by, ...bookFields } = book;
+
+      // Only pages that have words. A half-built book can be duplicated, but
+      // its skeleton rows are a work queue, not content — copying them would
+      // give the new book blank pages and no run that will ever fill them.
+      // Read them BEFORE creating the copy so `total_pages` describes what the
+      // copy will actually contain; a copy claiming ten pages while holding
+      // three would present itself as interrupted forever.
+      let pages = [];
+      try {
+        pages = readablePages(await Page.filter({ book_id: book.id }));
+      } catch {
+        pages = [];
+      }
+
       const newBook = await Book.create({
         ...bookFields,
         title: `${book.title} (${t("library.copy")})`,
         status: "complete",
+        total_pages: pages.length,
       });
 
       try {
-        const pages = await Page.filter({ book_id: book.id });
         if (pages.length > 0) {
           await Promise.all(
             pages.map((page) => {
@@ -300,6 +315,8 @@ export default function Library() {
                         { value: "all", label: t("library.allStatus") },
                         { value: "draft", label: t("library.draft") },
                         { value: "generating", label: t("library.generating") },
+                        { value: "partial", label: t("library.partial") },
+                        { value: "failed", label: t("library.failed") },
                         { value: "complete", label: t("library.complete") },
                       ]},
                       { key: "genre", label: t("library.genre"), options: genreOptions },

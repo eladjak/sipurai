@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
@@ -12,7 +12,10 @@ import { ChevronLeft, ChevronRight, BookOpen, Sparkles, Trash2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
-import { generateStoryBible, imagePromptFor } from "@/lib/storyBible";
+import { generateBookIncremental } from "@/lib/bookGeneration";
+import { buildRecipe, pageCountFor } from "@/lib/bookRecipe";
+import { BOOK_STATUS } from "@/lib/bookProgress";
+import { generateStoryBible } from "@/lib/storyBible";
 import { moderateInput, buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { checkAgeAppropriateLanguage, checkContentSafety } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
@@ -30,7 +33,6 @@ import StoryStructure from "@/components/storyBuilder/StoryStructure";
 import LoadingOverlay from "@/components/shared/LoadingOverlay";
 import FriendlyError from "@/components/shared/FriendlyError";
 
-const LAYOUT_TYPES = ["standard", "image_top", "image_full", "text_overlay", "two_column"];
 
 // --- Draft auto-save helpers ---
 const DRAFT_PREFIX = "sipurai_draft_";
@@ -129,6 +131,11 @@ export default function BookWizard() {
   // Cover-derived character reference — survives into retryFailedImages so
   // retried pages keep the same character identity as the original run.
   const characterReferenceRef = useRef(null);
+  // Guards the one-way handover to the reader. Generation continues in this tab
+  // after the navigation, so this must not fire twice per run.
+  const handedOffRef = useRef(false);
+  // The title the outline call settled on, which is what actually gets saved.
+  const createdTitleRef = useRef("");
 
   // Step 3: Book data (preview/edit)
   const [bookData, setBookData] = useState({
@@ -571,9 +578,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         description: c.appearance || c.description || c.traits || c.name,
       }));
 
-      let pageCount = 10;
-      if (bookData.length === "short") pageCount = 6;
-      if (bookData.length === "long") pageCount = 15;
+      const pageCount = pageCountFor(bookData.length);
 
       setCreationProgress({ label: t("wizard.progress.creatingStory"), percent: 15, step: t("wizard.progress.step1of4") });
 
@@ -594,30 +599,32 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     }
   };
 
-  const createBook = async () => {
-    // Held outside the try so the catch can mark the row failed. The book row is
-    // written before its pages are generated, so anything that throws after the
-    // insert would otherwise leave it stranded at status:"generating" forever —
-    // listed in the library, unopenable in the reader, with nothing anywhere
-    // admitting it went wrong.
-    let createdBookId = null;
+  /**
+   * Build a book — incrementally, and resumably.
+   *
+   * The wizard owns *what the story says*: every prompt below is the same
+   * material the old one-shot version used. What it no longer owns is when
+   * anything is written; that belongs to `generateBookIncremental`, which
+   * persists each page the moment it exists and can never leave the row
+   * claiming work is still happening. See src/lib/bookGeneration.js.
+   *
+   * The user-visible consequence, and the reason for the redesign: as soon as
+   * page one has words, we hand the parent over to the reader and let the rest
+   * of the book fill in behind them. Five seconds to something real beats a
+   * minute of progress bar.
+   *
+   * @param {{resumeBookId?: string|null}} [opts] resume an interrupted book
+   */
+  const createBook = async ({ resumeBookId = null } = {}) => {
+    let createdBookId = resumeBookId;
+    handedOffRef.current = false;
+    createdTitleRef.current = "";
+
     try {
       setIsCreating(true);
       setError(null);
       setImageFailures([]);
       setCreationProgress({ label: t("wizard.progress.checkingContent"), percent: 5, step: "" });
-
-      const useStoryBibleFastPath = (typeof window !== "undefined") && window.localStorage?.getItem("sipurai_use_story_bible") === "1";
-      let storyBible = null; // Wave-8: when present, downstream flow re-uses bible.pages instead of LLM-generating page texts
-      if (useStoryBibleFastPath) {
-        storyBible = await tryStoryBibleFastPath();
-        if (storyBible?.pages?.length && storyBible?.title) {
-          if (import.meta.env.DEV) console.log("[BookWizard] Story Bible generated:", storyBible.title, "pages:", storyBible.pages.length);
-          window.__sipurai_last_bible = storyBible;
-        } else {
-          storyBible = null;
-        }
-      }
 
       // Moderate title and description
       const titleCheck = moderateInput(bookData.title, "title");
@@ -634,477 +641,141 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         return;
       }
 
-      // Step 1: Generate story outline + cover image in parallel
+      const pageCount = pageCountFor(bookData.length);
+
+      // Wave-8 opt-in fast path: ONE call returns every page's text upfront.
+      // Only meaningful for a fresh book — a resume already has its plan in the
+      // page rows and must not re-imagine pages the parent is reading.
+      const useStoryBibleFastPath =
+        !resumeBookId &&
+        (typeof window !== "undefined") &&
+        window.localStorage?.getItem("sipurai_use_story_bible") === "1";
+      let storyBible = null;
+      if (useStoryBibleFastPath) {
+        storyBible = await tryStoryBibleFastPath();
+        if (storyBible?.pages?.length && storyBible?.title) {
+          if (import.meta.env.DEV) console.log("[BookWizard] Story Bible generated:", storyBible.title, "pages:", storyBible.pages.length);
+          window.__sipurai_last_bible = storyBible;
+        } else {
+          storyBible = null;
+        }
+      }
+
       setCreationProgress({
         label: t("wizard.progress.creatingStory"),
         percent: 10,
         step: t("wizard.progress.step1of4")
       });
 
-      let pageCount = 10;
-      if (bookData.length === "short") pageCount = 6;
-      if (bookData.length === "long") pageCount = 15;
+      // Every prompt the book is built from lives in buildRecipe, shared with
+      // the reader so an interrupted book can be finished from there and still
+      // read like the same book. See src/lib/bookRecipe.js.
+      // Persist the cast on the book row. `books.selected_characters` (jsonb)
+      // has existed all along and was never written to — which meant a book
+      // carried no record of who was in it, and anything rebuilding its prompts
+      // later (the reader's Continue button) had to invent the characters.
+      // Only the fields the prompts actually read are stored.
+      const persistedCharacters = selectedCharacters.map((c) => ({
+        id: c.id,
+        name: c.name,
+        appearance: c.appearance || "",
+        description: c.description || "",
+        traits: c.traits || "",
+      }));
 
-      const characterNames = selectedCharacters.map((c) => c.name).join(", ");
-      // Build character appearance descriptions for visual consistency across illustrations
-      const characterAppearances = selectedCharacters
-        .map((c) => {
-          const parts = [c.name];
-          if (c.appearance) parts.push(c.appearance);
-          else if (c.description) parts.push(c.description);
-          else if (c.traits) parts.push(c.traits);
-          return parts.join(": ");
-        })
-        .join(". ");
+      const recipe = buildRecipe({
+        bookData: { ...bookData, selectedCharacters: persistedCharacters },
+        characters: selectedCharacters,
+        scenes,
+        topic: selectedTopic === "custom" && customIdea ? customIdea : selectedTopic,
+        useRhyming,
+        rhymeSettings,
+        storyBible,
+        pageCount,
+        defaultAgeRange: localStorage.getItem("preferredAgeRange") || "5-10",
+      });
 
-      const topicDescription = selectedTopic === "custom" && customIdea ? customIdea : selectedTopic;
-      // Use bookData.age_range, fallback to preferredAgeRange from onboarding, then default
-      const ageRange = bookData.age_range || localStorage.getItem("preferredAgeRange") || "5-10";
-      const safetyPrefix = buildSafetyPromptPrefix(ageRange);
-      const langInstruction = bookData.language === "hebrew"
-        ? "יש ליצור את כל התוכן בעברית בלבד. "
-        : bookData.language === "yiddish"
-        ? "שרייב דעם גאנצן אינהאלט אויף יידיש. "
-        : "Create all content in English only. ";
+      const result = await generateBookIncremental({
+        entities: { Book, Page },
+        ai: { InvokeLLM, GenerateImage },
+        recipe,
+        bookId: resumeBookId,
+        onEvent: (event) => {
+          switch (event.type) {
+            case "phase":
+              setCreationProgress({
+                label: t("wizard.progress.creatingStory"),
+                percent: 10,
+                step: t("wizard.progress.step1of4")
+              });
+              break;
 
-      const outlinePrompt = `${safetyPrefix}${langInstruction}Create a detailed outline for a children's book:
-- Title: ${bookData.title}
-- Description: ${bookData.description}
-- Topic: ${topicDescription}
-- Characters: ${characterNames}
-- Art style: ${bookData.art_style}
-- Tone: ${bookData.tone || "exciting"}
-- Moral: ${bookData.moral || "positive message"}
-- Age range: ${ageRange}
+            case "book-created":
+            case "resumed":
+              createdBookId = event.bookId;
+              // The outline call renames the book, so the celebration screen and
+              // the follower notification must quote the title the parent will
+              // actually see — not the one they typed into the form.
+              if (event.title) createdTitleRef.current = event.title;
+              setCreationProgress({
+                label: t("wizard.progress.savingBook"),
+                percent: 20,
+                step: t("wizard.progress.step2of4")
+              });
+              break;
 
-Create exactly ${pageCount} pages (including a title page).
-For each page, provide a brief description of what happens.
-The story should have a clear beginning, middle, and end.`;
+            case "cover":
+              if (event.base64) characterReferenceRef.current = event.base64;
+              break;
 
-      const coverPrompt = `IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. Pure visual illustration only - no Hebrew letters, no English text, no numbers, no signs with text. Children's book cover art featuring characters ${characterNames} in a ${topicDescription} setting. ${characterAppearances ? `Character appearances: ${characterAppearances}.` : ""} Illustrated in ${bookData.art_style} style. Bright, colorful, child-friendly.`;
+            case "plan-saved":
+              setCreationProgress({
+                label: t("wizard.progress.writingStory"),
+                percent: 25,
+                step: t("wizard.progress.step3of4")
+              });
+              break;
 
-      const [outlineResult, coverResult] = await Promise.all([
-        InvokeLLM({
-          prompt: outlinePrompt,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              outline: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    page_number: { type: "number" },
-                    description: { type: "string" }
-                  }
-                }
-              }
-            }
+            case "page-text":
+              setCreationProgress({
+                label: t("wizard.progress.writingStory"),
+                percent: progressPercent(event),
+                step: t("wizard.progress.pagesReady", { ready: event.ready, total: event.total })
+              });
+              // The first readable page is the handover point: the parent goes
+              // to the reader now and watches the rest arrive there, instead of
+              // watching a progress bar here.
+              if (event.ready >= 1) handOffToReader(event);
+              break;
+
+            case "page-image":
+              setCreationProgress({
+                label: t("wizard.progress.drawingIllustrations"),
+                percent: progressPercent(event),
+                step: t("wizard.progress.pagesReady", { ready: event.ready, total: event.total })
+              });
+              break;
+
+            default:
+              break;
           }
-        }),
-        GenerateImage({ prompt: coverPrompt }).catch((err) => {
-          console.error('[BookWizard] Cover image generation failed:', err?.message || err);
-          captureError(err instanceof Error ? err : new Error(String(err?.message || err)), { context: "BookWizard cover image" });
-          return null;
-        })
-      ]);
-
-      const coverImage = coverResult?.url || "";
-      // Character consistency (Sprint 24 plumbing, wired 2026-07-05): the cover
-      // establishes the characters' canonical look; its base64 is passed as a
-      // multimodal reference to EVERY page generation so the same child/hero
-      // looks identical on all pages instead of being re-imagined per page.
-      const characterReference = coverResult?.base64 || null;
-      characterReferenceRef.current = characterReference;
-
-      // Step 2: Create book entity
-      setCreationProgress({
-        label: t("wizard.progress.savingBook"),
-        percent: 25,
-        step: t("wizard.progress.step2of4")
+        },
       });
 
-      // Sanitize AI-generated title before saving
-      const sanitizedTitle = sanitizeAIOutput(outlineResult?.title || bookData.title);
+      createdBookId = result.bookId;
+      setImageFailures(result.imageFailures || []);
 
-      const finalBookData = {
-        ...bookData,
-        title: sanitizedTitle,
-        cover_image: coverImage,
-        status: "generating"
-        // NOT sent: the user-curated `scenes` structure.
-        //
-        // Sprint 7.24 added `...(scenes.length ? { scenes } : {})` here on the
-        // stated assumption that "entity schemas that don't know about this
-        // field will ignore it". PostgREST does not ignore unknown columns — it
-        // rejects the whole insert with:
-        //   books.create failed: Could not find the 'scenes' column of 'books'
-        //   in the schema cache
-        // There is no `scenes` column on `books` and no migration for one
-        // anywhere in this repo, so every book creation that followed the
-        // structure step failed at the final save. Removed 2026-08-07.
-        //
-        // The scene spine still does its real job before this point: scenes are
-        // aligned to pages to enrich each illustration prompt (see below). Only
-        // the persistence of the spine is dropped.
-        //
-        // To restore persistence, add the column first, then re-add the field:
-        //   ALTER TABLE books ADD COLUMN scenes jsonb;
-        // That is a production schema change and belongs to a human, not to
-        // this file quietly assuming it will be tolerated.
-      };
-
-      const createdBook = await Book.create(finalBookData);
-      createdBookId = createdBook?.id || null;
-
-      // Step 3: Generate ALL page texts in parallel
-      setCreationProgress({
-        label: t("wizard.progress.writingStory"),
-        percent: 35,
-        step: t("wizard.progress.step3of4")
-      });
-
-      const isHebrewBook = bookData.language === "hebrew";
-      const nikudInstruction = isHebrewBook
-        ? "\nהוסף ניקוד מלא לכל הטקסט בעברית. כל מילה חייבת לכלול ניקוד."
-        : "";
-
-      const rhymingInstruction = useRhyming
-        ? (rhymeSettings.pattern === "aabb"
-          ? (isHebrewBook
-            ? `\nכתוב את הסיפור בחרוזים מושלמים בדפוס AABB.
-כללים חשובים:
-- כל שתי שורות חייבות להתחרז בצורה מדויקת (לא חרוזים מאולצים)
-- שמור על קצב עקבי של 6-8 מילים בשורה
-- החרוזים חייבים להישמע טבעיים וזורמים, לא מאולצים
-- המשמעות חשובה יותר מהחרוז - אם החרוז לא עובד, שנה את הניסוח
-- כתוב כמו משורר ילדים מקצועי (בסגנון לאה גולדברג או מרים ילן-שטקליס)`
-            : `\nWrite the story in perfect AABB rhyming couplets.
-Rules:
-- Every two lines must rhyme perfectly (not forced or awkward rhymes)
-- Maintain consistent rhythm of 6-10 syllables per line
-- Rhymes must sound natural and flowing, never forced
-- Meaning is more important than rhyme - if a rhyme doesn't work, rephrase
-- Write like a professional children's poet (Dr. Seuss / Shel Silverstein style)`)
-          : rhymeSettings.pattern === "abab"
-          ? (isHebrewBook
-            ? `\nכתוב את הסיפור בחרוזים מושלמים בדפוס ABAB.
-כללים חשובים:
-- שורות 1 ו-3 מתחרזות זו עם זו בצורה מדויקת
-- שורות 2 ו-4 מתחרזות זו עם זו בצורה מדויקת
-- שמור על קצב עקבי של 6-8 מילים בשורה
-- החרוזים חייבים להישמע טבעיים וזורמים, לא מאולצים
-- כתוב כמו משורר ילדים מקצועי (בסגנון לאה גולדברג או מרים ילן-שטקליס)`
-            : `\nWrite with alternating rhyme (lines 1&3 rhyme, 2&4 rhyme: ABAB pattern).
-Rules:
-- Lines 1 and 3 of each stanza must rhyme perfectly with each other
-- Lines 2 and 4 of each stanza must rhyme perfectly with each other
-- Maintain consistent rhythm of 6-10 syllables per line
-- Rhymes must sound natural and flowing, never forced
-- Write like a professional children's poet (Dr. Seuss / Shel Silverstein style)`)
-          : (isHebrewBook
-            ? `\nכתוב את הסיפור בחרוזים מושלמים בתבנית ${rhymeSettings.pattern.toUpperCase()}.
-כללים חשובים:
-- כל החרוזים חייבים להיות מדויקים ולא מאולצים
-- שמור על קצב עקבי של 6-8 מילים בשורה
-- כתוב כמו משורר ילדים מקצועי`
-            : `\nWrite the story in perfect rhyming format with pattern: ${rhymeSettings.pattern.toUpperCase()}.
-Rules:
-- All rhymes must be precise and natural, never forced
-- Maintain consistent rhythm of 6-10 syllables per line
-- Write like a professional children's poet`))
-        : "";
-
-      const outlinePages = outlineResult?.outline || [];
-
-      // Wave-8: when Story Bible was generated upfront with matching page count,
-      // bypass the per-page LLM call and reuse bible.pages directly. Saves ~10 calls/book.
-      const bibleHasMatchingPages = storyBible?.pages?.length > 0;
-      const pageTextPromises = bibleHasMatchingPages
-        ? storyBible.pages.map((bp, i) => Promise.resolve({
-            text_content: bp.text || outlinePages[i]?.description || "",
-            ...(isHebrewBook && bp.text_with_nikud ? { text_with_nikud: bp.text_with_nikud } : {}),
-            image_prompt: bp.image_prompt || `${bookData.art_style} illustration: ${(bp.text || "").slice(0, 100)}`,
-          }))
-        : outlinePages.map((pageOutline, i) => {
-        const prompt = `${safetyPrefix}${langInstruction}Write the text content for page ${i} of a children's story based on this description: "${pageOutline.description}"
-
-Story details:
-- Title: ${finalBookData.title}
-- Main characters: ${characterNames}
-- Art style: ${bookData.art_style}
-- Target age: ${ageRange}
-${i === 0 ? "This is the title page/introduction. Keep it brief and engaging." : ""}
-${rhymingInstruction}${nikudInstruction}
-
-Also create a detailed image generation prompt for this page.
-
-Return as JSON with:
-1. text_content: The page text${isHebrewBook ? " (plain text without nikud)" : ""}
-${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (vowel diacritics) on every word\n3. image_prompt: Detailed image generation prompt" : "2. image_prompt: Detailed image generation prompt"}`;
-
-        return InvokeLLM({
-          prompt,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              text_content: { type: "string" },
-              ...(isHebrewBook ? { text_with_nikud: { type: "string" } } : {}),
-              image_prompt: { type: "string" }
-            }
-          }
-        });
-      });
-
-      const pageTexts = await Promise.all(pageTextPromises);
-
-      // Sanitize all AI-generated text content
-      const sanitizedPageTexts = pageTexts.map((pt) => {
-        const plainText = sanitizeAIOutput(pt?.text_content || "");
-        const nikudText = pt?.text_with_nikud ? sanitizeAIOutput(pt.text_with_nikud) : "";
-        // For Hebrew books, prefer nikud version if available
-        const displayText = isHebrewBook && nikudText ? nikudText : plainText;
-        return {
-          ...pt,
-          text_content: displayText,
-          text_with_nikud: nikudText,
-          image_prompt: pt?.image_prompt || ""
-        };
-      });
-
-      // Step 4: Generate ALL illustrations in parallel
-      // Use Promise.allSettled so one failure doesn't cancel the rest
-      setCreationProgress({
-        label: t("wizard.progress.drawingIllustrations"),
-        percent: 60,
-        step: t("wizard.progress.step4of4")
-      });
-
-      // Sprint 7.24: When the user has built a scene structure on step 2,
-      // align scenes → pages so each page-level illustration prompt is
-      // enriched with the canonical scene description AND the names of
-      // characters the user marked as present in THAT scene. Pages that
-      // sit beyond the scene count (e.g. cover + 10 pages but only 4
-      // scenes) fall back to the original character-context behaviour.
-      const hasScenes = Array.isArray(scenes) && scenes.length > 0;
-      const charById = Object.fromEntries(selectedCharacters.map((c) => [c.id, c]));
-
-      const imagePromises = sanitizedPageTexts.map((pageText, i) => {
-        // Map page i → scene. Page 0 is typically a cover/title page; the
-        // first body scene therefore maps to page 1. If we ever have
-        // exactly scenes.length pages (no cover), still align by index.
-        const sceneForPage = hasScenes
-          ? scenes[Math.max(0, Math.min(scenes.length - 1, i === 0 ? 0 : i - 1))]
-          : null;
-
-        // Characters this scene "owns" — fall back to all selected.
-        const sceneCharNames = sceneForPage?.characters?.length
-          ? sceneForPage.characters
-              .map((cid) => charById[cid]?.name)
-              .filter(Boolean)
-              .join(", ")
-          : characterNames;
-
-        const sceneAppearances = sceneForPage?.characters?.length
-          ? sceneForPage.characters
-              .map((cid) => {
-                const c = charById[cid];
-                if (!c) return null;
-                const trait = c.appearance || c.description || c.traits;
-                return trait ? `${c.name}: ${trait}` : c.name;
-              })
-              .filter(Boolean)
-              .join(". ")
-          : characterAppearances;
-
-        // Prepend character appearance descriptions to every image prompt for visual consistency
-        const characterContext = sceneAppearances
-          ? `Characters: ${sceneAppearances}. `
-          : "";
-        const consistencyInstruction = `CRITICAL: Maintain EXACT visual consistency for all characters across every illustration: Same hair color, eye color, skin tone, clothing in every image. Same art style, color palette, and visual mood throughout. Characters must look IDENTICAL in every page - as if drawn by the same artist. Do NOT change character appearance between pages. `;
-        const noTextInstruction = `IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. The image should contain ONLY visual elements - no Hebrew letters, no English text, no numbers, no signs with text. Pure illustration only. `;
-
-        // Scene-aware composition: surface scene description + the user's
-        // hand-edited illustration_prompt alongside the per-page prompt the
-        // outline LLM produced. Page-level prompt wins as the most specific
-        // beat; scene-level adds structural framing.
-        const sceneFraming = sceneForPage
-          ? `Scene role: ${sceneForPage.role}. Scene beat: ${sceneForPage.description || sceneForPage.title || ""}. ${sceneForPage.illustration_prompt ? `Scene visual: ${sceneForPage.illustration_prompt}. ` : ""}`
-          : "";
-        const sceneCharLine = sceneCharNames
-          ? `Featuring: ${sceneCharNames}. `
-          : "";
-
-        const referenceInstruction = characterReference
-          ? `Use the attached reference image ONLY for the characters' identity — face, hair, skin tone, colors and outfit must match it EXACTLY. Compose a NEW scene per the description. `
-          : "";
-        const imagePrompt = `${consistencyInstruction}${referenceInstruction}${noTextInstruction}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${pageText.image_prompt}. Children's book illustration in ${bookData.art_style} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
-        return GenerateImage({ prompt: imagePrompt, referenceImageBase64: characterReference })
-          .then((result) => ({
-            url: result?.url || "",
-            prompt: imagePrompt,
-            scene_id: sceneForPage?.id || null
-          }))
-          .catch((err) => {
-            captureError(err instanceof Error ? err : new Error(String(err?.message || err)), { context: "BookWizard image generation" });
-            return { url: "", prompt: imagePrompt, failed: true, scene_id: sceneForPage?.id || null };
-          });
-      });
-
-      const imageSettled = await Promise.allSettled(imagePromises);
-
-      // Collect results, tracking failures with progress updates
-      const imageResults = [];
-      let successCount = 0;
-      const pendingFailures = [];
-
-      imageSettled.forEach((outcome, i) => {
-        if (outcome.status === "fulfilled") {
-          imageResults.push(outcome.value);
-          if (!outcome.value.failed && outcome.value.url) {
-            successCount++;
-          } else {
-            pendingFailures.push({ index: i, prompt: outcome.value.prompt });
-          }
-        } else {
-          captureError(outcome.reason instanceof Error ? outcome.reason : new Error(String(outcome.reason)), { page: i, context: "BookWizard image promise" });
-          imageResults.push({ url: "", prompt: sanitizedPageTexts[i]?.image_prompt || "", failed: true });
-          pendingFailures.push({ index: i, prompt: sanitizedPageTexts[i]?.image_prompt || "" });
-        }
-        // Update progress as images complete
-        const doneCount = i + 1;
-        const imgPercent = 60 + Math.floor((doneCount / imageSettled.length) * 25);
-        setCreationProgress((prev) => prev ? { ...prev, percent: imgPercent } : prev);
-      });
-
-      // Save all pages in parallel
-      setCreationProgress({
-        label: t("wizard.progress.savingPages"),
-        percent: 85,
-        step: ""
-      });
-
-      const pageCreatePromises = sanitizedPageTexts.map((pageText, i) => {
-        const imageUrl = imageResults[i]?.url || "";
-        // If image failed, set a placeholder message on the page record
-        const imagePromptFinal = imageResults[i]?.failed
-          ? `[Image generation failed] ${pageText.image_prompt}`
-          : pageText.image_prompt;
-
-        // scene_id is best-effort: present when the wizard's structure
-        // step was used, null otherwise. Stored on Page so a future
-        // page-edit surface can re-show the originating scene.
-        const sceneId = imageResults[i]?.scene_id || null;
-
-        return Page.create({
-          book_id: createdBook.id,
-          page_number: i,
-          text_content: pageText.text_content,
-          image_url: imageUrl,
-          image_prompt: imagePromptFinal,
-          ...(sceneId ? { scene_id: sceneId } : {}),
-          layout_type: i === 0 ? "cover" : LAYOUT_TYPES[(i - 1) % LAYOUT_TYPES.length]
-        });
-      });
-
-      const savedPages = await Promise.all(pageCreatePromises);
-
-      // Map failures to page IDs for retry
-      const failuresWithPageIds = pendingFailures.map(({ index, prompt }) => ({
-        pageId: savedPages[index]?.id,
-        imagePrompt: prompt
-      })).filter((f) => f.pageId);
-
-      // Mark book as complete
-      await Book.update(createdBook.id, { status: "complete" });
-
-      setCreationProgress({
-        label: t("wizard.progress.bookReady"),
-        percent: 100,
-        step: ""
-      });
-
-      // Clear draft after successful creation
-      if (activeDraftKey) {
-        clearDraft(activeDraftKey);
-        setActiveDraftKey(null);
+      if (result.status === BOOK_STATUS.FAILED) {
+        // Nothing readable was produced. Say so plainly rather than dropping the
+        // parent into a reader with an empty book.
+        throw new Error(t("wizard.error.nothingGenerated") || "לא הצלחנו לכתוב אף עמוד. נסו שוב.");
       }
 
-      // Track book creation event
-      trackEvent('book_created', { book_id: createdBook.id });
-
-      // Notify followers about the new book (fire-and-forget). Followers are
-      // rows where following_id = my Clerk id; we resolve each follower's email
-      // from the profiles directory and notify via the notify_user rpc (which
-      // stores recipient_id = the follower's Clerk id). All keyed on Clerk id —
-      // no email JWT claim involved.
-      if (currentUserData?.id) {
-        Follow.filter({ following_id: currentUserData.id })
-          .then(async (followers) => {
-            if (!followers.length) return;
-            const authorName = currentUserData.full_name || 'Someone you follow';
-            const followerIds = followers
-              .map((f) => f.follower_id)
-              .filter(Boolean);
-            if (!followerIds.length) return;
-            // Resolve follower Clerk ids -> emails (one round-trip).
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('clerk_id,email')
-              .in('clerk_id', followerIds);
-            const emails = (profiles || []).map((p) => p.email).filter(Boolean);
-            await Promise.allSettled(
-              emails.map((email) =>
-                notifyUserByEmail({
-                  targetEmail: email,
-                  type: 'new_book',
-                  title: 'new_book',
-                  message: JSON.stringify({ authorName, bookTitle: finalBookData.title }),
-                  link: `/BookView?id=${createdBook.id}`,
-                })
-              )
-            );
-          })
-          .catch(() => {}); // notification failures must never block book creation
-      }
-
-      // Award XP for book creation
-      try {
-        await gamification.awardXP("book_created");
-        await gamification.incrementStat("totalBooks");
-      } catch {
-        // gamification is non-critical
-      }
-
-      // Show summary: how many images succeeded, and offer retry if any failed
-      if (failuresWithPageIds.length > 0) {
-        setImageFailures(failuresWithPageIds);
-      }
-
-      // Show celebration screen instead of navigating immediately
-      setCelebrationBook({
-        id: createdBook.id,
-        title: finalBookData.title,
-        cover_image: coverImage,
-        failures: failuresWithPageIds
-      });
-      setShowCelebration(true);
-
-      // Fire confetti!
-      confetti({
-        particleCount: 160,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ["#7c3aed", "#a855f7", "#ec4899", "#f59e0b", "#3b82f6", "#10b981"]
-      });
-
-      // Auto-navigate after 3 seconds
-      celebrationTimerRef.current = setTimeout(() => {
-        navigateToBook(createdBook.id, failuresWithPageIds);
-      }, 3000);
+      // Everything below is a side effect of the book existing, not of it being
+      // finished — a partial book is a real book and earns the same XP, the same
+      // draft cleanup and the same notification.
+      handOffToReader({ bookId: result.bookId, ready: result.ready, total: result.total });
     } catch (err) {
-      // Wave-12: Surface real error so user can see WHY it stuck
       const errMessage = err?.message || String(err) || t("wizard.error.createMessage");
       const isTimeout = /timeout|timed out|aborted/i.test(errMessage);
       const isQuota = /quota|rate limit|429|credit/i.test(errMessage);
@@ -1118,30 +789,103 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
         : `${t("wizard.error.createMessage")}\n\n${errMessage.substring(0, 200)}`;
       captureError(err instanceof Error ? err : new Error(errMessage), { context: "BookWizard.createBook", bookData });
 
-      // A process with only a success transition cannot report its own failure.
-      // `status` previously moved generating → complete and nowhere else, so a
-      // timeout left a permanent lie in the data. Mark it failed so the library
-      // and the reader can tell the truth about it. Best-effort: if this update
-      // itself fails there is nothing further to do, and it must never mask the
-      // original error the user is about to be shown.
-      if (createdBookId) {
-        try {
-          await Book.update(createdBookId, { status: "failed" });
-        } catch (markErr) {
-          console.error("[BookWizard] could not mark book failed:", markErr?.message || markErr);
-        }
-      }
-
+      // The generator has already written a truthful status for whatever it
+      // managed to build — `partial` if anything is readable, `failed` if not.
+      // Nothing here needs to repair the row; it only has to offer the retry,
+      // and a retry of a book that exists is a RESUME, so the parent never pays
+      // twice for the pages they already have.
+      const resumeId = createdBookId || err?.bookId || null;
       setError({
         title: t("wizard.error.createTitle"),
         message: friendlyMsg,
-        onRetry: createBook,
+        onRetry: () => createBook({ resumeBookId: resumeId }),
         details: errMessage.substring(0, 500),
       });
     } finally {
       setIsCreating(false);
       setCreationProgress(null);
     }
+  };
+
+  /** Map a progress event onto the bar. Text is worth more than pictures because
+   *  text is what makes a page readable at all. Never reaches 100 until settled. */
+  const progressPercent = (event) => {
+    const total = Math.max(1, event.total || 1);
+    const text = (event.ready || 0) / total;
+    const art = (event.illustrated || 0) / total;
+    return Math.min(99, 25 + Math.round(text * 45 + art * 30));
+  };
+
+  /**
+   * Hand the parent over to the reader as soon as there is something to read,
+   * exactly once. Generation keeps running in this tab behind the navigation —
+   * the reader polls and shows each page as it lands.
+   */
+  const handOffToReader = (event) => {
+    if (handedOffRef.current || !event?.bookId) return;
+    handedOffRef.current = true;
+
+    if (activeDraftKey) {
+      clearDraft(activeDraftKey);
+      setActiveDraftKey(null);
+    }
+    trackEvent('book_created', { book_id: event.bookId });
+    announceNewBook(event.bookId, titleForBook());
+    gamification.awardXP("book_created").catch(() => {});
+    gamification.incrementStat("totalBooks").catch(() => {});
+
+    setCelebrationBook({
+      id: event.bookId,
+      title: titleForBook(),
+      cover_image: "",
+      failures: [],
+    });
+    setShowCelebration(true);
+
+    confetti({
+      particleCount: 160,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ["#7c3aed", "#a855f7", "#ec4899", "#f59e0b", "#3b82f6", "#10b981"]
+    });
+
+    celebrationTimerRef.current = setTimeout(() => {
+      navigateToBook(event.bookId, []);
+    }, 2500);
+  };
+
+  const titleForBook = () => createdTitleRef.current || bookData.title;
+
+  /**
+   * Tell followers a new book exists. Fire-and-forget: a notification failure
+   * must never affect the book. Keyed on Clerk ids throughout — no email claim.
+   */
+  const announceNewBook = (bookId, bookTitle) => {
+    if (!currentUserData?.id) return;
+    Follow.filter({ following_id: currentUserData.id })
+      .then(async (followers) => {
+        if (!followers.length) return;
+        const authorName = currentUserData.full_name || 'Someone you follow';
+        const followerIds = followers.map((f) => f.follower_id).filter(Boolean);
+        if (!followerIds.length) return;
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('clerk_id,email')
+          .in('clerk_id', followerIds);
+        const emails = (profiles || []).map((p) => p.email).filter(Boolean);
+        await Promise.allSettled(
+          emails.map((email) =>
+            notifyUserByEmail({
+              targetEmail: email,
+              type: 'new_book',
+              title: 'new_book',
+              message: JSON.stringify({ authorName, bookTitle }),
+              link: `/BookView?id=${bookId}`,
+            })
+          )
+        );
+      })
+      .catch(() => {});
   };
 
   // Cleanup celebration timer on unmount

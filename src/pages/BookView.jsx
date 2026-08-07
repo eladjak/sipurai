@@ -38,6 +38,11 @@ import useGamification from "@/hooks/useGamification";
 import { updateMeta, resetMeta } from "@/lib/seo";
 import { useAuth } from "@/lib/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { readablePages, summarizeBook, viewState, isResumable } from "@/lib/bookProgress";
+import { isRunLive } from "@/lib/generationLock";
+import { generateBookIncremental } from "@/lib/bookGeneration";
+import { buildRecipe } from "@/lib/bookRecipe";
+import { InvokeLLM, GenerateImage } from "@/integrations/Core";
 
 // canvas-confetti loaded on-demand (keeps BookView out of the confetti chunk on initial load)
 let _confettiMod = null;
@@ -52,8 +57,16 @@ export default function BookView() {
   const { navigateToLogin } = useAuth();
   const [searchParams] = useSearchParams();
   const [book, setBook] = useState(null);
-  const [pages, setPages] = useState([]);
+  // Every page row the book has, including skeleton rows a run has not filled
+  // in yet. `pages` below is what the reader may actually show — see
+  // src/lib/bookProgress.js. Keeping both means the reader can say "3 of 10"
+  // instead of silently pretending three was the plan.
+  const [allPages, setAllPages] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [isResuming, setIsResuming] = useState(false);
+  const [resumeError, setResumeError] = useState(null);
+  // Re-read on a timer while a run is heartbeating, so pages appear as they land.
+  const [liveTick, setLiveTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [direction, setDirection] = useState(1);
   const [currentLanguage, setCurrentLanguage] = useState(i18nLanguage);
@@ -92,9 +105,14 @@ export default function BookView() {
   useEffect(() => {
     if (!bookId) return;
 
+    // `liveTick` re-runs this while a generation run is alive. A refresh must
+    // not throw the reader back into a full-page spinner mid-story, so only the
+    // first pass shows one.
+    const isRefresh = liveTick > 0;
+
     const loadBook = async () => {
       try {
-        setLoading(true);
+        if (!isRefresh) setLoading(true);
         const lang = user?.language || i18nLanguage || "english";
         setCurrentLanguage(lang);
 
@@ -138,13 +156,20 @@ export default function BookView() {
         pagesData = Array.isArray(pagesData) ? pagesData : [];
 
         setBook(bookData);
-        setPages(pagesData);
+        setAllPages(pagesData);
 
-        const savedPage = localStorage.getItem(`book_${bookId}_page`);
-        if (savedPage) {
-          const pageIdx = parseInt(savedPage, 10);
-          if (pageIdx >= 0 && pageIdx < pagesData.length) {
-            setCurrentPageIndex(pageIdx);
+        // Restoring the saved position is a first-load concern. On a refresh
+        // during generation the reader must stay exactly where the parent is —
+        // yanking them to a remembered page while they read would be worse
+        // than any loading state.
+        if (!isRefresh) {
+          const readable = readablePages(pagesData);
+          const savedPage = localStorage.getItem(`book_${bookId}_page`);
+          if (savedPage) {
+            const pageIdx = parseInt(savedPage, 10);
+            if (pageIdx >= 0 && pageIdx < readable.length) {
+              setCurrentPageIndex(pageIdx);
+            }
           }
         }
 
@@ -152,12 +177,14 @@ export default function BookView() {
           setCurrentLanguage(bookData.language);
         }
 
-        updateMeta({
-          title: bookData.title,
-          description: bookData.description || t("bookView.defaultDescription"),
-          image: bookData.cover_image,
-          type: 'article',
-        });
+        if (bookData) {
+          updateMeta({
+            title: bookData.title,
+            description: bookData.description || t("bookView.defaultDescription"),
+            image: bookData.cover_image,
+            type: 'article',
+          });
+        }
       } catch {
         toast({
           variant: "destructive",
@@ -169,7 +196,90 @@ export default function BookView() {
     };
 
     loadBook();
-  }, [bookId]);
+  }, [bookId, liveTick]);
+
+  // Pages a reader may be shown, in order. Skeleton rows written to persist the
+  // outline are excluded until they have words.
+  const pages = readablePages(allPages);
+  const progress = summarizeBook(book, allPages);
+  const runLive = isRunLive(bookId) || isResuming;
+  const state = viewState(book, allPages, runLive);
+  const canResume = !isGuest && isResumable(book, allPages);
+
+  // While something is building this book, re-read it every few seconds so each
+  // page appears as it lands. The poll stops the moment the run stops
+  // heartbeating — a closed tab therefore leaves a still reader offering to
+  // continue, not one spinning forever against nothing.
+  useEffect(() => {
+    if (!bookId || !runLive || progress.isComplete) return undefined;
+    const timer = setInterval(() => setLiveTick((n) => n + 1), 4000);
+    return () => clearInterval(timer);
+  }, [bookId, runLive, progress.isComplete]);
+
+  /**
+   * The characters a book was built with, as stored on the row. `jsonb` returns
+   * whatever was written, so this never assumes it got an array.
+   */
+  const asCharacterList = (value) => {
+    if (Array.isArray(value)) return value.filter((c) => c && c.name);
+    if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.filter((c) => c && c.name) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  /**
+   * Finish an interrupted book from the reader.
+   *
+   * The prompts are rebuilt from the persisted row, and the generator only does
+   * what is missing — so this never rewrites a page the parent has already read
+   * and never charges for one twice. What the row cannot carry (rhyme scheme,
+   * scene spine) is lost; see src/lib/bookRecipe.js.
+   */
+  const handleResume = async () => {
+    if (!book?.id || isResuming) return;
+    setIsResuming(true);
+    setResumeError(null);
+    try {
+      await generateBookIncremental({
+        entities: { Book, Page },
+        ai: { InvokeLLM, GenerateImage },
+        recipe: buildRecipe({
+          bookData: book,
+          // The entity layer maps `selected_characters` → `selectedCharacters`
+          // on read (src/lib/supabaseEntity.js), so the camel name is the one
+          // that exists here. Both are accepted in case a row arrives raw.
+          characters: asCharacterList(book.selectedCharacters ?? book.selected_characters),
+          pageCount: progress.total || undefined,
+        }),
+        bookId: book.id,
+        onEvent: (event) => {
+          if (event.type === "page-text" || event.type === "page-image") {
+            setLiveTick((n) => n + 1);
+          }
+        },
+      });
+    } catch (err) {
+      setResumeError(err?.message || t("bookView.resumeFailed"));
+    } finally {
+      setIsResuming(false);
+      setLiveTick((n) => n + 1);
+    }
+  };
+
+  // Pages arrive while the reader is open, and a resume can only ever add them
+  // — but a book read from a stale cache could still leave the index past the
+  // end. Clamp rather than render `undefined` as a blank page.
+  useEffect(() => {
+    if (pages.length > 0 && currentPageIndex > pages.length - 1) {
+      setCurrentPageIndex(pages.length - 1);
+    }
+  }, [pages.length, currentPageIndex]);
 
   useEffect(() => {
     return () => resetMeta();
@@ -463,29 +573,55 @@ export default function BookView() {
     );
   }
 
-  // A book that exists but has no readable pages is NOT "not found". Creation
-  // writes the book row before generating its pages, so a run that fails partway
-  // leaves a real book with zero pages. Telling the owner it does not exist sends
-  // them looking for their own mistake; these two states say what happened.
-  if (book && pages.length === 0 && (book.status === "failed" || book.status === "generating")) {
-    const failed = book.status === "failed";
+  // A book that exists but has no readable page yet is NOT "not found". Creation
+  // writes the book row, then its outline, then each page — so there is a real
+  // window in which a real book has nothing to show. Telling the owner it does
+  // not exist sends them looking for their own mistake.
+  //
+  // Two states, and the difference between them is whether anything is working
+  // on it right now — which the status column cannot answer, because a closed
+  // tab leaves `generating` behind forever. `viewState` answers it from the run
+  // heartbeat instead.
+  if (book && pages.length === 0 && (state === "starting" || state === "empty")) {
+    const starting = state === "starting";
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900" dir={isRTL ? "rtl" : "ltr"}>
-        <BookOpen className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+        {starting
+          ? <Loader2 className="h-16 w-16 text-purple-400 mb-4 animate-spin" aria-hidden="true" />
+          : <BookOpen className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" aria-hidden="true" />}
         <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
           {book.title}
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-          {failed
-            ? "יצירת הספר הזה לא הושלמה, ולכן אין לו עדיין עמודים. אפשר לנסות ליצור אותו מחדש."
-            : "הספר הזה עדיין בתהליך יצירה. אפשר לחזור אליו בעוד כמה רגעים."}
+        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md" role="status" aria-live="polite">
+          {starting
+            ? t("bookView.building.starting")
+            : t("bookView.building.stopped")}
         </p>
-        <Link to={createPageUrl("Library")}>
-          <Button className="gap-2 bg-purple-600 hover:bg-purple-700 text-white">
-            {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-            {t('bookView.backToLibrary')}
-          </Button>
-        </Link>
+
+        {resumeError && (
+          <p className="text-sm text-red-600 dark:text-red-400 mb-4 max-w-md">{resumeError}</p>
+        )}
+
+        <div className="flex flex-wrap gap-3 justify-center">
+          {canResume && !starting && (
+            <Button
+              onClick={handleResume}
+              disabled={isResuming}
+              className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isResuming
+                ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                : <PenTool className="h-4 w-4" aria-hidden="true" />}
+              {t("bookView.building.continue")}
+            </Button>
+          )}
+          <Link to={createPageUrl("Library")}>
+            <Button variant={canResume && !starting ? "outline" : "default"} className="gap-2">
+              {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+              {t('bookView.backToLibrary')}
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -532,6 +668,59 @@ export default function BookView() {
             <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
             {t('bookView.signIn')}
           </button>
+        </div>
+      )}
+
+      {/* Still-being-written banner.
+          A book can be opened and read before it is finished — that is the
+          point of incremental generation. This says exactly how much of it is
+          real, and, when nothing is working on it any more, offers to finish
+          it. Never a bare spinner: the parent always knows which of the two
+          situations they are in. */}
+      {progress.isReadable && (!progress.isComplete || progress.missingImage.length > 0) && (
+        <div
+          className={`px-4 py-2 text-sm flex flex-wrap items-center justify-between gap-3 ${
+            state === "building"
+              ? "bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-100"
+              : "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            {state === "building" && <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />}
+            <span className="truncate">
+              {state === "building"
+                ? t("bookView.building.inProgress", { ready: progress.ready, total: progress.total })
+                : progress.isComplete
+                  // Every page has words but some have no picture. The book is
+                  // finished by the only definition that matters for reading it,
+                  // and still visibly missing something a parent can fix.
+                  ? t("bookView.building.missingArt", { count: progress.missingImage.length })
+                  : t("bookView.building.paused", { ready: progress.ready, total: progress.total })}
+            </span>
+          </span>
+
+          {canResume && state !== "building" && (
+            <button
+              onClick={handleResume}
+              disabled={isResuming}
+              className="shrink-0 flex items-center gap-1.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors px-3 py-1 rounded-full font-medium"
+            >
+              {isResuming
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                : <PenTool className="h-3.5 w-3.5" aria-hidden="true" />}
+              {progress.isComplete
+                ? t("bookView.building.retryArt")
+                : t("bookView.building.continue")}
+            </button>
+          )}
+        </div>
+      )}
+
+      {resumeError && (
+        <div className="px-4 py-2 text-sm bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200" role="alert">
+          {resumeError}
         </div>
       )}
 

@@ -338,6 +338,8 @@ export default {
     allStatus: "כל הסטטוסים",
     draft: "טיוטה",
     generating: "בתהליך יצירה",
+    partial: "בתהליך כתיבה",
+    failed: "היצירה נעצרה",
     complete: "הושלם",
     genre: "ז'אנר",
     allGenres: "כל הז'אנרים",
@@ -833,6 +835,16 @@ export default {
     loading: "טוען את הספר...",
     bookViewer: "צפייה בספר",
     backToLibrary: "חזרה לספרייה",
+    building: {
+      starting: "מתחילים לכתוב את הספר. העמוד הראשון יופיע כאן בעוד רגע.",
+      stopped: "יצירת הספר נעצרה לפני שנכתב עמוד. אפשר להמשיך מכאן.",
+      inProgress: "{{ready}} מתוך {{total}} עמודים מוכנים. השאר נכתבים עכשיו.",
+      missingArt: "{{count}} עמודים עדיין בלי איור.",
+      retryArt: "צייר את החסר",
+      paused: "{{ready}} מתוך {{total}} עמודים מוכנים. היצירה נעצרה.",
+      continue: "המשך ליצור"
+    },
+    resumeFailed: "לא הצלחנו להמשיך את היצירה. נסו שוב בעוד רגע.",
     nightMode: "מצב לילה",
     fullscreen: "מסך מלא",
     downloadPdf: "הורד PDF",
@@ -989,6 +1001,7 @@ export default {
       outlineMessage: "לא הצלחנו ליצור את הסיפור. אפשר לנסות שוב!",
       createTitle: "אופס! לא הצלחנו ליצור את הספר",
       createMessage: "משהו השתבש. בואו ננסה שוב!",
+      nothingGenerated: "לא הצלחנו לכתוב אף עמוד. אפשר לנסות שוב.",
       timeoutMessage: "הבקשה ארכה יותר מדי זמן. אפשר לנסות שוב.",
       titleDescInappropriate: "הכותרת או התיאור מכילים תוכן לא מתאים"
     },
@@ -1005,6 +1018,7 @@ export default {
     },
     progress: {
       checkingContent: "בודק תוכן...",
+      pagesReady: "{{ready}} מתוך {{total}} עמודים מוכנים",
       creatingStory: "יוצר עלילה ועטיפה...",
       savingBook: "שומר את הספר...",
       writingStory: "כותב את הסיפור...",
@@ -1465,6 +1479,8 @@ export default {
   bookCard: {
     draft: "טיוטה",
     generating: "בתהליך יצירה",
+    partial: "בתהליך כתיבה",
+    failed: "היצירה נעצרה",
     complete: "הושלם",
     for: "עבור",
     years: "שנים",
