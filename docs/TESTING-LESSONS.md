@@ -127,11 +127,31 @@ from checking, which is how all three survived review.
 
 When a comment states a fact you are relying on, verify the fact, not the comment.
 
-## 9. OPEN — book creation times out and strands the book (not fixed)
+## 9. CLOSED — book creation timed out and stranded the book
 
-Status as of 2026-08-07: the wizard now runs end to end and fails at the final
-stage. **This is the remaining release blocker.** It was deliberately not fixed
-in the same session — it is a design replacement, not a contract error.
+**Resolved 2026-08-07** by replacing the one-shot generator with an incremental,
+resumable one. Design, schema decisions and verification:
+**`docs/INCREMENTAL-GENERATION.md`** — read that before touching generation.
+
+The account below is kept because the *mechanism* is still worth knowing, and
+because two of its lessons generalise: a process that persists something before
+it finishes must be able to describe a halfway state, and a state machine with
+only a success transition cannot report its own failure.
+
+Three things the fix turned up that were nobody's hypothesis, all found by
+running the real thing rather than by reading it:
+
+- `api/ai/generate.js` read only `parts[0]` of Gemini's answer, so long
+  responses arrived cut in half and surfaced as *"AI returned invalid JSON"*.
+- `gemini-2.5-flash` is a **thinking model**, and its thinking tokens are spent
+  out of `maxOutputTokens` before the answer starts. A 2048-token ceiling that
+  looked generous left 436 tokens for the answer. Measured: 2205 total tokens and
+  a truncated page with thinking on, 631 and a complete page with it off.
+- `eslint` was silently not applying `no-undef` (the recommended config's rules
+  were overwritten) **and** was not matched to `src/lib/**` at all — so an
+  undefined variable in either place produced a clean lint. Both closed.
+
+Original account follows.
 
 **Observed:** clicking "צור את הספר שלי!" reaches *"הבקשה ארכה יותר מדי זמן"*.
 Verified directly with a `supabase`-template Clerk token:
