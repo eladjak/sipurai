@@ -104,19 +104,38 @@ export default function BookView() {
         // PII-free public views (public_books / public_pages), which only return
         // rows where is_public = true. See entities/PublicBook.js + migration
         // 2026-05-25-public-pii-safe-views.sql.
-        let bookData;
-        let pagesData;
+        // Resolved independently on purpose. These used to share one try/catch
+        // over a Promise.all, so a failure fetching PAGES sent the BOOK to the
+        // public-view fallback too — and public_books only returns is_public
+        // rows, so a private book the owner had every right to see resolved to
+        // null and rendered as "book not found". A book that loads must be
+        // shown even when its pages cannot be.
+        let bookData = null;
+        let pagesData = [];
+
         try {
-          [bookData, pagesData] = await Promise.all([
-            Book.get(bookId),
-            Page.filter({ book_id: bookId }, "page_number")
-          ]);
+          bookData = await Book.get(bookId);
         } catch {
-          [bookData, pagesData] = await Promise.all([
-            PublicBook.get(bookId),
-            PublicPage.filter({ book_id: bookId }, "page_number")
-          ]);
+          bookData = null;
         }
+        if (!bookData) {
+          try {
+            bookData = await PublicBook.get(bookId);
+          } catch {
+            bookData = null;
+          }
+        }
+
+        try {
+          pagesData = await Page.filter({ book_id: bookId }, "page_number");
+        } catch {
+          try {
+            pagesData = await PublicPage.filter({ book_id: bookId }, "page_number");
+          } catch {
+            pagesData = [];
+          }
+        }
+        pagesData = Array.isArray(pagesData) ? pagesData : [];
 
         setBook(bookData);
         setPages(pagesData);
@@ -129,7 +148,7 @@ export default function BookView() {
           }
         }
 
-        if (bookData.language) {
+        if (bookData?.language) {
           setCurrentLanguage(bookData.language);
         }
 
@@ -444,7 +463,34 @@ export default function BookView() {
     );
   }
 
-  // No book found after loading — show error state
+  // A book that exists but has no readable pages is NOT "not found". Creation
+  // writes the book row before generating its pages, so a run that fails partway
+  // leaves a real book with zero pages. Telling the owner it does not exist sends
+  // them looking for their own mistake; these two states say what happened.
+  if (book && pages.length === 0 && (book.status === "failed" || book.status === "generating")) {
+    const failed = book.status === "failed";
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900" dir={isRTL ? "rtl" : "ltr"}>
+        <BookOpen className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          {book.title}
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+          {failed
+            ? "יצירת הספר הזה לא הושלמה, ולכן אין לו עדיין עמודים. אפשר לנסות ליצור אותו מחדש."
+            : "הספר הזה עדיין בתהליך יצירה. אפשר לחזור אליו בעוד כמה רגעים."}
+        </p>
+        <Link to={createPageUrl("Library")}>
+          <Button className="gap-2 bg-purple-600 hover:bg-purple-700 text-white">
+            {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+            {t('bookView.backToLibrary')}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // No book found after loading — genuinely missing or not visible to this user
   if (!book) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900" dir={isRTL ? "rtl" : "ltr"}>

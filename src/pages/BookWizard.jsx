@@ -595,6 +595,12 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   };
 
   const createBook = async () => {
+    // Held outside the try so the catch can mark the row failed. The book row is
+    // written before its pages are generated, so anything that throws after the
+    // insert would otherwise leave it stranded at status:"generating" forever —
+    // listed in the library, unopenable in the reader, with nothing anywhere
+    // admitting it went wrong.
+    let createdBookId = null;
     try {
       setIsCreating(true);
       setError(null);
@@ -750,6 +756,7 @@ The story should have a clear beginning, middle, and end.`;
       };
 
       const createdBook = await Book.create(finalBookData);
+      createdBookId = createdBook?.id || null;
 
       // Step 3: Generate ALL page texts in parallel
       setCreationProgress({
@@ -1110,6 +1117,21 @@ ${isHebrewBook ? "2. text_with_nikud: The exact same page text with full nikud (
         ? "תקלה באימות מול שרתי ה-AI. נסה שוב מאוחר יותר."
         : `${t("wizard.error.createMessage")}\n\n${errMessage.substring(0, 200)}`;
       captureError(err instanceof Error ? err : new Error(errMessage), { context: "BookWizard.createBook", bookData });
+
+      // A process with only a success transition cannot report its own failure.
+      // `status` previously moved generating → complete and nowhere else, so a
+      // timeout left a permanent lie in the data. Mark it failed so the library
+      // and the reader can tell the truth about it. Best-effort: if this update
+      // itself fails there is nothing further to do, and it must never mask the
+      // original error the user is about to be shown.
+      if (createdBookId) {
+        try {
+          await Book.update(createdBookId, { status: "failed" });
+        } catch (markErr) {
+          console.error("[BookWizard] could not mark book failed:", markErr?.message || markErr);
+        }
+      }
+
       setError({
         title: t("wizard.error.createTitle"),
         message: friendlyMsg,

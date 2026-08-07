@@ -164,3 +164,33 @@ open, and nothing ever cleans it up.**
 **Cheap and independent of that choice:** give creation a real failure path that
 marks the book `failed` and says so. A stranded book currently masquerades as a
 real one, which is the worst of both.
+
+## 10. A process with only a success transition cannot report its own failure
+
+`status` on `books` moved `generating → complete` and nowhere else. There was no
+`failed`, no delete, no rollback — all three checked for, none present. So every
+timeout left **a permanent lie in the data**: a book listed in the library,
+unopenable in the reader, with nothing anywhere admitting anything went wrong.
+
+That is why nobody caught it in a month. There was no error, no alert, no bad
+row to find. Just books that quietly never finished.
+
+This is the same disease as an E2E harness aimed at the wrong half of the
+product: **not a broken check, but no check at all in the failing direction**,
+and a system that looks healthy precisely because it cannot say otherwise.
+
+When you write a process that persists something before it finishes, ask what
+the data looks like if it stops halfway. If the answer is "identical to still
+working", the process cannot be monitored, debugged, or trusted.
+
+Fixed 2026-08-07: `createBook` marks the row `failed` in its catch, and the
+reader distinguishes **failed** from **still generating** from **genuinely
+missing** instead of collapsing all three into "book not found".
+
+**Related, and found while fixing it:** `BookView` fetched book and pages inside
+a single `Promise.all` in one `try`, so a failure fetching *pages* sent the
+*book* to the public-view fallback as well — and `public_books` only returns
+`is_public` rows, so a private book its own owner had every right to see resolved
+to null and rendered as "not found". **A shared catch makes one thing's failure
+look like another thing's absence.** Resolve independently what can fail
+independently.
