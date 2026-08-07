@@ -202,6 +202,106 @@
     </script>
   </head>
   <body>
+    <!--
+      App-entry choreography — "a book opening". First visit only.
+
+      The voice: sipurai makes children's storybooks, so the splash is a book.
+      A line-drawn cover draws itself on a deep-violet night field, and then the
+      pages unfold from the spine — the RIGHT page first, then the left, because
+      a Hebrew book opens the other way. That single detail is the whole idea:
+      the product is Hebrew-first, and its opening gesture says so before a word
+      is read. Warm amber lines on purple-950, both straight from the palette
+      the landing page already uses (purple-900/950 surfaces, warm accents).
+
+      Contract (wow-ui-standard §7, matching the proven triplus hub-entry.ts):
+      - Plays ONCE EVER per browser. A localStorage flag gates it; bump the key
+        suffix to re-premiere. If storage is blocked the splash is SKIPPED —
+        never replayed on every navigation.
+      - prefers-reduced-motion: skipped ENTIRELY, a triple belt. (1) the gate
+        script bails before the overlay is revealed, (2) the CSS display:none
+        below catches a mid-session flip, (3) every animated property's BASE
+        state is its final visible state.
+      - Never blocks interaction: pointer-events:none for its whole life, and it
+        removes itself from the DOM on animationend (+ a timeout backup).
+      - No-JS safe: ships `hidden` with opacity:0; only the gate reveals it. With
+        JS blocked nothing flashes and the <noscript> article below renders.
+      - Motion diet: transform + opacity + stroke-dashoffset only. ~2.0s, then gone.
+    -->
+    <style>
+      /* Base state is display:none, not merely opacity:0 — so with JS off, on
+         every visit after the first, and under reduced-motion there is no
+         full-viewport layer over the app at all, rather than an invisible one
+         held back by a single property. */
+      #sp-entry{display:none;position:fixed;inset:0;z-index:9999;flex-direction:column;
+        align-items:center;justify-content:center;gap:1.5rem;
+        background:#3B0764;pointer-events:none}
+      #sp-entry.go{display:flex;animation:sp-fade 2s ease both}
+      .sp-book{width:min(78vw,300px);height:auto;overflow:visible}
+      .sp-book path,.sp-book line{fill:none;stroke:#FCD34D;stroke-width:2.4;
+        stroke-linecap:round;stroke-linejoin:round}
+      /* transform-box:fill-box is NOT optional — without it an SVG transform-origin
+         resolves against the whole viewBox, so scaleX would swing each page a full
+         viewBox-width across the screen instead of unfolding it at the spine. */
+      .sp-page{transform-box:fill-box}
+      .sp-page-r{transform-origin:left center}   /* its spine edge is on the left  */
+      .sp-page-l{transform-origin:right center}  /* its spine edge is on the right */
+      .sp-line{stroke-width:2;opacity:.55}
+      .sp-title{font-family:Fredoka,system-ui,sans-serif;font-weight:600;
+        font-size:clamp(1.4rem,5vw,2rem);letter-spacing:.01em;color:#FEF3C7}
+      /* Base states below are the FINAL visible states; the hidden start lives
+         only in each keyframe's `from` with `both`. Animations off = finished book. */
+      .go .sp-spine{animation:sp-draw .34s ease-out .1s both}
+      .go .sp-page-r{animation:sp-open .5s cubic-bezier(.22,1,.36,1) .34s both}
+      .go .sp-page-l{animation:sp-open .5s cubic-bezier(.22,1,.36,1) .5s both}
+      .go .sp-line{animation:sp-line-in .3s ease-out both}
+      .go .sp-title{animation:sp-title-in .5s ease-out 1.16s both}
+      /* Belt 2 over the script gate: if reduced-motion is (or becomes) active,
+         the splash simply does not exist. */
+      @media (prefers-reduced-motion:reduce){#sp-entry{display:none!important}}
+      @keyframes sp-fade{0%,82%{opacity:1}100%{opacity:0}}
+      @keyframes sp-draw{from{stroke-dasharray:100 100;stroke-dashoffset:100}
+        to{stroke-dasharray:100 100;stroke-dashoffset:0}}
+      @keyframes sp-open{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+      @keyframes sp-line-in{from{opacity:0;transform:translateY(3px)}
+        to{opacity:.55;transform:translateY(0)}}
+      @keyframes sp-title-in{from{opacity:0;transform:translateY(8px)}
+        to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="sp-entry" hidden aria-hidden="true">
+      <svg class="sp-book" viewBox="0 0 260 176" focusable="false" aria-hidden="true">
+        <!-- The right page unfolds first: a Hebrew book opens from the right. -->
+        <path class="sp-page sp-page-r"
+              d="M130 30 C158 22 194 24 214 33 L214 141 C194 132 158 130 130 138 Z"/>
+        <path class="sp-page sp-page-l"
+              d="M130 30 C102 22 66 24 46 33 L46 141 C66 132 102 130 130 138 Z"/>
+        <!-- Story lines, right-hand page reading right-to-left. -->
+        <line class="sp-line" x1="203" y1="58"  x2="150" y2="55"  style="animation-delay:.92s"/>
+        <line class="sp-line" x1="203" y1="76"  x2="141" y2="74"  style="animation-delay:.98s"/>
+        <line class="sp-line" x1="203" y1="94"  x2="158" y2="93"  style="animation-delay:1.04s"/>
+        <line class="sp-line" x1="110" y1="55"  x2="57"  y2="58"  style="animation-delay:1.00s"/>
+        <line class="sp-line" x1="119" y1="74"  x2="57"  y2="76"  style="animation-delay:1.06s"/>
+        <line class="sp-line" x1="102" y1="93"  x2="57"  y2="94"  style="animation-delay:1.12s"/>
+        <!-- Spine drawn last in source so it sits above the pages; animated first. -->
+        <path class="sp-spine" pathLength="100" d="M130 30 L130 138"/>
+      </svg>
+      <span class="sp-title">סיפוראי</span>
+    </div>
+    <script>
+      (function(){try{
+        var el=document.getElementById("sp-entry");
+        if(!el||el.dataset.armed)return; el.dataset.armed="1";
+        var rm=false; try{rm=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);}catch(e){}
+        var seen=null; try{seen=localStorage.getItem("sipurai-entry-seen-v1");}catch(e){}
+        if(rm||seen){ if(el.parentNode)el.parentNode.removeChild(el); return; }
+        /* Storage blocked (private mode) -> skip entirely, never replay per navigation. */
+        try{localStorage.setItem("sipurai-entry-seen-v1","1");}catch(e){ if(el.parentNode)el.parentNode.removeChild(el); return; }
+        el.hidden=false;
+        el.classList.add("go");
+        function gone(){ if(el&&el.parentNode)el.parentNode.removeChild(el); el=null; }
+        el.addEventListener("animationend",function(ev){ if(ev.target&&ev.target.id==="sp-entry")gone(); });
+        setTimeout(gone,2600);
+      }catch(e){}})();
+    </script>
     <header style="display:none" aria-hidden="true">
       <nav>
         <a href="/">בית</a>
