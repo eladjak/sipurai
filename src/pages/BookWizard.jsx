@@ -726,11 +726,27 @@ The story should have a clear beginning, middle, and end.`;
         ...bookData,
         title: sanitizedTitle,
         cover_image: coverImage,
-        status: "generating",
-        // Persist the user-curated scene structure on the Book so future
-        // edits can resurface the spine. Tolerated as best-effort — entity
-        // schemas that don't know about this field will ignore it.
-        ...(Array.isArray(scenes) && scenes.length > 0 ? { scenes } : {})
+        status: "generating"
+        // NOT sent: the user-curated `scenes` structure.
+        //
+        // Sprint 7.24 added `...(scenes.length ? { scenes } : {})` here on the
+        // stated assumption that "entity schemas that don't know about this
+        // field will ignore it". PostgREST does not ignore unknown columns — it
+        // rejects the whole insert with:
+        //   books.create failed: Could not find the 'scenes' column of 'books'
+        //   in the schema cache
+        // There is no `scenes` column on `books` and no migration for one
+        // anywhere in this repo, so every book creation that followed the
+        // structure step failed at the final save. Removed 2026-08-07.
+        //
+        // The scene spine still does its real job before this point: scenes are
+        // aligned to pages to enrich each illustration prompt (see below). Only
+        // the persistence of the spine is dropped.
+        //
+        // To restore persistence, add the column first, then re-add the field:
+        //   ALTER TABLE books ADD COLUMN scenes jsonb;
+        // That is a production schema change and belongs to a human, not to
+        // this file quietly assuming it will be tolerated.
       };
 
       const createdBook = await Book.create(finalBookData);
