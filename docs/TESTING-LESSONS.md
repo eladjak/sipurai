@@ -95,3 +95,72 @@ previews cannot authenticate at all.
 
 Until that changes, the last mile needs a human in a real browser. Anything that
 claims to have verified the journey without one has verified something else.
+
+## 7. A mock that hard-codes the happy path guarantees the gate is never tested
+
+`src/pages/__tests__/pages-setup.js` mocks `checkAgeAppropriateLanguage` to always
+return `{ isAppropriate: true, flags: [], suggestions: [] }`.
+
+While that mock was in place, the real function was blocking nearly every book —
+and no test in the suite could ever have noticed, because no test ever ran the
+real function. This is worse than having no test: the suite's greenness is
+evidence *about the mock*, not about the code.
+
+Mock a dependency to isolate the unit under test. Do not mock the thing whose
+behaviour is the question. If a gate matters, at least one test must exercise
+the real implementation — `src/utils/content-moderation.gates.test.js` now does.
+
+## 8. Three defects in one day whose comments asserted the opposite of the code
+
+- `verifyClerk.js`: *"azp holds the publishable key of the frontend"* — it holds an
+  **origin**. The soft allowlist compared the two, so no token could ever pass.
+- `content-moderation.js`: *"Does NOT block content, but returns flags and
+  suggestions"* — true of the function, false of how `BookWizard` used it, which
+  was as a hard gate.
+- `BookWizard.jsx`: *"entity schemas that don't know about this field will ignore
+  it"* — PostgREST rejects the entire insert.
+
+Each comment was accurate when written, or plausible when guessed. None was ever
+re-checked. **A comment is a claim about behaviour that nothing verifies, and it
+ages in silence** — worse, a confident comment actively stops the next reader
+from checking, which is how all three survived review.
+
+When a comment states a fact you are relying on, verify the fact, not the comment.
+
+## 9. OPEN — book creation times out and strands the book (not fixed)
+
+Status as of 2026-08-07: the wizard now runs end to end and fails at the final
+stage. **This is the remaining release blocker.** It was deliberately not fixed
+in the same session — it is a design replacement, not a contract error.
+
+**Observed:** clicking "צור את הספר שלי!" reaches *"הבקשה ארכה יותר מדי זמן"*.
+Verified directly with a `supabase`-template Clerk token:
+
+```
+books  → [{"title":"Barnaby's Secret Garden Adventure","status":"generating"}]
+pages  → []
+```
+
+**Mechanism:** `proxyCall` in `src/lib/aiProvider.js` puts a hard `AbortController`
+on every AI call — 60s text, 90s image. `createBook` generates a cover image, then
+10 page texts, then 10 page illustrations, from the browser tab. A single image
+call crossing 90s aborts the whole creation.
+
+**Why it does lasting damage — the more important half:** the book row is written
+*before* any page is generated (`Book.create`, ~line 736) and `status` only ever
+moves `generating → complete` (~line 1013). There is **no failure path at all** —
+no `status: "failed"`, no delete, no rollback. Every timeout therefore strands a
+book permanently at `generating` with zero pages, and the library lists a book
+that `BookView` answers *"ספר לא נמצא"* for. **A parent gets a book they cannot
+open, and nothing ever cleans it up.**
+
+**Two directions worth considering (a decision for Elad, not a conclusion):**
+
+1. Move generation server-side and have the client poll for progress.
+2. Make it incremental — write page one as soon as it exists and fill the rest in
+   behind it. Probably better for a children's product: a parent who sees the
+   first page in five seconds forgives the rest taking a minute.
+
+**Cheap and independent of that choice:** give creation a real failure path that
+marks the book `failed` and says so. A stranded book currently masquerades as a
+real one, which is the worst of both.
