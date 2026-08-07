@@ -49,6 +49,7 @@ export default {
     tryAgain: "Something went wrong. Please try again later.",
     retry: "Try again",
     contact: "Contact",
+    accessibilityStatement: "Accessibility Statement",
     status: {
       draft: "Draft",
       generating: "Generating",
@@ -1792,6 +1793,7 @@ export default {
       blog: "Blog",
       terms: "Terms of Service",
       privacy: "Privacy",
+      accessibility: "Accessibility Statement",
       contact: "Contact",
       followUs: "Follow Us",
       rights: "All rights reserved.",

@@ -49,6 +49,7 @@ export default {
     tryAgain: "אירעה שגיאה בטעינה. נסו שוב מאוחר יותר.",
     retry: "נסה שוב",
     contact: "צור קשר",
+    accessibilityStatement: "הצהרת נגישות",
     status: {
       draft: "טיוטה",
       generating: "מייצר",
@@ -1789,6 +1790,7 @@ export default {
       blog: "בלוג",
       terms: "תנאי שימוש",
       privacy: "פרטיות",
+      accessibility: "הצהרת נגישות",
       contact: "צור קשר",
       followUs: "עקבו אחרינו",
       rights: "כל הזכויות שמורות.",

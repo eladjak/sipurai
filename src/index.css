@@ -171,9 +171,24 @@ button:focus-visible {
     box-shadow:
       inset -2px -2px 6px rgba(0, 0, 0, 0.05),
       4px 4px 12px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    /* No transition. box-shadow is a paint property, and tweening it repaints
+       every card in a grid on every frame.
+       No transform either: `Card` hard-codes .clay-card, so cards nest — a
+       lift here compounds (three levels deep = 6px) and :focus-within keeps a
+       whole editor panel raised while a control inside it has focus. The
+       affordance is the deeper shadow, applied instantly. */
   }
-  .clay-card:hover {
+  /* Touch devices must not latch into a stuck hover state. */
+  @media (hover: hover) {
+    .clay-card:hover {
+      box-shadow:
+        inset -2px -2px 6px rgba(0, 0, 0, 0.04),
+        6px 6px 18px rgba(0, 0, 0, 0.14);
+    }
+  }
+  /* Keyboard parity — outside the hover query so it always applies. */
+  .clay-card:focus-visible,
+  .clay-card:has(:focus-visible) {
     box-shadow:
       inset -2px -2px 6px rgba(0, 0, 0, 0.04),
       6px 6px 18px rgba(0, 0, 0, 0.14);
@@ -237,4 +252,10 @@ a:focus-visible .logo-icon-anim { transform: rotate(-8deg) scale(1.05); }
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* .clay-card no longer transforms at all, so there is nothing to reset here.
+     The card-image scale-settle is a Tailwind utility on a variety of element
+     types (img, wrapper div, gradient div), so it carries its own
+     `motion-reduce:!transform-none` at each call site rather than being reset
+     by an element-type selector here, which silently missed the wrappers. */
 }

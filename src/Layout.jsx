@@ -29,7 +29,8 @@ import {
   Sparkles,
   PenTool,
   Globe,
-  Mail
+  Mail,
+  Accessibility
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -137,7 +138,8 @@ export default function Layout({ children, currentPageName }) {
     ],
     system: [
       { href: "/Settings", label: t("common.settings"), icon: Settings, pageName: "Settings" },
-      { href: "/Contact", label: t("common.contact"), icon: Mail, pageName: "Contact" }
+      { href: "/Contact", label: t("common.contact"), icon: Mail, pageName: "Contact" },
+      { href: "/Accessibility", label: t("common.accessibilityStatement"), icon: Accessibility, pageName: "Accessibility" }
     ]
   };
 

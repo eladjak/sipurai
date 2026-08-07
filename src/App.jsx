@@ -31,9 +31,10 @@ const Blog = Pages['Blog'];
 const BlogPost = Pages['BlogPost'];
 const PrivacyPolicy = Pages['PrivacyPolicy'];
 const TermsOfService = Pages['TermsOfService'];
+const Accessibility = Pages['Accessibility'];
 
 // Pages accessible without authentication (public routes)
-const PUBLIC_PAGES = new Set(['BookView', 'LandingPage', 'Blog', 'BlogPost', 'PrivacyPolicy', 'TermsOfService', 'Contact', 'Pricing']);
+const PUBLIC_PAGES = new Set(['BookView', 'LandingPage', 'Blog', 'BlogPost', 'PrivacyPolicy', 'TermsOfService', 'Contact', 'Pricing', 'Accessibility']);
 
 const pageTransition = {
   initial: { opacity: 0 },
@@ -77,7 +78,8 @@ const AuthenticatedApp = () => {
     location.pathname === '/welcome' ||
     location.pathname === '/contact' ||
     location.pathname === '/Contact' ||
-    location.pathname === '/pricing';
+    location.pathname === '/pricing' ||
+    location.pathname === '/accessibility';
 
   // Show loading spinner while checking app public settings or auth
   // For public routes, skip auth loading wait (user will be null but that's fine)
@@ -136,6 +138,7 @@ const AuthenticatedApp = () => {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/accessibility" element={<Accessibility />} />
           {/* All registered pages (auto-generated) — public pages render WITHOUT
               the authenticated LayoutWrapper sidebar. Per Wave-6 audit grok-4. */}
           {Object.entries(Pages).map(([path, Page]) => (
