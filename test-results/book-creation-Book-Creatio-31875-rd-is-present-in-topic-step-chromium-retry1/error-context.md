@@ -1,0 +1,502 @@
+# Page snapshot
+
+```yaml
+- main [ref=e2]:
+  - generic [ref=e4]:
+    - navigation [ref=e5]:
+      - generic [ref=e7]:
+        - link "Sipurai - Go to homepage" [ref=e8] [cursor=pointer]:
+          - /url: /
+          - img [ref=e9]
+          - generic [ref=e11]:
+            - generic [ref=e12]: Sipurai
+            - generic [ref=e13]:
+              - generic [ref=e14]: S
+              - generic [ref=e15]: i
+              - generic [ref=e16]: p
+              - generic [ref=e17]: u
+              - generic [ref=e18]: r
+              - generic [ref=e19]: a
+              - generic [ref=e20]: i
+        - generic [ref=e21]:
+          - link "Features" [ref=e22] [cursor=pointer]:
+            - /url: "#features"
+          - link "How It Works" [ref=e23] [cursor=pointer]:
+            - /url: "#how-it-works"
+          - link "Pricing" [ref=e24] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Blog" [ref=e25] [cursor=pointer]:
+            - /url: /blog
+            - img [ref=e26]
+            - text: Blog
+        - generic [ref=e29]:
+          - button "Change language" [ref=e31] [cursor=pointer]:
+            - img [ref=e32]
+            - generic [ref=e35]: English
+          - link "Sign In" [ref=e36] [cursor=pointer]:
+            - /url: /sign-in
+            - button "Sign In" [ref=e37]
+          - link "Start Free" [ref=e38] [cursor=pointer]:
+            - /url: /sign-up
+            - button "Start Free" [ref=e39]
+    - region "Introduction" [ref=e40]:
+      - img [ref=e42]
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - img [ref=e49]
+            - generic [ref=e51]: AI-Powered Children's Book Creator
+          - heading "Your Child's Next Book Created with AI Magic" [level=1] [ref=e52]:
+            - text: Your Child's Next Book
+            - text: Created with AI Magic
+          - paragraph [ref=e53]: Choose characters, style and genre — and AI creates a complete children's book with a personalized story and illustrations
+          - generic [ref=e54]:
+            - link "Create a Book — It's Free!" [ref=e55] [cursor=pointer]:
+              - /url: /sign-up
+              - button "Create a Book — It's Free!" [ref=e57]:
+                - img
+                - text: Create a Book — It's Free!
+            - link "Browse Community Books" [ref=e58] [cursor=pointer]:
+              - /url: "#showcase"
+              - button "Browse Community Books" [ref=e59]:
+                - img
+                - text: Browse Community Books
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e62]: A
+              - generic [ref=e63]: B
+              - generic [ref=e64]: C
+              - generic [ref=e65]: D
+              - generic [ref=e66]: E
+            - generic [ref=e67]: Start creating magical stories today
+        - generic [ref=e68]:
+          - img "Child creating a personalized storybook with AI magic" [ref=e71]
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]: "18"
+              - generic [ref=e77]: Art Styles
+            - generic [ref=e79]:
+              - generic [ref=e80]: "5"
+              - generic [ref=e81]: Free Books/Month
+            - generic [ref=e83]:
+              - generic [ref=e84]: "3"
+              - generic [ref=e85]: Languages
+      - img [ref=e87]
+    - generic [ref=e92]:
+      - generic [ref=e93]:
+        - heading "Sipurai at a Glance" [level=2] [ref=e94]
+        - paragraph [ref=e95]: Everything you need to create magical children's books
+      - generic [ref=e96]:
+        - generic [ref=e98]:
+          - img [ref=e100]
+          - generic [ref=e101]: "0"
+          - generic [ref=e102]: Art Styles
+        - generic [ref=e104]:
+          - img [ref=e106]
+          - generic [ref=e107]: "0"
+          - generic [ref=e108]: Free Books/Month
+        - generic [ref=e110]:
+          - img [ref=e112]
+          - generic [ref=e113]: "0"
+          - generic [ref=e114]: Art Styles
+        - generic [ref=e116]:
+          - img [ref=e118]
+          - generic [ref=e119]: "0"
+          - generic [ref=e120]: Languages
+    - generic [ref=e122]:
+      - generic [ref=e123]:
+        - heading "Everything in One Experience" [level=2] [ref=e124]
+        - paragraph [ref=e126]: All the tools you need to create perfect children's books — from idea to print
+      - generic [ref=e127]:
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - img "Art Style Selection" [ref=e131]
+            - img [ref=e135]
+          - generic [ref=e141]:
+            - heading "Art Style Selection" [level=3] [ref=e142]
+            - paragraph [ref=e143]: 18 professional illustration styles — watercolor, comic, fantasy, anime, Disney and more
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - img "Trilingual" [ref=e147]
+            - img [ref=e151]
+          - generic [ref=e154]:
+            - heading "Trilingual" [level=3] [ref=e155]
+            - paragraph [ref=e156]: Create books in Hebrew, English and Yiddish with full RTL support
+        - generic [ref=e158]:
+          - generic [ref=e159]:
+            - img "Custom Characters" [ref=e160]
+            - img [ref=e164]
+          - generic [ref=e168]:
+            - heading "Custom Characters" [level=3] [ref=e169]
+            - paragraph [ref=e170]: Your child becomes the hero of the story — with their own name, appearance and personality
+        - generic [ref=e172]:
+          - generic [ref=e173]:
+            - img "Gamification" [ref=e174]
+            - img [ref=e178]
+          - generic [ref=e184]:
+            - heading "Gamification" [level=3] [ref=e185]
+            - paragraph [ref=e186]: XP, badges, daily streaks and leaderboard — every creation earns points
+        - generic [ref=e188]:
+          - generic [ref=e189]:
+            - img "Works on Every Device!" [ref=e190]
+            - img [ref=e194]
+          - generic [ref=e196]:
+            - heading "Works on Every Device!" [level=3] [ref=e197]
+            - paragraph [ref=e198]: Phone, tablet, or computer — even offline! No installation needed, just open and create
+        - generic [ref=e200]:
+          - generic [ref=e201]:
+            - img "Vibrant Community" [ref=e202]
+            - img [ref=e206]
+          - generic [ref=e211]:
+            - heading "Vibrant Community" [level=3] [ref=e212]
+            - paragraph [ref=e213]: Share books, likes, comments and browse the community gallery
+      - img [ref=e217]
+    - generic [ref=e225]:
+      - generic [ref=e226]:
+        - heading "Sample Books from Sipurai" [level=2] [ref=e227]
+        - paragraph [ref=e229]: See examples of the magical books you can create — every book is unique!
+      - generic [ref=e230]:
+        - generic [ref=e232]:
+          - generic [ref=e233]:
+            - img "הגן הסודי של הדרקון" [ref=e234]
+            - paragraph [ref=e236]: הגן הסודי של הדרקון
+            - generic [ref=e239]:
+              - img [ref=e240]
+              - text: פנטזיה
+            - generic [ref=e243]: Ages 5-8
+          - generic [ref=e244]:
+            - heading "הגן הסודי של הדרקון" [level=3] [ref=e245]
+            - paragraph [ref=e246]: אומץ וחסד יכולים להפוך אויבים לחברים
+            - generic [ref=e247]:
+              - button "Browse Books" [ref=e248] [cursor=pointer]:
+                - img
+                - text: Browse Books
+              - link "See how it was made" [ref=e249] [cursor=pointer]:
+                - /url: "#how-it-works"
+                - img [ref=e250]
+                - text: See how it was made
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - img "הרפתקה בחלל עם יעל" [ref=e255]
+            - paragraph [ref=e257]: הרפתקה בחלל עם יעל
+            - generic [ref=e260]:
+              - img [ref=e261]
+              - text: מדע בדיוני
+            - generic [ref=e264]: Ages 6-10
+          - generic [ref=e265]:
+            - heading "הרפתקה בחלל עם יעל" [level=3] [ref=e266]
+            - paragraph [ref=e267]: סקרנות ועבודת צוות פותרות כל בעיה
+            - generic [ref=e268]:
+              - button "Browse Books" [ref=e269] [cursor=pointer]:
+                - img
+                - text: Browse Books
+              - link "See how it was made" [ref=e270] [cursor=pointer]:
+                - /url: "#how-it-works"
+                - img [ref=e271]
+                - text: See how it was made
+        - generic [ref=e274]:
+          - generic [ref=e275]:
+            - img "השועל האמיץ הקטן" [ref=e276]
+            - paragraph [ref=e278]: השועל האמיץ הקטן
+            - generic [ref=e281]:
+              - img [ref=e282]
+              - text: הרפתקאות
+            - generic [ref=e285]: Ages 4-7
+          - generic [ref=e286]:
+            - heading "השועל האמיץ הקטן" [level=3] [ref=e287]
+            - paragraph [ref=e288]: להיות קטן לא אומר להיות חלש — לכל אחד יש כוח מיוחד
+            - generic [ref=e289]:
+              - button "Browse Books" [ref=e290] [cursor=pointer]:
+                - img
+                - text: Browse Books
+              - link "See how it was made" [ref=e291] [cursor=pointer]:
+                - /url: "#how-it-works"
+                - img [ref=e292]
+                - text: See how it was made
+    - generic [ref=e295]:
+      - generic [ref=e296]:
+        - generic [ref=e297]:
+          - img [ref=e298]
+          - text: Why Sipurai?
+        - heading "What Makes Sipurai Special" [level=2] [ref=e300]
+        - paragraph [ref=e302]: Unlike generic AI tools, Sipurai was built from the ground up for children and families — with safety, creativity, and joy at its core
+      - generic [ref=e303]:
+        - generic [ref=e305]:
+          - img [ref=e307]
+          - heading "Your Child is the Hero" [level=3] [ref=e309]
+          - paragraph [ref=e310]: Unlike other platforms where kids just read, here your child becomes the main character — with their name, look, and personality woven into every page of a truly personalized story.
+        - generic [ref=e312]:
+          - img [ref=e314]
+          - heading "Built for Kids, Trusted by Parents" [level=3] [ref=e316]
+          - paragraph [ref=e317]: COPPA-compliant, no ads, no data collection, parental controls built-in. Every AI-generated story is filtered for age-appropriate content. Your child's safety isn't an afterthought — it's our foundation.
+        - generic [ref=e319]:
+          - img [ref=e321]
+          - heading "Hebrew, English & Yiddish" [level=3] [ref=e324]
+          - paragraph [ref=e325]: The only children's book platform with native Hebrew and Yiddish support, full RTL layout, and culturally relevant content. Perfect for Israeli and Jewish families worldwide.
+        - generic [ref=e327]:
+          - img [ref=e329]
+          - heading "18 Professional Art Styles" [level=3] [ref=e335]
+          - paragraph [ref=e336]: From watercolor to anime, Disney to comic book — each book gets unique, high-quality illustrations that match your chosen style. No generic clip-art, only beautiful AI art.
+        - generic [ref=e338]:
+          - img [ref=e340]
+          - heading "Learning Through Play" [level=3] [ref=e342]
+          - paragraph [ref=e343]: XP points, achievement badges, daily streaks, and a leaderboard turn reading and creating into an exciting game. Kids stay motivated and engaged — screen time parents can feel good about.
+        - generic [ref=e345]:
+          - img [ref=e347]
+          - heading "Share & Inspire" [level=3] [ref=e349]
+          - paragraph [ref=e350]: A safe, moderated community where families share their creations, leave likes and comments, and get inspired by other kids' stories. Creativity is better together.
+      - generic [ref=e352]:
+        - generic [ref=e353]:
+          - img [ref=e354]
+          - text: The only Hebrew-native children's book AI
+        - generic [ref=e357]:
+          - img [ref=e358]
+          - text: Built for families who love stories
+        - generic [ref=e364]:
+          - img [ref=e365]
+          - text: 100% child-safe, no ads, COPPA compliant
+    - generic [ref=e368]:
+      - generic [ref=e369]:
+        - heading "How to Create a Book" [level=2] [ref=e370]
+        - paragraph [ref=e371]: Four simple steps — from idea to a book ready for reading and printing
+      - generic [ref=e372]:
+        - generic [ref=e375]:
+          - generic [ref=e377]:
+            - generic [ref=e378]: Step 1
+            - heading "Choose a Topic" [level=3] [ref=e379]
+            - paragraph [ref=e380]: Spark the imagination
+            - paragraph [ref=e381]: Pick from dozens of ready topics or write your own idea. Adventure, fantasy, animals, friendship — anything goes!
+          - generic [ref=e383]: 💡
+        - generic [ref=e385]:
+          - generic [ref=e387]: 🧒
+          - generic [ref=e389]:
+            - generic [ref=e390]: Step 2
+            - heading "Design Characters" [level=3] [ref=e391]
+            - paragraph [ref=e392]: Your child is the hero
+            - paragraph [ref=e393]: Add your child as the main character with their name, look and personality. Add friends, siblings, or a cute sidekick!
+        - generic [ref=e395]:
+          - generic [ref=e397]:
+            - generic [ref=e398]: Step 3
+            - heading "Customize Style" [level=3] [ref=e399]
+            - paragraph [ref=e400]: Make it truly yours
+            - paragraph [ref=e401]: Choose from 18 illustration styles, select language (Hebrew, English or Yiddish) and set the age-appropriate reading level.
+          - generic [ref=e403]: 🎨
+        - generic [ref=e405]:
+          - generic [ref=e407]: 📖
+          - generic [ref=e409]:
+            - generic [ref=e410]: Step 4
+            - heading "Get Your Book!" [level=3] [ref=e411]
+            - paragraph [ref=e412]: Ready in under a minute
+            - paragraph [ref=e413]: Our AI writes the full story and creates matching illustrations. Read it online, download as PDF, or order a printed copy!
+      - link "Ready to create? Start now!" [ref=e415] [cursor=pointer]:
+        - /url: /sign-up
+        - img [ref=e416]
+        - text: Ready to create? Start now!
+    - generic [ref=e419]:
+      - generic [ref=e420]:
+        - heading "Plans & Pricing" [level=2] [ref=e421]
+        - paragraph [ref=e423]: Start with 5 free books a month — upgrade when you're hooked
+      - generic [ref=e425]:
+        - img [ref=e426]
+        - generic [ref=e430]: First book with ALL styles — free!
+      - generic [ref=e431]:
+        - generic [ref=e434]:
+          - heading "Free" [level=3] [ref=e435]
+          - generic [ref=e436]:
+            - generic [ref=e437]: ₪0
+            - generic [ref=e438]: /month
+          - list [ref=e439]:
+            - listitem [ref=e440]:
+              - img [ref=e441]
+              - generic [ref=e443]: 5 books per month
+            - listitem [ref=e444]:
+              - img [ref=e445]
+              - generic [ref=e447]: 6 illustration styles
+            - listitem [ref=e448]:
+              - img [ref=e449]
+              - generic [ref=e451]: Community access
+            - listitem [ref=e452]:
+              - img [ref=e453]
+              - generic [ref=e455]: 1 PDF export per month
+          - link "Start Free" [ref=e456] [cursor=pointer]:
+            - /url: /sign-up?plan=free
+            - button "Start Free" [ref=e457]
+        - generic [ref=e460]:
+          - heading "Lite" [level=3] [ref=e461]
+          - generic [ref=e462]:
+            - generic [ref=e463]: ₪14.90
+            - generic [ref=e464]: /month
+          - list [ref=e465]:
+            - listitem [ref=e466]:
+              - img [ref=e467]
+              - generic [ref=e469]: 15 books per month
+            - listitem [ref=e470]:
+              - img [ref=e471]
+              - generic [ref=e473]: All 18 illustration styles
+            - listitem [ref=e474]:
+              - img [ref=e475]
+              - generic [ref=e477]: Unlimited PDF export
+            - listitem [ref=e478]:
+              - img [ref=e479]
+              - generic [ref=e481]: No ads
+          - link "Choose Lite" [ref=e482] [cursor=pointer]:
+            - /url: /sign-up?plan=lite
+            - button "Choose Lite" [ref=e483]
+        - generic [ref=e485]:
+          - generic [ref=e487]:
+            - img [ref=e488]
+            - text: Most Popular
+          - generic [ref=e490]:
+            - heading "Premium" [level=3] [ref=e491]
+            - generic [ref=e492]:
+              - generic [ref=e493]: ₪29
+              - generic [ref=e494]: /month
+            - list [ref=e495]:
+              - listitem [ref=e496]:
+                - img [ref=e497]
+                - generic [ref=e499]: Unlimited books
+              - listitem [ref=e500]:
+                - img [ref=e501]
+                - generic [ref=e503]: All 18 illustration styles
+              - listitem [ref=e504]:
+                - img [ref=e505]
+                - generic [ref=e507]: Print & PDF export
+              - listitem [ref=e508]:
+                - img [ref=e509]
+                - generic [ref=e511]: Priority support
+            - link "Upgrade to Premium" [ref=e512] [cursor=pointer]:
+              - /url: /sign-up?plan=premium
+              - button "Upgrade to Premium" [ref=e513]
+        - generic [ref=e516]:
+          - heading "Family" [level=3] [ref=e517]
+          - generic [ref=e518]:
+            - generic [ref=e519]: ₪39
+            - generic [ref=e520]: /month
+          - list [ref=e521]:
+            - listitem [ref=e522]:
+              - img [ref=e523]
+              - generic [ref=e525]: Up to 5 child profiles
+            - listitem [ref=e526]:
+              - img [ref=e527]
+              - generic [ref=e529]: All Premium features
+            - listitem [ref=e530]:
+              - img [ref=e531]
+              - generic [ref=e533]: Priority support
+            - listitem [ref=e534]:
+              - img [ref=e535]
+              - generic [ref=e537]: Early access to new features
+          - link "Choose Family" [ref=e538] [cursor=pointer]:
+            - /url: /sign-up?plan=family
+            - button "Choose Family" [ref=e539]
+    - generic [ref=e541]:
+      - generic [ref=e542]:
+        - generic [ref=e543]:
+          - img [ref=e544]
+          - generic [ref=e546]: Q & A
+        - heading "Got a question? Ask us!" [level=2] [ref=e547]
+        - paragraph [ref=e548]: AI chat — instant answers
+      - generic [ref=e549]:
+        - generic [ref=e551]:
+          - img [ref=e552]
+          - text: Pick a question below or type your own
+        - generic [ref=e554]:
+          - button "How much does it cost?" [ref=e555] [cursor=pointer]
+          - button "Which languages are supported?" [ref=e556] [cursor=pointer]
+          - button "How many free books per month?" [ref=e557] [cursor=pointer]
+          - button "Can I print the book?" [ref=e558] [cursor=pointer]
+          - button "How long does generation take?" [ref=e559] [cursor=pointer]
+          - button "Who owns the book rights?" [ref=e560] [cursor=pointer]
+        - generic [ref=e561]:
+          - textbox "Type a question..." [ref=e562]
+          - button "Send" [disabled] [ref=e563]:
+            - img [ref=e564]
+    - generic [ref=e567]:
+      - img [ref=e569]
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic [ref=e572]:
+        - heading "Start Creating Your Child's Story Today" [level=2] [ref=e573]
+        - paragraph [ref=e574]: Start creating magical personalized books with AI today
+        - link "Create Your First Book" [ref=e575] [cursor=pointer]:
+          - /url: /sign-up
+          - button "Create Your First Book" [ref=e577]:
+            - img
+            - text: Create Your First Book
+            - img
+        - paragraph [ref=e578]: Free to start — no credit card required
+    - generic [ref=e580]:
+      - generic [ref=e581]:
+        - generic [ref=e582]:
+          - generic [ref=e583]:
+            - img [ref=e584]
+            - generic [ref=e586]: Sipurai
+          - paragraph [ref=e587]: An AI-powered platform for creating personalized children's books. Kids choose characters, style and genre — and AI creates a complete book.
+          - link "support@sipurai.ai" [ref=e588] [cursor=pointer]:
+            - /url: mailto:support@sipurai.ai
+            - img [ref=e589]
+            - text: support@sipurai.ai
+        - generic [ref=e592]:
+          - heading "Links" [level=4] [ref=e593]
+          - list [ref=e594]:
+            - listitem [ref=e595]:
+              - link "Plans & Pricing" [ref=e596] [cursor=pointer]:
+                - /url: /Pricing
+            - listitem [ref=e597]:
+              - link "Blog" [ref=e598] [cursor=pointer]:
+                - /url: /blog
+            - listitem [ref=e599]:
+              - link "Privacy" [ref=e600] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=e601]:
+              - link "Terms of Service" [ref=e602] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=e603]:
+              - link "Accessibility Statement" [ref=e604] [cursor=pointer]:
+                - /url: /accessibility
+            - listitem [ref=e605]:
+              - link "Contact" [ref=e606] [cursor=pointer]:
+                - /url: /Contact
+            - listitem [ref=e607]:
+              - link "CV" [ref=e608] [cursor=pointer]:
+                - /url: /cv-elad-yaakobovitch.pdf
+        - heading "Follow Us" [level=4] [ref=e610]
+      - generic [ref=e611]:
+        - paragraph [ref=e612]: © 2026 Sipurai Playground. All rights reserved.
+        - generic [ref=e613]:
+          - paragraph [ref=e614]:
+            - text: Made with
+            - img [ref=e615]
+            - text: "& AI in Israel"
+          - link "Created by Elad Yaakobovitch" [ref=e617] [cursor=pointer]:
+            - /url: https://eladjak.com
+```
