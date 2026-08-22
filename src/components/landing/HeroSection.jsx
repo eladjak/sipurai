@@ -32,7 +32,7 @@ const AnimatedStat = ({ value, label, delay = 0 }) => (
     className="text-center"
   >
     <div className="text-2xl sm:text-3xl font-extrabold text-white">{value}</div>
-    <div className="text-xs sm:text-sm text-purple-200 mt-1">{label}</div>
+    <div className="text-xs sm:text-sm text-purple-50 mt-1">{label}</div>
   </motion.div>
 );
 
@@ -53,7 +53,7 @@ const HeroSection = () => {
           aria-hidden="true"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/85 via-purple-700/80 to-indigo-800/85" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-950/90 via-purple-900/90 to-indigo-950/90" />
       </div>
 
       {/* Animated gradient overlay */}
@@ -132,7 +132,7 @@ const HeroSection = () => {
               </span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-purple-100 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-lg sm:text-xl text-purple-50 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
               {t('landing.hero.subtitle')}
             </p>
 
@@ -174,7 +174,7 @@ const HeroSection = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="mt-8 flex items-center gap-4 justify-center lg:justify-start text-white/70 text-sm"
+              className="mt-8 flex items-center gap-4 justify-center lg:justify-start text-white/95 text-sm"
             >
               <div className="flex -space-x-2 rtl:space-x-reverse">
                 {[1, 2, 3, 4, 5].map((i) => (

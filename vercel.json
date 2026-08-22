@@ -9,7 +9,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://analytics.sipurai.ai https://clerk.sipurai.ai https://*.clerk.accounts.dev https://cdn.jsdelivr.net https://challenges.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https://*.supabase.co https://analytics.sipurai.ai https://*.sentry.io https://clerk.sipurai.ai https://*.clerk.accounts.dev https://api.clerk.com; font-src 'self' data: https://fonts.gstatic.com; frame-src https://clerk.sipurai.ai https://*.clerk.accounts.dev https://challenges.cloudflare.com; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' https://analytics.sipurai.ai https://clerk.sipurai.ai https://*.clerk.accounts.dev https://cdn.jsdelivr.net https://challenges.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' blob: data: https:; connect-src 'self' https://*.supabase.co https://analytics.sipurai.ai https://*.sentry.io https://clerk.sipurai.ai https://*.clerk.accounts.dev https://api.clerk.com; font-src 'self' data: https://fonts.gstatic.com; frame-src https://clerk.sipurai.ai https://*.clerk.accounts.dev https://challenges.cloudflare.com; object-src 'none'"
         },
         {
           "key": "Referrer-Policy",

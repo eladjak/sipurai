@@ -125,6 +125,7 @@ export async function invokeLLM({
   response_format,
   temperature,
   max_tokens,
+  thinking_budget,
 }) {
   // ── Proxy mode (production) ──
   if (!useDirectApi()) {
@@ -133,6 +134,7 @@ export async function invokeLLM({
       response_format,
       temperature,
       max_tokens,
+      thinking_budget,
     });
     return data.result;
   }
@@ -155,6 +157,10 @@ export async function invokeLLM({
   }
   if (max_tokens !== undefined) {
     generationConfig.maxOutputTokens = max_tokens;
+  }
+  // Thinking tokens are spent out of maxOutputTokens — see api/ai/generate.js.
+  if (thinking_budget !== undefined) {
+    generationConfig.thinkingConfig = { thinkingBudget: thinking_budget };
   }
 
   const body = {

@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+    // Emits hover: utilities inside (hover: hover) so a tap cannot latch a
+    // hover state on touch devices.
+    future: { hoverOnlyWhenSupported: true },
     darkMode: ["class"],
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {

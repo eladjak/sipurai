@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { updateMeta, resetMeta } from '@/lib/seo';
 import { motion } from 'framer-motion';
-import { Mail, MessageSquare, Send, CheckCircle } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,14 +31,46 @@ export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // `errors` is only ever populated by a submit attempt — the form must not
+  // scold anyone for a field they have not finished typing yet.
+  const [errors, setErrors] = useState({});
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    // Clear this field's error as soon as the user starts correcting it.
+    setErrors(prev => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
+
+  // Deliberately permissive: a contact form has no business rejecting an
+  // address that is merely unusual. It only catches "this cannot be an email".
+  const looksLikeEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+  const validate = () => {
+    const next = {};
+    if (!form.name.trim()) next.name = t('contact.errors.name');
+    if (!form.email.trim() || !looksLikeEmail(form.email)) next.email = t('contact.errors.email');
+    if (!form.subject) next.subject = t('contact.errors.subject');
+    if (!form.message.trim()) next.message = t('contact.errors.message');
+    return next;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.subject || !form.message) return;
+
+    const found = validate();
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      // Move focus to the first invalid control, in DOM order. Without this a
+      // keyboard or screen-reader user gets no signal at all that submit failed.
+      const first = ['name', 'email', 'subject', 'message'].find(f => found[f]);
+      requestAnimationFrame(() => {
+        const el = first === 'subject'
+          ? document.getElementById('contact-subject')
+          : document.getElementById(`contact-${first}`);
+        el?.focus();
+      });
+      return;
+    }
 
     setSubmitting(true);
 
@@ -57,8 +89,20 @@ export default function Contact() {
 
   const handleReset = () => {
     setForm({ name: '', email: '', subject: '', message: '' });
+    setErrors({});
     setSubmitted(false);
   };
+
+  // One error renderer so every field is announced the same way. The leading
+  // icon plus the word "שגיאה"/"Error" in the string means the failure is never
+  // carried by the red colour alone.
+  const FieldError = ({ id, children }) =>
+    children ? (
+      <p id={id} className="flex items-start gap-1.5 text-sm font-medium text-red-700 dark:text-red-300">
+        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+        <span>{children}</span>
+      </p>
+    ) : null;
 
   return (
     <div
@@ -147,10 +191,22 @@ export default function Contact() {
                     </Button>
                   </motion.div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-5">
+                  <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                     <h2 className={`text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                       {t("contact.formTitle")}
                     </h2>
+
+                    {/* Announced the moment a submit fails. role="alert" is an
+                        implicit live region, so a screen reader reads it
+                        without the user having to go looking. */}
+                    <div role="alert" aria-live="assertive">
+                      {Object.keys(errors).length > 0 && (
+                        <div className="flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+                          <span>{t("contact.errors.summary")}</span>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Name + Email row */}
                     <div className="grid sm:grid-cols-2 gap-4">
@@ -164,8 +220,12 @@ export default function Contact() {
                           onChange={e => handleChange('name', e.target.value)}
                           placeholder={t("contact.namePlaceholder")}
                           required
-                          className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-400/20"
+                          aria-required="true"
+                          aria-invalid={errors.name ? 'true' : undefined}
+                          aria-describedby={errors.name ? 'contact-name-error' : undefined}
+                          className={`rounded-xl focus:ring-purple-400/20 ${errors.name ? 'border-red-500 dark:border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-purple-400'}`}
                         />
+                        <FieldError id="contact-name-error">{errors.name}</FieldError>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="contact-email" className={`text-sm font-medium text-gray-700 dark:text-gray-300 ${isRTL ? 'text-right block' : ''}`}>
@@ -178,15 +238,19 @@ export default function Contact() {
                           onChange={e => handleChange('email', e.target.value)}
                           placeholder={t("contact.emailPlaceholder")}
                           required
-                          className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-400/20"
+                          aria-required="true"
+                          aria-invalid={errors.email ? 'true' : undefined}
+                          aria-describedby={errors.email ? 'contact-email-error' : undefined}
+                          className={`rounded-xl focus:ring-purple-400/20 ${errors.email ? 'border-red-500 dark:border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-purple-400'}`}
                           dir="ltr"
                         />
+                        <FieldError id="contact-email-error">{errors.email}</FieldError>
                       </div>
                     </div>
 
                     {/* Subject */}
                     <div className="space-y-1.5">
-                      <Label className={`text-sm font-medium text-gray-700 dark:text-gray-300 ${isRTL ? 'text-right block' : ''}`}>
+                      <Label htmlFor="contact-subject" className={`text-sm font-medium text-gray-700 dark:text-gray-300 ${isRTL ? 'text-right block' : ''}`}>
                         {t("contact.subject")}
                       </Label>
                       <Select
@@ -194,7 +258,14 @@ export default function Contact() {
                         onValueChange={val => handleChange('subject', val)}
                         required
                       >
-                        <SelectTrigger className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-400/20">
+                        <SelectTrigger
+                          id="contact-subject"
+                          aria-label={t("contact.subject")}
+                          aria-required="true"
+                          aria-invalid={errors.subject ? 'true' : undefined}
+                          aria-describedby={errors.subject ? 'contact-subject-error' : undefined}
+                          className={`rounded-xl focus:ring-purple-400/20 ${errors.subject ? 'border-red-500 dark:border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-purple-400'}`}
+                        >
                           <SelectValue placeholder={t("contact.subjectPlaceholder")} />
                         </SelectTrigger>
                         <SelectContent>
@@ -204,6 +275,7 @@ export default function Contact() {
                           <SelectItem value="feature">{t("contact.subjects.feature")}</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FieldError id="contact-subject-error">{errors.subject}</FieldError>
                     </div>
 
                     {/* Message */}
@@ -217,14 +289,21 @@ export default function Contact() {
                         onChange={e => handleChange('message', e.target.value)}
                         placeholder={t("contact.messagePlaceholder")}
                         required
+                        aria-required="true"
+                        aria-invalid={errors.message ? 'true' : undefined}
+                        aria-describedby={errors.message ? 'contact-message-error' : undefined}
                         rows={5}
-                        className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-400/20 resize-none"
+                        className={`rounded-xl focus:ring-purple-400/20 resize-none ${errors.message ? 'border-red-500 dark:border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-purple-400'}`}
                       />
+                      <FieldError id="contact-message-error">{errors.message}</FieldError>
                     </div>
 
+                    {/* Deliberately NOT disabled-until-valid: a disabled submit
+                        is unreachable by keyboard and explains nothing. Let it
+                        be pressed, then say what is wrong. */}
                     <Button
                       type="submit"
-                      disabled={submitting || !form.name || !form.email || !form.subject || !form.message}
+                      disabled={submitting}
                       className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl py-5 font-semibold shadow-md transition-all"
                     >
                       {submitting ? (

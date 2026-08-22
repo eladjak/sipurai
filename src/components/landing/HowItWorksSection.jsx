@@ -99,7 +99,7 @@ const HowItWorksSection = () => {
                     {step.title}
                   </h3>
                   {step.subtitle && (
-                    <p className="text-sm font-semibold text-purple-500 dark:text-purple-400 mb-2 italic">
+                    <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2 italic">
                       {step.subtitle}
                     </p>
                   )}
@@ -124,7 +124,7 @@ const HowItWorksSection = () => {
                           {step.title}
                         </h3>
                         {step.subtitle && (
-                          <p className="text-sm font-semibold text-purple-500 dark:text-purple-400 mb-2 italic">
+                          <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2 italic">
                             {step.subtitle}
                           </p>
                         )}
@@ -153,7 +153,7 @@ const HowItWorksSection = () => {
                           {step.title}
                         </h3>
                         {step.subtitle && (
-                          <p className="text-sm font-semibold text-purple-500 dark:text-purple-400 mb-2 italic">
+                          <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2 italic">
                             {step.subtitle}
                           </p>
                         )}

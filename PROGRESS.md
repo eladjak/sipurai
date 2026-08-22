@@ -1,5 +1,69 @@
 # Sipurai - Progress & Analysis Report
 
+## 2026-08-07 — Book generation is now INCREMENTAL and RESUMABLE (branch `feat/incremental-generation`)
+
+Closes `docs/TESTING-LESSONS.md` §9/§10 — the last release blocker. Full design,
+schema decisions and verification: **`docs/INCREMENTAL-GENERATION.md`**.
+
+**The failure it replaces.** Creation wrote the `books` row, then generated a
+cover, ten page texts and ten illustrations in one browser-side burst.
+`proxyCall` aborts any AI call at 60s/90s, so ONE slow image threw away the whole
+run — and because `status` only ever moved `generating → complete`, every timeout
+stranded a book forever: listed in the library, unopenable in the reader, nothing
+admitting anything was wrong.
+
+**What ships instead.** Outline → book row + skeleton page rows (the plan, in the
+database) → page one alone → the rest in a bounded pool, **each unit written the
+moment it exists**. Page one is readable in seconds and the parent is handed to
+the reader while the rest fills in behind them. Every exit — success, error,
+abort, closed tab — settles the row to `partial` / `complete` / `failed`; there is
+no path that leaves `generating` behind. A resume does only what is missing, so
+nobody pays twice or gets a different story than the one they were reading.
+
+**Verified against the real database and the real Gemini API**, three arms
+(`scripts/journey-incremental-generation.mjs`, **16/16**, self-cleaning): a whole
+book; every illustration aborted mid-flight exactly as `proxyCall` does; and a
+resume. It failed three times on real defects before it went green. Unit suite
+**290 passed / 321** (baseline 248, +42 new, the one pre-existing OOM file
+unchanged). `npm run build` exit 0, and confirmed able to fail by injecting a
+syntax error.
+
+**Measured, live:** page one readable **26.0s → 11.9s**; whole 3-page book
+49.2s → 35.4s.
+
+**Four defects the live journey found that no unit test could — three of them
+NOT about incremental generation, all of them causing book creation to fail
+intermittently for everyone:**
+1. `api/ai/generate.js` read only `parts[0]` of Gemini's answer, so long
+   responses arrived cut in half and surfaced as *"AI returned invalid JSON"*.
+2. **`gemini-2.5-flash` is a thinking model and thinking tokens are spent out of
+   `maxOutputTokens` before the answer starts.** Measured on one page: thinking
+   on = 1604 thought tokens, 2205 total, truncated; thinking off = 631 total,
+   complete. Page text now opts out via a new `thinking_budget` option; the
+   proxy default is deliberately unchanged.
+3. `pages.scene_id` was being written to a column that does not exist — the same
+   defect as `books.scenes`, which broke every structured book until today.
+4. A book whose every illustration failed reported itself `complete` and offered
+   no way to fix itself.
+
+**Also closed two silent gates:** `eslint` was not applying `no-undef` (the
+recommended config's rules were overwritten) **and** was not matched to
+`src/lib/**` at all. Either one made an undefined variable lint clean — and one
+had already slipped into this very branch. Both verified by control arm.
+
+**⚠️ Decisions left for Elad (nothing was assumed):**
+- **No migration was applied.** Three things want a column and did not get one:
+  `UNIQUE (book_id, page_number)` on `pages` (races are handled in application
+  code today), `pages.scene_id`, and somewhere to persist the rhyme scheme. See
+  "Schema decisions" in `docs/INCREMENTAL-GENERATION.md`.
+- **RLS was not re-run.** `e2e-newuser-prod-harness.mjs` needs a fresh Clerk JWT
+  harvested from a signed-in browser, and no `CLERK_SECRET_KEY` exists in `.env`
+  or in Vercel, so one cannot be minted. Nothing here touches a policy, a
+  migration or auth code, but the write *shapes* did change.
+- **The browser journey still needs a human** (Turnstile + prod Clerk rejecting
+  preview origins) — `TESTING-LESSONS.md` §6 is unchanged.
+
+
 ## 2026-07-06 — PROMOTED TO PRODUCTION: fix/prod-db-reconcile → main, 6-week blocker FIXED live ✅ (prod-push run)
 
 **מוזג ל-main (FF, ‏16 קומיטים) ונדחף → Vercel פרס אוטומטית ל-Production (deploy `oi0ofe0c5` = ●Ready).**

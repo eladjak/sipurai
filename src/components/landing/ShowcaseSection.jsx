@@ -69,7 +69,7 @@ const ShowcaseSection = () => {
               whileHover={{ y: -8 }}
               className="min-w-[280px] sm:min-w-0 snap-center group"
             >
-              <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md hover:shadow-2xl border border-gray-100 dark:border-gray-700">
                 {/* Book cover — real generated artwork when available, gradient fallback */}
                 <div className="relative aspect-[4/5] overflow-hidden">
                   {book.cover_image ? (
@@ -77,11 +77,11 @@ const ShowcaseSection = () => {
                       src={book.cover_image}
                       alt={book.displayTitle}
                       loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 group-has-[:focus-visible]:scale-105 motion-reduce:!transform-none transition-transform duration-500"
                     />
                   ) : (
                     <div
-                      className={`w-full h-full bg-gradient-to-br ${book.cover_gradient} group-hover:scale-105 transition-transform duration-500`}
+                      className={`w-full h-full bg-gradient-to-br ${book.cover_gradient} group-hover:scale-105 group-has-[:focus-visible]:scale-105 motion-reduce:!transform-none transition-transform duration-500`}
                     />
                   )}
                   {/* Title overlay */}
@@ -134,7 +134,7 @@ const ShowcaseSection = () => {
                     {/* Fix 5: How it was made */}
                     <a
                       href="#how-it-works"
-                      className={`flex items-center gap-1.5 text-xs text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors ${isRTL ? 'flex-row-reverse justify-end' : 'justify-center'}`}
+                      className={`flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors ${isRTL ? 'flex-row-reverse justify-end' : 'justify-center'}`}
                       onClick={(e) => {
                         e.preventDefault();
                         document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });

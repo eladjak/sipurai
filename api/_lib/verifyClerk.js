@@ -101,19 +101,43 @@ function resolveJwksUrl() {
 
 /**
  * azp allowlist resolution.
- *   - `explicit: true`  => CLERK_AUTHORIZED_PARTIES was set in env. When explicit,
- *     the council requires STRICT enforcement: the token MUST carry azp and it
- *     MUST be in the list (fail closed).
- *   - `explicit: false` => soft default derived from the publishable key. Enforced
- *     only when the token actually carries azp (don't break tokens that omit it).
+ *
+ * `azp` ("authorized party") is the ORIGIN the token was minted for — e.g.
+ * "https://www.sipurai.ai". It is NOT the publishable key.
+ *
+ *   - `explicit: true`  => CLERK_AUTHORIZED_PARTIES was set. STRICT enforcement:
+ *     the token MUST carry azp and it MUST be in the list (fail closed). This is
+ *     the recommended production configuration.
+ *   - `explicit: false` => no allowlist configured, so there is nothing to compare
+ *     against and azp is NOT enforced. Signature, issuer and expiry still are, and
+ *     those are what establish the token is ours.
+ *
+ * History (2026-08-07): this function used to fall back to `[publishableKey]` and
+ * compare the token's azp against it. An origin is never equal to a `pk_live_…`
+ * string, so EVERY token carrying azp was rejected — a real signed-in user got the
+ * same 401 as an anonymous stranger, across every authenticated route. A check that
+ * can never pass is not security, it is an outage wearing security's clothes. The
+ * comment above the old code asserted that azp held the publishable key, which is
+ * how the bug survived review. Do not reintroduce a fallback here: if you want azp
+ * enforced, set CLERK_AUTHORIZED_PARTIES to the real origins.
  */
+let _warnedNoAzpAllowlist = false;
+
 function resolveAuthorizedParties() {
   const raw = process.env.CLERK_AUTHORIZED_PARTIES;
   if (raw) {
     return { list: raw.split(',').map((s) => s.trim()).filter(Boolean), explicit: true };
   }
-  const pk = process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY || '';
-  return { list: pk ? [pk] : [], explicit: false };
+  if (!_warnedNoAzpAllowlist) {
+    _warnedNoAzpAllowlist = true;
+    console.warn(
+      '[verifyClerk] CLERK_AUTHORIZED_PARTIES is not set — the azp (authorized party) ' +
+      'check is DISABLED. Signature, issuer and expiry are still enforced. Set it to a ' +
+      'comma-separated list of allowed origins (e.g. "https://www.sipurai.ai,https://sipurai.ai") ' +
+      'to enable strict azp enforcement.'
+    );
+  }
+  return { list: [], explicit: false };
 }
 
 async function fetchJwks(url) {
@@ -226,11 +250,12 @@ export async function verifyClerkToken(token) {
   }
 
   // --- Authorized-party (azp) check — Clerk's recommended hardening. azp holds
-  // the publishable key of the frontend the token was minted for.
+  // the ORIGIN the token was minted for (e.g. "https://www.sipurai.ai").
   //   * EXPLICIT allowlist (CLERK_AUTHORIZED_PARTIES set): STRICT — the token
   //     MUST carry azp AND it must be in the list (fail closed; council Q3).
-  //   * SOFT default (derived from the publishable key): enforce only when the
-  //     token actually carries azp, so we never break tokens that omit it. ---
+  //   * No allowlist configured: nothing to compare against, so azp is not
+  //     enforced (list is empty and this block is skipped). See
+  //     resolveAuthorizedParties above for why there is no derived fallback. ---
   const azp = resolveAuthorizedParties();
   if (azp.explicit) {
     if (!payload.azp) return { ok: false, reason: 'no azp claim (required)' };

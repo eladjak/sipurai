@@ -89,7 +89,7 @@ const StatsSection = () => {
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
             {t('landing.stats.sectionTitle')}
           </h2>
-          <p className="text-purple-200 text-lg max-w-lg mx-auto">
+          <p className="text-purple-50 text-lg max-w-lg mx-auto">
             {t('landing.stats.sectionSubtitle')}
           </p>
         </motion.div>
@@ -119,7 +119,7 @@ const StatsSection = () => {
                   <div className="text-4xl sm:text-5xl font-extrabold text-white mb-2">
                     <AnimatedCounter end={stat.value} suffix={stat.suffix} inView={inView} />
                   </div>
-                  <div className="text-sm sm:text-base text-purple-200 font-medium">
+                  <div className="text-sm sm:text-base text-purple-50 font-medium">
                     {stat.label}
                   </div>
                 </div>

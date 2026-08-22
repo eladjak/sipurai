@@ -24,13 +24,13 @@ export async function geminiProImage(apiKey, prompt, options = {}) {
 
   // Character-reference workflow (2026-07-05): attach the reference image as a
   // multimodal part for cross-page character consistency.
-  const parts = [{ text: safePrompt }];
+  const requestParts = [{ text: safePrompt }];
   if (referenceImageBase64) {
-    parts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });
+    requestParts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });
   }
 
   const body = {
-    contents: [{ parts }],
+    contents: [{ parts: requestParts }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
       imageConfig: { aspectRatio },

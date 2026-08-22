@@ -100,7 +100,7 @@ const FAQChat = () => {
           {/* Messages */}
           <div className="px-5 py-4 max-h-96 overflow-y-auto space-y-3" style={{ minHeight: '300px' }}>
             {messages.length === 0 && !loading && (
-              <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">
+              <div className="text-center py-6 text-gray-600 dark:text-gray-300 text-sm">
                 <Sparkles className="h-6 w-6 mx-auto mb-2 text-purple-400" />
                 {isRTL ? 'בחר שאלה למטה או כתוב את שלך' : 'Pick a question below or type your own'}
               </div>
@@ -156,8 +156,9 @@ const FAQChat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={isRTL ? 'כתוב שאלה...' : 'Type a question...'}
+              aria-label={isRTL ? 'כתוב שאלה' : 'Type a question'}
               disabled={loading}
-              className="flex-1 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+              className="flex-1 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
             />
             <button
               type="submit"

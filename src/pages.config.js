@@ -25,6 +25,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const StoryIdeas = lazy(() => import('./pages/StoryIdeas'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Pricing = lazy(() => import('./pages/Pricing'));
+const AccessibilityStatement = lazy(() => import('./pages/AccessibilityStatement'));
 
 export const PAGES = {
     "Blog": Blog,
@@ -48,6 +49,7 @@ export const PAGES = {
     "StoryIdeas": StoryIdeas,
     "Contact": Contact,
     "Pricing": Pricing,
+    "Accessibility": AccessibilityStatement,
 }
 
 export const pagesConfig = {

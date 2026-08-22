@@ -85,7 +85,7 @@ const CTASection = () => {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.5 }}
-            className="mt-6 text-sm text-purple-300"
+            className="mt-6 text-sm text-purple-100"
           >
             {t('landing.cta.note')}
           </motion.p>

@@ -5,6 +5,7 @@ import { useI18n } from "@/components/i18n/i18nProvider";
 import useGamification from "@/hooks/useGamification";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
+import { readablePages } from "@/lib/bookProgress";
 import { GenerateImage, InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { canCreateBook, recordBookCreation } from "@/utils/bookRateLimit";
@@ -170,7 +171,9 @@ export default function BookCreation() {
       const currentUser = hookUser;
       setIsOwner(currentUser ? bookData.created_by === currentUser.id : false);
 
-      const pagesData = await Page.filter({ book_id: bookId }, "page_number");
+      // Skeleton rows exist to persist the outline while a book is still
+      // being written; they carry no text, so there is nothing here to edit.
+      const pagesData = readablePages(await Page.filter({ book_id: bookId }, "page_number"));
       setPages(pagesData);
 
       // Initialize character consistency

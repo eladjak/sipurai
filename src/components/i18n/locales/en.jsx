@@ -49,6 +49,7 @@ export default {
     tryAgain: "Something went wrong. Please try again later.",
     retry: "Try again",
     contact: "Contact",
+    accessibilityStatement: "Accessibility Statement",
     status: {
       draft: "Draft",
       generating: "Generating",
@@ -339,6 +340,8 @@ export default {
     allStatus: "All Status",
     draft: "Draft",
     generating: "Generating",
+    partial: "Still writing",
+    failed: "Building stopped",
     complete: "Complete",
     genre: "Genre",
     allGenres: "All Genres",
@@ -834,6 +837,16 @@ export default {
     loading: "Loading book...",
     bookViewer: "Book Viewer",
     backToLibrary: "Back to Library",
+    building: {
+      starting: "Starting to write this book. The first page will appear here in a moment.",
+      stopped: "This book stopped before a page was written. You can continue from here.",
+      inProgress: "{{ready}} of {{total}} pages ready. The rest are being written now.",
+      missingArt: "{{count}} page(s) still have no illustration.",
+      retryArt: "Draw the rest",
+      paused: "{{ready}} of {{total}} pages ready. Building has stopped.",
+      continue: "Keep building"
+    },
+    resumeFailed: "We could not continue building this book. Please try again shortly.",
     nightMode: "Night mode",
     fullscreen: "Fullscreen",
     downloadPdf: "Download PDF",
@@ -990,6 +1003,7 @@ export default {
       outlineMessage: "We couldn't generate the story. Let's try again!",
       createTitle: "Oops! Couldn't create the book",
       createMessage: "Something went wrong. Let's try again!",
+      nothingGenerated: "We could not write a single page. Please try again.",
       timeoutMessage: "The request took too long. Please try again.",
       titleDescInappropriate: "The title or description contains inappropriate content"
     },
@@ -1006,6 +1020,7 @@ export default {
     },
     progress: {
       checkingContent: "Checking content...",
+      pagesReady: "{{ready}} of {{total}} pages ready",
       creatingStory: "Creating story & cover...",
       savingBook: "Saving book...",
       writingStory: "Writing the story...",
@@ -1469,6 +1484,8 @@ export default {
   bookCard: {
     draft: "Draft",
     generating: "Generating",
+    partial: "Still writing",
+    failed: "Building stopped",
     complete: "Complete",
     for: "For",
     years: "years",
@@ -1792,6 +1809,7 @@ export default {
       blog: "Blog",
       terms: "Terms of Service",
       privacy: "Privacy",
+      accessibility: "Accessibility Statement",
       contact: "Contact",
       followUs: "Follow Us",
       rights: "All rights reserved.",
@@ -2238,6 +2256,13 @@ export default {
     title: "Contact Us",
     subtitle: "We'd love to hear from you. Send us a message and we'll get back to you as soon as possible.",
     emailLabel: "Direct Email",
+    errors: {
+      summary: "The message could not be sent. Please correct the highlighted fields.",
+      name: "Error: please enter your full name.",
+      email: "Error: please enter a valid email address, for example name@example.com.",
+      subject: "Error: please choose a subject.",
+      message: "Error: please enter a message."
+    },
     formTitle: "Send a Message",
     name: "Full Name",
     namePlaceholder: "Your name...",

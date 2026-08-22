@@ -10,6 +10,7 @@ const FooterSection = () => {
     { label: t('landing.footer.blog'), href: '/blog', external: false },
     { label: t('landing.footer.privacy'), href: '/privacy', external: false },
     { label: t('landing.footer.terms'), href: '/terms', external: false },
+    { label: t('landing.footer.accessibility'), href: '/accessibility', external: false },
     { label: t('landing.footer.contact'), href: '/Contact', external: false },
     { label: isRTL ? 'קורות חיים' : 'CV', href: isRTL ? '/cv-elad-yaakobovitch-he.pdf' : '/cv-elad-yaakobovitch.pdf', external: true },
   ];
@@ -90,18 +91,18 @@ const FooterSection = () => {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-400 text-sm">
             &copy; {new Date().getFullYear()} Sipurai Playground. {t('landing.footer.rights')}
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
-            <p className="text-gray-500 text-sm flex items-center gap-1">
+            <p className="text-gray-400 text-sm flex items-center gap-1">
               {t('landing.footer.madeWith')} <Heart className="h-3.5 w-3.5 text-red-400 fill-red-400 inline" /> {t('landing.footer.madeWithEnd')}
             </p>
             <a
               href="https://eladjak.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-600 hover:text-purple-400 transition-colors text-xs"
+              className="text-gray-400 hover:text-purple-300 transition-colors text-xs"
             >
               Created by Elad Yaakobovitch
             </a>
