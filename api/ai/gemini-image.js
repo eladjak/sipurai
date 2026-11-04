@@ -73,9 +73,8 @@ async function callGeminiImage(apiKey, model, prompt, options, isPrimary) {
 
   if (!r.ok) {
     const errText = await r.text();
-    const error = new Error(
-      `Gemini image (${model}) failed (${r.status}): ${errText.substring(0, 300)}`
-    );
+    console.error('[gemini-image] upstream error', { model, status: r.status, body: errText.substring(0, 300) });
+    const error = new Error(`Gemini image (${model}) failed (${r.status})`);
     error.status = r.status >= 500 ? 502 : r.status;
     throw error;
   }
@@ -83,7 +82,9 @@ async function callGeminiImage(apiKey, model, prompt, options, isPrimary) {
   const data = await r.json();
 
   const finishReason = data.candidates?.[0]?.finishReason;
-  if (finishReason === 'SAFETY') {
+  const blockReason = data.promptFeedback?.blockReason;
+  // Any safety block stops here: another model would not make the prompt acceptable.
+  if (/SAFETY/.test(String(finishReason)) || /SAFETY|BLOCK|PROHIBITED/.test(String(blockReason ?? ''))) {
     const error = new Error(
       'Image was blocked by safety filters. Please try a different prompt.'
     );
@@ -96,7 +97,7 @@ async function callGeminiImage(apiKey, model, prompt, options, isPrimary) {
     throw new Error('No image generated. The model returned an empty response.');
   }
 
-  const imagePart = parts.find((p) => p.inlineData);
+  const imagePart = parts.find((p) => p.inlineData?.data);
   if (!imagePart) {
     throw new Error('No image in response. The model returned text only.');
   }

@@ -111,4 +111,33 @@ describe('api/ai/tts gemini provider', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toContain('openai.com');
   });
+
+  it('treats an empty inlineData payload as a failure and falls back', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ candidates: [{ content: { parts: [{ inlineData: { data: '' } }] } }] }) })
+      .mockResolvedValueOnce(openaiOk());
+    const res = mockRes();
+    await handler(req({ provider: 'gemini', text: 'x' }), res);
+    expect(res.headers['X-TTS-Fallback']).toBe('openai');
+  });
+
+  it('passes an abort signal to the Gemini call and falls back when it times out', async () => {
+    fetchMock
+      .mockImplementationOnce((_url, init) => {
+        expect(init.signal).toBeInstanceOf(AbortSignal);
+        return Promise.reject(Object.assign(new Error('timed out'), { name: 'TimeoutError' }));
+      })
+      .mockResolvedValueOnce(openaiOk());
+    const res = mockRes();
+    await handler(req({ provider: 'gemini', text: 'x' }), res);
+    expect(res.headers['X-TTS-Fallback']).toBe('openai');
+  });
+
+  it('never echoes the upstream error body to the client', async () => {
+    vi.stubEnv('OPENAI_API_KEY', '');
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 400, text: async () => 'SECRET_CANARY_9f32' });
+    const res = mockRes();
+    await handler(req({ provider: 'gemini', text: 'x' }), res);
+    expect(JSON.stringify(res.body)).not.toContain('SECRET_CANARY_9f32');
+  });
 });

@@ -20,6 +20,8 @@ const ALLOWED_PROVIDERS = ['openai', 'gemini'];
 const DEFAULT_OPENAI_VOICE = 'nova';
 const DEFAULT_GEMINI_VOICE = 'Kore';
 
+const GEMINI_TTS_TIMEOUT_MS = 20_000;
+
 const ipHits = new Map();
 
 function checkRateLimit(ip) {
@@ -145,7 +147,8 @@ async function openaiTts(res, apiKey, text, voice, format, instructions) {
   if (!r.ok) {
     const errText = await r.text();
     log('OPENAI_TTS_ERROR', { status: r.status, errText: errText.substring(0, 300) });
-    const error = new Error(`OpenAI TTS failed (${r.status}): ${errText.substring(0, 200)}`);
+    // Upstream body stays in the server log only; never echo it to the client.
+    const error = new Error(`OpenAI TTS failed (${r.status})`);
     error.status = r.status >= 500 ? 502 : r.status;
     throw error;
   }
@@ -176,18 +179,20 @@ async function geminiTts(res, apiKey, text, voice) {
       'x-goog-api-key': apiKey,
     },
     body: JSON.stringify(body),
+    // A hung upstream must not eat the whole function budget before the OpenAI fallback runs.
+    signal: AbortSignal.timeout(GEMINI_TTS_TIMEOUT_MS),
   });
 
   if (!r.ok) {
     const errText = await r.text();
     log('GEMINI_TTS_ERROR', { status: r.status, errText: errText.substring(0, 300) });
-    const error = new Error(`Gemini TTS failed (${r.status}): ${errText.substring(0, 200)}`);
+    const error = new Error(`Gemini TTS failed (${r.status})`);
     error.status = r.status >= 500 ? 502 : r.status;
     throw error;
   }
 
   const data = await r.json();
-  const audioPart = data?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
+  const audioPart = data?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
   if (!audioPart) {
     log('GEMINI_NO_AUDIO');
     throw new Error('No audio in Gemini response.');

@@ -26,10 +26,14 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
   const wordsRef = useRef([]);
   const [notice, setNotice] = useState('');
   const browserFallbackRef = useRef(false);
+  // Request token: stop(), unmount, or a newer speak() invalidates an in-flight cloud request,
+  // so a late failure never starts a stale browser utterance.
+  const reqIdRef = useRef(0);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
+      reqIdRef.current += 1;
       window.speechSynthesis?.cancel();
     };
   }, []);
@@ -108,6 +112,24 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
   const speakCloud = useCallback(async (text) => {
     if (!text) return;
     browserFallbackRef.current = false;
+    const myId = ++reqIdRef.current;
+    const isCurrent = () => reqIdRef.current === myId;
+
+    // Never silence: if the natural voice is unavailable (retired model, network, quota, media
+    // error), read with the browser voice and tell the user why it sounds different.
+    const fallbackToBrowser = () => {
+      if (!isCurrent()) return; // user stopped / left / started something newer
+      stopCloud();
+      const started = speakBrowser(text);
+      if (started) {
+        browserFallbackRef.current = true;
+        setNotice('הקול הטבעי לא זמין כרגע, מקריאים בקול של הדפדפן');
+      } else {
+        setIsSpeaking(false);
+        setNotice('ההקראה לא זמינה כרגע בדפדפן הזה');
+      }
+    };
+
     try {
       stopCloud();
       const v = voice ?? getDefaultVoice(engine, language);
@@ -120,6 +142,7 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
           ? getNarrationPreset('playful').instructions
           : undefined;
       const { url } = await synthesize({ text, provider: engine, voice: v, instructions });
+      if (!isCurrent()) { URL.revokeObjectURL(url); return; }
       cloudUrlRef.current = url;
       const audio = new Audio(url);
       audio.playbackRate = rate;
@@ -133,23 +156,13 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
         if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
       };
       audio.onerror = () => {
-        setIsSpeaking(false);
-        setIsPaused(false);
+        console.error('[useTTS] cloud audio playback error, falling back to browser speech');
+        fallbackToBrowser();
       };
       await audio.play();
     } catch (err) {
       console.error('[useTTS] cloud TTS failed, falling back to browser speech:', err);
-      stopCloud();
-      // Never silence: if the natural voice is unavailable (retired model, network, quota),
-      // read with the browser voice and tell the user why it sounds different.
-      const started = speakBrowser(text);
-      if (started) {
-        browserFallbackRef.current = true;
-        setNotice('הקול הטבעי לא זמין כרגע, מקריאים בקול של הדפדפן');
-      } else {
-        setIsSpeaking(false);
-        setNotice('ההקראה לא זמינה כרגע בדפדפן הזה');
-      }
+      fallbackToBrowser();
     }
   }, [engine, voice, language, rate, speakBrowser]);
 
@@ -164,10 +177,12 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
 
   const speak = useCallback((text) => {
     if (engine !== 'browser') { setNotice(''); speakCloud(text); return; }
+    reqIdRef.current += 1;
     speakBrowser(text);
   }, [engine, speakCloud, speakBrowser]);
 
   const stop = useCallback(() => {
+    reqIdRef.current += 1;
     if (engine !== 'browser') stopCloud();
     if (engine === 'browser' || browserFallbackRef.current) window.speechSynthesis?.cancel();
     browserFallbackRef.current = false;
