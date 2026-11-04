@@ -14,14 +14,14 @@ import { Sparkles, Image as ImageIcon, Volume2 } from "lucide-react";
 import { VOICES } from "@/lib/ttsProvider";
 
 const IMAGE_PROVIDERS = [
-  { value: "gemini", label: "Gemini (gemini-3-pro-image-preview) — איכות גבוהה, חינם" },
+  { value: "gemini", label: "Gemini (מהיר) — איור ברירת מחדל, חינם" },
   { value: "openai", label: "OpenAI (gpt-image-1) — תוצאות נקיות, בתשלום" },
 ];
 
 const TTS_ENGINES = [
   { value: "browser", label: "דפדפן (חינם, רובוטי)" },
   { value: "openai",  label: "OpenAI (gpt-4o-mini-tts) — קול טבעי" },
-  { value: "gemini",  label: "Gemini (gemini-2.5-flash-preview-tts) — קול טבעי" },
+  { value: "gemini",  label: "Gemini — קול טבעי (אם לא זמין, עובר ל-OpenAI)" },
 ];
 
 function readLS(key, fallback) {

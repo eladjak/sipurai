@@ -7,7 +7,8 @@
  * Env: OPENAI_API_KEY (required). Created 2026-05-08 night.
  */
 
-const OPENAI_IMAGE_MODEL = 'gpt-image-1';
+import { getModel } from '../_lib/modelRegistry.js';
+
 
 const ASPECT_TO_SIZE = {
   '1:1': '1024x1024',
@@ -25,7 +26,7 @@ export async function openaiImage(apiKey, prompt, options = {}) {
 
   // gpt-image-1 always returns base64 by default — response_format is not a valid param
   const body = {
-    model: OPENAI_IMAGE_MODEL,
+    model: getModel('imageOpenai'),
     prompt: safePrompt,
     n: 1,
     size,

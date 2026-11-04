@@ -56,7 +56,7 @@ export const MODEL_REGISTRY = Object.freeze({
     provider: 'openai',
     backendModel: 'gpt-image-1',
     tier: 'free',
-    label: 'DALL-E 3',
+    label: 'GPT Image 1 (OpenAI)',
     hebrewQuality: 'low',
     photoRealism: 'excellent',
     illustrationQuality: 'high',

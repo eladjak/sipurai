@@ -10,17 +10,38 @@
  * Env: GEMINI_API_KEY (required). Created 2026-05-14 for AI Studio smart routing.
  */
 
-const GEMINI_PRO_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+import { getModelChain } from '../_lib/modelRegistry.js';
+
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+/**
+ * Tries each model in the registry chain (imagePro, then its fallbacks). A model that errors
+ * (retired id, 404, 5xx, empty response) falls through to the next one; safety blocks (422)
+ * do not, because a different model would not make the prompt acceptable.
+ */
 export async function geminiProImage(apiKey, prompt, options = {}) {
+  const chain = getModelChain('imagePro');
+  let lastError;
+  for (let i = 0; i < chain.length; i++) {
+    try {
+      return await callGeminiImage(apiKey, chain[i], prompt, options, i === 0);
+    } catch (err) {
+      lastError = err;
+      if (err.status === 422) throw err;
+      console.error('[gemini-image] model failed', { model: chain[i], status: err.status, message: err.message });
+    }
+  }
+  throw lastError;
+}
+
+async function callGeminiImage(apiKey, model, prompt, options, isPrimary) {
   const { aspectRatio = '1:1', referenceImageBase64 } = options;
 
   // Append child-safety + no-text instructions to match Gemini Fast contract.
   // Pro model is allowed Hebrew text (it handles it well) so we don't strip that.
   const safePrompt = `${prompt}\n\nThis image is for a children's book. It must be completely child-friendly, wholesome, and appropriate for young readers.`;
 
-  const url = `${GEMINI_BASE_URL}/${GEMINI_PRO_IMAGE_MODEL}:generateContent`;
+  const url = `${GEMINI_BASE_URL}/${model}:generateContent`;
 
   // Character-reference workflow (2026-07-05): attach the reference image as a
   // multimodal part for cross-page character consistency.
@@ -34,11 +55,10 @@ export async function geminiProImage(apiKey, prompt, options = {}) {
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
       imageConfig: { aspectRatio },
-      // CRITICAL: thinkingBudget required for gemini-3-pro-*. If omitted,
-      // thinking-mode tokens eat maxOutputTokens → truncation (see
-      // reference_gemini_thinking_truncation_fix_may_10.md).
-      thinkingConfig: { thinkingBudget: 512 },
-      maxOutputTokens: 4000,
+      // CRITICAL for the pro model: thinkingBudget required, otherwise thinking tokens eat
+      // maxOutputTokens -> truncation (see reference_gemini_thinking_truncation_fix_may_10.md).
+      // Fallback (flash image) models do not take these, so they are only sent to the primary.
+      ...(isPrimary ? { thinkingConfig: { thinkingBudget: 512 }, maxOutputTokens: 4000 } : {}),
     },
   };
 
@@ -54,7 +74,7 @@ export async function geminiProImage(apiKey, prompt, options = {}) {
   if (!r.ok) {
     const errText = await r.text();
     const error = new Error(
-      `Gemini 3 Pro image failed (${r.status}): ${errText.substring(0, 300)}`
+      `Gemini image (${model}) failed (${r.status}): ${errText.substring(0, 300)}`
     );
     error.status = r.status >= 500 ? 502 : r.status;
     throw error;

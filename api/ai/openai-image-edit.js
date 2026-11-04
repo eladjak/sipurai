@@ -13,7 +13,8 @@
  * Created 2026-05-10.
  */
 
-const OPENAI_IMAGE_MODEL = 'gpt-image-1';
+import { getModel } from '../_lib/modelRegistry.js';
+
 
 const ASPECT_TO_SIZE = {
   '1:1': '1024x1024',
@@ -47,7 +48,7 @@ export async function openaiImageEdit(apiKey, prompt, options = {}) {
 
   // gpt-image-1 edits endpoint expects multipart/form-data
   const form = new FormData();
-  form.append('model', OPENAI_IMAGE_MODEL);
+  form.append('model', getModel('imageOpenai'));
   form.append('prompt', safePrompt);
   form.append('n', '1');
   form.append('size', size);

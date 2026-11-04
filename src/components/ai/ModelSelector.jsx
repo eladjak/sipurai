@@ -117,7 +117,7 @@ export default function ModelSelector({
       },
       {
         id: "dall-e-3",
-        name: "DALL-E 3",
+        name: "GPT Image 1 (OpenAI)",
         provider: "OpenAI",
         tier: "free",
         speed: "medium",

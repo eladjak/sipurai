@@ -29,8 +29,10 @@ export default function TTSControls({
   onRateChange,
   isRTL,
   showEngineSelector = true,
+  notice = "",
 }) {
   const { t } = useI18n();
+  const [dismissedNotice, setDismissedNotice] = React.useState("");
   const [engine, setEngine] = React.useState(() => {
     if (typeof window === "undefined") return "browser";
     return window.localStorage?.getItem(ENGINE_STORAGE_KEY) || "browser";
@@ -60,7 +62,26 @@ export default function TTSControls({
       : t("bookView.tts.fast");
 
   return (
-    <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+    <div className={`relative flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+      {/* Fallback notice: cloud voice unavailable -> reading with the browser voice */}
+      {notice && notice !== dismissedNotice && (
+        <div
+          role="status"
+          dir={isRTL ? "rtl" : "ltr"}
+          className="absolute top-full mt-2 end-0 z-30 flex w-max max-w-[min(20rem,calc(100vw-2rem))] items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-900 shadow-md dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <span aria-hidden="true">🔈</span>
+          <span className="flex-1">{notice}</span>
+          <button
+            type="button"
+            onClick={() => setDismissedNotice(notice)}
+            aria-label="סגור הודעה"
+            className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base leading-none hover:bg-amber-100 dark:hover:bg-amber-900"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {/* Play / Pause */}
       {!isSpeaking ? (
         <Button

@@ -3,10 +3,12 @@
  *
  * Wired into landing FAQSection: replaces accordion with chat UI.
  *
- * Uses Gemini 2.5-Flash (fast + cheap; FAQ is short Q/A).
+ * Uses the same text model as story generation (api/_lib/modelRegistry.js, env GEMINI_TEXT_MODEL).
  *
  * Wave-12 (2026-05-10) per Council 3-LLM recommendation.
  */
+
+import { getModel } from './_lib/modelRegistry.js';
 
 const SYSTEM_PROMPT = `אתה צ'אטבוט ידידותי באתר סיפוראי — sipurai.ai — פלטפורמת AI בעברית ליצירת ספרי ילדים מותאמים אישית.
 
@@ -65,7 +67,7 @@ export default async function handler(req, res) {
     const conversationText = recent.map(m => `${m.role === 'user' ? 'משתמש' : 'אסיסטנט'}: ${m.content}`).join('\n');
     const fullPrompt = `${SYSTEM_PROMPT}\n\nשיחה עד כה:\n${conversationText}\n\nאסיסטנט:`;
 
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getModel('text')}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({

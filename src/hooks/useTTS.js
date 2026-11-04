@@ -24,6 +24,8 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
   const [rate, setRate] = useState(1);
   const utteranceRef = useRef(null);
   const wordsRef = useRef([]);
+  const [notice, setNotice] = useState('');
+  const browserFallbackRef = useRef(false);
 
   // Clean up on unmount
   useEffect(() => {
@@ -52,56 +54,8 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
     return voices[0] || null;
   }, [language]);
 
-  // ── Cloud engines (OpenAI / Gemini) — fetch audio bytes, play via <audio> ──
-  const speakCloud = useCallback(async (text) => {
-    if (!text) return;
-    try {
-      stopCloud();
-      const v = voice ?? getDefaultVoice(engine, language);
-      // Hebrew narration steering (Sprint-24 presets, wired 2026-07-05):
-      // OpenAI voices are EN-tuned; the preset instructions direct warm,
-      // slower Israeli-Hebrew storytelling. OpenAI-only (the Gemini proxy
-      // path has no instructions param).
-      const instructions =
-        engine === 'openai' && (language === 'hebrew' || language === 'yiddish')
-          ? getNarrationPreset('playful').instructions
-          : undefined;
-      const { url } = await synthesize({ text, provider: engine, voice: v, instructions });
-      cloudUrlRef.current = url;
-      const audio = new Audio(url);
-      audio.playbackRate = rate;
-      cloudAudioRef.current = audio;
-      audio.onplay = () => { setIsSpeaking(true); setIsPaused(false); };
-      audio.onpause = () => setIsPaused(true);
-      audio.onended = () => {
-        setIsSpeaking(false);
-        setIsPaused(false);
-        setCurrentWordIndex(-1);
-        if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
-      };
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        setIsPaused(false);
-      };
-      await audio.play();
-    } catch (err) {
-      console.error('[useTTS] cloud TTS failed:', err);
-      setIsSpeaking(false);
-    }
-  }, [engine, voice, language, rate]);
-
-  function stopCloud() {
-    if (cloudAudioRef.current) {
-      cloudAudioRef.current.pause();
-      cloudAudioRef.current.currentTime = 0;
-      cloudAudioRef.current = null;
-    }
-    if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
-  }
-
-  const speak = useCallback((text) => {
-    if (engine !== 'browser') { speakCloud(text); return; }
-    if (!window.speechSynthesis || !text) return;
+  const speakBrowser = useCallback((text) => {
+    if (!window.speechSynthesis || !text) return false;
 
     window.speechSynthesis.cancel();
     setCurrentWordIndex(-1);
@@ -147,18 +101,83 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
     };
 
     window.speechSynthesis.speak(utterance);
+    return true;
   }, [getVoice, rate]);
+
+  // ── Cloud engines (OpenAI / Gemini) — fetch audio bytes, play via <audio> ──
+  const speakCloud = useCallback(async (text) => {
+    if (!text) return;
+    browserFallbackRef.current = false;
+    try {
+      stopCloud();
+      const v = voice ?? getDefaultVoice(engine, language);
+      // Hebrew narration steering (Sprint-24 presets, wired 2026-07-05):
+      // OpenAI voices are EN-tuned; the preset instructions direct warm,
+      // slower Israeli-Hebrew storytelling. OpenAI-only (the Gemini proxy
+      // path has no instructions param).
+      const instructions =
+        engine === 'openai' && (language === 'hebrew' || language === 'yiddish')
+          ? getNarrationPreset('playful').instructions
+          : undefined;
+      const { url } = await synthesize({ text, provider: engine, voice: v, instructions });
+      cloudUrlRef.current = url;
+      const audio = new Audio(url);
+      audio.playbackRate = rate;
+      cloudAudioRef.current = audio;
+      audio.onplay = () => { setIsSpeaking(true); setIsPaused(false); };
+      audio.onpause = () => setIsPaused(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setCurrentWordIndex(-1);
+        if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+      };
+      await audio.play();
+    } catch (err) {
+      console.error('[useTTS] cloud TTS failed, falling back to browser speech:', err);
+      stopCloud();
+      // Never silence: if the natural voice is unavailable (retired model, network, quota),
+      // read with the browser voice and tell the user why it sounds different.
+      const started = speakBrowser(text);
+      if (started) {
+        browserFallbackRef.current = true;
+        setNotice('הקול הטבעי לא זמין כרגע, מקריאים בקול של הדפדפן');
+      } else {
+        setIsSpeaking(false);
+        setNotice('ההקראה לא זמינה כרגע בדפדפן הזה');
+      }
+    }
+  }, [engine, voice, language, rate, speakBrowser]);
+
+  function stopCloud() {
+    if (cloudAudioRef.current) {
+      cloudAudioRef.current.pause();
+      cloudAudioRef.current.currentTime = 0;
+      cloudAudioRef.current = null;
+    }
+    if (cloudUrlRef.current) { URL.revokeObjectURL(cloudUrlRef.current); cloudUrlRef.current = null; }
+  }
+
+  const speak = useCallback((text) => {
+    if (engine !== 'browser') { setNotice(''); speakCloud(text); return; }
+    speakBrowser(text);
+  }, [engine, speakCloud, speakBrowser]);
 
   const stop = useCallback(() => {
     if (engine !== 'browser') stopCloud();
-    else window.speechSynthesis?.cancel();
+    if (engine === 'browser' || browserFallbackRef.current) window.speechSynthesis?.cancel();
+    browserFallbackRef.current = false;
     setIsSpeaking(false);
     setIsPaused(false);
     setCurrentWordIndex(-1);
   }, [engine]);
 
   const pause = useCallback(() => {
-    if (engine !== 'browser') {
+    if (engine !== 'browser' && !browserFallbackRef.current) {
       cloudAudioRef.current?.pause();
       setIsPaused(true);
       return;
@@ -168,7 +187,7 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
   }, [engine]);
 
   const resume = useCallback(() => {
-    if (engine !== 'browser') {
+    if (engine !== 'browser' && !browserFallbackRef.current) {
       cloudAudioRef.current?.play();
       setIsPaused(false);
       return;
@@ -188,5 +207,6 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
     rate,
     setRate,
     engine,
+    notice,
   };
 }

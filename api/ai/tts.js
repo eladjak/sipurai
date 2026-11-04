@@ -2,8 +2,8 @@
  * Vercel Serverless Function — Text-to-Speech proxy.
  *
  * Supports two providers:
- *   - "openai": OpenAI Audio API (gpt-4o-mini-tts) — voices: alloy/echo/fable/onyx/nova/shimmer/coral/sage
- *   - "gemini": Google Generative AI TTS (gemini-2.5-flash-preview-tts) — voices: Kore/Charon/Fenrir/Aoede/Puck/...
+ *   - "openai": OpenAI Audio API (model id from api/_lib/modelRegistry.js) — voices: alloy/echo/fable/onyx/nova/shimmer/coral/sage
+ *   - "gemini": Google Generative AI TTS (model id from the registry; falls back to OpenAI on any failure) — voices: Kore/Charon/Fenrir/Aoede/Puck/...
  *
  * POST { provider, text, voice?, format? } → audio bytes (Content-Type: audio/mpeg or audio/L16)
  *
@@ -11,6 +11,7 @@
  */
 
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
+import { getModel } from '../_lib/modelRegistry.js';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 12;
@@ -18,8 +19,6 @@ const MAX_TEXT_LENGTH = 4000;
 const ALLOWED_PROVIDERS = ['openai', 'gemini'];
 const DEFAULT_OPENAI_VOICE = 'nova';
 const DEFAULT_GEMINI_VOICE = 'Kore';
-const OPENAI_TTS_MODEL = 'gpt-4o-mini-tts';
-const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
 const ipHits = new Map();
 
@@ -92,12 +91,30 @@ export default async function handler(req, res) {
       return await openaiTts(res, apiKey, text, voice ?? DEFAULT_OPENAI_VOICE, format, instructions);
     }
     if (provider === 'gemini') {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      const openaiKey = process.env.OPENAI_API_KEY;
+      // Gemini TTS models are retired on Google's schedule (the old preview id on 2026-11-17).
+      // Any Gemini failure (missing key, retired model, 5xx, no audio) falls back to OpenAI TTS
+      // when it is configured, so the reader never goes silent. The fallback uses the OpenAI
+      // default voice: Gemini voice names (Aoede, Kore...) are not valid OpenAI voices.
+      let geminiError;
+      if (!geminiKey) {
         log('NO_GEMINI_KEY');
-        return res.status(500).json({ error: 'Gemini TTS not configured.' });
+        geminiError = new Error('Gemini TTS not configured.');
+        geminiError.status = 500;
+      } else {
+        try {
+          return await geminiTts(res, geminiKey, text, voice ?? DEFAULT_GEMINI_VOICE);
+        } catch (err) {
+          geminiError = err;
+          log('GEMINI_TTS_FALLBACK', { status: err.status, message: err.message });
+        }
       }
-      return await geminiTts(res, apiKey, text, voice ?? DEFAULT_GEMINI_VOICE);
+      if (openaiKey) {
+        res.setHeader('X-TTS-Fallback', 'openai');
+        return await openaiTts(res, openaiKey, text, DEFAULT_OPENAI_VOICE, format, instructions);
+      }
+      throw geminiError;
     }
   } catch (err) {
     const message = err.message || 'TTS failed.';
@@ -109,7 +126,7 @@ export default async function handler(req, res) {
 
 async function openaiTts(res, apiKey, text, voice, format, instructions) {
   const body = {
-    model: OPENAI_TTS_MODEL,
+    model: getModel('ttsOpenai'),
     voice,
     input: text,
     response_format: format === 'wav' ? 'wav' : 'mp3',
@@ -141,7 +158,7 @@ async function openaiTts(res, apiKey, text, voice, format, instructions) {
 }
 
 async function geminiTts(res, apiKey, text, voice) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${getModel('ttsGemini')}:generateContent`;
   const body = {
     contents: [{ parts: [{ text }] }],
     generationConfig: {

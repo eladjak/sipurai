@@ -8,6 +8,7 @@
  */
 
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
+import { getModel } from '../_lib/modelRegistry.js';
 
 // ─── Simple in-memory rate limiter (per IP, resets every minute) ─────────────
 
@@ -35,11 +36,12 @@ function checkRateLimit(ip) {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const GEMINI_TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
+// Model ids live in api/_lib/modelRegistry.js (env overrides GEMINI_TEXT_MODEL / GEMINI_IMAGE_MODEL).
+const GEMINI_TEXT_MODEL = getModel('text');
 // Cost-tier image model. Was 'gemini-3-pro-image-preview' (~$0.04/img preview pricing,
 // caused April→May bill spike). gemini-2.5-flash-image is GA stable + ~3x cheaper.
 // Quality acceptable for kids' books per QA. Override via env GEMINI_IMAGE_MODEL.
-const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+const GEMINI_IMAGE_MODEL = getModel('imageDefault');
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ─── Diagnostic Logging ─────────────────────────────────────────────────────

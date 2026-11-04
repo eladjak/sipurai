@@ -770,6 +770,7 @@ export default function BookView() {
                 onResume={tts.resume}
                 onStop={tts.stop}
                 onRateChange={tts.setRate}
+                notice={tts.notice}
                 isRTL={isRTL}
                 isHebrew={isHebrew}
               />

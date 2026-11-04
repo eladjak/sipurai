@@ -9,14 +9,14 @@
  */
 
 import { getApiAuthHeaders } from '@/lib/apiAuth';
+import { getModel } from '../../api/_lib/modelRegistry.js';
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
-const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
-// Cost-tier image model. Was 'gemini-3-pro-image-preview' (~$0.04/img preview pricing).
-// gemini-2.5-flash-image is the GA stable + ~3x cheaper. Quality difference for kids' books
-// is acceptable per QA. Override via VITE_GEMINI_IMAGE_MODEL if needed.
-const GEMINI_IMAGE_MODEL = import.meta.env.VITE_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+// Model ids come from the central registry (api/_lib/modelRegistry.js). This client path is
+// dev-direct mode only; production goes through /api/ai/* which uses the same registry.
+const GEMINI_TEXT_MODEL = getModel('text', {});
+const GEMINI_IMAGE_MODEL = getModel('imageDefault', { GEMINI_IMAGE_MODEL: import.meta.env.VITE_GEMINI_IMAGE_MODEL });
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
