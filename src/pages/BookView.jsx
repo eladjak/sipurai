@@ -95,6 +95,9 @@ export default function BookView() {
   const isGuest = !user;
 
   const tts = useTTS({ language: currentLanguage, engine: getStoredTTSEngine() });
+  // Auto-narrate effect must not re-run when tts state (notice, isSpeaking) changes.
+  const ttsSpeakRef = useRef(tts.speak);
+  ttsSpeakRef.current = tts.speak;
 
   useEffect(() => {
     if (!bookId) {
@@ -309,10 +312,10 @@ export default function BookView() {
       : pages[currentPageIndex]?.text_content;
     if (!text) return;
     const timer = setTimeout(() => {
-      if (!cancelled) tts.speak(text);
+      if (!cancelled) ttsSpeakRef.current(text);
     }, 250);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [currentPageIndex, book?.title, book?.description, pages, tts]);
+  }, [currentPageIndex, book?.title, book?.description, pages]);
 
   useEffect(() => {
     if (

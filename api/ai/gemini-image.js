@@ -84,7 +84,7 @@ async function callGeminiImage(apiKey, model, prompt, options, isPrimary) {
   const finishReason = data.candidates?.[0]?.finishReason;
   const blockReason = data.promptFeedback?.blockReason;
   // Any safety block stops here: another model would not make the prompt acceptable.
-  if (/SAFETY/.test(String(finishReason)) || /SAFETY|BLOCK|PROHIBITED/.test(String(blockReason ?? ''))) {
+  if (/SAFETY|BLOCKLIST|PROHIBITED|SPII/.test(String(finishReason)) || /SAFETY|BLOCK|PROHIBITED/.test(String(blockReason ?? ''))) {
     const error = new Error(
       'Image was blocked by safety filters. Please try a different prompt.'
     );

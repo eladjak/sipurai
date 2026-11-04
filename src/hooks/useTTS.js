@@ -117,8 +117,11 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
 
     // Never silence: if the natural voice is unavailable (retired model, network, quota, media
     // error), read with the browser voice and tell the user why it sounds different.
+    let fellBack = false; // onerror and a rejected play() can both fire: fall back once per request
     const fallbackToBrowser = () => {
-      if (!isCurrent()) return; // user stopped / left / started something newer
+      if (fellBack) return;
+      if (!isCurrent()) return;
+      fellBack = true; // user stopped / left / started something newer
       stopCloud();
       const started = speakBrowser(text);
       if (started) {

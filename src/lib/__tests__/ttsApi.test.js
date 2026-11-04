@@ -140,4 +140,16 @@ describe('api/ai/tts gemini provider', () => {
     await handler(req({ provider: 'gemini', text: 'x' }), res);
     expect(JSON.stringify(res.body)).not.toContain('SECRET_CANARY_9f32');
   });
+
+  it('passes an already-complete WAV through without adding a second header', async () => {
+    const wav = Buffer.concat([Buffer.from('RIFF'), Buffer.from([8, 0, 0, 0]), Buffer.from('WAVE'), Buffer.from('datadata')]);
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ candidates: [{ content: { parts: [{ inlineData: { data: wav.toString('base64') } }] } }] }),
+    });
+    const res = mockRes();
+    await handler(req({ provider: 'gemini', text: 'שלום' }), res);
+    expect(res.code).toBe(200);
+    expect(Buffer.compare(Buffer.from(res.sent), wav)).toBe(0);
+  });
 });

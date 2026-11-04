@@ -99,4 +99,15 @@ describe('useTTS cloud failure falls back to browser speech', () => {
     expect(speakSpy).toHaveBeenCalledTimes(1);
     expect(result.current.notice).toMatch(/הקול הטבעי לא זמין/);
   });
+
+  it('onerror plus a rejected play() falls back only once', async () => {
+    synthesize.mockResolvedValue({ url: 'blob:x' });
+    window.Audio = function () {
+      this.play = () => { this.onerror(); return Promise.reject(new Error('NotSupported')); };
+      this.pause = () => {};
+    };
+    const { result } = renderHook(() => useTTS({ language: 'hebrew', engine: 'openai' }));
+    await act(async () => { result.current.speak('שלום'); });
+    expect(speakSpy).toHaveBeenCalledTimes(1);
+  });
 });

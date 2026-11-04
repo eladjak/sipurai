@@ -199,7 +199,9 @@ async function geminiTts(res, apiKey, text, voice) {
   }
   const buf = Buffer.from(audioPart.inlineData.data, 'base64');
   // Gemini returns 24kHz 16-bit mono PCM by default — wrap as WAV for browser playback
-  const wav = pcmToWav(buf, 24000, 1, 16);
+  // Newer models already return a complete WAV (RIFF header): pass it through untouched.
+  const isWav = buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE';
+  const wav = isWav ? buf : pcmToWav(buf, 24000, 1, 16);
   res.setHeader('Content-Type', 'audio/wav');
   res.setHeader('Cache-Control', 'public, max-age=3600');
   log('GEMINI_TTS_OK', { bytes: wav.length, voice, textLen: text.length });
