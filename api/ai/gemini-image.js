@@ -58,7 +58,7 @@ async function callGeminiImage(apiKey, model, prompt, options, isPrimary) {
       // CRITICAL for the pro model: thinkingBudget required, otherwise thinking tokens eat
       // maxOutputTokens -> truncation (see reference_gemini_thinking_truncation_fix_may_10.md).
       // Fallback (flash image) models do not take these, so they are only sent to the primary.
-      ...(isPrimary ? { thinkingConfig: { thinkingBudget: 512 }, maxOutputTokens: 4000 } : {}),
+      ...(isPrimary && /pro/.test(model) ? { thinkingConfig: { thinkingBudget: 512 }, maxOutputTokens: 4000 } : {}),
     },
   };
 

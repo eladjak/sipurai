@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
@@ -203,7 +203,7 @@ export default function BookView() {
 
   // Pages a reader may be shown, in order. Skeleton rows written to persist the
   // outline are excluded until they have words.
-  const pages = readablePages(allPages);
+  const pages = useMemo(() => readablePages(allPages), [allPages]);
   const progress = summarizeBook(book, allPages);
   const runLive = isRunLive(bookId) || isResuming;
   const state = viewState(book, allPages, runLive);

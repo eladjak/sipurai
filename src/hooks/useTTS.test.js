@@ -110,4 +110,22 @@ describe('useTTS cloud failure falls back to browser speech', () => {
     await act(async () => { result.current.speak('שלום'); });
     expect(speakSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('a new cloud request cancels a browser fallback that is still speaking', async () => {
+    synthesize.mockRejectedValueOnce(new Error('x')).mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useTTS({ language: 'hebrew', engine: 'openai' }));
+    await act(async () => { result.current.speak('א'); });
+    window.speechSynthesis.cancel.mockClear();
+    await act(async () => { result.current.speak('ב'); });
+    expect(window.speechSynthesis.cancel).toHaveBeenCalled();
+  });
+
+  it('shows a failure notice when the browser fallback itself errors', async () => {
+    synthesize.mockRejectedValue(new Error('x'));
+    const { result } = renderHook(() => useTTS({ language: 'hebrew', engine: 'openai' }));
+    await act(async () => { result.current.speak('שלום'); });
+    const utter = speakSpy.mock.calls[0][0];
+    await act(async () => { utter.onerror({ error: 'synthesis-failed' }); });
+    expect(result.current.notice).toMatch(/לא זמינה/);
+  });
 });

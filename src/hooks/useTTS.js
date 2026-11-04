@@ -98,7 +98,12 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
       setCurrentWordIndex(-1);
     };
 
-    utterance.onerror = () => {
+    utterance.onerror = (event) => {
+      // 'canceled'/'interrupted' are our own cancel() calls, not failures.
+      if (browserFallbackRef.current && event?.error && event.error !== 'canceled' && event.error !== 'interrupted') {
+        browserFallbackRef.current = false;
+        setNotice('ההקראה לא זמינה כרגע בדפדפן הזה');
+      }
       setIsSpeaking(false);
       setIsPaused(false);
       setCurrentWordIndex(-1);
@@ -111,6 +116,8 @@ export function useTTS({ language = 'english', engine = 'browser', voice } = {})
   // ── Cloud engines (OpenAI / Gemini) — fetch audio bytes, play via <audio> ──
   const speakCloud = useCallback(async (text) => {
     if (!text) return;
+    // A new cloud request replaces a browser-voice fallback that may still be speaking.
+    if (browserFallbackRef.current) window.speechSynthesis?.cancel();
     browserFallbackRef.current = false;
     const myId = ++reqIdRef.current;
     const isCurrent = () => reqIdRef.current === myId;
