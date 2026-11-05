@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Keep auth flows, API, and private pages out of search results
+Disallow: /api/
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /Settings
+Disallow: /CharacterEditor
+Disallow: /BookCreation
+Disallow: /Feedback
+
+# Crawl delay to be polite to bots
+Crawl-delay: 10
+
+Sitemap: https://www.sipurai.ai/sitemap.xml
