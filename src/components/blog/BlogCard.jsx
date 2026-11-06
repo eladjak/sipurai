@@ -52,7 +52,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
   const categories = post.categories || [];
   const readingTime = post.estimatedReadingTime || post.readingTime;
 
-  const postUrl = `/blog/${slug}`;
+  const postUrl = post.site === "sipurai" ? `/blog/read/${slug}` : `/blog/${slug}`;
 
   if (featured) {
     return (
@@ -101,7 +101,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
                 </div>
               )}
 
-              <Link to={postUrl} className="group/title">
+              <Link reloadDocument={post.site === "sipurai"} to={postUrl} className="group/title">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight group-hover/title:text-purple-600 dark:group-hover/title:text-purple-400 transition-colors">
                   {post.title}
                 </h2>
@@ -136,6 +136,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
               </div>
 
               <Link
+                reloadDocument={post.site === "sipurai"}
                 to={postUrl}
                 className="inline-flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold hover:text-purple-800 dark:hover:text-purple-200 transition-colors mt-2"
               >
@@ -160,7 +161,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
     >
       <Card className="overflow-hidden h-full flex flex-col hover:shadow-xl border-gray-200 dark:border-gray-800 hover:border-purple-200 dark:hover:border-purple-800 group">
         {/* Image */}
-        <Link to={postUrl} className={`block relative aspect-video overflow-hidden shrink-0 ${imageUrl ? 'bg-gray-100 dark:bg-gray-800' : `bg-gradient-to-br ${coverGradient}`}`}>
+        <Link reloadDocument={post.site === "sipurai"} to={postUrl} className={`block relative aspect-video overflow-hidden shrink-0 ${imageUrl ? 'bg-gray-100 dark:bg-gray-800' : `bg-gradient-to-br ${coverGradient}`}`}>
           {imageUrl ? (
             <LazyImage
               src={imageUrl}
@@ -191,7 +192,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
             </div>
           )}
 
-          <Link to={postUrl} className="group/title">
+          <Link reloadDocument={post.site === "sipurai"} to={postUrl} className="group/title">
             <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-snug line-clamp-2 group-hover/title:text-purple-600 dark:group-hover/title:text-purple-400 transition-colors">
               {post.title}
             </h3>
