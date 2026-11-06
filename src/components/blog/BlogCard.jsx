@@ -52,7 +52,7 @@ function BlogCard({ post, featured = false, index = 0 }) {
   const categories = post.categories || [];
   const readingTime = post.estimatedReadingTime || post.readingTime;
 
-  const postUrl = post.site === "sipurai" ? `/blog/read/${slug}` : `/blog/${slug}`;
+  const postUrl = `/blog/${slug}`;
 
   if (featured) {
     return (

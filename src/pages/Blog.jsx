@@ -1,4 +1,3 @@
-const syndicatedFiles = import.meta.glob("/content/blog-syndicated/*.json", { eager: true, import: "default" });
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
@@ -79,7 +78,14 @@ export default function Blog() {
 
   // Use Sanity data when available, fall back to mock posts
   const allPosts = useMemo(
-    () => [...Object.values(syndicatedFiles).flatMap(file => file.schemaVersion === 1 ? file.articles : []).filter(post => post.site === "sipurai" && post.approval?.status === "approved-for-blog-draft" && (!post.previewOnly || __BLOG_PREVIEW__)).map(post => ({ ...post, excerpt: post.description, publishedAt: post.dates.published, authorName: post.author.name })), ...(sanityPosts && sanityPosts.length > 0 ? sanityPosts : MOCK_POSTS)],
+    () => {
+      const bySlug = new Map();
+      for (const post of [...(sanityPosts || []), ...MOCK_POSTS]) {
+        const slug = typeof post.slug === 'object' ? post.slug?.current : post.slug;
+        if (slug && !bySlug.has(slug)) bySlug.set(slug, post);
+      }
+      return [...bySlug.values()].sort((a,b) => Date.parse(b.publishedAt || 0) - Date.parse(a.publishedAt || 0));
+    },
     [sanityPosts]
   );
 

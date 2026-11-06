@@ -23,7 +23,7 @@ import {
  * @param {object}  [options] - Extra React Query options
  */
 export function useSanityQuery(queryKey, query, params = {}, options = {}) {
-  const isSanityConfigured = !!import.meta.env.VITE_SANITY_PROJECT_ID;
+  const isSanityConfigured = true;
   const result = useQuery({
     queryKey: ['sanity', queryKey, JSON.stringify(params)],
     queryFn: () => sanityClient.fetch(query, params),
@@ -62,7 +62,7 @@ export function useBlogPost(slug) {
     `blogPost-${slug}`,
     BLOG_POST_BY_SLUG_QUERY,
     { slug },
-    { enabled: !!slug && !!import.meta.env.VITE_SANITY_PROJECT_ID }
+    { enabled: !!slug }
   );
 }
 
