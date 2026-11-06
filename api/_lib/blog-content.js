@@ -4,11 +4,11 @@ const query = `*[_type == "post" && siteId == "eyai-kids" && status == "publishe
 export async function getPublishedPosts() {
   const url = new URL('https://b0hm1i34.api.sanity.io/v2024-01-01/data/query/production');
   url.searchParams.set('query',query); url.searchParams.set('perspective','published');
-  const response = await fetch(url); if (!response.ok) throw Error(`Sanity HTTP ${response.status}`);
+  const response = await fetch(url,{signal:AbortSignal.timeout(10000)}); if (!response.ok) throw Error(`Sanity HTTP ${response.status}`);
   const data = await response.json(); if (!Array.isArray(data.result)) throw Error('Invalid Sanity result');
   const chosen = new Map();
   for (const post of data.result) {
-    const slug=post.slug?.current; if (!slug) continue;
+    const slug=post.slug?.current; if (!slug || typeof post.title !== 'string' || !post.publishedAt) continue;
     const previous=chosen.get(slug);
     if (!previous || (previous.language !== 'he' && post.language === 'he')) chosen.set(slug,post);
   }
@@ -20,7 +20,7 @@ export async function findPost(slug) {
   catch (error) { if (local) return local; throw error; }
 }
 export function renderBody(blocks) {
-  return (blocks ?? []).filter(b=>b._type === 'block').map(b=>{
+  return (Array.isArray(blocks) ? blocks : []).filter(b=>b._type === 'block').map(b=>{
     const text=(b.children ?? []).map(s=>{
       let value=esc(s.text);
       for (const mark of s.marks ?? []) {
