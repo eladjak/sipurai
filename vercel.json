@@ -9,7 +9,7 @@
       "destination": "/blog/read/:slug/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path((?!blog/read/).*)",
       "destination": "/index.html"
     }
   ],
