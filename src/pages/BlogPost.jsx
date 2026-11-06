@@ -23,32 +23,6 @@ import { urlFor } from "@/lib/sanityClient";
 import PortableText, { extractHeadings } from "@/components/blog/PortableText";
 import BlogCard from "@/components/blog/BlogCard";
 import { updateMeta, resetMeta } from "@/lib/seo";
-import DEMO_POSTS, { getPostBySlug } from "@/data/blogPosts";
-
-// ---------------------------------------------------------------------------
-// Demo post lookup — uses the shared blogPosts data file
-// ---------------------------------------------------------------------------
-
-function getMockPost(slug) {
-  const found = getPostBySlug(slug);
-  if (found) {
-    // Pick up to 2 other posts as related
-    const related = DEMO_POSTS.filter((p) => p.slug !== slug).slice(0, 2);
-    return { ...found, relatedPosts: related };
-  }
-  return {
-    _id: `mock-${slug}`,
-    slug,
-    title: null,
-    excerpt: null,
-    publishedAt: new Date().toISOString(),
-    authorName: null,
-    readingTime: 3,
-    categories: [],
-    body: null,
-    relatedPosts: [],
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Table of Contents component
@@ -219,11 +193,7 @@ export default function BlogPost() {
   // Sanity fetch (disabled when no project ID)
   const { data: sanityPost, isLoading } = useBlogPost(effectiveSlug);
 
-  // Use Sanity data or fall back to mock
-  const post = useMemo(
-    () => (sanityPost || (!isLoading ? getMockPost(effectiveSlug) : null)),
-    [sanityPost, isLoading, effectiveSlug]
-  );
+  const post = sanityPost || null;
 
   // Resolve image URL
   const coverImageUrl = useMemo(() => {

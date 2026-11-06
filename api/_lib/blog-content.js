@@ -1,4 +1,3 @@
-import DEMO_POSTS from '../../src/data/blogPosts.js';
 export const esc = value => String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const query = `*[_type == "post" && siteId == "eyai-kids" && status == "published" && !(_id in path("drafts.**")) && defined(slug.current) && defined(publishedAt)] | order(publishedAt desc) {_id,slug,title,excerpt,publishedAt,language,body,"mainImageUrl":mainImage.asset->url,author->{name}}`;
 export async function getPublishedPosts() {
@@ -15,9 +14,8 @@ export async function getPublishedPosts() {
   return [...chosen.values()].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
 }
 export async function findPost(slug) {
-  const local = DEMO_POSTS.find(p => p.slug === slug);
-  try { const posts = await getPublishedPosts(); return posts.find(p => p.slug.current === slug) ?? local ?? null; }
-  catch (error) { if (local) return local; throw error; }
+  const posts = await getPublishedPosts();
+  return posts.find(p => p.slug.current === slug) ?? null;
 }
 export function renderBody(blocks) {
   return (Array.isArray(blocks) ? blocks : []).filter(b=>b._type === 'block').map(b=>{

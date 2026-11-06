@@ -10,13 +10,11 @@ import BlogCard from "@/components/blog/BlogCard";
 import BlogHeader from "@/components/blog/BlogHeader";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import { updateMeta, resetMeta } from "@/lib/seo";
-import DEMO_POSTS from "@/data/blogPosts";
 
 // ---------------------------------------------------------------------------
 // Mock / demo data shown when Sanity is not configured
 // ---------------------------------------------------------------------------
 
-const MOCK_POSTS = DEMO_POSTS;
 
 const POSTS_PER_PAGE = 6;
 
@@ -80,7 +78,7 @@ export default function Blog() {
   const allPosts = useMemo(
     () => {
       const bySlug = new Map();
-      for (const post of [...(sanityPosts || []), ...MOCK_POSTS]) {
+      for (const post of (sanityPosts || [])) {
         const slug = typeof post.slug === 'object' ? post.slug?.current : post.slug;
         if (slug && !bySlug.has(slug)) bySlug.set(slug, post);
       }
