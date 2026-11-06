@@ -1,3 +1,4 @@
+import BlogLoadError from "@/components/blog/BlogLoadError";
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
@@ -10,13 +11,11 @@ import BlogCard from "@/components/blog/BlogCard";
 import BlogHeader from "@/components/blog/BlogHeader";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import { updateMeta, resetMeta } from "@/lib/seo";
-import DEMO_POSTS from "@/data/blogPosts";
 
 // ---------------------------------------------------------------------------
 // Mock / demo data shown when Sanity is not configured
 // ---------------------------------------------------------------------------
 
-const MOCK_POSTS = DEMO_POSTS;
 
 const POSTS_PER_PAGE = 6;
 
@@ -74,11 +73,18 @@ export default function Blog() {
   const { isRTL, t } = useI18n();
 
   // Sanity data (enabled only when VITE_SANITY_PROJECT_ID is set)
-  const { data: sanityPosts, isLoading } = useBlogPosts();
+  const { data: sanityPosts, isLoading, isError, refetch } = useBlogPosts();
 
   // Use Sanity data when available, fall back to mock posts
   const allPosts = useMemo(
-    () => (sanityPosts && sanityPosts.length > 0 ? sanityPosts : MOCK_POSTS),
+    () => {
+      const bySlug = new Map();
+      for (const post of (sanityPosts || [])) {
+        const slug = typeof post.slug === 'object' ? post.slug?.current : post.slug;
+        if (slug && !bySlug.has(slug)) bySlug.set(slug, post);
+      }
+      return [...bySlug.values()].sort((a,b) => Date.parse(b.publishedAt || 0) - Date.parse(a.publishedAt || 0));
+    },
     [sanityPosts]
   );
 
@@ -205,6 +211,8 @@ export default function Blog() {
                   <PostSkeleton key={i} />
                 ))}
               </div>
+            ) : isError ? (
+              <BlogLoadError isRTL={isRTL} onRetry={() => refetch()} />
             ) : filteredPosts.length === 0 ? (
               <EmptyState isFiltered={isFiltered} />
             ) : (
