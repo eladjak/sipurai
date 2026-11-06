@@ -1,3 +1,4 @@
+import BlogLoadError from "@/components/blog/BlogLoadError";
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
@@ -72,7 +73,7 @@ export default function Blog() {
   const { isRTL, t } = useI18n();
 
   // Sanity data (enabled only when VITE_SANITY_PROJECT_ID is set)
-  const { data: sanityPosts, isLoading } = useBlogPosts();
+  const { data: sanityPosts, isLoading, isError, refetch } = useBlogPosts();
 
   // Use Sanity data when available, fall back to mock posts
   const allPosts = useMemo(
@@ -210,6 +211,8 @@ export default function Blog() {
                   <PostSkeleton key={i} />
                 ))}
               </div>
+            ) : isError ? (
+              <BlogLoadError isRTL={isRTL} onRetry={() => refetch()} />
             ) : filteredPosts.length === 0 ? (
               <EmptyState isFiltered={isFiltered} />
             ) : (
