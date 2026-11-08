@@ -132,7 +132,7 @@ describe('checkout states', () => {
     expect(text).toMatch(/77\.77|77,77/); // 7777 agorot, straight from the quote
     expect(text).toMatch(/12\.34|12,34/);
     expect(screen.getByTestId('price-total').textContent).toMatch(/99\.99|99,99/); // not the 90.11 sum
-    expect(screen.getByText('המחיר כולל מע״מ')).toBeTruthy();
+    expect(screen.getByText('המחיר סופי, ללא תוספות')).toBeTruthy();
     expect(screen.getByText('ההדפסה מתחילה אחרי אישור התשלום.')).toBeTruthy();
     expect(screen.getByText(/הנרקיסים 12/)).toBeTruthy();
   });

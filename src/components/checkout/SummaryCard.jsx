@@ -32,7 +32,7 @@ export function PriceLines({ quote, loading }) {
           {formatIls(quote.totalAgorot)}
         </span>
       </div>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">המחיר כולל מע״מ</p>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">המחיר סופי, ללא תוספות</p>
     </div>
   );
 }

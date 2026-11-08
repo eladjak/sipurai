@@ -29,7 +29,7 @@ export function OrderCard({ order }) {
           <dd className="font-semibold text-slate-900 dark:text-white">{order.qty}</dd>
         </div>
         <div>
-          <dt className="text-slate-500 dark:text-slate-400">סה״כ (כולל מע״מ)</dt>
+          <dt className="text-slate-500 dark:text-slate-400">סה״כ</dt>
           <dd className="font-semibold tabular-nums text-slate-900 dark:text-white" dir="ltr" style={{ textAlign: 'right' }}>
             {formatIls(order.totalAgorot)}
           </dd>

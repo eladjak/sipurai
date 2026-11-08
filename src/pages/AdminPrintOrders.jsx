@@ -77,7 +77,7 @@ function AdminOrderCard({ order, api, onChanged }) {
           <dd className="font-semibold">{order.qty}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">סה״כ כולל מע״מ</dt>
+          <dt className="text-slate-500">סה״כ</dt>
           <dd className="font-semibold tabular-nums" dir="ltr" style={{ textAlign: 'right' }}>
             {formatIls(order.totalAgorot)}
           </dd>

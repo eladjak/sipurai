@@ -250,7 +250,7 @@ export function PrintCheckoutView({
                     <strong className="text-slate-900 dark:text-white" dir="ltr">
                       {formatIls(q.quote.totalAgorot)}
                     </strong>{' '}
-                    כולל מע״מ.
+                    סופי.
                   </>
                 ) : q.status === 'error' ? (
                   'המחיר יוצג בשלב הסיכום.'
