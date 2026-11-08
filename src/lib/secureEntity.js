@@ -45,7 +45,7 @@ export function createSecureEntity(entity, options = {}) {
       // Deny if resource has an owner and it's not the current user.
       // Also deny if owner field is missing (prevents unowned resource bypass).
       const owner = existing[ownerField];
-      if (owner && owner !== user.id) {
+      if (owner !== user.id || (Object.hasOwn(data, ownerField) && data[ownerField] !== user.id)) {
         throw new Error('Not authorized to modify this resource');
       }
 
@@ -58,7 +58,7 @@ export function createSecureEntity(entity, options = {}) {
 
       const existing = await entity.get(id);
       const owner = existing[ownerField];
-      if (owner && owner !== user.id) {
+      if (owner !== user.id) {
         throw new Error('Not authorized to delete this resource');
       }
 
