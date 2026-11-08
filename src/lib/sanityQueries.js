@@ -30,7 +30,7 @@ export const BLOG_POSTS_QUERY = `*[_type == "post" && siteId == "eyai-kids" && s
  * Fetch a single blog post by its slug.
  * Required params: { slug: string }
  */
-export const BLOG_POST_BY_SLUG_QUERY = `*[_type == "post" && siteId == "eyai-kids" && slug.current == $slug][0] {
+export const BLOG_POST_BY_SLUG_QUERY = `*[_type == "post" && siteId == "eyai-kids" && slug.current == $slug && status == "published" && !(_id in path("drafts.**"))][0] {
   _id,
   slug,
   publishedAt,
@@ -41,7 +41,7 @@ export const BLOG_POST_BY_SLUG_QUERY = `*[_type == "post" && siteId == "eyai-kid
   language,
   tags,
   author->{name, image, bio},
-  "relatedPosts": *[_type == "post" && siteId == "eyai-kids" && _id != ^._id && status == "published"][0..2] {
+  "relatedPosts": *[_type == "post" && siteId == "eyai-kids" && _id != ^._id && status == "published" && !(_id in path("drafts.**"))][0..2] {
     _id, slug, title, mainImage, publishedAt
   }
 }`;

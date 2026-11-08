@@ -1,7 +1,7 @@
 import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
 
-const SANITY_PROJECT_ID = import.meta.env.VITE_SANITY_PROJECT_ID;
+const SANITY_PROJECT_ID = import.meta.env.VITE_SANITY_PROJECT_ID || 'b0hm1i34';
 
 // Only create a real client when the project ID is configured.
 // Prevents crashes on deployments where Sanity is not yet set up.

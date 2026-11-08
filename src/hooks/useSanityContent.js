@@ -23,7 +23,7 @@ import {
  * @param {object}  [options] - Extra React Query options
  */
 export function useSanityQuery(queryKey, query, params = {}, options = {}) {
-  const isSanityConfigured = !!import.meta.env.VITE_SANITY_PROJECT_ID;
+  const isSanityConfigured = true;
   const result = useQuery({
     queryKey: ['sanity', queryKey, JSON.stringify(params)],
     queryFn: () => sanityClient.fetch(query, params),
@@ -49,26 +49,18 @@ export function useSanityQuery(queryKey, query, params = {}, options = {}) {
 /**
  * Fetch all published blog posts for Sipurai.
  */
+async function publicBlogFetch(slug) {
+  const response = await fetch(`/api/blog-posts${slug ? `?slug=${encodeURIComponent(slug)}` : ''}`);
+  if (!response.ok) throw new Error('Blog content unavailable');
+  return response.json();
+}
 export function useBlogPosts() {
-  return useSanityQuery('blogPosts', BLOG_POSTS_QUERY);
+  return useQuery({ queryKey: ['public-blog-posts'], queryFn: () => publicBlogFetch(), staleTime: 300000, retry: false });
 }
-
-/**
- * Fetch a single blog post by its slug.
- * @param {string} slug
- */
 export function useBlogPost(slug) {
-  return useSanityQuery(
-    `blogPost-${slug}`,
-    BLOG_POST_BY_SLUG_QUERY,
-    { slug },
-    { enabled: !!slug && !!import.meta.env.VITE_SANITY_PROJECT_ID }
-  );
+  return useQuery({ queryKey: ['public-blog-post', slug], queryFn: () => publicBlogFetch(slug), enabled: !!slug, staleTime: 300000, retry: false });
 }
 
-/**
- * Fetch featured blog posts (most recent 6).
- */
 export function useFeaturedBlogPosts() {
   return useSanityQuery('featuredBlogPosts', FEATURED_BLOG_POSTS_QUERY);
 }
