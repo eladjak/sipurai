@@ -124,14 +124,28 @@ describe('createSecureEntity — ownership (default ownerField)', () => {
     expect(entity.update).toHaveBeenCalledWith('id1', { title: 'New' });
   });
 
-  it('allows update when ownerField is not set on entity (unowned resource)', async () => {
+  it('blocks update when ownerField is not set on entity (unowned resource)', async () => {
     mockUserMe.mockResolvedValue({ id: 'user_anyone', email: 'anyone@example.com' });
     const records = { id1: { id: 'id1', title: 'Unowned' } };
     const entity = makeEntity(records);
     const secure = createSecureEntity(entity);
 
-    await secure.update('id1', { title: 'Updated' });
-    expect(entity.update).toHaveBeenCalledWith('id1', { title: 'Updated' });
+    await expect(secure.update('id1', { title: 'Updated' })).rejects.toThrow('Not authorized');
+    expect(entity.update).not.toHaveBeenCalled();
+  });
+
+  it('blocks deleting an unowned resource', async () => {
+    mockUserMe.mockResolvedValue({ id: 'user_alice' });
+    const entity = makeEntity({ id1: { id: 'id1' } });
+    await expect(createSecureEntity(entity).delete('id1')).rejects.toThrow('Not authorized');
+    expect(entity.delete).not.toHaveBeenCalled();
+  });
+
+  it('blocks changing the owner on an owned resource', async () => {
+    mockUserMe.mockResolvedValue({ id: 'user_alice' });
+    const entity = makeEntity({ id1: { id: 'id1', created_by: 'user_alice' } });
+    await expect(createSecureEntity(entity).update('id1', { created_by: 'user_bob' })).rejects.toThrow('Not authorized');
+    expect(entity.update).not.toHaveBeenCalled();
   });
 
   it('blocks delete when current user is not the owner', async () => {
