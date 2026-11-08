@@ -9,6 +9,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { normalizeCreemEvent } from '../_lib/orders/payment/creem.js';
+import { defaultDeps, isEnabled } from '../_lib/orders/handlers.js';
+import { handlePaymentEvent } from '../_lib/orders/service.js';
 
 // Disable Vercel's automatic body parsing so we can read the EXACT raw bytes.
 // Creem signs the raw request body; re-serializing a parsed object (JSON.stringify)
@@ -58,7 +61,11 @@ function getPlanFromProductId(productId) {
   return 'free';
 }
 
-export default async function handler(req, res) {
+/**
+ * `deps` is only for tests (inject store/payment/vendor/env for printed-book orders).
+ * Production calls the default export below, which passes nothing.
+ */
+export async function handleCreemWebhook(req, res, deps) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -100,6 +107,21 @@ export default async function handler(req, res) {
   console.info('[creem-webhook] Received event:', eventType);
 
   try {
+    // Printed-book orders: a checkout.completed that carries one of OUR order ids.
+    // Subscription events below are untouched. Off (404-equivalent) while PRINT_ORDER_ENABLED is not 'true'.
+    // (normalizeCreemEvent also understands Creem's `eventType`/`object` envelope; the
+    // subscription switch below keeps reading `type` exactly as before.)
+    {
+      const orderEnv = deps?.env || process.env;
+      const normalized = normalizeCreemEvent(event);
+      if (normalized && isEnabled(orderEnv) && normalized.orderId) {
+        const orderDeps = deps?.store ? { env: orderEnv, ...deps } : { ...(await defaultDeps(orderEnv)), ...deps, env: orderEnv };
+        const result = await handlePaymentEvent(orderDeps, normalized);
+        console.info('[creem-webhook] print order event:', result.outcome);
+        return res.status(200).json({ received: true });
+      }
+    }
+
     switch (eventType) {
       case 'subscription.created':
       case 'subscription.active':
@@ -180,4 +202,8 @@ export default async function handler(req, res) {
     });
     return res.status(500).json({ error: 'Internal server error' });
   }
+}
+
+export default function handler(req, res) {
+  return handleCreemWebhook(req, res);
 }

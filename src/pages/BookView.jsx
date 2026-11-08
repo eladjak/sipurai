@@ -43,6 +43,7 @@ import { isRunLive } from "@/lib/generationLock";
 import { generateBookIncremental } from "@/lib/bookGeneration";
 import { buildRecipe } from "@/lib/bookRecipe";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
+import { OrderBookButton } from "@/components/checkout/OrderBookButton";
 
 // canvas-confetti loaded on-demand (keeps BookView out of the confetti chunk on initial load)
 let _confettiMod = null;
@@ -901,6 +902,9 @@ export default function BookView() {
                 </Button>
               </Link>
             )}
+
+            {/* Printed-book order: only when the feature flag is on and the book is finished */}
+            {book && !isGuest && book.created_by === user?.id && progress.isComplete && <OrderBookButton bookId={book.id} />}
           </div>
         </div>
 

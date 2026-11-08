@@ -3,6 +3,9 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "crons": [
+    { "path": "/api/cron/print-orders-watch", "schedule": "0 * * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -5,7 +5,18 @@ export const PRINT_PRESETS = Object.freeze([
   Object.freeze({ id: 'portrait-165x235', widthMm: 165, heightMm: 235 }),
 ]);
 
-const BLEED_MM = 3.2;
+export const BLEED_MM = 3.2;
+export const MIN_PAGES = 24;
+export const MAX_PAGES = 80;
+
+/**
+ * Spine thickness per sheet (two pages) for white-110gsm + soft-matte, in mm.
+ * DISCREPANCY: some vendor docs say 1.65 mm for 24 pages; the vendor's own
+ * preview for real order #33377 (24pp, 22x22) showed 1.8 mm = 12 sheets x 0.15.
+ * We use the measured preview value (1.8). 1.65 is NOT used anywhere.
+ */
+export const SPINE_MM_PER_SHEET = 0.15;
+export const SPINE_24PP_DOC_DISCREPANT_MM = 1.65;
 const SAFE_INSET_MM = 10;
 const roundMm = (n) => Math.round(n * 1000) / 1000;
 
@@ -32,9 +43,43 @@ function isVerifiedProof(spec) {
     spec.paper === 'white-110gsm' && spec.cover === 'soft-matte';
 }
 
-/** Never infer a spine from page count, including for another paper or binding. */
+/** Page count must be an even integer in [24, 80]. */
+export function isSupportedPageCount(n) {
+  return Number.isInteger(n) && n % 2 === 0 && n >= MIN_PAGES && n <= MAX_PAGES;
+}
+
+/**
+ * Print pages for a story of `storyPages` pages (the product makes 6/10/15
+ * via pageCountFor): padded up to the 24-page minimum, rounded up to even.
+ */
+export function printPageCountFor(storyPages) {
+  const n = Number(storyPages);
+  if (!Number.isFinite(n) || n < 1) throw new Error('Invalid story page count');
+  const even = Math.max(MIN_PAGES, Math.ceil(n / 2) * 2);
+  if (!isSupportedPageCount(even)) throw new Error('Unsupported page count');
+  return even;
+}
+
+/**
+ * Spine for the verified paper only (white-110gsm, soft-matte).
+ * Returns {mm, source, verified} or null for another paper/binding or bad page count.
+ * measured-proof-24pp: exactly the vendor-previewed case (22x22, 24pp).
+ * derived-linear: (pageCount/2) * 0.15 mm, not yet confirmed by a vendor preview.
+ */
+export function getSpine(spec) {
+  if (!spec || spec.paper !== 'white-110gsm' || spec.cover !== 'soft-matte') return null;
+  if (!PRINT_PRESETS.some((p) => p.id === spec.presetId)) return null;
+  if (!isSupportedPageCount(spec.pageCount)) return null;
+  const mm = roundMm((spec.pageCount / 2) * SPINE_MM_PER_SHEET);
+  return isVerifiedProof(spec)
+    ? { mm, source: 'measured-proof-24pp', verified: true }
+    : { mm, source: 'derived-linear', verified: false };
+}
+
+/** Backward compatible: only the measured proof spec yields a number. */
 export function getVerifiedSpineMm(spec) {
-  return isVerifiedProof(spec) ? 1.8 : null;
+  const spine = getSpine(spec);
+  return spine && spine.verified ? spine.mm : null;
 }
 
 /** Historical print cost, not a customer price or a current quote. */

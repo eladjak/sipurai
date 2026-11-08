@@ -16,6 +16,13 @@ import { AuthProvider, FallbackAuthProvider, useAuth } from '@/lib/AuthContext';
 import ClerkLocaleProvider from '@/components/ClerkLocaleProvider';
 const SignIn = lazy(() => import('@/pages/SignIn'));
 const SignUp = lazy(() => import('@/pages/SignUp'));
+// Printed-book ordering. The env test is written inline so that, with the flag off,
+// the bundler drops these lazy imports and the screens are not in the build at all.
+const PrintCheckout = import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' ? lazy(() => import('@/pages/PrintCheckout')) : null;
+const MyOrders = import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' ? lazy(() => import('@/pages/MyOrders')) : null;
+const AdminPrintOrders = import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' ? lazy(() => import('@/pages/AdminPrintOrders')) : null;
+// Dev-only screenshot harness (never present in a normal build).
+const CheckoutHarness = import.meta.env.VITE_CHECKOUT_HARNESS === '1' ? lazy(() => import('@/pages/CheckoutStatesHarness')) : null;
 import { I18nProvider } from '@/components/i18n/i18nProvider';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -79,7 +86,8 @@ const AuthenticatedApp = () => {
     location.pathname === '/contact' ||
     location.pathname === '/Contact' ||
     location.pathname === '/pricing' ||
-    location.pathname === '/accessibility';
+    location.pathname === '/accessibility' ||
+    (CheckoutHarness !== null && location.pathname === '/__checkout-states');
 
   // Show loading spinner while checking app public settings or auth
   // For public routes, skip auth loading wait (user will be null but that's fine)
@@ -156,6 +164,14 @@ const AuthenticatedApp = () => {
               }
             />
           ))}
+          {PrintCheckout && (
+            <Route path="/book/:id/order" element={<LayoutWrapper currentPageName="PrintCheckout"><PrintCheckout /></LayoutWrapper>} />
+          )}
+          {MyOrders && <Route path="/orders" element={<LayoutWrapper currentPageName="MyOrders"><MyOrders /></LayoutWrapper>} />}
+          {AdminPrintOrders && (
+            <Route path="/admin/print-orders" element={<LayoutWrapper currentPageName="AdminPrintOrders"><AdminPrintOrders /></LayoutWrapper>} />
+          )}
+          {CheckoutHarness && <Route path="/__checkout-states" element={<CheckoutHarness />} />}
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </AnimatedPage>

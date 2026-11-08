@@ -10,7 +10,7 @@ import { Feedback } from '@/entities/Feedback';
  * GiftEditionCTA — a DEMAND-GATE (measurement only, NO payment).
  *
  * Validates willingness-to-pay for a printed / premium "gift edition" of a book
- * BEFORE any print (BookPod) or checkout integration is built. Per Elad's
+ * BEFORE any print-partner or checkout integration is built. Per Elad's
  * demand-over-vanity rule: measure real intent first, build the pipeline only
  * if the clicks are real.
  *

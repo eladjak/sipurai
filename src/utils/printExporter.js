@@ -1,12 +1,12 @@
 import { jsPDF } from 'jspdf';
-import { PRINT_PRESETS, getPrintGeometry, getVerifiedSpineMm } from '../lib/printSpec.js';
+import { PRINT_PRESETS, BLEED_MM, getPrintGeometry, getSpine, isSupportedPageCount } from '../lib/printSpec.js';
 
 // Internal prepress API. Artwork is placed wholly inside the safe rectangle;
 // the surrounding trim and bleed are white. It does not create book layouts.
 function proofPreset(spec) {
   const preset = PRINT_PRESETS.find(item => item.id === spec?.presetId);
-  if (!preset || spec.pageCount !== 24 || spec.paper !== 'white-110gsm' || spec.cover !== 'soft-matte') {
-    throw new Error('Unverified proof specification');
+  if (!preset || !isSupportedPageCount(spec.pageCount) || spec.paper !== 'white-110gsm' || spec.cover !== 'soft-matte') {
+    throw new Error('Unsupported print specification');
   }
   return preset;
 }
@@ -29,10 +29,10 @@ function draw(doc, image, alias) {
   doc.addImage(image.bytes, image.format, image.x, image.y, image.width, image.height, alias);
 }
 
-/** Exactly 24 finished page artworks; returns a jsPDF document, without downloading. */
+/** Exactly spec.pageCount (even, 24..80) finished page artworks; returns a jsPDF document. */
 export function createInteriorPdf(spec, pages) {
   proofPreset(spec);
-  if (!Array.isArray(pages) || pages.length !== 24) throw new Error('Exactly 24 page artworks are required');
+  if (!Array.isArray(pages) || pages.length !== spec.pageCount) throw new Error(`Exactly ${spec.pageCount} page artworks are required`);
   const { content, safe } = getPrintGeometry(spec.presetId);
   const doc = newPdf(content.widthMm, content.heightMm);
   // Preflight everything before creating output; no skipped or substituted pages.
@@ -43,16 +43,39 @@ export function createInteriorPdf(spec, pages) {
   return doc;
 }
 
-/** RTL spread: front on left, back on right; empty white spine, no spine text. */
+/**
+ * RTL spread (flat, as printed): BACK on the left, FRONT on the right, because
+ * a right-to-left book opens from the right. Empty white spine, no spine text.
+ * Size: 2*trimWidth + spine + 2*bleed by trimHeight + 2*bleed.
+ */
 export function createCoverPdf(spec, { front, back } = {}) {
-  const spine = getVerifiedSpineMm(spec);
-  if (spine === null) throw new Error('Unverified spine specification');
   const preset = proofPreset(spec);
+  const spine = getSpine(spec);
+  if (!spine) throw new Error('Unsupported spine specification');
   const { content, safe } = getPrintGeometry(spec.presetId);
-  const doc = newPdf(2 * preset.widthMm + spine + 6.4, content.heightMm);
-  const frontImage = prepare(doc, front, safe);
-  const backImage = prepare(doc, back, { ...safe, xMm: safe.xMm + preset.widthMm + spine });
-  draw(doc, frontImage, 'front');
+  const doc = newPdf(2 * preset.widthMm + spine.mm + 2 * BLEED_MM, content.heightMm);
+  const backImage = prepare(doc, back, safe);
+  const frontImage = prepare(doc, front, { ...safe, xMm: safe.xMm + preset.widthMm + spine.mm });
   draw(doc, backImage, 'back');
+  draw(doc, frontImage, 'front');
   return doc;
+}
+
+/** One entry point: interior + cover PDFs and the sizes they were built to. */
+export function buildPrintPackage(spec, { pages, front, back } = {}) {
+  const interior = createInteriorPdf(spec, pages);
+  const cover = createCoverPdf(spec, { front, back });
+  const spine = getSpine(spec);
+  const { content } = getPrintGeometry(spec.presetId);
+  const preset = PRINT_PRESETS.find(item => item.id === spec.presetId);
+  return {
+    interior,
+    cover,
+    meta: {
+      interiorPageSizeMm: { widthMm: content.widthMm, heightMm: content.heightMm },
+      coverSizeMm: { widthMm: Math.round((2 * preset.widthMm + spine.mm + 2 * BLEED_MM) * 1000) / 1000, heightMm: content.heightMm },
+      spineMm: spine.mm,
+      pageCount: spec.pageCount,
+    },
+  };
 }
