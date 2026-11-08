@@ -9,6 +9,7 @@ import { requireClerkAuth } from '../verifyClerk.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
+import { createMorningPayment } from './payment/morning.js';
 import { createSupabaseStore } from './store.js';
 import {
   OrderError,
@@ -30,6 +31,14 @@ export function adminIds(env) {
     .filter(Boolean);
 }
 
+/**
+ * Printed books are paid through Morning (Creem forbids physical goods).
+ * PRINT_PAYMENT_PROVIDER=creem is kept only as an explicit escape hatch; default is morning.
+ */
+export function createPrintPayment(env = process.env) {
+  return env.PRINT_PAYMENT_PROVIDER === 'creem' ? createCreemPayment({ env }) : createMorningPayment({ env });
+}
+
 /** Build production deps lazily; only reached once the flag is on. */
 export async function defaultDeps(env = process.env) {
   const { createClient } = await import('@supabase/supabase-js');
@@ -40,7 +49,7 @@ export async function defaultDeps(env = process.env) {
     env,
     auth: requireClerkAuth,
     store: createSupabaseStore(createClient(url, key, { auth: { persistSession: false } })),
-    payment: createCreemPayment({ env }),
+    payment: createPrintPayment(env),
     vendor: createVendorClient({ env }),
   };
 }

@@ -208,7 +208,11 @@ export async function handlePaymentEvent(deps, evt) {
     await store.addEvent(order.id, 'payment_event_ignored', { eventId: evt.eventId, reason: 'already_processed' });
     return { outcome: 'duplicate' };
   }
-  await store.addEvent(order.id, 'paid', { eventId: evt.eventId, paymentRef: evt.paymentRef });
+  await store.addEvent(order.id, 'paid', {
+    eventId: evt.eventId,
+    paymentRef: evt.paymentRef,
+    ...(evt.receiptNumber != null ? { receiptNumber: evt.receiptNumber } : {}),
+  });
 
   let submit;
   try {
