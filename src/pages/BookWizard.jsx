@@ -28,6 +28,8 @@ import WizardProgress from "@/components/wizard/WizardProgress";
 import TopicStep from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "@/components/wizard/PreviewEditStep";
+import PrintSizeStep from "@/components/wizard/PrintSizeStep";
+import { imageAspectForBook } from "@/lib/printSpec";
 import SaveStep from "@/components/wizard/SaveStep";
 import StoryStructure from "@/components/storyBuilder/StoryStructure";
 import LoadingOverlay from "@/components/shared/LoadingOverlay";
@@ -154,7 +156,8 @@ export default function BookWizard() {
     interests: "",
     family_members: "",
     status: "draft",
-    cover_image: ""
+    cover_image: "",
+    print_size: "square-220"
   });
 
   const [generatedOutline, setGeneratedOutline] = useState(null);
@@ -324,6 +327,7 @@ export default function BookWizard() {
     { id: "characters", title: t("wizard.steps.characters") },
     { id: "structure", title: structureLabel },
     { id: "preview", title: t("wizard.steps.preview") },
+    { id: "size", title: isRTL ? "גודל" : "Size" },
     { id: "save", title: t("wizard.steps.create") }
   ];
 
@@ -336,7 +340,7 @@ export default function BookWizard() {
   }, [currentUserData]);
 
   // Navigation
-  // 0: topic · 1: characters · 2: structure · 3: preview · 4: save
+  // 0: topic · 1: characters · 2: structure · 3: preview · 4: size · 5: save
   // The structure step is intentionally permissive — the AI may fail
   // and we don't want to trap the user; they can always advance with
   // an empty / partial spine, which the create flow will fall back from.
@@ -347,6 +351,7 @@ export default function BookWizard() {
       case 2: return true; // structure is optional / editable on next step too
       case 3: return !!bookData.title;
       case 4: return true;
+      case 5: return true;
       default: return false;
     }
   };
@@ -527,7 +532,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
     const retryResults = await Promise.allSettled(
       failures.map(({ pageId, imagePrompt }) =>
-        GenerateImage({ prompt: imagePrompt, referenceImageBase64: characterReferenceRef.current })
+        GenerateImage({ prompt: imagePrompt, aspectRatio: imageAspectForBook(bookData), referenceImageBase64: characterReferenceRef.current })
           .then((result) => ({ pageId, url: result?.url || "" }))
           .catch(() => ({ pageId, url: "" }))
       )
@@ -943,7 +948,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   }
 
   // Render current step content.
-  // Step order: 0 topic · 1 characters · 2 structure · 3 preview · 4 save.
+  // Step order: 0 topic · 1 characters · 2 structure · 3 preview · 4 size · 5 save.
   const renderStep = () => {
     switch (currentStep) {
       case 0:
@@ -996,6 +1001,8 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
           />
         );
       case 4:
+        return <PrintSizeStep value={bookData.print_size || "square-220"} onChange={(value) => updateBookField("print_size", value)} length={bookData.length} isRTL={isRTL} />;
+      case 5:
         return (
           <SaveStep
             bookData={bookData}

@@ -96,7 +96,7 @@ export default function PagePreview({
             <img
               src={currentPage.image_url}
               alt={`${t("book.pageOf", { current: currentPageIndex + 1, total: "" })}`.trim()}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="w-full h-full min-h-[300px] flex items-center justify-center">

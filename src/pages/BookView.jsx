@@ -835,7 +835,8 @@ export default function BookView() {
               onClick={handleExportPDF}
               disabled={isExportingPDF}
               className={`rounded-xl ${nightToolbar}`}
-              aria-label={t('bookView.downloadPdf')}
+              aria-label={isRTL ? 'הורדת PDF לקריאה ביתית' : 'Download PDF for home reading'}
+              title={isRTL ? 'PDF לקריאה ביתית; אינו קובץ מוכן לדפוס מקצועי' : 'Home-reading PDF; not a print-ready file'}
             >
               {isExportingPDF
                 ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -969,7 +970,7 @@ export default function BookView() {
                           <img
                             src={book.cover_image}
                             alt={book.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-600 flex items-center justify-center">
@@ -1010,7 +1011,7 @@ export default function BookView() {
                               <img
                                 src={currentPage.image_url}
                                 alt={t('bookView.pageAlt', { number: currentPageIndex })}
-                                className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
+                                className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
                                 onClick={zoomIn}
                               />
                             ) : null}
@@ -1026,7 +1027,7 @@ export default function BookView() {
                               <img
                                 src={currentPage.image_url}
                                 alt={t('bookView.pageAlt', { number: currentPageIndex })}
-                                className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
+                                className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
                                 onClick={zoomIn}
                               />
                             ) : null}
@@ -1048,7 +1049,7 @@ export default function BookView() {
                                 <img
                                   src={currentPage.image_url}
                                   alt={t('bookView.pageAlt', { number: currentPageIndex })}
-                                  className="w-full h-full object-cover cursor-zoom-in"
+                                  className="w-full h-full object-contain cursor-zoom-in"
                                   onClick={zoomIn}
                                 />
                               ) : (

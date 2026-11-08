@@ -1,3 +1,4 @@
+import { imageAspectForBook } from "./printSpec";
 /**
  * Incremental, resumable book generation.
  *
@@ -205,7 +206,7 @@ export async function generateBookIncremental({
     if (book.cover_image) {
       coverWork = fetchReference(book.cover_image).catch(() => null);
     } else {
-      coverWork = GenerateImage({ prompt: recipe.coverPrompt })
+      coverWork = GenerateImage({ prompt: recipe.coverPrompt, aspectRatio: imageAspectForBook(book) })
         .then(async (result) => {
           if (!result?.url) return null;
           await Book.update(book.id, { cover_image: result.url }).catch(() => {});
@@ -301,7 +302,7 @@ export async function generateBookIncremental({
 
       const prompt = recipe.imagePrompt(pages[index], number, { reference: ref });
       try {
-        const result = await GenerateImage({ prompt, referenceImageBase64: ref || null });
+        const result = await GenerateImage({ prompt, aspectRatio: imageAspectForBook(book), referenceImageBase64: ref || null });
         const url = result?.url || '';
         if (!url) throw new Error('No image was returned');
         const saved = await Page.update(pages[index].id, { image_url: url, image_prompt: prompt });

@@ -3,9 +3,9 @@ import { motion } from "framer-motion";
 import { Check, BookOpen, Users, Eye, Rocket, Film } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
-// Order mirrors BookWizard.steps: topic → characters → structure → preview → save.
+// Order mirrors BookWizard.steps: topic → characters → structure → preview → size → save.
 // Falls back to BookOpen for any extra/unknown step index.
-const STEP_ICONS = [BookOpen, Users, Film, Eye, Rocket];
+const STEP_ICONS = [BookOpen, Users, Film, Eye, BookOpen, Rocket];
 
 /**
  * WizardProgress - Animated visual step indicator for the book creation wizard.

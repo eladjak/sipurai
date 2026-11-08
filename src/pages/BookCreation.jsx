@@ -1,3 +1,4 @@
+import { imageAspectForBook } from "@/lib/printSpec";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -321,7 +322,7 @@ export default function BookCreation() {
         let imageFailed = false;
 
         try {
-          const imageResult = await GenerateImage({ prompt: imagePrompt });
+          const imageResult = await GenerateImage({ prompt: imagePrompt, aspectRatio: imageAspectForBook(book) });
           imageUrl = imageResult?.url || "";
           if (imageUrl) {
             imageSuccessCount++;
@@ -509,7 +510,7 @@ export default function BookCreation() {
       setIsGenerating(true);
 
       const enhancedPrompt = getEnhancedImagePrompt(currentPageImagePrompt, currentPageIndex);
-      const imageResult = await GenerateImage({ prompt: enhancedPrompt });
+      const imageResult = await GenerateImage({ prompt: enhancedPrompt, aspectRatio: imageAspectForBook(book) });
 
       const pageId = pages[currentPageIndex].id;
       await Page.update(pageId, {

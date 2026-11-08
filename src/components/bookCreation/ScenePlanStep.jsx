@@ -1,3 +1,4 @@
+import { imageAspectForBook } from "@/lib/printSpec";
 import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -220,7 +221,7 @@ export default function ScenePlanStep({
       if (!scene?.prompt_for_image) return;
       setPreviewIndex(index);
       try {
-        const result = await GenerateImage({ prompt: scene.prompt_for_image });
+        const result = await GenerateImage({ prompt: scene.prompt_for_image, aspectRatio: imageAspectForBook(book) });
         if (result?.url) {
           setPreviewUrls((p) => ({ ...p, [scene.id]: result.url }));
         }

@@ -1,4 +1,6 @@
 import React from "react";
+import { PRINT_PRESETS } from "@/lib/printSpec";
+import { pageCountFor } from "@/lib/bookRecipe";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +49,7 @@ const SUMMARY_GRADIENTS = {
 };
 
 /**
- * SaveStep - Step 4 of the wizard: Final summary and book creation.
+ * SaveStep - Final summary and book creation.
  * Visual summary cards + animated creation button + magical progress.
  */
 export default function SaveStep({
@@ -62,7 +64,9 @@ export default function SaveStep({
 }) {
   const { t } = useI18n();
 
+  const size = PRINT_PRESETS.find((item) => item.id === (bookData.print_size || "square-220"));
   const summaryItems = [
+    { key: "size", label: isRTL ? "גודל הספר" : "Book size", value: `${size.widthMm / 10} × ${size.heightMm / 10} ${isRTL ? "ס״מ" : "cm"} · ${pageCountFor(bookData.length)} ${isRTL ? "עמודים מתוכננים" : "planned pages"}` },
     {
       key: "topic",
       label: t("wizard.save.topic"),

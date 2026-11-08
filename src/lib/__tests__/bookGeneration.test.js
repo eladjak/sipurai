@@ -531,3 +531,16 @@ describe('generateBookIncremental — the cover never blocks page one', () => {
     expect(store.snapshot(result.bookId).book.cover_image).toBeFalsy();
   });
 });
+
+describe('print size image generation', () => {
+  it('persists the selected format and requests portrait for cover and pages', async () => {
+    const store = makeStore();
+    const ai = makeAi();
+    const recipe = makeRecipe(3);
+    recipe.bookFields.print_size = 'portrait-165x235';
+    const result = await run({ entities: store, ai, recipe });
+    expect(store.snapshot(result.bookId).book.print_size).toBe('portrait-165x235');
+    expect(ai.GenerateImage.mock.calls.length).toBeGreaterThan(1);
+    expect(ai.GenerateImage.mock.calls.every(([args]) => args.aspectRatio === '2:3')).toBe(true);
+  });
+});
