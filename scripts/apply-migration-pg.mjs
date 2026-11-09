@@ -37,9 +37,9 @@ if (!password) { console.error('FATAL: SUPABASE_DB_PASSWORD not set'); process.e
 const sql = readFileSync(resolve(__dirname, '..', file), 'utf8');
 
 const client = new pg.Client({
-  host: 'db.furviizyohryyqubosut.supabase.co',
+  host: 'aws-1-eu-central-1.pooler.supabase.com',
   port: 5432,
-  user: 'postgres',
+  user: 'postgres.furviizyohryyqubosut',
   password,
   database: 'postgres',
   ssl: { rejectUnauthorized: false },

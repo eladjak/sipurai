@@ -34,6 +34,8 @@ import SaveStep from "@/components/wizard/SaveStep";
 import StoryStructure from "@/components/storyBuilder/StoryStructure";
 import LoadingOverlay from "@/components/shared/LoadingOverlay";
 import FriendlyError from "@/components/shared/FriendlyError";
+import QuotaLimitCard from "@/components/shared/QuotaLimitCard";
+import { reserveBookSlot, clearActiveBookKey, newBookKey, QuotaError } from "@/lib/bookQuota";
 
 
 // --- Draft auto-save helpers ---
@@ -136,6 +138,8 @@ export default function BookWizard() {
   // Guards the one-way handover to the reader. Generation continues in this tab
   // after the navigation, so this must not fire twice per run.
   const handedOffRef = useRef(false);
+  const quotaKeyRef = useRef(null);
+  const [quotaBlock, setQuotaBlock] = useState(null);
   // The title the outline call settled on, which is what actually gets saved.
   const createdTitleRef = useRef("");
 
@@ -646,6 +650,21 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         return;
       }
 
+      // Server-side quota: take a slot for this book before any AI call. The same key is reused
+      // for retries of this creation, so a retry never costs a second book.
+      const quotaKey = resumeBookId || quotaKeyRef.current || (quotaKeyRef.current = newBookKey());
+      try {
+        await reserveBookSlot(quotaKey);
+      } catch (qe) {
+        if (qe instanceof QuotaError) {
+          setQuotaBlock(qe);
+          setIsCreating(false);
+          setCreationProgress(null);
+          return;
+        }
+        throw qe;
+      }
+
       const pageCount = pageCountFor(bookData.length);
 
       // Wave-8 opt-in fast path: ONE call returns every page's text upfront.
@@ -807,6 +826,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         details: errMessage.substring(0, 500),
       });
     } finally {
+      clearActiveBookKey();
       setIsCreating(false);
       setCreationProgress(null);
     }
@@ -926,6 +946,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         isRTL={isRTL}
       />
     );
+  }
+
+  if (quotaBlock) {
+    return <QuotaLimitCard error={quotaBlock} onBack={() => navigate(createPageUrl("Library"))} />;
   }
 
   // Error state

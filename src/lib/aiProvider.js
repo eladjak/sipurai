@@ -9,6 +9,7 @@
  */
 
 import { getApiAuthHeaders } from '@/lib/apiAuth';
+import { getActiveBookKey } from '@/lib/bookQuota';
 import { getModel } from '../../api/_lib/modelRegistry.js';
 
 // ─── Configuration ──────────────────────────────────────────────────────────
@@ -85,7 +86,11 @@ async function proxyCall(type, prompt, options = {}) {
     const authHeaders = await getApiAuthHeaders();
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+        ...(getActiveBookKey() ? { 'X-Book-Key': getActiveBookKey() } : {}),
+      },
       body: JSON.stringify({ prompt, type, options }),
       signal: ctrl.signal,
     });

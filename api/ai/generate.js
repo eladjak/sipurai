@@ -9,6 +9,7 @@
 
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
 import { getModel } from '../_lib/modelRegistry.js';
+import { gateAiCall } from '../_lib/quota.js';
 
 // ─── Simple in-memory rate limiter (per IP, resets every minute) ─────────────
 
@@ -92,7 +93,7 @@ function convertSchemaToGemini(schema) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
+export default async function handler(req, res, overrides = {}) {
   // CORS preflight — restrict to our domain only
   const allowedOrigins = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
   const origin = req.headers.origin;
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Book-Key');
     return res.status(204).end();
   }
 
@@ -119,6 +120,9 @@ export default async function handler(req, res) {
     log('UNAUTHORIZED', { reason: auth.reason });
     return res.status(401).json({ error: 'Authentication required.' });
   }
+
+  // Free-tier quota + global daily cap (server-side; off until FREE_QUOTA_ENFORCE=true).
+  if (await gateAiCall(req, res, auth.payload?.sub, overrides)) return;
 
   // Rate limit
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
