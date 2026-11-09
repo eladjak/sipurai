@@ -32,11 +32,15 @@ export async function reserveBookSlot(bookKey, fetchImpl = fetch) {
   try {
     res = await fetchImpl('/api/books/reserve', { method: 'POST', headers, body: JSON.stringify({ bookKey }) });
   } catch {
-    throw new QuotaError({ code: 'quota_unavailable', message_he: 'לא הצלחנו לבדוק את מכסת הספרים כרגע. נסו שוב בעוד רגע.' });
+    return { ok: true, skipped: true }; // checker unreachable: do not stop a family mid-story
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new QuotaError(data.error || { code: 'quota_unavailable', message_he: 'לא הצלחנו לבדוק את מכסת הספרים כרגע. נסו שוב בעוד רגע.' });
+    // A broken CHECKER must not block creation (the server-side gate still bounds spend when
+    // enforced). A real refusal (monthly_limit, daily_cap) always blocks.
+    const code = data?.error?.code;
+    if (!code || code === 'quota_unavailable' || code === 'unauthorized') return { ok: true, skipped: true };
+    throw new QuotaError(data.error);
   }
   activeKey = bookKey;
   return data;
