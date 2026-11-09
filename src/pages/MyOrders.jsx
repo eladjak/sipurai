@@ -9,7 +9,7 @@ import { OrderCard } from '@/components/checkout/OrderCard';
 import { PaymentReturn } from '@/components/checkout/PaymentReturn';
 import { EmptyOrdersArt } from '@/components/checkout/Illustrations';
 
-export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollMs, maxPollMs }) {
+export function MyOrdersView({ api = printOrderApi, paid = false, cancelled = false, orderId, paymentId, pollMs, maxPollMs }) {
   const [state, setState] = useState({ status: 'loading', orders: [], error: null });
 
   const load = useCallback(async (silent = false) => {
@@ -28,7 +28,12 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
 
   return (
     <PageShell title="ההזמנות שלי" subtitle="הספרים המודפסים שהזמנתם, ובאיזה שלב כל אחד נמצא." backTo={createPageUrl('Library')} backLabel="לספרייה">
-      {paid && <PaymentReturn api={api} orderId={orderId} pollMs={pollMs} maxMs={maxPollMs} onStatusChange={() => load(true)} />}
+      {cancelled && (
+        <InlineAlert tone="info" title="התשלום בוטל, ולא חויבתם" className="mb-5">
+          ההזמנה נשמרה. אפשר לחזור לספר ולהזמין שוב מתי שנוח.
+        </InlineAlert>
+      )}
+      {paid && <PaymentReturn api={api} orderId={orderId} paymentId={paymentId} pollMs={pollMs} maxMs={maxPollMs} onStatusChange={() => load(true)} />}
 
       {state.status === 'loading' && (
         <ul className="space-y-4" aria-busy="true" aria-label="טוענים את ההזמנות" role="status">
@@ -87,5 +92,12 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
 
 export default function MyOrders() {
   const [sp] = useSearchParams();
-  return <MyOrdersView paid={sp.get('paid') === '1'} orderId={sp.get('order') || sp.get('orderId') || undefined} />;
+  return (
+    <MyOrdersView
+      paid={sp.get('paid') === '1'}
+      cancelled={sp.get('cancelled') === '1'}
+      orderId={sp.get('order') || sp.get('orderId') || undefined}
+      paymentId={sp.get('OG-PaymentID') || undefined}
+    />
+  );
 }

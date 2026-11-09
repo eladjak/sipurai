@@ -10,7 +10,7 @@ const STOP = ['submitted', 'in_production', 'shipped', 'ready_for_pickup', 'canc
  * Shown on /orders?paid=1. Polls the order until the payment is confirmed and the order
  * is handed to printing, with friendly wording for every in-between state.
  */
-export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onStatusChange }) {
+export function PaymentReturn({ api, orderId, paymentId, pollMs = 3000, maxMs = 120000, onStatusChange }) {
   const [order, setOrder] = useState(null);
   const [slow, setSlow] = useState(false);
   const [softError, setSoftError] = useState(false);
@@ -25,7 +25,7 @@ export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onS
       try {
         let o;
         if (orderId) {
-          o = await api.getOrder(orderId);
+          o = await api.getOrder(orderId, paymentId);
         } else {
           const { orders } = await api.getMyOrders();
           o = [...(orders || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || null;
@@ -57,7 +57,7 @@ export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onS
       clearTimeout(timer);
     };
    
-  }, [api, orderId, pollMs, maxMs]);
+  }, [api, orderId, paymentId, pollMs, maxMs]);
 
   const status = order?.status;
   const paid = status && PAID_OR_LATER.includes(status);

@@ -224,6 +224,59 @@ export async function handlePaymentEvent(deps, evt) {
   return { outcome: 'paid', submit };
 }
 
+/**
+ * Customer came back from the payment page with a payment id (untrusted). Ask the provider;
+ * only a proven, full-amount payment for THIS order moves it. Provider unreachable -> order untouched.
+ * @returns the fresh order row, or null when nothing changed.
+ */
+export async function confirmReturnedPayment(deps, order, paymentId) {
+  const { store, payment } = deps;
+  if (typeof payment?.confirmPayment !== 'function' || payment.name !== 'summit') return null;
+  const pid = String(paymentId).slice(0, 20);
+  if (!/^\d{1,15}$/.test(pid)) return null;
+  let evt;
+  try {
+    evt = await payment.confirmPayment(order, { paymentId: pid });
+  } catch (e) {
+    await store.addEvent(order.id, 'payment_confirm_unreachable', { code: e?.code || 'unknown' });
+    return null;
+  }
+  if (!evt) {
+    await store.addEvent(order.id, 'payment_unverified', { paymentId: pid });
+    return null;
+  }
+  await handlePaymentEvent(deps, evt);
+  return store.getOrder(order.id);
+}
+
+/**
+ * Hourly safety net: customers who paid and closed the tab never ran the return page.
+ * Asks the provider for recent valid payments and applies the ones matching an awaiting order.
+ */
+export async function reconcileAwaitingPayments(deps) {
+  const { store, payment, now = () => new Date() } = deps;
+  if (typeof payment?.reconcile !== 'function') return { reconciled: 0, skipped: 'no_reconcile' };
+  const cutoffNew = now().getTime() - 2 * 60 * 1000; // give the return page a head start
+  const cutoffOld = now().getTime() - 3 * 24 * 3600 * 1000;
+  const waiting = (await store.listAll({ status: 'awaiting_payment' })).filter((o) => {
+    const t = new Date(o.created_at).getTime();
+    return o.payment_provider === 'summit' && o.checkout_url && t < cutoffNew && t > cutoffOld;
+  });
+  if (!waiting.length) return { reconciled: 0, waiting: 0 };
+  let events;
+  try {
+    events = await payment.reconcile(waiting);
+  } catch (e) {
+    return { reconciled: 0, waiting: waiting.length, error: e?.code || 'unknown' };
+  }
+  let reconciled = 0;
+  for (const evt of events) {
+    const r = await handlePaymentEvent(deps, evt);
+    if (r.outcome === 'paid') reconciled += 1;
+  }
+  return { reconciled, waiting: waiting.length };
+}
+
 /* ----------------------------- fulfilment -------------------------- */
 /**
  * Submit a paid order to the print partner. Never retried automatically after an

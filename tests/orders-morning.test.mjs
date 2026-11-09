@@ -212,8 +212,9 @@ test('flag off -> 404 before any I/O; GET -> 405; missing notify secret -> 500',
   assert.equal((await notify(noSecret, notifyReq(order))).status, 500);
 });
 
-test('default provider for print orders is Morning, not Creem', async () => {
+test('default provider for print orders is Summit (Morning only by explicit choice), never Creem', async () => {
   const { createPrintPayment } = await import('../api/_lib/orders/handlers.js');
-  assert.equal(createPrintPayment({}).name, 'morning');
+  assert.equal(createPrintPayment({}).name, 'summit');
+  assert.equal(createPrintPayment({ PRINT_PAYMENT_PROVIDER: 'morning' }).name, 'morning');
   assert.equal(createPrintPayment({ PRINT_PAYMENT_PROVIDER: 'creem' }).name, 'creem');
 });

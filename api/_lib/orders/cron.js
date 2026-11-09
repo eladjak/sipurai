@@ -1,7 +1,7 @@
 /** Hourly watcher for stuck print orders. Bearer CRON_SECRET, fail closed. */
 import crypto from 'node:crypto';
 import { defaultDeps, isEnabled } from './handlers.js';
-import { runStuckWatch, sanitize } from './service.js';
+import { reconcileAwaitingPayments, runStuckWatch, sanitize } from './service.js';
 
 function secretMatches(header, secret) {
   if (!secret) return false; // env missing -> nobody gets in
@@ -22,8 +22,9 @@ export function watchHandler() {
     }
     try {
       const deps = overrides?.store ? { env, ...overrides } : { ...(await defaultDeps(env)), ...overrides, env };
+      const reconcile = await reconcileAwaitingPayments(deps);
       const out = await runStuckWatch(deps);
-      return res.status(200).json(out);
+      return res.status(200).json(reconcile.skipped ? out : { ...out, reconcile });
     } catch (e) {
       console.error('[print-orders-watch]', sanitize(e?.message));
       return res.status(500).json({ error: { code: 'server_error' } });

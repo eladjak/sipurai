@@ -92,7 +92,7 @@ export const printOrderApi = {
   /** @returns {Promise<{orders: OrderView[]}>} */
   getMyOrders: () => request('/api/orders/mine'),
   /** @returns {Promise<OrderView>} */
-  getOrder: (id) => request('/api/orders/get' + qs({ id })),
+  getOrder: (id, paymentId) => request('/api/orders/get' + qs({ id, paymentId })),
   /** @returns {Promise<{orders: any[], alerts: any[]}>} */
   adminList: (status) => request('/api/orders/admin-list' + qs({ status })),
   /** @returns {Promise<any>} */

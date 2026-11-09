@@ -10,12 +10,14 @@ import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
 import { createMorningPayment } from './payment/morning.js';
+import { createSummitPayment } from './payment/summit.js';
 import { createSupabaseStore } from './store.js';
 import {
   OrderError,
   adminAction,
   adminOrderView,
   createOrder,
+  confirmReturnedPayment,
   isUuid,
   orderView,
   pricingToOrderError,
@@ -32,11 +34,14 @@ export function adminIds(env) {
 }
 
 /**
- * Printed books are paid through Morning (Creem forbids physical goods).
- * PRINT_PAYMENT_PROVIDER=creem is kept only as an explicit escape hatch; default is morning.
+ * Printed books are paid through the SUMIT hosted payment page (Elad, 9.11.2026: no Grow, Summit).
+ * PRINT_PAYMENT_PROVIDER=morning|creem are explicit escape hatches; default is summit.
  */
 export function createPrintPayment(env = process.env) {
-  return env.PRINT_PAYMENT_PROVIDER === 'creem' ? createCreemPayment({ env }) : createMorningPayment({ env });
+  const p = env.PRINT_PAYMENT_PROVIDER;
+  if (p === 'creem') return createCreemPayment({ env });
+  if (p === 'morning') return createMorningPayment({ env });
+  return createSummitPayment({ env });
 }
 
 /** Build production deps lazily; only reached once the flag is on. */
@@ -127,10 +132,15 @@ const ENDPOINTS = {
   get: {
     method: 'GET',
     async run(req, res, { deps, userId }) {
-      const { id } = queryOf(req);
-      const row = isUuid(id) ? await deps.store.getOrder(id) : null;
+      const { id, paymentId } = queryOf(req);
+      let row = isUuid(id) ? await deps.store.getOrder(id) : null;
       // Someone else's order is indistinguishable from a missing one.
       if (!row || row.user_id !== userId) throw new OrderError('not_found', 404, 'ההזמנה לא נמצאה');
+      // Back from the hosted payment page: the browser brings a payment id, which is only a hint.
+      // The provider is asked directly; nothing moves unless it proves this order was paid in full.
+      if (paymentId && row.status === 'awaiting_payment') {
+        row = (await confirmReturnedPayment(deps, row, paymentId)) || row;
+      }
       return send(res, 200, orderView(row));
     },
   },

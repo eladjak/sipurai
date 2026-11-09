@@ -267,6 +267,19 @@ describe('my orders', () => {
     await screen.findByTestId('payment-success');
     expect(screen.getByText('התשלום התקבל, תודה!')).toBeTruthy();
   });
+
+  it('return from Summit: the payment id from the redirect is handed to the server check', async () => {
+    const getOrder = vi.fn().mockResolvedValue({ id: "o1", status: "submitted", createdAt: "2026-11-06T09:00:00Z", qty: 1, method: "ship", totalAgorot: 100 });
+    wrap(<MyOrdersView api={mkApi({ getOrder })} paid orderId="o1" paymentId="900001" pollMs={20} />);
+    await screen.findByTestId("payment-success");
+    expect(getOrder).toHaveBeenCalledWith("o1", "900001");
+  });
+
+  it('customer cancelled on the payment page: calm message, says nothing was charged', async () => {
+    wrap(<MyOrdersView api={mkApi()} cancelled orderId="o1" />);
+    expect(await screen.findByText("התשלום בוטל, ולא חויבתם")).toBeTruthy();
+    expect(screen.queryByTestId("payment-checking")).toBeNull();
+  });
 });
 
 describe('admin', () => {
