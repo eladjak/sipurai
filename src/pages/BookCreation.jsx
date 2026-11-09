@@ -10,6 +10,7 @@ import { readablePages } from "@/lib/bookProgress";
 import { GenerateImage, InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { canCreateBook, recordBookCreation } from "@/utils/bookRateLimit";
+import { reserveBookSlot, clearActiveBookKey, QuotaError } from "@/lib/bookQuota";
 import { createPageUrl } from "@/utils";
 import { Edit, Eye, Share2, ArrowLeft, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
@@ -256,6 +257,16 @@ export default function BookCreation() {
       }
     } catch {
       // If we can't determine the user, allow creation to proceed
+    }
+
+    try {
+      await reserveBookSlot(bookId);
+    } catch (qe) {
+      if (qe instanceof QuotaError) {
+        toast({ variant: "destructive", description: qe.message });
+        return;
+      }
+      throw qe;
     }
 
     try {

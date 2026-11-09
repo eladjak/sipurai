@@ -41,6 +41,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { readablePages, summarizeBook, viewState, isResumable } from "@/lib/bookProgress";
 import { isRunLive } from "@/lib/generationLock";
 import { generateBookIncremental } from "@/lib/bookGeneration";
+import { reserveBookSlot, clearActiveBookKey, QuotaError } from "@/lib/bookQuota";
 import { buildRecipe } from "@/lib/bookRecipe";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
 import { OrderBookButton } from "@/components/checkout/OrderBookButton";
@@ -250,6 +251,7 @@ export default function BookView() {
     setIsResuming(true);
     setResumeError(null);
     try {
+      await reserveBookSlot(book.id);
       await generateBookIncremental({
         entities: { Book, Page },
         ai: { InvokeLLM, GenerateImage },
@@ -269,8 +271,9 @@ export default function BookView() {
         },
       });
     } catch (err) {
-      setResumeError(err?.message || t("bookView.resumeFailed"));
+      setResumeError(err instanceof QuotaError ? err.message : err?.message || t("bookView.resumeFailed"));
     } finally {
+      clearActiveBookKey();
       setIsResuming(false);
       setLiveTick((n) => n + 1);
     }
