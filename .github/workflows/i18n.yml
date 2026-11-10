@@ -1,3 +1,9 @@
+# Language check. LIMITS, said plainly: this check stops accidents, not a determined author.
+# The pull request being judged also carries this workflow, scripts/i18n-*.mjs and the baseline, so its author
+# can change all of them. The label i18n-baseline-raise is a speed bump, not an independent approval.
+# Real protection is review of changes to these files (for example CODEOWNERS and a required review).
+# What it does: runs the self-test, then fails a pull request that adds untranslated text, a language
+# ternary, a missing t() key or a punctuation slip, or that raises scripts/i18n-baseline.json.
 name: Language check
 on:
   pull_request:

@@ -12,6 +12,8 @@
  *
  * Existing cases are recorded in scripts/i18n-baseline.json (measure "punct") by scripts/i18n-check.mjs,
  * so they do not fail but a NEW one does. A deliberate case goes into ALLOW below with a one-line reason.
+ * (ALLOW is code in the pull request that changes it, so adding to it is visible in the diff but not independently
+ * approved: this check stops accidents, not a determined author.)
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,15 +40,16 @@ export function problemOf(value) {
 }
 
 /** Same shape as the audit's findings: { file: { punct: { key: { n, lines, p } } } } plus a readable list. */
-export function scanPunctuation(root) {
+export function scanPunctuation(root, allow = ALLOW) {
   const files = {};
   const list = [];
   for (const lang of ['he', 'yi']) {
     for (const [key, { value, file }] of loadLocale(root, lang)) {
       const bad = problemOf(value);
       if (!bad) continue;
-      if (ALLOW.some((a) => a.key === key && (!a.file || a.file === file))) continue;
-      ((files[file] ||= {}).punct ||= {})[key] = { n: 1, lines: [0], p: normText(bad.value).slice(0, 40) };
+      if (allow.some((a) => a.key === key && (!a.file || a.file === file))) continue;
+      // signature = key + hash of the value: changing one bad value into another bad value is a NEW finding
+      ((files[file] ||= {}).punct ||= {})[`${key}#${hashOf(normText(bad.value))}`] = { n: 1, lines: [0], p: normText(bad.value).slice(0, 40) };
       list.push({ key, file, kind: bad.kind, value: bad.value });
     }
   }

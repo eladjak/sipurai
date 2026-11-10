@@ -24,10 +24,22 @@
  *   dynamicKey  t(variable) / t(`a.${x}`): cannot be verified, so it is counted, not ignored  sig: hash of the argument
  *   parseError  the file could not be parsed completely, so it could not be counted           sig: "parse"
  *
- * Still OUT OF SCOPE (reported by count, never silently): text that never passes through JSX, a prop in
- * the list above or a t() call (strings in plain objects/arrays/constants that are rendered later); calls
- * through an alias (const tr = t); fallback strings passed as a second argument to t(); text built with
- * runtime concatenation; src/components/ui/** (design-system primitives), tests, and the locale files.
+ * Languages: Hebrew and English are REQUIRED. A t("key") must resolve to a non-empty STRING in both
+ * (null, false, 0, a function, an array, a whitespace-only string all count as missing, as t() would
+ * return the key). Yiddish is hidden from users by an owner decision, so Yiddish coverage is REPORTED
+ * (a count and the list of keys, every run) but never fails the check.
+ *
+ * Also read: a string constant that is rendered ({label} where const label = "Create a story"), aliases of
+ * t (const tr = t; const { t: tt } = useI18n()), a string passed as the second argument of t(), strings
+ * given to toast / alert / confirm / prompt, and "text " + name concatenation inside JSX.
+ *
+ * Still OUT OF SCOPE (never silently: counted and printed every run): copy that sits in objects/arrays/
+ * constants and is rendered through a loop or another function (printed as "unread copy candidates"),
+ * src/components/ui/** (design-system primitives), tests, and the locale files. Whether a Yiddish value is
+ * really translated (not copied English) is a review question, not something this script can decide.
+ *
+ * LIMITS, said plainly: this check stops accidents, not a determined author. The pull request that is being
+ * judged also carries this script, its baseline and the workflow, so its author can change all three.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -73,7 +85,8 @@ export const hashOf = (s) => crypto.createHash('sha1').update(s).digest('hex').s
 // Locales: strict structural evaluation of `export default {...}`. Anything we cannot evaluate
 // exactly stops the tool (exit 2) with file and line, instead of being guessed.
 // ---------------------------------------------------------------------------------------------
-const OPAQUE = '<function>';
+class Opaque {} // a function value: the key exists but t() would not return text
+const OPAQUE = new Opaque();
 
 function parseStrict(code, file, plugins = ['jsx']) {
   const { parser } = loadBabel();
@@ -135,7 +148,7 @@ function readLocaleFile(file) {
 function flattenInto(o, file, pre, out) {
   for (const [k, v] of Object.entries(o)) {
     const key = pre ? `${pre}.${k}` : k;
-    if (v && typeof v === 'object' && !Array.isArray(v)) flattenInto(v, file, key, out);
+    if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Opaque)) flattenInto(v, file, key, out);
     else {
       if (out.has(key)) throw new ToolError(`key "${key}" is defined twice: ${out.get(key).file} and ${file}`);
       out.set(key, { value: v, file });
@@ -165,8 +178,7 @@ function localeView(leaves) {
   const suffixes = new Set();
   const prefixes = new Set();
   for (const [k, { value }] of leaves) {
-    const empty = value === '' || (Array.isArray(value) && value.length === 0);
-    if (!empty) present.add(k);
+    if (typeof value === 'string' && value.trim() !== '') present.add(k); // anything else is not a text
     let i = k.indexOf('.');
     while (i !== -1) { suffixes.add(k.slice(i + 1)); prefixes.add(k.slice(0, i)); i = k.indexOf('.', i + 1); }
   }
@@ -201,6 +213,7 @@ function stringsOf(node, out = []) {
     case 'ConditionalExpression': stringsOf(node.consequent, out); stringsOf(node.alternate, out); break;
     case 'LogicalExpression': stringsOf(node.left, out); stringsOf(node.right, out); break;
     case 'ParenthesizedExpression': stringsOf(node.expression, out); break;
+    case 'BinaryExpression': if (node.operator === '+') { stringsOf(node.left, out); stringsOf(node.right, out); } break;
     default: break;
   }
   return out;
@@ -215,16 +228,19 @@ function langOf(text) {
 }
 
 /**
- * Returns { files: { rel: { measure: { sig: { n, lines[], p } } } }, stats }.
- * `locales` can be passed to avoid reloading.
+ * Returns { files: { rel: { measure: { sig: { n, lines[], p } } } }, hashes: { rel: contentHash }, stats }.
+ * `hashes` has an entry for every file that has findings (used to recognise a pure file rename).
  */
 export function scanProject(root) {
   const { parser, traverse } = loadBabel();
   const he = localeView(loadLocale(root, 'he'));
   const en = localeView(loadLocale(root, 'en'));
+  const yi = localeView(loadLocale(root, 'yi'));
   const files = {};
+  const hashes = {};
   const stats = {
     filesScanned: 0, outOfScope: { ui: 0, test: 0, locale: 0 }, distinctMissing: { he: new Set(), en: new Set(), heLegacyPrefix: new Set() },
+    yiMissing: new Set(), unreadCopy: 0,
     legacy: { hebText: 0, hebProp: 0, enText: 0, enProp: 0, ternary: 0 },
   };
   const list = [];
@@ -238,6 +254,7 @@ export function scanProject(root) {
   for (const [p, rel] of list) {
     stats.filesScanned += 1;
     const rec = {};
+    const seen = new Set(); // string nodes already counted (a constant rendered twice is one finding)
     const hit = (measure, sig, line, preview) => {
       const m = (rec[measure] ||= {});
       const e = (m[sig] ||= { n: 0, lines: [], p: preview });
@@ -247,19 +264,34 @@ export function scanProject(root) {
     const ts = /\.tsx?$/.test(rel);
     const plugins = ts ? ['jsx', 'typescript'] : ['jsx'];
     let ast;
-    try { ast = parser.parse(src, { sourceType: 'module', plugins, errorRecovery: true, sourceFilename: p }); } catch { hit('parseError', 'parse', 0, ''); files[rel] = rec; continue; }
+    try { ast = parser.parse(src, { sourceType: 'module', plugins, errorRecovery: true, sourceFilename: p }); } catch { hit('parseError', 'parse', 0, ''); files[rel] = rec; hashes[rel] = hashOf(src); continue; }
     if (ast.errors && ast.errors.length) hit('parseError', 'parse', (ast.errors[0].loc && ast.errors[0].loc.line) || 0, '');
 
     const text = (kind, node, value) => {
+      if (seen.has(node.start)) return;
       const t = normText(value);
       if (!t || /^[\s${}()\-–—.,:;|/&*+•·\d!?'"“”‘’<>=%]+$/.test(t)) return;
       if (/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(t) || /^[\w-]+(\.[\w-]+)+$/.test(t)) return; // an e-mail address or a domain is not copy
       const lang = langOf(t);
       if (!lang) return;
+      seen.add(node.start);
       hit(`${lang}${kind}`, hashOf(t), node.loc.start.line, t.slice(0, 40));
       if (lang === 'heb') stats.legacy[`heb${kind}`] += 1;
       else if (ENW.test(t)) stats.legacy[`en${kind}`] += 1;
     };
+    // t aliases in this file: const tr = t;  const { t: tt } = useI18n();
+    const tNames = new Set(['t']);
+    traverse(ast, {
+      VariableDeclarator(pp) {
+        const { id, init } = pp.node;
+        if (id.type === 'Identifier' && init && init.type === 'Identifier' && tNames.has(init.name)) tNames.add(id.name);
+        if (id.type === 'ObjectPattern') {
+          for (const pr of id.properties) {
+            if (pr.type === 'ObjectProperty' && pr.key.type === 'Identifier' && pr.key.name === 't' && pr.value.type === 'Identifier') tNames.add(pr.value.name);
+          }
+        }
+      },
+    });
     const keyHit = (callNode, arg) => {
       if (!arg) return;
       const k = arg.type === 'StringLiteral' ? arg.value : (arg.type === 'TemplateLiteral' && arg.expressions.length === 0 ? arg.quasis[0].value.cooked : null);
@@ -269,29 +301,68 @@ export function scanProject(root) {
       const missEn = !en.has(k);
       if (missHe) { hit('missingHe', k, line, k); stats.distinctMissing.he.add(k); if (!he.hasPrefix(k)) stats.distinctMissing.heLegacyPrefix.add(k); }
       if (missEn) { hit('missingEn', k, line, k); stats.distinctMissing.en.add(k); }
+      if (!yi.has(k)) stats.yiMissing.add(k); // reported, never a finding: Yiddish is hidden from users
       if ((missHe || missEn) && (he.hasSuffix(k) || en.hasSuffix(k))) hit('wrongParent', k, line, k);
     };
-    const isTCallee = (c) => (c.type === 'Identifier' && c.name === 't') || ((c.type === 'MemberExpression' || c.type === 'OptionalMemberExpression') && !c.computed && c.property.type === 'Identifier' && c.property.name === 't');
+    const isTCallee = (c) => (c.type === 'Identifier' && tNames.has(c.name))
+      || ((c.type === 'MemberExpression' || c.type === 'OptionalMemberExpression') && !c.computed && c.property.type === 'Identifier' && c.property.name === 't');
+    const NOTICE_FNS = ['success', 'error', 'info', 'warning', 'message', 'loading', 'alert', 'confirm', 'prompt'];
+    const isNoticeCallee = (c) => (c.type === 'Identifier' && ['toast', 'alert', 'confirm', 'prompt'].includes(c.name))
+      || (c.type === 'MemberExpression' && !c.computed && c.object.type === 'Identifier' && ['toast', 'window'].includes(c.object.name)
+        && c.property.type === 'Identifier' && NOTICE_FNS.includes(c.property.name));
+    const onCall = (pp) => {
+      const n = pp.node;
+      if (isTCallee(n.callee)) {
+        keyHit(n, n.arguments[0]);
+        const second = n.arguments[1]; // a fallback text: it would show instead of a missing translation
+        if (second && (second.type === 'StringLiteral' || second.type === 'TemplateLiteral')) {
+          for (const x of stringsOf(second)) text('Text', x.node, x.value);
+        } else if (second && second.type === 'ObjectExpression') {
+          for (const pr of second.properties) {
+            if (pr.type === 'ObjectProperty' && pr.key.type === 'Identifier' && ['defaultValue', 'fallback', 'default'].includes(pr.key.name)) {
+              for (const x of stringsOf(pr.value)) text('Text', x.node, x.value);
+            }
+          }
+        }
+      } else if (isNoticeCallee(n.callee) && n.arguments[0]) {
+        for (const x of stringsOf(n.arguments[0])) text('Text', x.node, x.value);
+      }
+    };
+    // what a JSX expression would show: literals, templates, ?: and &&/|| branches, "a " + b, and a constant
+    const shown = (expr, scope) => {
+      const out = [];
+      const go = (e, depth) => {
+        if (!e) return;
+        if (e.type === 'Identifier') {
+          if (depth > 0 || !scope) return;
+          const b = scope.getBinding(e.name);
+          if (b && b.constant && b.path.isVariableDeclarator() && b.path.node.init) go(b.path.node.init, 1);
+          return;
+        }
+        stringsOf(e, out);
+      };
+      go(expr, 0);
+      return out;
+    };
 
     traverse(ast, {
-      CallExpression(path_) { if (isTCallee(path_.node.callee)) keyHit(path_.node, path_.node.arguments[0]); },
-      OptionalCallExpression(path_) { if (isTCallee(path_.node.callee)) keyHit(path_.node, path_.node.arguments[0]); },
+      CallExpression: onCall,
+      OptionalCallExpression: onCall,
       JSXText(path_) { text('Text', path_.node, path_.node.value); },
       JSXExpressionContainer(path_) {
         if (path_.parent.type === 'JSXAttribute') return; // handled by the attribute visitor
-        for (const s of stringsOf(path_.node.expression)) text('Text', s.node, s.value);
+        for (const s of shown(path_.node.expression, path_.scope)) text('Text', s.node, s.value);
       },
       JSXAttribute(path_) {
         const n = path_.node.name.name;
         const isAria = ARIA_PROPS.has(n);
         if ((!TEXT_PROPS.has(n) && !isAria) || !path_.node.value) return;
         const v = path_.node.value;
-        const pieces = v.type === 'StringLiteral' ? [{ value: v.value, node: v }] : (v.type === 'JSXExpressionContainer' ? stringsOf(v.expression) : []);
+        const pieces = v.type === 'StringLiteral' ? [{ value: v.value, node: v }] : (v.type === 'JSXExpressionContainer' ? shown(v.expression, path_.scope) : []);
         for (const s of pieces) {
           const t = normText(s.value);
-          if (isAria) {
-            if (t && !HEB.test(t) && LAT3.test(t) && !onlyAllowedTokens(t)) hit('enAria', hashOf(t), s.node.loc.start.line, t.slice(0, 40));
-            else if (t && HEB.test(t)) { hit('hebProp', hashOf(t), s.node.loc.start.line, t.slice(0, 40)); stats.legacy.hebProp += 1; }
+          if (isAria && t && !HEB.test(t)) {
+            if (LAT3.test(t) && !onlyAllowedTokens(t) && !seen.has(s.node.start)) { seen.add(s.node.start); hit('enAria', hashOf(t), s.node.loc.start.line, t.slice(0, 40)); }
           } else text('Prop', s.node, s.value);
         }
       },
@@ -308,10 +379,19 @@ export function scanProject(root) {
         }
       },
     });
-    files[rel] = rec;
+    // copy that sits in objects/arrays and is rendered later: not read, but counted
+    traverse(ast, {
+      ObjectProperty(path_) {
+        const k = path_.node.key.name || path_.node.key.value;
+        const v = path_.node.value;
+        if (!TEXT_PROPS.has(k) || v.type !== 'StringLiteral' || seen.has(v.start)) return;
+        const t = normText(v.value);
+        if (t && langOf(t)) stats.unreadCopy += 1;
+      },
+    });
+    if (Object.keys(rec).length) { files[rel] = rec; hashes[rel] = hashOf(src); }
   }
-  for (const k of Object.keys(files)) if (!Object.keys(files[k]).length) delete files[k];
-  return { files, stats };
+  return { files, hashes, stats };
 }
 
 export function totalsOf(files) {
@@ -377,7 +457,10 @@ function cli() {
   console.log(`two-word subset (the first audit's rule, but it now also reads {"..."} children and ?: branches, so it is higher than its 56/26): ${JSON.stringify(stats.legacy)}`);
   const top = Object.entries(files).map(([f, rec]) => [f, Object.values(rec).reduce((a, s) => a + Object.values(s).reduce((x, e) => x + e.n, 0), 0)]).sort((a, b) => b[1] - a[1]).slice(0, 15);
   console.log('top files:'); for (const [f, n] of top) console.log(`  ${String(n).padStart(4)}  ${f}`);
-  console.log('Not measured (out of scope): strings in constants/objects rendered later, aliased t, fallback args of t(), runtime concatenation.');
+  console.log(`Yiddish (reported, never a failure): ${stats.yiMissing.size} key(s) used in code have no Yiddish text`);
+  if (args.includes('--yi')) for (const k of [...stats.yiMissing].sort()) console.log(`  ${k}`); else console.log('  (list them: node scripts/i18n-audit.mjs --yi)');
+  console.log(`Unread copy candidates (text-like props inside objects/arrays, not read): ${stats.unreadCopy}`);
+  console.log('Not measured (out of scope): copy in objects/arrays rendered through loops or other functions, src/components/ui, tests, locales.');
   return 0;
 }
 
