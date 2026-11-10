@@ -12,14 +12,10 @@ export default defineConfig({
     exclude: ['src/pages/__tests__/**'],
     css: false,
     testTimeout: 30000,
+    // Vitest 4 removed `poolOptions`; the old maxThreads / execArgv(--max-old-space-size) block was
+    // silently ignored (see the "test.poolOptions was removed" warning). One worker keeps CI memory flat.
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        maxThreads: 1,
-        minThreads: 1,
-        execArgv: ['--max-old-space-size=4096'],
-      },
-    },
+    maxWorkers: 1,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary'],

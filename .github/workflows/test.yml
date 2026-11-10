@@ -16,8 +16,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Run unit tests
-        run: NODE_OPTIONS="--max-old-space-size=4096" npx vitest run --reporter=verbose || true
-        # Note: vitest may exit 1 due to Node worker OOM on large test files.
-        # All tests pass; the OOM is an infra issue, not a code issue.
+        run: npx vitest run
+        # No `|| true` and no raised heap: every test file must pass. The one file that used to die
+        # with out-of-memory was an infinite render loop (see src/pages/BookWizard.jsx), not an infra issue.
       - name: Verify build
         run: npx vite build

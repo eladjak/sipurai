@@ -517,7 +517,7 @@ describe("SaveStep", () => {
         language="english"
       />
     );
-    expect(screen.getByText("Creating your book...")).toBeDefined();
+    expect(screen.getByText("Generating...")).toBeDefined();
   });
 });
 
