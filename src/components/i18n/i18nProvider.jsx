@@ -1,10 +1,35 @@
 import React, { createContext, useState, useEffect, useLayoutEffect, useContext } from 'react';
 import { User } from "@/entities/User";
+import { isHidden, isBeta } from "./languageStatus";
 
 // Import translations
 import hebrewTranslations from './locales/he';
 import englishTranslations from './locales/en';
 import yiddishTranslations from './locales/yi';
+
+// Each fragment owns distinct top-level namespaces.
+export function mergeLocaleFragments(main, fragments) {
+  const merged = { ...main };
+  for (const fragment of fragments) {
+    for (const [namespace, value] of Object.entries(fragment)) {
+      if (Object.prototype.hasOwnProperty.call(merged, namespace) && (import.meta.env.DEV || import.meta.env.MODE === 'test')) {
+        throw new Error(`[i18n] duplicate namespace: ${namespace}`);
+      }
+      merged[namespace] = value;
+    }
+  }
+  return merged;
+}
+
+const fragments = import.meta.glob('./locales/*/*.js', { eager: true });
+/** @param {string} code
+ * @param {object} main
+ * @param {Record<string, {default: object}>} modules
+ */
+export const loadLocaleFragments = (code, main, modules) => mergeLocaleFragments(main,
+  Object.entries(modules).filter(([path]) => path.startsWith(`./locales/${code}/`)).map(([, module]) => module.default));
+const withFragments = (code, main) => loadLocaleFragments(code, main, /** @type {Record<string, {default: object}>} */ (fragments));
+const warnedKeys = new Set();
 
 // Create context
 export const I18nContext = createContext();
@@ -15,19 +40,19 @@ export const LANGUAGES = {
     code: 'en',
     name: 'English',
     direction: 'ltr',
-    translations: englishTranslations
+    translations: withFragments('en', englishTranslations)
   },
   hebrew: {
     code: 'he',
     name: 'עברית',
     direction: 'rtl',
-    translations: hebrewTranslations
+    translations: withFragments('he', hebrewTranslations)
   },
   yiddish: {
     code: 'yi',
     name: 'ייִדיש',
     direction: 'rtl',
-    translations: yiddishTranslations
+    translations: withFragments('yi', yiddishTranslations)
   }
 };
 
@@ -41,7 +66,8 @@ function getInitialLanguage() {
   } catch {
     // localStorage not available (SSR / tests)
   }
-  return 'english';
+  const browserLang = typeof navigator === 'undefined' ? '' : navigator.language || navigator.userLanguage || '';
+  return browserLang.toLowerCase().startsWith('en') ? 'english' : 'hebrew';
 }
 
 export const I18nProvider = ({ children }) => {
@@ -73,14 +99,6 @@ export const I18nProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Detect browser language for first-time visitors (no saved preference)
-  const detectBrowserLanguage = () => {
-    const browserLang = navigator.language || navigator.userLanguage || '';
-    if (browserLang.startsWith('he')) return 'hebrew';
-    if (browserLang.startsWith('yi')) return 'yiddish';
-    return 'english';
-  };
-
   // Load user language preference
   useEffect(() => {
     const loadLanguagePreference = async () => {
@@ -94,7 +112,7 @@ export const I18nProvider = ({ children }) => {
           applyLanguageSettings(savedLanguage);
         } else {
           // First visit: auto-detect from browser
-          const detected = detectBrowserLanguage();
+          const detected = getInitialLanguage();
           setLanguage(detected);
           setTranslations(LANGUAGES[detected].translations);
           setDirection(LANGUAGES[detected].direction);
@@ -150,25 +168,23 @@ export const I18nProvider = ({ children }) => {
   const t = (key, replacements = {}) => {
     if (!key) return '';
     
-    // Split key by dots to handle nested translations
-    const keys = key.split('.');
-    let value = translations;
-    
-    for (const k of keys) {
-      if (value && value[k]) {
-        value = value[k];
-      } else {
-        return key; // Return key if translation not found
+    const lookup = (source) => key.split('.').reduce((value, part) => value?.[part], source);
+    let value = [translations, LANGUAGES.hebrew.translations, LANGUAGES.english.translations]
+      .map(lookup).find((candidate) => candidate !== undefined && candidate !== null);
+    if (value === undefined) {
+      if ((import.meta.env.DEV || import.meta.env.MODE === 'test') && !warnedKeys.has(key)) {
+        warnedKeys.add(key);
+        console.warn('[i18n] missing', key);
       }
+      return '';
     }
-    
-    // Handle replacements like {{variable}}
-    if (typeof value === 'string' && Object.keys(replacements).length > 0) {
-      return value.replace(/\{\{(\w+)\}\}/g, (_, match) => {
-        return replacements[match] !== undefined ? replacements[match] : `{{${match}}}`;
+    if (typeof value === 'string') {
+      value = value.replace(/\{\{(\w+)\}\}|\{(\w+)\}/g, (original, double, single) => {
+        const name = double || single;
+        return replacements[name] !== undefined ? replacements[name] : original;
       });
     }
-    
+
     return value;
   };
 
@@ -181,7 +197,9 @@ export const I18nProvider = ({ children }) => {
       t,
       loading,
       isReady,
-      languages: LANGUAGES
+      languages: Object.fromEntries(Object.entries(LANGUAGES)
+        .filter(([name]) => !isHidden(name) || name === language)
+        .map(([name, config]) => [name, { ...config, beta: isBeta(name) }]))
     }}>
       {children}
     </I18nContext.Provider>

@@ -23,7 +23,7 @@ const mockUpdateMyUserData = User.updateMyUserData;
 // Imports under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { I18nProvider, useI18n, LANGUAGES } from './i18nProvider';
+import { I18nProvider, useI18n, LANGUAGES, mergeLocaleFragments, loadLocaleFragments } from './i18nProvider';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -136,11 +136,11 @@ describe('I18nProvider - t() translation function', () => {
     });
   });
 
-  it('returns the key itself for a missing translation key', async () => {
+  it('returns empty for a missing translation key', async () => {
     renderWithProvider({ translationKey: 'nonexistent.key' });
 
     await waitFor(() => {
-      expect(screen.getByTestId('translation').textContent).toBe('nonexistent.key');
+      expect(screen.getByTestId('translation').textContent).toBe('');
     });
   });
 
@@ -365,5 +365,55 @@ describe('LANGUAGES config', () => {
       expect(lang.translations).toBeDefined();
       expect(typeof lang.translations).toBe('object');
     }
+  });
+});
+
+
+describe('I-01 acceptance', () => {
+  it('supports eager fragment glob in Vitest', () => {
+    expect(import.meta.glob('./locales/*/*.js', { eager: true })).toBeTypeOf('object');
+  });
+  it('loads only the requested locale fragment from an injected glob map', () => {
+    const modules = {
+      './locales/he/fixture.js': { default: { fixture: { nested: 'value' } } },
+      './locales/en/fixture.js': { default: { other: { nested: 'wrong locale' } } },
+    };
+    expect(loadLocaleFragments('he', { common: {} }, modules)).toEqual({ common: {}, fixture: { nested: 'value' } });
+  });
+  it('rejects a fragment namespace colliding with the main locale', () => {
+    expect(() => mergeLocaleFragments({ common: {} }, [{ common: {} }])).toThrow(/duplicate namespace/);
+  });
+  it('rejects namespace collisions between fragments', () => {
+    expect(() => mergeLocaleFragments({}, [{ extra: {} }, { extra: {} }])).toThrow(/duplicate namespace/);
+  });
+  it.each([['he-IL', 'hebrew'], ['fr-FR', 'hebrew'], ['en-US', 'english']])('starts in %s as %s', (browser, expected) => {
+    vi.stubGlobal('navigator', { language: browser });
+    renderWithProvider();
+    expect(screen.getByTestId('language').textContent).toBe(expected);
+    expect(document.documentElement.dir).toBe(expected === 'hebrew' ? 'rtl' : 'ltr');
+    vi.unstubAllGlobals();
+  });
+  it('falls back from Yiddish to Hebrew', () => {
+    localStorage.setItem('language', 'yiddish');
+    renderWithProvider({ translationKey: 'pageTitles.settings' });
+    expect(screen.getByTestId('translation').textContent).toBe(LANGUAGES.hebrew.translations.pageTitles.settings);
+  });
+  it('warns once for a key missing everywhere', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { rerender } = renderWithProvider({ translationKey: 'missing.unique' });
+    rerender(<I18nProvider><Consumer translationKey="missing.unique" /></I18nProvider>);
+    expect(screen.getByTestId('translation').textContent).toBe('');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith('[i18n] missing', 'missing.unique');
+    warn.mockRestore();
+  });
+  it.each(['hebrew', 'yiddish'])('filters hidden languages for %s', (lang) => {
+    localStorage.setItem('language', lang);
+    let available;
+    function Capture() { available = useI18n().languages; return null; }
+    render(<I18nProvider><Capture /></I18nProvider>);
+    expect(Boolean(available.yiddish)).toBe(lang === 'yiddish');
+    expect(available.hebrew.beta).toBe(false);
+    if (lang === 'yiddish') expect(available.yiddish.beta).toBe(false);
   });
 });
