@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { I18nContext, LANGUAGES } from '@/components/i18n/i18nProvider';
 import { isPrintOrderEnabled } from '@/lib/printOrder/flag';
 import { PrintOrderApiError } from '@/lib/printOrder/api';
 import { OrderBookButton } from '@/components/checkout/OrderBookButton';
@@ -14,7 +15,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const wrap = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
+const t = (key) => key.split('.').reduce((value, part) => value?.[part], LANGUAGES.hebrew.translations);
+const wrap = (ui) => render(<I18nContext.Provider value={{ t, language: 'hebrew', direction: 'rtl' }}><MemoryRouter>{ui}</MemoryRouter></I18nContext.Provider>);
 
 const quote = {
   currency: 'ILS', presetId: 'sq22', qty: 1, method: 'ship', vatIncluded: true,
