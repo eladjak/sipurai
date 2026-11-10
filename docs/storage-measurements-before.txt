@@ -1,0 +1,10 @@
+label: before
+anon LIST via HTTP: status 200, entries 100
+anon GET public image URL: status 200, content-type image/png
+anon UPLOAD via HTTP: status 200 {"Key":"sipurai-images/privacy-gate-test/anon-before-1794298944768.png","Id":"a7fb3895-0e1
+cleanup of the test object (service role): status 200
+anon SQL select count (policy view): 114
+authenticated SQL insert (simulates the Storage API insert, rolled back): insert + returning OK (1 row)
+authenticated SQL select count (sees): 114
+anon SQL insert (rolled back): insert OK
+leftover test objects in the bucket: 0

@@ -294,3 +294,21 @@ test('real store: the profile row is deleted LAST', async () => {
 test('consent record uses the current version constant (sanity link between the two systems)', () => {
   assert.match(CURRENT_POLICY_VERSION, /^\d{4}-\d{2}-\d{2}$/);
 });
+
+/* ============ parked: with the switches off the delete route does NOTHING ============ */
+test('PARKED: with the switches off the route makes zero auth, database, storage, Clerk or network calls', async () => {
+  const calls = [];
+  const spy = (name) => new Proxy({}, { get: (_t, prop) => (...a) => { calls.push(`${name}.${String(prop)}`); return Promise.resolve(null); } });
+  const fetchImpl = (...a) => { calls.push('fetch'); return Promise.resolve({ ok: true, status: 200 }); };
+  for (const envVariant of [{}, { ACCOUNT_DELETE_ENABLED: 'false' }, { ACCOUNT_DELETE_ENABLED: 'TRUE ' }, { CLERK_SECRET_KEY: 'sk_live_x' }]) {
+    const res = mkRes();
+    await deleteHandler(
+      { method: 'POST', headers: { authorization: 'Bearer x' }, body: { confirm: 'delete-my-account' } },
+      res,
+      { env: envVariant, auth: async () => { calls.push('auth'); return { ok: true, payload: { sub: 'user_A' } }; }, store: spy('store'), consentStore: spy('consent'), clerkDelete: async () => { calls.push('clerk'); }, fetchImpl },
+    );
+    assert.equal(res.code, 503, JSON.stringify(envVariant));
+    assert.equal(res.body.error.code, 'disabled');
+  }
+  assert.deepEqual(calls, [], 'not one call may happen while deletion is switched off');
+});

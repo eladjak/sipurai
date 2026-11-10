@@ -185,3 +185,30 @@ test('item 8: print-order create and quote refuse (403) without consent', async 
     assert.equal(res.body.error?.code ?? res.body.code, 'consent_required', name);
   }
 });
+
+test('GATE fail-closed: if the deletion-marker check cannot run, the acceptance is refused (503) and nothing is saved', async () => {
+  const store = createMemoryConsentStore();
+  store.isDeleting = async () => { throw new Error('account_deletions unreachable'); };
+  const res = mkRes();
+  await consentHandler({ method: 'POST', headers: { 'user-agent': 'ua' }, body: goodBody }, res, { auth: asUser('user_A'), consentStore: store });
+  assert.equal(res.code, 503);
+  assert.equal(res.body.error.code, 'consent_unavailable');
+  assert.equal(store._rows.length, 0);
+});
+
+test('GATE: a user who is being deleted gets 409 on the consent endpoint and nothing is saved', async () => {
+  const store = createMemoryConsentStore();
+  store._deleting.add('user_A');
+  const res = mkRes();
+  await consentHandler({ method: 'POST', headers: {}, body: goodBody }, res, { auth: asUser('user_A'), consentStore: store });
+  assert.equal(res.code, 409);
+  assert.equal(res.body.error.code, 'account_deleting');
+  assert.equal(store._rows.length, 0);
+});
+
+test('GATE: print-order create without any consent store is refused (503), there is no skip path', async () => {
+  const res = mkRes();
+  await endpoint('create')({ method: 'POST', headers: {}, query: {}, body: {} }, res, { env: { PRINT_ORDER_ENABLED: 'true' }, store: {}, auth: asUser('user_A') });
+  assert.equal(res.code, 503);
+  assert.equal(res.body.error?.code, 'consent_unavailable');
+});

@@ -11,7 +11,7 @@ import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
 import { createMorningPayment } from './payment/morning.js';
 import { createSupabaseStore } from './store.js';
-import { CONSENT_MESSAGES, createSupabaseConsentStore, defaultConsentStore, hasConsent } from '../consent.js';
+import { CONSENT_MESSAGES, createSupabaseConsentStore, hasConsent } from '../consent.js';
 import {
   OrderError,
   adminAction,
@@ -207,11 +207,10 @@ export function endpoint(name) {
         return fail(res, 403, 'forbidden', 'אין הרשאה');
       }
       // Privacy gate: ordering a printed book handles a delivery address, so it needs the parent's consent too.
-      // (A caller that injects its own `store` without a consentStore is a test harness; production always
-      // goes through defaultDeps, which always carries one.)
+      // No consent store, no order: there is no "skip" path (the tests inject a store that says yes).
       if (def.consent) {
-        const consentStore = deps.consentStore ?? (overrides?.store ? null : await defaultConsentStore(env));
-        if (consentStore && !(await hasConsent({ store: consentStore, userId }))) {
+        if (!deps.consentStore) return fail(res, 503, 'consent_unavailable', CONSENT_MESSAGES.unavailable);
+        if (!(await hasConsent({ store: deps.consentStore, userId }))) {
           return fail(res, 403, 'consent_required', CONSENT_MESSAGES.required);
         }
       }

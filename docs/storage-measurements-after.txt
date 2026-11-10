@@ -1,0 +1,9 @@
+label: after
+anon LIST via HTTP: status 200, entries 0
+anon GET public image URL: status 200, content-type image/png
+anon UPLOAD via HTTP: status 400 {"statusCode":"403","error":"Unauthorized","message":"new row violates row-level security 
+anon SQL select count (policy view): 0
+authenticated SQL insert (simulates the Storage API insert, rolled back): insert + returning OK (1 row)
+authenticated SQL select count (sees): 0
+anon SQL insert (rolled back): DENIED: new row violates row-level security policy for table "objects"
+leftover test objects in the bucket: 0
