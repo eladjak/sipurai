@@ -1,0 +1,100 @@
+/*
+ * Sipurai design tokens (contract P1-02). Canonical names and values:
+ * docs/ux-overhaul/DESIGN-DIRECTION.md, "Tokens".
+ *
+ * Scoped so that NOTHING applies unless the new shell opts in, by putting the
+ * class `sp-shell` on a wrapper, or the attribute `data-sp-shell` on <html>.
+ * This file is not imported anywhere yet; the new shell imports it inside
+ * switch-gated modules (VITE_NEW_SHELL), so production is unchanged.
+ *
+ * FORMAT (enforced by scripts/check-contrast.mjs): one base rule, each --sp-* token once, colours as literal #rrggbb[aa], no !important; tokens may be re-set only inside the allowlisted @media scopes dark / more-contrast, once each.
+ * Closed vocabulary: no backslash, no non-ASCII, no @import/@layer/@property/@scope/@container, custom properties exactly --sp-[a-z0-9-]+.
+ */
+.sp-shell,
+:root[data-sp-shell] {
+  /* Night */
+  --sp-night-900: #1e0b3a;
+  --sp-night-800: #2a1052;
+  --sp-night-700: #3b0764;
+
+  /* Violet: actions, selection, focus */
+  --sp-violet-700: #6d28d9; /* hover */
+  --sp-violet-600: #7c3aed;
+  --sp-violet-500: #8b5cf6;
+  --sp-violet-100: #ede7fb;
+  --sp-violet-50: #f6f2fe;
+
+  /* Gold: the one "magic" accent */
+  --sp-gold-400: #fcd34d;
+  --sp-gold-300: #fde38a;
+
+  /* Cream: gifts, text on night */
+  --sp-cream-100: #fef3c7;
+  --sp-cream-50: #fffbf0;
+
+  /* Ink */
+  --sp-ink-900: #231942; /* text */
+  --sp-ink-600: #5b5478; /* secondary */
+  --sp-ink-500: #6e6889; /* small notes, at least 4.5:1 on paper */
+  --sp-ink-400: #857f9e; /* ONLY icons, disabled, and text >= 24px regular or >= 18.66px bold (3.7:1) */
+
+  /* Surfaces */
+  --sp-paper: #fffdf8;
+  --sp-card: #ffffff;
+  --sp-line: #ece6f5;
+
+  /* On night */
+  --sp-on-night: #fef3c7;
+  --sp-on-night-muted: #cdbef0;
+
+  /* Status */
+  --sp-danger: #b42318;
+  --sp-danger-50: #fef3f2;
+  --sp-success: #15803d;
+  --sp-success-50: #f0fdf4;
+
+  /* Radius */
+  --sp-r-sm: 12px;
+  --sp-r-md: 18px;
+  --sp-r-lg: 26px;
+  --sp-r-pill: 999px;
+
+  /* Shadow: two only */
+  --sp-shadow-1: 0 1px 2px rgba(35, 25, 66, 0.06), 0 4px 14px rgba(35, 25, 66, 0.06);
+  --sp-shadow-2: 0 2px 6px rgba(35, 25, 66, 0.08), 0 14px 34px rgba(35, 25, 66, 0.12);
+
+  /* Type */
+  --sp-font-display: "SP Fredoka"; /* 600 / 700; self-hosted, own name on purpose */
+  --sp-font-body: "SP Rubik"; /* 400 / 500 / 600 */
+  --sp-lh-body: 1.6;
+
+  /* Motion */
+  --sp-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --sp-dur-fast: 150ms;
+  --sp-dur: 200ms;
+  --sp-dur-page: 350ms; /* page turn only */
+}
+
+/* Body defaults inside the new shell: Rubik, 1.6 line height, tabular numbers everywhere. */
+.sp-shell,
+:root[data-sp-shell] body {
+  font-family: var(--sp-font-body), system-ui, sans-serif;
+  line-height: var(--sp-lh-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced-motion belt: every state becomes instant. */
+@media (prefers-reduced-motion: reduce) {
+  .sp-shell,
+  .sp-shell *,
+  .sp-shell *::before,
+  .sp-shell *::after,
+  :root[data-sp-shell] *,
+  :root[data-sp-shell] *::before,
+  :root[data-sp-shell] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
