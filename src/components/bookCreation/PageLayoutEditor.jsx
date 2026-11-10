@@ -30,7 +30,7 @@ export default function PageLayoutEditor({ currentPageLayout, onLayoutChange, is
       <AccordionItem value="layout">
         <AccordionTrigger className="px-4">
           <div className={`flex items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Settings className={`h-5 w-5 text-purple-500 ${isRTL ? "ml-2" : "mr-2"}`} />
+            <Settings className={`h-5 w-5 text-purple-500 me-2`} />
             <span>{t("book.pageLayout")}</span>
           </div>
         </AccordionTrigger>

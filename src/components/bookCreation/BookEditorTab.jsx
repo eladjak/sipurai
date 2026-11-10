@@ -96,13 +96,13 @@ export default function BookEditorTab({
         <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
           <Link to={createPageUrl("Library")}>
             <Button variant="outline">
-              <ArrowLeft className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} aria-hidden="true" />
+              <ArrowLeft className={`h-4 w-4 me-2`} aria-hidden="true" />
               {t("book.backToLibrary")}
             </Button>
           </Link>
           <Link to={`${createPageUrl("BookView")}?id=${bookId}`}>
             <Button className="bg-purple-600 hover:bg-purple-700">
-              <BookOpen className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} aria-hidden="true" />
+              <BookOpen className={`h-4 w-4 me-2`} aria-hidden="true" />
               {t("book.viewFullBook")}
             </Button>
           </Link>

@@ -34,7 +34,7 @@ export default function PageImageEditor({
       <AccordionItem value="image">
         <AccordionTrigger className="px-4">
           <div className={`flex items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Image className={`h-5 w-5 text-purple-500 ${isRTL ? "ml-2" : "mr-2"}`} />
+            <Image className={`h-5 w-5 text-purple-500 me-2`} />
             <span>{t("book.editPageImage")}</span>
           </div>
         </AccordionTrigger>
@@ -99,12 +99,12 @@ export default function PageImageEditor({
             >
               {isGenerating ? (
                 <>
-                  <RotateCw className={`h-4 w-4 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+                  <RotateCw className={`h-4 w-4 animate-spin me-2`} />
                   {t("book.generating")}
                 </>
               ) : (
                 <>
-                  <RefreshCw className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                  <RefreshCw className={`h-4 w-4 me-2`} />
                   {t("book.regenerateImage")}
                 </>
               )}
