@@ -194,10 +194,10 @@ export function pageChecks() {
     for (const n of [document.body, ...document.body.querySelectorAll('*')]) {
       const r = n.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) continue;
-      if (['IMG', 'VIDEO', 'CANVAS', 'PICTURE', 'IFRAME'].includes(n.tagName) && parseFloat(getComputedStyle(n).opacity) > 0) layerCache.push({ n, r, why: 'media behind text' });
+      if (['IMG', 'VIDEO', 'CANVAS', 'PICTURE', 'IFRAME', 'SVG', 'OBJECT', 'EMBED'].includes(n.tagName.toUpperCase()) && parseFloat(getComputedStyle(n).opacity) > 0) layerCache.push({ n, r, media: true, why: 'image, video, canvas or svg overlapping the text' });
       for (const ps of [null, '::before', '::after']) {
         const p = paint(n, ps);
-        if (p.image) layerCache.push({ n, r, ps, why: 'background image or gradient' });
+        if (p.image) layerCache.push({ n, r, ps, media: true, why: 'background image or gradient' });
         else if (p.color) layerCache.push({ n, r, ps, color: p.color, opacity: p.opacity, why: 'overlapping layer' });
       }
     }
@@ -217,14 +217,29 @@ export function pageChecks() {
         if (p.color[3] >= 1 && p.opacity >= 1) { opaqueEl = n; break; }
       }
     }
-    const er = el.getBoundingClientRect();
+    // the boxes of the text itself (not the whole element: an icon inside a button is not under its words)
+    const tr = [];
+    for (const nd of el.childNodes) {
+      if (nd.nodeType !== 3 || !/[\p{L}\p{N}]/u.test(nd.nodeValue)) continue;
+      const rg = document.createRange();
+      rg.selectNodeContents(nd);
+      for (const r of rg.getClientRects()) if (r.width > 0 && r.height > 0) tr.push(r);
+    }
+    if (!tr.length) tr.push(el.getBoundingClientRect());
     for (const l of layers()) {
-      if (l.n === el || el.contains(l.n)) continue;
+      if (l.n === el) continue; // el's own paint was handled in the walk
       const ancestor = l.n.contains(el);
-      if (ancestor && !l.ps) continue; // own paint of ancestors handled in the walk
-      if (opaqueEl && !opaqueEl.contains(l.n)) continue; // behind the opaque box
-      const overlap = l.r.left < er.right && l.r.right > er.left && l.r.top < er.bottom && l.r.bottom > er.top;
+      if (ancestor && !l.ps) continue; // ancestors' own paint handled in the walk
+      const overlap = tr.some((er) => l.r.left < er.right && l.r.right > er.left && l.r.top < er.bottom && l.r.bottom > er.top);
       if (!overlap) continue;
+      // a layer behind the opaque ancestor is covered by it: only a layer that comes EARLIER in the document,
+      // outside that box, and is not lifted by z-index or fixed positioning can be excused. Everything else
+      // (descendants, siblings, positioned or not) may be under the text.
+      if (opaqueEl && !opaqueEl.contains(l.n) && (l.n.compareDocumentPosition(opaqueEl) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+        const ls = getComputedStyle(l.n);
+        const z = parseInt(ls.zIndex, 10);
+        if (ls.position !== 'fixed' && (ls.zIndex === 'auto' || z <= 0)) continue;
+      }
       return { unknown: l.why + (l.ps ? ' (' + l.ps + ')' : '') };
     }
     let acc = [255, 255, 255, 1];
@@ -364,6 +379,11 @@ export const FIXTURES = [
   { name: 'contrast-pass-19px-bold-is-large', check: 'contrast', expect: 'pass', html: page('<p style="color:#8c8c8c;font-size:19px;font-weight:700">Bold large</p>'), fires: (p) => p.contrast.failures.length > 0 || p.contrast.needsHumanEye.count > 0 },
   { name: 'contrast-needs-eye-gradient', check: 'contrast-skip', expect: 'fail', html: page('<div style="background:linear-gradient(#000,#fff);padding:8px"><p style="color:#777;margin:0">On a gradient</p></div>'), fires: (p) => p.contrast.needsHumanEye.count === 1 && p.contrast.failures.length === 0 && p.contrast.passed === 0 },
   { name: 'contrast-needs-eye-overlapping-layer', check: 'contrast-skip', expect: 'fail', html: page('<div style="position:relative"><div style="position:absolute;inset:0;background:#123"></div><p style="position:relative;color:#fff;margin:0">Over a layer</p></div>'), fires: (p) => p.contrast.needsHumanEye.count >= 1 && p.contrast.passed === 0 },
+  { name: 'contrast-needs-eye-img-descendant-behind-text', check: 'contrast-skip', expect: 'fail', html: page('<p style="position:relative;color:#000;margin:0"><img alt="" style="position:absolute;inset:0;width:100%;height:100%" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">Text over an image</p>'), fires: (p) => p.contrast.needsHumanEye.count >= 1 && p.contrast.failures.length === 0 && p.contrast.passed === 0 },
+  { name: 'contrast-needs-eye-sibling-img', check: 'contrast-skip', expect: 'fail', html: page('<div style="position:relative"><img alt="" style="position:absolute;inset:0;width:100%;height:100%" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><p style="position:relative;margin:0;color:#000">Text over a sibling image</p></div>'), fires: (p) => p.contrast.needsHumanEye.count >= 1 && p.contrast.passed === 0 },
+  { name: 'contrast-needs-eye-svg-behind', check: 'contrast-skip', expect: 'fail', html: page('<div style="position:relative"><svg style="position:absolute;inset:0" width="200" height="60"><rect width="200" height="60" fill="#334"/></svg><p style="position:relative;margin:0;color:#fff">Text over an svg</p></div>'), fires: (p) => p.contrast.needsHumanEye.count >= 1 && p.contrast.passed === 0 },
+  { name: 'contrast-needs-eye-canvas-behind', check: 'contrast-skip', expect: 'fail', html: page('<div style="position:relative"><canvas style="position:absolute;inset:0" width="200" height="60"></canvas><p style="position:relative;margin:0;color:#000">Text over a canvas</p></div>'), fires: (p) => p.contrast.needsHumanEye.count >= 1 && p.contrast.passed === 0 },
+  { name: 'contrast-pass-icon-inside-button-not-under-text', check: 'contrast', expect: 'pass', html: page('<button style="color:#111;background:#fff;width:200px;height:48px"><svg width="12" height="12" aria-hidden="true"></svg> Save</button>'), fires: (p) => p.contrast.failures.length > 0 || p.contrast.needsHumanEye.count > 0 },
   { name: 'alt-pass', check: 'alt', expect: 'pass', html: page('<img alt="a dot" width="10" height="10" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">'), fires: (p) => p.imagesWithoutAlt.length > 0 },
   { name: 'alt-fail', check: 'alt', expect: 'fail', html: page('<img width="10" height="10" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">'), fires: (p) => p.imagesWithoutAlt.length === 1 },
   { name: 'name-pass', check: 'name', expect: 'pass', html: page('<button style="width:48px;height:48px" aria-label="Close"><svg width="10" height="10"></svg></button>'), fires: (p) => p.unnamedControls.length > 0 },

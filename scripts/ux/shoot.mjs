@@ -29,7 +29,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, domainToASCII } from 'node:url';
 import { pageChecks, evaluateShot, verdictOf, FIXTURES } from './checks.mjs';
 
 const VIEWPORTS = [
@@ -39,16 +39,34 @@ const VIEWPORTS = [
 ];
 
 const CREDENTIAL_OPTION = /cookie|header|token|auth|credential|storage[-_]?state|session|password|secret/i;
-const CREDENTIAL_QUERY = /token|secret|password|passwd|auth|session|jwt|api[-_]?key|code|key/i;
+const CREDENTIAL_QUERY = /token|secret|pass(word|wd)?|pwd|auth|session|jwt|key|code|sig(nature)?|bearer|credential|cookie/i;
 
 class Refused extends Error {}
 
 // ------------------------------------------------------------------ host policy (parsed hostnames)
-const bare = (h) => h.replace(/^\[|\]$/g, '').toLowerCase();
+// One normalisation for every host decision: brackets off, lower case, ALL trailing dots off, IDNA/punycode.
+const bare = (h) => {
+  let x = String(h).trim().replace(/^\[|\]$/g, '').toLowerCase().replace(/\.+$/, '');
+  if (!x.includes(':')) x = domainToASCII(x) || x;
+  return x.replace(/\.+$/, '');
+};
 export const isProductionHost = (h) => { h = bare(h); return h === 'sipurai.ai' || h.endsWith('.sipurai.ai'); };
 const isLocalHost = (h) => ['localhost', '127.0.0.1', '::1'].includes(bare(h));
 
-export function credentialReasons(states) {
+/** Credential-like names in the query or fragment of a URL (the fragment is read as key=value pairs too). */
+function urlCredentialNames(u) {
+  const names = [...u.searchParams.keys()];
+  const frag = u.hash.replace(/^#/, '');
+  if (frag) {
+    const afterQ = frag.includes('?') ? frag.slice(frag.indexOf('?') + 1) : frag;
+    const keys = [...new URLSearchParams(afterQ).keys()];
+    names.push(...(keys.length ? keys : [frag]));
+  }
+  return names.filter((k) => CREDENTIAL_QUERY.test(k));
+}
+
+/** Decided on the FULLY RESOLVED target of every state (base + path + setup.query), wherever the parameter came from. */
+export function credentialReasons(states, base) {
   const why = [];
   for (const s of states) {
     const st = s.setup || {};
@@ -57,7 +75,10 @@ export function credentialReasons(states) {
     if (st.cookies) why.push(`state "${s.name}": cookies`);
     if (st.headers) why.push(`state "${s.name}": headers`);
     if ((s.actions || []).some((a) => a && a.fill !== undefined)) why.push(`state "${s.name}": fill action (typed input)`);
-    if (st.query && [...new URLSearchParams(st.query)].some(([k]) => CREDENTIAL_QUERY.test(k))) why.push(`state "${s.name}": credential-like query parameter`);
+    const target = new URL(s.path + (st.query || ''), base);
+    if (target.username || target.password) why.push(`state "${s.name}": URL userinfo`);
+    const names = urlCredentialNames(target);
+    if (names.length) why.push(`state "${s.name}": credential-like URL parameter (${names.join(', ')})`);
   }
   return why;
 }
@@ -79,7 +100,7 @@ export function assertSafe(baseUrl, states, allowHosts = []) {
     if (target.origin !== base.origin) throw new Refused(`state "${s.name}": resolves to ${target.origin}, not the base origin ${base.origin}`);
     if (target.username || target.password) throw new Refused(`state "${s.name}": URL userinfo is a credential`);
   }
-  const creds = credentialReasons(states);
+  const creds = credentialReasons(states, base);
   if (creds.length && isProductionHost(host)) {
     throw new Refused(`refusing: ${host} is production and credential-like input was supplied (${creds.join('; ')}). Signed-out states only on production.`);
   }
@@ -343,6 +364,22 @@ async function selfTest(args) {
   refuses('non-local, non-allowed host + storage', 'https://preview-abc.vercel.app', [st('a', ls)]);
   refuses('look-alike host notsipurai.ai + storage (not local, not allowed)', 'https://notsipurai.ai', [st('a', ls)]);
   refuses('--allow-host naming a production host', 'https://preview-abc.vercel.app', [st('a', ls)], ['www.sipurai.ai']);
+  refuses('production with trailing dot www host + storage', 'https://www.sipurai.ai./', [st('a', ls)]);
+  refuses('production with trailing dot bare host + storage', 'https://sipurai.ai./', [st('a', ls)]);
+  refuses('trailing-dot production base passed to --allow-host (the real bypass)', 'https://www.sipurai.ai./', [st('a', ls)], ['www.sipurai.ai.']);
+  refuses('production upper case + trailing dot', 'https://SIPURAI.AI./', [st('a', ls)]);
+  refuses('--allow-host production with trailing dot', 'https://preview-abc.vercel.app', [st('a', ls)], ['www.sipurai.ai.']);
+  refuses('--allow-host production upper case', 'https://preview-abc.vercel.app', [st('a', ls)], ['WWW.SIPURAI.AI']);
+  refuses('production + token in state.path query', 'https://sipurai.ai', [st('a', undefined, undefined, '/login?token=abc')]);
+  refuses('production + key in state.path query', 'https://www.sipurai.ai', [st('a', undefined, undefined, '/x?apikey=1')]);
+  refuses('production + sig in state.path query', 'https://sipurai.ai', [st('a', undefined, undefined, '/x?sig=1')]);
+  refuses('production + access_token in fragment', 'https://sipurai.ai', [st('a', undefined, undefined, '/x#access_token=abc')]);
+  refuses('production + code in setup.query', 'https://sipurai.ai', [st('a', { query: '?code=1' })]);
+  refuses('preview host, not allowed + session in state.path', 'https://preview-abc.vercel.app', [st('a', undefined, undefined, '/x?session=1')]);
+  refuses('resolved URL leaves the base origin (absolute URL in path)', 'http://127.0.0.1:4173', [st('a', undefined, undefined, 'https://sipurai.ai/x')]);
+  allows('production, benign query and fragment', 'https://www.sipurai.ai', [st('a', { query: '?state=empty&lang=he' }, undefined, '/welcome?ref=home#top')]);
+  allows('preview host with messy allow-list entry', 'https://preview-abc.vercel.app', [st('a', ls)], ['Preview-ABC.vercel.app.']);
+  allows('localhost with trailing dot + storage', 'http://localhost.:4173', [st('a', ls)]);
   allows('production, signed-out, no credentials', 'https://www.sipurai.ai', [st('a'), st('b', undefined, [{ click: '#x' }], '/welcome')]);
   allows('127.0.0.1 + storage', 'http://127.0.0.1:4173', [st('a', ls)]);
   allows('localhost + storage', 'http://localhost:4173', [st('a', ls)]);
@@ -353,6 +390,8 @@ async function selfTest(args) {
   rb('credentialed run -> sipurai.ai', 'https://sipurai.ai/', true, true);
   rb('credentialed run -> look-alike sipurai.ai.evil.com', 'https://sipurai.ai.evil.com/', true, false);
   rb('credentialed run -> local app', 'http://127.0.0.1:4173/x', true, false);
+  rb('credentialed run -> www host with trailing dot', 'https://www.sipurai.ai./x', true, true);
+  rb('credentialed run -> upper case, two trailing dots', 'https://SIPURAI.AI../', true, true);
   rb('signed-out run -> production', 'https://sipurai.ai/', false, false);
   for (const o of ['--cookie', '--header', '--storage-state', '--auth-token']) {
     const r = spawnSelf([o, 'x']);
