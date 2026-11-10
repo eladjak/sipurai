@@ -699,6 +699,8 @@ export default {
     }
   },
   pageNotFound: {
+    pagePrefix: "The page",
+    adminHint: "This could mean the page has not been built yet. You can go back home and try from there.",
     title: "Page Not Found",
     notFound: "could not be found",
     adminNote: "Admin Note",

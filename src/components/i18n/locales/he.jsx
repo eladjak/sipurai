@@ -697,6 +697,8 @@ export default {
     }
   },
   pageNotFound: {
+    pagePrefix: "הדף",
+    adminHint: "ייתכן שהדף עדיין לא נבנה. אפשר לחזור לדף הבית ולנסות משם.",
     title: "הדף לא נמצא",
     notFound: "לא נמצא",
     adminNote: "הערת מנהל",

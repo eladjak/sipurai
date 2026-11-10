@@ -25,7 +25,7 @@ export default function PageNotFound({}) {
                             {t("pageNotFound.title")}
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
-                            The page <span className="font-medium text-slate-700">"{pageName}"</span> {t("pageNotFound.notFound")}.
+                            {t("pageNotFound.pagePrefix")} <span className="font-medium text-slate-700" dir="ltr">"{pageName}"</span> {t("pageNotFound.notFound")}.
                         </p>
                     </div>
 
@@ -39,7 +39,7 @@ export default function PageNotFound({}) {
                                 <div className="text-start space-y-1">
                                     <p className="text-sm font-medium text-slate-700">{t("pageNotFound.adminNote")}</p>
                                     <p className="text-sm text-slate-600 leading-relaxed">
-                                        This could mean that the AI hasn't implemented this page yet. Ask it to implement it in the chat.
+                                        {t("pageNotFound.adminHint")}
                                     </p>
                                 </div>
                             </div>

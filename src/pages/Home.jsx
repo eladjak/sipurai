@@ -7,6 +7,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
+import { getDailyPrompt } from "@/lib/dailyPrompt";
 import { captureError } from "@/lib/errorTracking";
 import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
 import { useI18n } from "@/components/i18n/i18nProvider";
@@ -105,15 +106,6 @@ export default function Home() {
       try {
         setIsPromptLoading(true);
 
-        const cachedPrompt = localStorage.getItem("dailyPrompt");
-        const cacheDate = localStorage.getItem("dailyPromptDate");
-        const today = new Date().toDateString();
-        if (cachedPrompt && cacheDate === today) {
-          setDailyPrompt(JSON.parse(cachedPrompt));
-          setIsPromptLoading(false);
-          return;
-        }
-
         const safetyPrefix = buildSafetyPromptPrefix("5-10");
         const languagePrompt =
           lang === "hebrew"
@@ -122,7 +114,7 @@ export default function Home() {
             ? "שרייב אַ קורצן, קינד-פֿרײַנדלעכן פּראָמפּט פֿאַר אַ קינדערגעשיכטע פֿאַר קינדער פֿון 5-10 יאָר. דער פּראָמפּט זאָל זיין קרעאַטיוו, שפּאַסיק, און אַנטצינדן קרעאַטיוויטעט. כלל אַ קורצן טיטל און אַ קורצע (1-2 זאַץ) באַשרייַבונג. שיק אַלס JSON מיט טיטל און באַשרייַבונג פֿעלדער."
             : "Generate a creative, child-friendly, short story prompt for children aged 5-10. The prompt should be imaginative, fun, and spark creativity. Include a story title and a brief (1-2 sentence) description. Return as JSON with title and description fields. Keep the title short (3-6 words) and the description to max 20 words.";
 
-        const result = await InvokeLLM({
+        const result = await getDailyPrompt(lang, () => InvokeLLM({
           prompt: safetyPrefix + languagePrompt,
           response_json_schema: {
             type: "object",
@@ -130,13 +122,13 @@ export default function Home() {
               title: { type: "string" },
               description: { type: "string" }
             }
-          }
-        });
+          },
+          // A 20-word idea needs no reasoning; with thinking on, most of the paid tokens are thoughts.
+          thinking_budget: 0
+        }));
 
         if (result) {
           setDailyPrompt(result);
-          localStorage.setItem("dailyPrompt", JSON.stringify(result));
-          localStorage.setItem("dailyPromptDate", today);
         }
       } catch (err) {
         captureError(err, { context: 'Home.generateDailyPrompt' });

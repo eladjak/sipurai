@@ -12,6 +12,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import RedirectHome, { LEGACY_HOME_PATHS } from './lib/RedirectHome';
 import { AuthProvider, FallbackAuthProvider, useAuth } from '@/lib/AuthContext';
 import ClerkLocaleProvider from '@/components/ClerkLocaleProvider';
 const SignIn = lazy(() => import('@/pages/SignIn'));
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
   const isPublicRoute =
     PUBLIC_PAGES.has(currentPath) ||
     location.pathname === '/' ||
+    LEGACY_HOME_PATHS.some((p) => location.pathname.toLowerCase() === p.toLowerCase()) ||
     location.pathname.startsWith('/blog') ||
     location.pathname.startsWith('/sign-in') ||
     location.pathname.startsWith('/sign-up') ||
@@ -142,6 +144,10 @@ const AuthenticatedApp = () => {
               <LandingPage />
             )
           } />
+          {/* Old home URL (/Dashboard) -> / , query string kept */}
+          {LEGACY_HOME_PATHS.map((path) => (
+            <Route key={path} path={path} element={<RedirectHome />} />
+          ))}
           {/* Landing page always accessible (even when logged in) */}
           <Route path="/welcome" element={<LandingPage />} />
           {/* Auth routes */}
