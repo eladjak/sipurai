@@ -336,12 +336,16 @@ export default function BookWizard() {
   ];
 
   // Load user language (book content language) from hook data
+  // Keyed on the language STRING, not on the user object: the object is a new reference whenever
+  // Clerk refreshes the user (or a test mock returns a fresh one per render), and re-running this
+  // effect resets the story language the parent just picked, or loops forever when the source is unstable.
+  const userLanguage = currentUserData?.language;
   useEffect(() => {
-    const lang = currentUserData?.language || localStorage.getItem("language") || "english";
+    const lang = userLanguage || localStorage.getItem("language") || "english";
     setCurrentLanguage(lang);
     setBookData((prev) => ({ ...prev, language: lang }));
     setIsLoading(false);
-  }, [currentUserData]);
+  }, [userLanguage]);
 
   // Navigation
   // 0: topic · 1: characters · 2: structure · 3: preview · 4: size · 5: save
