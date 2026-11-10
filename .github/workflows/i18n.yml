@@ -1,0 +1,48 @@
+# Language check. LIMITS, said plainly: this check stops accidents, not a determined author.
+# The pull request being judged also carries this workflow, scripts/i18n-*.mjs and the baseline, so its author
+# can change all of them. The label i18n-baseline-raise is a speed bump, not an independent approval.
+# Real protection is review of changes to these files (for example CODEOWNERS and a required review).
+# What it does: runs the self-test, then fails a pull request that adds untranslated text, a language
+# ternary, a missing t() key or a punctuation slip, or that raises scripts/i18n-baseline.json.
+name: Language check
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - name: Self-test of the language check (every rule must be able to fail)
+        run: node scripts/i18n-check.mjs --self-test
+      - name: Language check (pull request, also verifies the baseline was not raised)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          I18N_BASELINE_OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'i18n-baseline-raise') && '1' || '' }}
+        run: node scripts/i18n-check.mjs --base-ref "origin/$BASE_REF"
+      - name: Language check (push to main)
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/i18n-check.mjs --base-ref "$BEFORE"
+          else
+            node scripts/i18n-check.mjs
+          fi
