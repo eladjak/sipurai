@@ -52,20 +52,107 @@ export const PAIRS = [
   ["success", "success-50", { px: 15, weight: 400 }],
 ];
 
-export function parseTokens(css) {
-  const vars = {};
-  for (const m of css.matchAll(/--sp-([a-z0-9-]+)\s*:\s*#([0-9a-fA-F]+)\s*;/g)) {
-    vars[m[1]] = parseHex(m[2]);
-  }
-  return vars;
+// ---- structural CSS parsing (what the browser would see) -------------------
+// Comments are stripped; rules are read with brace matching, including nested
+// @media / @supports blocks. Within a scope the LAST declaration wins
+// (!important beats non-important). var(--sp-x[, fallback]) chains are
+// resolved; an unresolved or cyclic var() is an error. Specificity between the
+// two base selectors (.sp-shell and :root[data-sp-shell]) is treated as equal,
+// i.e. pure source order, which is how the file is written.
+const BASE_SELECTORS = new Set([".sp-shell", ":root[data-sp-shell]"]);
+
+function stripComments(css) {
+  return css.replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
-// -> { r, g, b, a } (0-255, a 0-1) or { invalid: true }
-function parseHex(h) {
-  if (![3, 4, 6, 8].includes(h.length)) return { invalid: true, raw: h };
-  let x = h.length <= 4 ? [...h].map((c) => c + c).join("") : h;
-  const n = (i) => parseInt(x.slice(i, i + 2), 16);
-  return { r: n(0), g: n(2), b: n(4), a: x.length === 8 ? n(6) / 255 : 1 };
+function parseBlock(text, media, out) {
+  let i = 0;
+  while (i < text.length) {
+    const open = text.indexOf("{", i);
+    if (open < 0) break;
+    const prelude = text.slice(i, open).trim().replace(/^[;\s]+/, "");
+    let depth = 1, j = open + 1;
+    while (j < text.length && depth) {
+      if (text[j] === "{") depth++;
+      else if (text[j] === "}") depth--;
+      j++;
+    }
+    const body = text.slice(open + 1, j - 1);
+    if (/^@(media|supports|layer|container)\b/i.test(prelude)) {
+      parseBlock(body, [...media, prelude.replace(/\s+/g, " ")], out);
+    } else if (!prelude.startsWith("@")) {
+      const decls = [];
+      for (const part of body.split(";")) {
+        const m = part.match(/^\s*(--sp-[a-z0-9-]+)\s*:\s*([\s\S]+?)\s*$/);
+        if (!m) continue;
+        const important = /!important\s*$/i.test(m[2]);
+        decls.push({ name: m[1].slice(5), value: m[2].replace(/\s*!important\s*$/i, "").trim(), important });
+      }
+      if (decls.length)
+        for (const sel of prelude.split(",").map((x) => x.trim().replace(/\s+/g, " ")))
+          out.push({ selector: sel, media, decls });
+    }
+    i = j;
+  }
+}
+
+// -> [{ name, vars }] one entry per scope: "base" plus every other context
+// (an @media block or a non-base selector) that redefines --sp-* tokens,
+// each laid over the base values. vars: name -> raw string value.
+export function parseScopes(css) {
+  const rules = [];
+  parseBlock(stripComments(css), [], rules);
+  const apply = (map, rule) => {
+    for (const d of rule.decls) {
+      const prev = map.get(d.name);
+      if (prev && prev.important && !d.important) continue;
+      map.set(d.name, { value: d.value, important: d.important });
+    }
+  };
+  const base = new Map();
+  for (const r of rules) if (!r.media.length && BASE_SELECTORS.has(r.selector)) apply(base, r);
+  const scopes = [{ name: "base", raw: base }];
+  const ctx = new Map();
+  for (const r of rules) {
+    if (!r.media.length && BASE_SELECTORS.has(r.selector)) continue;
+    const key = [...r.media, r.selector].join(" | ");
+    if (!ctx.has(key)) ctx.set(key, new Map(base));
+    apply(ctx.get(key), r);
+  }
+  for (const [name, raw] of ctx) scopes.push({ name, raw });
+  return scopes;
+}
+
+function parseColor(v) {
+  let m = v.match(/^#([0-9a-fA-F]+)$/);
+  if (m) {
+    const h = m[1];
+    if (![3, 4, 6, 8].includes(h.length)) throw new Error(`bad hex ${v}`);
+    const x = h.length <= 4 ? [...h].map((c) => c + c).join("") : h;
+    const n = (i) => parseInt(x.slice(i, i + 2), 16);
+    return { r: n(0), g: n(2), b: n(4), a: x.length === 8 ? n(6) / 255 : 1 };
+  }
+  m = v.match(/^rgba?\(\s*([\d.]+)(%?)\s*[, ]\s*([\d.]+)(%?)\s*[, ]\s*([\d.]+)(%?)\s*(?:[,/]\s*([\d.]+)(%?))?\s*\)$/i);
+  if (m) {
+    const c = (x, p) => Math.round(p ? (parseFloat(x) * 255) / 100 : parseFloat(x));
+    const a = m[7] === undefined ? 1 : m[8] ? parseFloat(m[7]) / 100 : parseFloat(m[7]);
+    return { r: c(m[1], m[2]), g: c(m[3], m[4]), b: c(m[5], m[6]), a };
+  }
+  throw new Error(`unsupported colour value "${v}"`);
+}
+
+// Resolve one token in a scope to { r,g,b,a }; throws on cycle / unresolved / unsupported.
+export function resolveToken(raw, name, seen = []) {
+  if (seen.includes(name)) throw new Error(`cyclic var(): ${[...seen, name].join(" -> ")}`);
+  const entry = raw.get(name);
+  if (!entry) throw new Error(`token --sp-${name} is not defined`);
+  const m = entry.value.match(/^var\(\s*--sp-([a-z0-9-]+)\s*(?:,\s*([\s\S]+))?\)$/);
+  if (m) {
+    if (raw.has(m[1])) return resolveToken(raw, m[1], [...seen, name]);
+    if (m[2]) return parseColor(m[2].trim());
+    throw new Error(`unresolved var(--sp-${m[1]}) in --sp-${name}`);
+  }
+  return parseColor(entry.value);
 }
 
 function channel(v) {
@@ -90,16 +177,19 @@ export function ratio(fg, bg) {
 }
 
 export function run(css, pairs = PAIRS) {
-  const vars = parseTokens(css);
   const rows = [];
   let failed = 0;
-  for (const [fg, bg, use] of pairs) {
-    const row = { fg, bg, use, ratio: NaN, ok: false };
-    const f = vars[fg], b = vars[bg];
-    if (!f || !b) row.note = "token missing";
-    else if (f.invalid || b.invalid) row.note = "unreadable colour (use #rgb or #rrggbb)";
-    else {
+  let scopes;
+  try {
+    scopes = parseScopes(css);
+  } catch (e) {
+    return { rows: [{ fg: "-", bg: "-", scope: "-", ratio: NaN, ok: false, note: e.message }], failed: 1 };
+  }
+  for (const sc of scopes) {
+    for (const [fg, bg, use] of pairs) {
+      const row = { fg, bg, use, scope: sc.name, ratio: NaN, ok: false };
       try {
+        const f = resolveToken(sc.raw, fg), b = resolveToken(sc.raw, bg);
         row.ratio = ratio(f, b);
         row.composited = f.a < 1;
         row.need = use === "icon" || isLarge(use.px, use.weight) ? 3 : 4.5;
@@ -107,9 +197,9 @@ export function run(css, pairs = PAIRS) {
       } catch (e) {
         row.note = e.message;
       }
+      if (!row.ok) failed++;
+      rows.push(row);
     }
-    if (!row.ok) failed++;
-    rows.push(row);
   }
   return { rows, failed };
 }
@@ -121,31 +211,72 @@ function useLabel(u) {
 function selfTest() {
   const base = readFileSync(join(here, "..", "src", "styles", "sp-tokens.css"), "utf8");
   const cases = [];
-  const t = (name, ok) => cases.push([name, ok]);
-  t("shipped tokens pass", run(base).failed === 0);
+  const t = (name, ok) => cases.push([name, !!ok]);
+  const P16 = (fg, bg = "paper") => [[fg, bg, { px: 16, weight: 400 }]];
+  const swap = (css, name, val) => css.replace(new RegExp("(--sp-" + name + ":\s*)[^;]+"), (_, p) => p + val);
+  const inject = (css, decl) => css.replace("\n}\n", "\n" + decl + "\n}\n");
+  const failedWith = (r, re) => r.failed >= 1 && r.rows.some((x) => !x.ok && re.test(x.note ?? ""));
+
+  t("shipped tokens pass in every scope", run(base).failed === 0);
+  const scopeCount = parseScopes(base).length;
+  t(`scopes in the shipped file: ${scopeCount} (base only is expected today)`, scopeCount >= 1);
+
+  // WCAG large-text rule
   t("ink-400 as 18px regular text FAILS", run(base, [["ink-400", "paper", { px: 18, weight: 400 }]]).failed === 1);
   t("ink-400 as 20px bold passes (18.66px+ bold)", run(base, [["ink-400", "paper", { px: 20, weight: 700 }]]).failed === 0);
   t("ink-400 as 18px bold FAILS (below 18.66)", run(base, [["ink-400", "paper", { px: 18, weight: 700 }]]).failed === 1);
   t("ink-400 as 24px regular passes", run(base, [["ink-400", "paper", { px: 24, weight: 400 }]]).failed === 0);
   t("isLarge boundaries", !isLarge(23.9, 400) && isLarge(24, 400) && !isLarge(18.6, 700) && isLarge(18.66, 700));
-  // alpha: transparent foreground must not be read as opaque black
-  const clear = base.replace("--sp-ink-900: #231942", "--sp-ink-900: #00000000");
-  const r1 = run(clear, [["ink-900", "paper", { px: 16, weight: 400 }]]);
-  t("fully transparent fg is composited (invisible => FAILS, not read as black)", r1.failed === 1 && r1.rows[0].composited === true);
-  const half = base.replace("--sp-ink-900: #231942", "--sp-ink-900: #23194280");
-  const r2 = run(half, [["ink-900", "paper", { px: 16, weight: 400 }]]);
-  t("50% fg is composited over paper (ratio between 1 and the opaque 16.02)", r2.rows[0].ratio > 1 && r2.rows[0].ratio < 16 && r2.rows[0].composited === true);
-  const bgA = base.replace("--sp-paper: #fffdf8", "--sp-paper: #fffdf880");
-  const r3 = run(bgA, [["ink-900", "paper", { px: 16, weight: 400 }]]);
-  t("background with alpha is refused with an error", r3.failed === 1 && /alpha/.test(r3.rows[0].note));
-  const bad = base.replace("--sp-ink-900: #231942", "--sp-ink-900: #23194");
-  t("malformed hex is refused", run(bad, [["ink-900", "paper", { px: 16, weight: 400 }]]).failed === 1);
+
+  // alpha
+  const r1 = run(swap(base, "ink-900", "#00000000"), P16("ink-900"));
+  t("transparent fg is composited (invisible => FAILS)", r1.failed === 1 && r1.rows[0].composited === true);
+  const r2 = run(swap(base, "ink-900", "#23194280"), P16("ink-900"));
+  t("50% fg composited over paper (1 < ratio < 16)", r2.rows[0].ratio > 1 && r2.rows[0].ratio < 16 && r2.rows[0].composited);
+  t("background with alpha is refused", failedWith(run(swap(base, "paper", "#fffdf880"), P16("ink-900")), /alpha/));
+  t("malformed hex is refused", run(swap(base, "ink-900", "#23194"), P16("ink-900")).failed === 1);
+  t("rgba() with alpha is composited too", run(swap(base, "ink-900", "rgba(35, 25, 66, 0.5)"), P16("ink-900")).rows[0].composited === true);
+
+  // later override / duplicates: last declaration wins
+  const later = inject(base, "  --sp-ink-900: #cccccc;");
+  t("a LATER override in the same scope is what is measured (low contrast => FAIL)", run(later, P16("ink-900")).failed === 1);
+  const decoy = swap(base, "ink-900", "#cccccc") + "\n/* --sp-ink-900: #000000; */\n";
+  t("a commented-out declaration is ignored (still FAILS)", run(decoy, P16("ink-900")).failed === 1);
+  const rgbLater = inject(base, "  --sp-ink-900: rgb(200 200 200);");
+  t("a later rgb() override is read, not ignored (FAIL)", run(rgbLater, P16("ink-900")).failed === 1);
+  t("an unsupported value (hsl) is refused", failedWith(run(swap(base, "ink-900", "hsl(0 0% 0%)"), P16("ink-900")), /unsupported/));
+  const imp = inject(base, "  --sp-ink-900: #cccccc !important;\n  --sp-ink-900: #000000;");
+  t("!important beats a later normal declaration (FAIL)", run(imp, P16("ink-900")).failed === 1);
+
+  // var() chains
+  const chain = inject(base, "  --sp-alias-a: var(--sp-alias-b);\n  --sp-alias-b: #cccccc;\n  --sp-ink-900: var(--sp-alias-a);");
+  t("a var() chain is resolved (ends at #ccc => FAIL)", run(chain, P16("ink-900")).failed === 1);
+  const chainOk = inject(base, "  --sp-alias-a: var(--sp-ink-600);\n  --sp-ink-900: var(--sp-alias-a);");
+  t("a var() chain that ends in a good colour passes", run(chainOk, P16("ink-900")).failed === 0);
+  t("var() fallback is used when the token is missing", run(swap(base, "ink-900", "var(--sp-nope, #231942)"), P16("ink-900")).failed === 0);
+  const cyc = inject(base, "  --sp-ink-900: var(--sp-ink-600);\n  --sp-ink-600: var(--sp-ink-900);");
+  t("a cyclic var() fails with a clear error", failedWith(run(cyc, P16("ink-900")), /cyclic/));
+  t("an unresolved var() fails with a clear error", failedWith(run(swap(base, "ink-900", "var(--sp-nope)"), P16("ink-900")), /unresolved/));
+
+  // per-scope overrides
+  const dark = base + "\n@media (prefers-color-scheme: dark) {\n  .sp-shell { --sp-ink-900: #bbbbbb; }\n}\n";
+  const rd = run(dark, P16("ink-900"));
+  t("a dark @media scope is evaluated separately: base passes, dark FAILS",
+    rd.rows.some((x) => x.scope === "base" && x.ok) && rd.rows.some((x) => /dark/.test(x.scope) && !x.ok));
+  const sel = base + "\n:root[data-theme=\"dark\"] .sp-shell { --sp-paper: #111111; }\n";
+  const rs = run(sel, P16("ink-900"));
+  t("a selector scope that redefines a token is evaluated (ink-900 on #111 FAILS there)",
+    rs.rows.some((x) => x.scope !== "base" && !x.ok) && rs.rows.some((x) => x.scope === "base" && x.ok));
+  const dOk = base + "\n@media (prefers-contrast: more) {\n  .sp-shell { --sp-ink-500: #000000; }\n}\n";
+  t("a scope that improves contrast passes and inherits the other base tokens", run(dOk).failed === 0);
+
   let bad_n = 0;
   for (const [name, ok] of cases) {
     console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
     if (!ok) bad_n++;
   }
-  console.log(`\n${cases.length} self-tests, ${bad_n} failed`);
+  console.log(`
+${cases.length} self-tests, ${bad_n} failed`);
   process.exit(bad_n ? 1 : 0);
 }
 
@@ -161,7 +292,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   const { rows, failed } = run(css);
   for (const r of rows) {
-    const label = `${r.fg} on ${r.bg}`.padEnd(30);
+    const label = `${r.fg} on ${r.bg}`.padEnd(30) + (r.scope === "base" ? "" : ` [${r.scope}]`);
     const val = Number.isNaN(r.ratio) ? "  n/a" : r.ratio.toFixed(2).padStart(5) + ":1";
     const note = r.note ?? `${useLabel(r.use)} (needs ${r.need}:1)${r.composited ? " [alpha composited]" : ""}`;
     console.log(`${r.ok ? "PASS" : "FAIL"}  ${label} ${val}  ${note}`);
