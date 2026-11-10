@@ -5,11 +5,7 @@ import { useI18n } from "@/components/i18n/i18nProvider";
 
 const ENGINE_STORAGE_KEY = "sipurai_tts_engine";
 const AUTO_STORAGE_KEY = "sipurai_tts_auto";
-const ENGINE_OPTIONS = [
-  { value: "browser", label: "דפדפן (חינם)" },
-  { value: "openai",  label: "OpenAI (טבעי)" },
-  { value: "gemini",  label: "Gemini (טבעי)" },
-];
+
 
 /**
  * TTSControls - Text-to-Speech play/pause/stop controls with speed + engine selection.
@@ -75,7 +71,7 @@ export default function TTSControls({
           <button
             type="button"
             onClick={() => setDismissedNotice(notice)}
-            aria-label="סגור הודעה"
+            aria-label={t("reader.closeNotice")}
             className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base leading-none hover:bg-amber-100 dark:hover:bg-amber-900"
           >
             ×
@@ -162,14 +158,14 @@ export default function TTSControls({
         type="button"
         onClick={toggleAuto}
         aria-pressed={autoNarrate}
-        aria-label={autoNarrate ? "כבה הקראה אוטומטית" : "הפעל הקראה אוטומטית"}
+        aria-label={autoNarrate ? t("reader.autoOff") : t("reader.autoOn")}
         className={`h-7 px-2 text-xs rounded-full border transition-colors ${
           autoNarrate
             ? "bg-purple-600 border-purple-600 text-white"
             : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400"
         }`}
       >
-        {autoNarrate ? "🔊 אוטו" : "🔇 ידני"}
+        {autoNarrate ? t("reader.auto") : t("reader.manual")}
       </button>
 
       {/* Engine selector — persists, takes effect on next read */}
@@ -179,15 +175,15 @@ export default function TTSControls({
             value={engine}
             onChange={handleEngineChange}
             disabled={isSpeaking}
-            aria-label="בחר מנוע קריינות"
+            aria-label={t("reader.chooseVoice")}
             className="h-7 text-xs rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-1"
           >
-            {ENGINE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
+            <option value="browser">{t("reader.browserVoice")}</option>
+            <option value="openai">{t("reader.openaiVoice")}</option>
+            <option value="gemini">{t("reader.geminiVoice")}</option>
           </select>
           {engine !== "browser" && (
-            <Sparkles className="h-3 w-3 text-purple-500" aria-label="קול טבעי" />
+            <Sparkles className="h-3 w-3 text-purple-500" aria-label={t("reader.naturalVoice")} />
           )}
         </div>
       )}

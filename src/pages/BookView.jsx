@@ -666,7 +666,7 @@ export default function BookView() {
       {isGuest && book && (
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm">
           <span className={isRTL ? "text-right" : ""}>
-            {t('bookView.guestBanner')}
+            {t('reader.guestBanner')}
           </span>
           <button
             onClick={() => navigateToLogin()}
@@ -790,7 +790,7 @@ export default function BookView() {
               onClick={zoomOut}
               disabled={zoomLevel <= 0.75}
               className={`rounded-xl hidden sm:flex ${nightToolbar}`}
-              aria-label="Zoom out"
+              aria-label={t('reader.zoomOut')}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -802,7 +802,7 @@ export default function BookView() {
               onClick={zoomIn}
               disabled={zoomLevel >= 2}
               className={`rounded-xl hidden sm:flex ${nightToolbar}`}
-              aria-label="Zoom in"
+              aria-label={t('reader.zoomIn')}
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -839,8 +839,8 @@ export default function BookView() {
               onClick={handleExportPDF}
               disabled={isExportingPDF}
               className={`rounded-xl ${nightToolbar}`}
-              aria-label={isRTL ? 'הורדת PDF לקריאה ביתית' : 'Download PDF for home reading'}
-              title={isRTL ? 'PDF לקריאה ביתית; אינו קובץ מוכן לדפוס מקצועי' : 'Home-reading PDF; not a print-ready file'}
+              aria-label={t('reader.pdfDownload')}
+              title={t('reader.pdfTitle')}
             >
               {isExportingPDF
                 ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -854,8 +854,8 @@ export default function BookView() {
               size="icon"
               onClick={() => window.print()}
               className={`rounded-xl hidden sm:flex ${nightToolbar}`}
-              aria-label="הדפס"
-              title="הדפס"
+              aria-label={t('reader.print')}
+              title={t('reader.print')}
             >
               <span className="text-base" aria-hidden="true">🖨️</span>
             </Button>
@@ -878,8 +878,8 @@ export default function BookView() {
                 }
               }}
               className={`rounded-xl hidden sm:flex ${nightToolbar}`}
-              aria-label={musicOn ? "כבה מוזיקת רקע" : "הפעל מוזיקת רקע"}
-              title={musicOn ? "כבה מוזיקת רקע" : "הפעל מוזיקת רקע"}
+              aria-label={musicOn ? t('reader.musicOff') : t('reader.musicOn')}
+              title={musicOn ? t('reader.musicOff') : t('reader.musicOn')}
             >
               <span className="text-base" aria-hidden="true">{musicOn ? "🎵" : "🔈"}</span>
             </Button>
@@ -1099,10 +1099,7 @@ export default function BookView() {
                       {t('bookView.finishedBook')}
                     </h3>
                     <p className={`text-sm mb-5 ${nightMode ? "text-gray-400" : "text-gray-500 dark:text-gray-400"}`}>
-                      {isGuest
-                        ? t('bookView.finishedGuestPrompt')
-                        : t('bookView.finishedXpEarned')
-                      }
+                      {t('reader.finished')}
                     </p>
                     <div className={`flex flex-wrap justify-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <Button
