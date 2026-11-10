@@ -1,0 +1,20 @@
+name: Language check
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - name: Language check (only allows improvement)
+        run: node scripts/i18n-check.mjs
+        # Fails if any file gets more language ternaries, hard-coded Hebrew or English text, English
+        # aria-labels, or t() keys missing from the Hebrew or English locale.
+        # Baseline: scripts/i18n-baseline.json (lower it with: node scripts/i18n-check.mjs --update-baseline)
