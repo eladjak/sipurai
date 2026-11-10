@@ -1,0 +1,18 @@
+books                      created_by:ok
+pages                      created_by:ok
+characters                 created_by:ok
+story_ideas                created_by:ok
+feedback                   created_by:ok
+collaborations             created_by:ok
+comments                   created_by:ok
+community                  created_by:ok
+follows                    created_by:ok follower_id:ok following_id:ok
+notifications              created_by:ok recipient_id:ok actor_id:ok
+user_badges                created_by:ok user_id:ok
+profiles                   clerk_id:ok email:ok avatar_url:ok
+subscriptions              user_email:ok plan:ok status:ok
+book_quota_reservations    user_id:ok
+generation_loose_daily     user_id:ok
+print_orders               user_id:ok status:ok address:ok
+bucket sipurai-images exists: true
+row counts (info only): {"books":"7","profiles":"23"}

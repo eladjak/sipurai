@@ -1,5 +1,19 @@
 # Sipurai - Progress & Analysis Report
 
+## 2026-11-10 — Privacy gate (branch `feat/privacy-gate`, draft PR, not merged)
+
+A signed-in parent now sees one consent screen before any app route, until they accept the current
+policy version. Consent is stored server-side (`privacy_consents`, applied to the live database:
+additive, one new table, rollback file next to it) and checked again by `/api/ai/generate` and
+`/api/ai/tts` (no record -> 403, store down -> 503). Policy version lives in ONE place:
+`api/_lib/policyVersion.js` (bump it to ask everyone again). Policy page rewritten from the code's
+real outbound calls (he + en). Settings > Account has a real "delete my account and data" action
+(`/api/account/delete`; the account deleted is always the token's `sub`). The "voice cloning" card is
+hidden behind `VITE_VOICE_CLONING_ENABLED` (off). Not reviewed by a lawyer.
+Needs from Elad before it can work in production: `CLERK_SECRET_KEY` in Vercel (delete route answers
+503 and deletes nothing without it).
+Screens: `docs/privacy-gate-shots/`. Harness: `VITE_PRIVACY_HARNESS=1`, route `/__privacy-gate?state=...`.
+
 ## 2026-08-07 — Book generation is now INCREMENTAL and RESUMABLE (branch `feat/incremental-generation`)
 
 Closes `docs/TESTING-LESSONS.md` §9/§10 — the last release blocker. Full design,

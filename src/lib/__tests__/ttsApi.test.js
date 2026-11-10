@@ -4,6 +4,12 @@ vi.mock('../../../api/_lib/verifyClerk.js', () => ({
   requireClerkAuth: async () => ({ ok: true }),
 }));
 
+// These tests are about the TTS providers. The privacy gate has its own tests (tests/consent.test.mjs),
+// so here it is let through.
+vi.mock('../../../api/_lib/consent.js', () => ({
+  requireConsent: async () => false,
+}));
+
 import handler from '../../../api/ai/tts.js';
 
 function mockRes() {

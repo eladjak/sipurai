@@ -1,0 +1,7 @@
+connected
+table before: null
+MIGRATION APPLIED OK
+table after: privacy_consents
+id:bigint, user_id:text, policy_version:text, accepted_at:timestamp with time zone, items:jsonb, locale:text, user_agent:text
+rls enabled: true
+anon/authenticated grants: 0

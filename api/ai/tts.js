@@ -12,6 +12,7 @@
 
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
 import { getModel } from '../_lib/modelRegistry.js';
+import { requireConsent } from '../_lib/consent.js';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 12;
@@ -40,7 +41,7 @@ function log(msg, extra) {
   console.log(`[tts] ${msg}`, extra ?? '');
 }
 
-export default async function handler(req, res) {
+export default async function handler(req, res, overrides = {}) {
   const allowedOrigins = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
   const origin = req.headers.origin;
   const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
@@ -56,11 +57,14 @@ export default async function handler(req, res) {
 
   // Auth: require a valid Clerk session JWT so anonymous callers can't burn
   // OpenAI/Gemini TTS quota.
-  const auth = await requireClerkAuth(req);
+  const auth = await (overrides.auth || requireClerkAuth)(req);
   if (!auth.ok) {
     log('UNAUTHORIZED', auth.reason);
     return res.status(401).json({ error: 'Authentication required.' });
   }
+
+  // Privacy gate: no accepted current policy version -> 403 before any text leaves for a provider.
+  if (await requireConsent(req, res, auth.payload?.sub, overrides)) return;
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
   if (!checkRateLimit(ip)) {
