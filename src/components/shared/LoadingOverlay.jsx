@@ -6,9 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
  * LoadingOverlay - A child-friendly loading indicator with skeleton screens.
  * Can be used as full-page or overlay mode.
  *
- * @param {string} message - Loading message to display
- * @param {boolean} isRTL - Right-to-left layout
- * @param {boolean} overlay - If true, renders as a fixed overlay
+ * @param {{ message?: string, isRTL?: boolean, overlay?: boolean }} props
+ *   message - Loading message to display; isRTL - right-to-left layout;
+ *   overlay - if true, renders as a fixed overlay
  */
 export default function LoadingOverlay({ message, isRTL, overlay = false }) {
   const content = (

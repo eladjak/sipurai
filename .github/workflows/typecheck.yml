@@ -1,0 +1,23 @@
+name: Type check
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# "Never worse" gate: the code base still has a backlog of type errors (see docs/TYPECHECK.md),
+# so this job fails when any file gets MORE errors than typecheck-baseline.json records, and also
+# when errors were fixed but the baseline was not lowered.
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - name: Type errors must not increase
+        run: node scripts/check-types.mjs
