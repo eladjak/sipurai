@@ -1,3 +1,4 @@
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
@@ -10,6 +11,7 @@ import { PaymentReturn } from '@/components/checkout/PaymentReturn';
 import { EmptyOrdersArt } from '@/components/checkout/Illustrations';
 
 export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollMs, maxPollMs }) {
+  const { t, language } = useI18n();
   const [state, setState] = useState({ status: 'loading', orders: [], error: null });
 
   const load = useCallback(async (silent = false) => {
@@ -27,11 +29,11 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
   }, [load]);
 
   return (
-    <PageShell title="ההזמנות שלי" subtitle="הספרים המודפסים שהזמנתם, ובאיזה שלב כל אחד נמצא." backTo={createPageUrl('Library')} backLabel="לספרייה">
+    <PageShell title={String(t('print.orders.title'))} subtitle={String(t('print.orders.subtitle'))} backTo={createPageUrl('Library')} backLabel={String(t('print.orders.back'))}>
       {paid && <PaymentReturn api={api} orderId={orderId} pollMs={pollMs} maxMs={maxPollMs} onStatusChange={() => load(true)} />}
 
       {state.status === 'loading' && (
-        <ul className="space-y-4" aria-busy="true" aria-label="טוענים את ההזמנות" role="status">
+        <ul className="space-y-4" aria-busy="true" aria-label={String(t('print.orders.loading'))} role="status">
           {[0, 1].map((i) => (
             <li key={i} className="rounded-3xl border border-purple-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
               <Skeleton className="h-6 w-2/3" />
@@ -43,8 +45,8 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
       )}
 
       {state.status === 'error' && (
-        <InlineAlert title="לא הצלחנו לטעון את ההזמנות" onRetry={() => load()}>
-          {state.error?.message_he || 'משהו השתבש. נסו שוב בעוד רגע.'}
+        <InlineAlert title={String(t('print.orders.error'))} onRetry={() => load()}>
+          {(language !== 'english' && state.error?.message_he) || String(t('print.orders.retry'))}
         </InlineAlert>
       )}
 
@@ -53,15 +55,15 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
           <div className="mx-auto w-fit">
             <EmptyOrdersArt />
           </div>
-          <h2 className="mt-3 text-xl font-extrabold text-slate-900 dark:text-white">עדיין לא הזמנתם ספר מודפס</h2>
+          <h2 className="mt-3 text-xl font-extrabold text-slate-900 dark:text-white">{String(t('print.orders.empty'))}</h2>
           <p className="mx-auto mt-1 max-w-xs text-base leading-relaxed text-slate-600 dark:text-slate-300">
-            פתחו ספר שהכנתם ולחצו על "להזמין ספר מודפס". כך הוא יגיע אליכם כספר אמיתי, עם דפים לדפדף בהם.
+            {String(t('print.orders.emptyHint'))}
           </p>
           <Link
             to={createPageUrl('Library')}
             className="mt-5 inline-flex h-12 items-center justify-center rounded-2xl bg-purple-600 px-6 text-base font-bold text-white shadow-[0_6px_18px_rgba(124,58,237,0.35)] hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
           >
-            לספרים שלי
+            {String(t('print.orders.library'))}
           </Link>
         </div>
       )}
@@ -76,7 +78,7 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
           <div className="mt-5 flex justify-center">
             <SecondaryButton type="button" onClick={() => load()}>
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              רענון הסטטוס
+              {String(t('print.orders.refresh'))}
             </SecondaryButton>
           </div>
         </>

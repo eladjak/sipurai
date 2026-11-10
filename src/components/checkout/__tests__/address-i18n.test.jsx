@@ -17,3 +17,26 @@ describe('shipping address language', () => {
     expect(screen.getByText(/courier will call/i)).toBeInTheDocument();
   });
 });
+
+it('renders the page shell in the selected language and direction', async () => {
+  const { PageShell } = await import('../ui');
+  const { MemoryRouter } = await import('react-router-dom');
+  const t = (key) => key.split('.').reduce((v, part) => v?.[part], LANGUAGES.english.translations);
+  const { container } = render(<I18nContext.Provider value={{ t, language: 'english', direction: 'ltr' }}><MemoryRouter><PageShell title="Checkout" /></MemoryRouter></I18nContext.Provider>);
+  expect(container.firstChild).toHaveAttribute('dir', 'ltr');
+  expect(container.firstChild).toHaveAttribute('lang', 'en');
+});
+
+it('returns English address validation instructions', async () => {
+  const { validateAddress } = await import('../validation');
+  const t = (key) => key.split('.').reduce((v, part) => v?.[part], LANGUAGES.english.translations);
+  expect(validateAddress({}, 'ship', t).phone).toMatch(/mobile phone/i);
+});
+
+it('shows the empty orders page in English', async () => {
+  const { MyOrdersView } = await import('@/pages/MyOrders');
+  const { MemoryRouter } = await import('react-router-dom');
+  const t = (key) => key.split('.').reduce((v, part) => v?.[part], LANGUAGES.english.translations);
+  render(<I18nContext.Provider value={{ t, language: 'english', direction: 'ltr' }}><MemoryRouter><MyOrdersView api={{ getMyOrders: async () => ({ orders: [] }) }} /></MemoryRouter></I18nContext.Provider>);
+  expect(await screen.findByText('You haven’t ordered a printed book yet')).toBeInTheDocument();
+});

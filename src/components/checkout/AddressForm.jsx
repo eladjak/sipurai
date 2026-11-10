@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { IL_CITIES } from './cities';
 
 /** One labelled field: label bound to input, example + error announced next to it. */
-function Field({ id, label, optional = false, hint, error, children }) {
+function Field({ id, label, optional, hint, error, children }) {
   const { t } = useI18n();
   const hintId = `${id}-hint`;
   const errId = `${id}-err`;
@@ -54,11 +54,11 @@ export function AddressForm({ values, onChange, errors, shown, idPrefix = 'addr'
         ))}
       </datalist>
 
-      <Field id={`${idPrefix}-fullName`} label={t('print.address.name')} hint={t('print.address.nameHint')} error={err('fullName')}>
+      <Field id={`${idPrefix}-fullName`} label={String(t('print.address.name'))} hint={String(t('print.address.nameHint'))} error={err('fullName')}>
         <Input value={values.fullName} onChange={set('fullName')} autoComplete="name" placeholder={t('print.address.nameExample')} className={inputCls(err('fullName'))} />
       </Field>
 
-      <Field id={`${idPrefix}-phone`} label={t('print.address.phone')} hint={t('print.address.phoneHint')} error={err('phone')}>
+      <Field id={`${idPrefix}-phone`} label={String(t('print.address.phone'))} hint={String(t('print.address.phoneHint'))} error={err('phone')}>
         <Input
           value={values.phone}
           onChange={set('phone')}
@@ -71,29 +71,29 @@ export function AddressForm({ values, onChange, errors, shown, idPrefix = 'addr'
         />
       </Field>
 
-      <Field id={`${idPrefix}-city`} label={t('print.address.city')} hint={t('print.address.cityHint')} error={err('city')}>
+      <Field id={`${idPrefix}-city`} label={String(t('print.address.city'))} hint={String(t('print.address.cityHint'))} error={err('city')}>
         <Input value={values.city} onChange={set('city')} list={`${idPrefix}-cities`} autoComplete="address-level2" placeholder={t('print.address.cityExample')} className={inputCls(err('city'))} />
       </Field>
 
       <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
-        <Field id={`${idPrefix}-street`} label={t('print.address.street')} hint={t('print.address.streetHint')} error={err('street')}>
+        <Field id={`${idPrefix}-street`} label={String(t('print.address.street'))} hint={String(t('print.address.streetHint'))} error={err('street')}>
           <Input value={values.street} onChange={set('street')} autoComplete="address-line1" placeholder={t('print.address.streetExample')} className={inputCls(err('street'))} />
         </Field>
-        <Field id={`${idPrefix}-houseNumber`} label={t('print.address.house')} hint={t('print.address.houseHint')} error={err('houseNumber')}>
+        <Field id={`${idPrefix}-houseNumber`} label={String(t('print.address.house'))} hint={String(t('print.address.houseHint'))} error={err('houseNumber')}>
           <Input value={values.houseNumber} onChange={set('houseNumber')} inputMode="text" dir="ltr" placeholder="12" className={cn(inputCls(err('houseNumber')), 'text-right')} />
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field id={`${idPrefix}-apartment`} label={t('print.address.apartment')} optional hint={t('print.address.apartmentHint')} error={err('apartment')}>
+        <Field id={`${idPrefix}-apartment`} label={String(t('print.address.apartment'))} optional hint={String(t('print.address.apartmentHint'))} error={err('apartment')}>
           <Input value={values.apartment} onChange={set('apartment')} dir="ltr" inputMode="text" placeholder="4" className={cn(inputCls(err('apartment')), 'text-right')} />
         </Field>
-        <Field id={`${idPrefix}-zip`} label={t('print.address.zip')} optional hint={t('print.address.zipHint')} error={err('zip')}>
+        <Field id={`${idPrefix}-zip`} label={String(t('print.address.zip'))} optional hint={String(t('print.address.zipHint'))} error={err('zip')}>
           <Input value={values.zip} onChange={digitsOnly('zip')} inputMode="numeric" dir="ltr" maxLength={7} autoComplete="postal-code" placeholder="1234567" className={cn(inputCls(err('zip')), 'text-right')} />
         </Field>
       </div>
 
-      <Field id={`${idPrefix}-notes`} label={t('print.address.notes')} optional hint={t('print.address.notesHint')} error="">
+      <Field id={`${idPrefix}-notes`} label={String(t('print.address.notes'))} optional hint={String(t('print.address.notesHint'))} error="">
         <Textarea value={values.notes} onChange={set('notes')} rows={2} maxLength={200} placeholder={t('print.address.notesExample')} className="rounded-2xl border-slate-300 bg-white px-4 py-3 text-base dark:bg-slate-900" />
       </Field>
     </div>

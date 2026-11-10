@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -6,8 +7,10 @@ import { Button } from '@/components/ui/button';
 
 /** Page frame shared by the checkout, my-orders and admin screens (Hebrew, RTL, mobile first). */
 export function PageShell({ title, subtitle, backTo, backLabel = 'חזרה', children, wide = false, headingRef }) {
+  const { language, direction } = useI18n();
+  const lang = { hebrew: 'he', english: 'en', yiddish: 'yi' }[language] || 'he';
   return (
-    <div dir="rtl" lang="he" className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-amber-50/60 pb-48 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <div dir={direction} lang={lang} className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-amber-50/60 pb-48 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className={cn('mx-auto w-full px-4 pt-5 sm:px-6', wide ? 'max-w-5xl' : 'max-w-xl')}>
         {backTo && (
           <Link

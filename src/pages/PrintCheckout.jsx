@@ -1,3 +1,4 @@
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,6 +54,7 @@ export function PrintCheckoutView({
   persist = true,
   quoteDebounceMs = 250,
 }) {
+  const { t } = useI18n();
   const saved = useMemo(() => (persist ? readJson(draftKey(bookId)) : null), [persist, bookId]);
   const [config, setConfig] = useState({ status: 'loading', data: null, error: null });
   const [step, setStep] = useState(initialStep);
@@ -82,7 +84,7 @@ export function PrintCheckoutView({
   const maxQty = config.data?.maxQty || 10;
   const pickupOn = !!config.data?.pickup?.enabled;
   const effectiveMethod = method === 'pickup' && !pickupOn && config.status === 'ready' ? 'ship' : method;
-  const errors = useMemo(() => validateAddress(address, effectiveMethod), [address, effectiveMethod]);
+  const errors = useMemo(() => validateAddress(address, effectiveMethod, t), [address, effectiveMethod, t]);
 
   // Autosave the form draft (never anything about payment).
   useEffect(() => {
