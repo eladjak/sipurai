@@ -31,6 +31,7 @@
  * Only step 5 can create an order, so only step 5 can produce an unknown outcome.
  */
 import crypto from 'node:crypto';
+import { createLocalBreaker } from './breaker.js';
 import { expectedVendorTotalAgorot, priceMarginAgorot, maxOrderAgorot } from './expected.js';
 
 export class VendorError extends Error {
@@ -146,16 +147,16 @@ export function gsUriFromUploadUrl(uploadUrl, fileName) {
   return m && fileName ? `gs://${m[1]}/${fileName}` : null;
 }
 
-export function createVendorClient({ env = process.env, fetchImpl = globalThis.fetch, now = () => Date.now() } = {}) {
-  let breakerUntil = 0; // after an auth failure no further calls for BREAKER_MS (no retry storm)
-  let breakerCode = null;
-
+export function createVendorClient({ env = process.env, fetchImpl = globalThis.fetch, now = () => Date.now(), breaker = createLocalBreaker() } = {}) {
   async function tripBreaker(code) {
-    breakerUntil = now() + BREAKER_MS;
-    breakerCode = code;
+    try {
+      await breaker.set(code, now() + BREAKER_MS);
+    } catch {
+      // The partner error below is what the caller must see; a failed write must not hide it.
+    }
   }
 
-  function assertEnabled() {
+  async function assertEnabled() {
     if (!isVendorEnabled(env)) throw new VendorError('vendor_disabled', 'fulfillment is switched off');
     if (!env.BOOKPOD_USER_ID) throw new VendorError('vendor_not_configured', 'fulfillment is not configured');
     if (env.BOOKPOD_API_BASE) {
@@ -163,8 +164,15 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
       try { origin = new URL(env.BOOKPOD_API_BASE).origin; } catch { /* falls through */ }
       if (origin !== PINNED_ORIGIN) throw new VendorError('vendor_not_configured', 'BOOKPOD_API_BASE is not the pinned partner host');
     }
-    if (now() < breakerUntil) {
-      throw new VendorError(breakerCode, 'authentication with the print partner is failing; call skipped');
+    let state;
+    try {
+      state = await breaker.get();
+    } catch {
+      // Cannot read the shared breaker: fail closed rather than risk a retry storm against a dead token.
+      throw new VendorError('vendor_prestep_failed', 'circuit breaker state unavailable');
+    }
+    if (state && now() < state.until) {
+      throw new VendorError(state.code, 'authentication with the print partner is failing; call skipped');
     }
   }
   const base = () => PINNED_ORIGIN;
@@ -386,7 +394,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
 
   return {
     async submitOrder(order, files) {
-      assertEnabled();
+      await assertEnabled();
       buildShippingDetails(order, env); // throws before any I/O if the address/contact is unusable
       const content = toBytes(files, 'content');
       const cover = toBytes(files, 'cover');
@@ -420,7 +428,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
 
     /** Order an ALREADY REGISTERED book (no upload): same price gate, same order call. Used for the first live order. */
     async orderExistingBook(order, bookid, approval) {
-      assertEnabled();
+      await assertEnabled();
       if (!approval || !Number.isSafeInteger(approval.totalAgorot) || !approval.fingerprint) {
         throw new VendorError('vendor_rejected', 'an approved total and request fingerprint are required');
       }
@@ -429,7 +437,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
 
     /** Read-only price for an order against an existing book id. Used by the smoke test and the price gate. */
     async quote(order, bookid) {
-      assertEnabled();
+      await assertEnabled();
       const { totalAgorot, raw } = await priceOf(order, bookid);
       return {
         totalAgorot,
@@ -440,7 +448,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
     },
 
     async getStatus(ref) {
-      assertEnabled();
+      await assertEnabled();
       const q = `?trackingNumber=${encodeURIComponent(ref)}`;
       const { data } = await call('GET', `/shipments/track${q}`);
       // Docs: status is text in the carrier's language; there is no tracking URL in the response.

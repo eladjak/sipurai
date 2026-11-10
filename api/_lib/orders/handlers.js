@@ -8,6 +8,7 @@
 import { requireClerkAuth } from '../verifyClerk.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
+import { createStoreBreaker } from '../bookpod/breaker.js';
 import { createPrintFilesProvider, createSupabaseArtworkStorage } from './printFiles.js';
 import { createCreemPayment } from './payment/creem.js';
 import { createMorningPayment } from './payment/morning.js';
@@ -47,12 +48,13 @@ export async function defaultDeps(env = process.env) {
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('supabase service role not configured');
   const db = createClient(url, key, { auth: { persistSession: false } });
+  const store = createSupabaseStore(db);
   return {
     env,
     auth: requireClerkAuth,
-    store: createSupabaseStore(db),
+    store,
     payment: createPrintPayment(env),
-    vendor: createVendorClient({ env }),
+    vendor: createVendorClient({ env, breaker: createStoreBreaker(store) }),
     getPrintFiles: createPrintFilesProvider({ storage: createSupabaseArtworkStorage(db), env }).getPrintFiles,
   };
 }

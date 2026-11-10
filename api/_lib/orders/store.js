@@ -36,6 +36,7 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
   const bookMap = new Map(books.map((b) => [b.id, b]));
   const orders = new Map();
   const events = [];
+  const vendorState = new Map();
   let eventSeq = 0;
   const clone = (v) => (v === undefined ? v : structuredClone(v));
   const ts = () => now().toISOString();
@@ -128,6 +129,12 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
     },
     async listAlerts(limit = 50) {
       return events.filter((e) => e.type.startsWith('alert')).slice(-limit).reverse().map(clone);
+    },
+    async getVendorState(key) {
+      return clone(vendorState.get(key)) || null;
+    },
+    async setVendorState(key, value, until) {
+      vendorState.set(key, { key, value, until });
     },
     async listStuck({ paidBefore }) {
       return [...orders.values()]
@@ -222,6 +229,12 @@ export function createSupabaseStore(db) {
       return must(
         await db.from('print_order_events').select('*').like('type', 'alert%').order('id', { ascending: false }).limit(limit),
       );
+    },
+    async getVendorState(key) {
+      return must(await db.from('print_vendor_state').select('*').eq('key', key).maybeSingle());
+    },
+    async setVendorState(key, value, until) {
+      must(await db.from('print_vendor_state').upsert({ key, value, until, updated_at: new Date().toISOString() }));
     },
     async listStuck({ paidBefore }) {
       const failed = must(await db.from('print_orders').select('*').eq('status', 'failed_needs_attention'));

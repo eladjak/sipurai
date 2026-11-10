@@ -10,7 +10,8 @@ import { createPrintFilesProvider } from '../api/_lib/orders/printFiles.js';
 import { handlePaymentEvent, submitOrder } from '../api/_lib/orders/service.js';
 import { normalizeCreemEvent } from '../api/_lib/orders/payment/creem.js';
 import { endpoint } from '../api/_lib/orders/handlers.js';
-import { createSupabaseStore } from '../api/_lib/orders/store.js';
+import { createSupabaseStore, createMemoryStore } from '../api/_lib/orders/store.js';
+import { createStoreBreaker } from '../api/_lib/bookpod/breaker.js';
 import { ALICE, GOOD_ADDRESS, call, fakeReq, makeDeps } from './orders-helpers.mjs';
 
 const TOKEN = 'tok_' + 'x'.repeat(32);
@@ -478,6 +479,40 @@ test('CODEX #8: only what printing and shipping need reaches the partner (opaque
   assert.deepEqual(Object.keys(pickup).sort(), ['email', 'name', 'phoneNumber', 'reference_num1', 'shippingMethod']);
   // NEGATIVE CONTROL: a shipped order WITH a note carries it (so the pickup absence above is the minimisation, not a bug)
   assert.ok(buildShippingDetails(withNotes, ENV).notes.includes('אלרגיה'));
+});
+
+test('CODEX #7: the auth breaker is shared through the database - a second instance does not call the partner either', async () => {
+  const t = Date.UTC(2026, 10, 10, 8, 0, 0);
+  const expired = (path) => (path === '/api/v1/books/upload-url' ? json(401, { error: 'Unauthorized', message: 'Token expired' }) : null);
+  const store = createMemoryStore({ books: [] });
+  const fA = fakeVendor({ fail: expired });
+  const instanceA = createVendorClient({ env: ENV, fetchImpl: fA, now: () => t, breaker: createStoreBreaker(store) });
+  assert.equal(await code(instanceA.submitOrder(ORDER, FILES)), 'vendor_token_expired');
+  // a different instance (fresh client, same database) honours the trip with ZERO network calls
+  const fB = fakeVendor();
+  const instanceB = createVendorClient({ env: ENV, fetchImpl: fB, now: () => t + 60 * 1000, breaker: createStoreBreaker(store) });
+  assert.equal(await code(instanceB.submitOrder(ORDER, FILES)), 'vendor_token_expired');
+  assert.equal(await code(instanceB.getStatus('1')), 'vendor_token_expired');
+  assert.equal(fB.calls.length, 0);
+  // after the window the next call is the probe and goes through
+  const instanceC = createVendorClient({ env: ENV, fetchImpl: fB, now: () => t + 11 * 60 * 1000, breaker: createStoreBreaker(store) });
+  assert.deepEqual(await instanceC.submitOrder(ORDER, FILES), { ref: '00001612' });
+  // NEGATIVE CONTROL: with per-instance breakers (the old behaviour) the second instance DOES call the partner
+  const fD = fakeVendor();
+  const lonely = createVendorClient({ env: ENV, fetchImpl: fD, now: () => t + 60 * 1000 });
+  await lonely.submitOrder(ORDER, FILES);
+  assert.ok(fD.calls.length > 0);
+});
+
+test('CODEX #7: an unreadable breaker fails CLOSED (no partner call), and a failed write does not hide the partner error', async () => {
+  const f = fakeVendor();
+  const broken = { get: async () => { throw new Error('db down'); }, set: async () => {} };
+  const c = createVendorClient({ env: ENV, fetchImpl: f, breaker: broken });
+  assert.equal(await code(c.submitOrder(ORDER, FILES)), 'vendor_prestep_failed');
+  assert.equal(f.calls.length, 0);
+  const f2 = fakeVendor({ fail: (path) => (path === '/api/v1/books/upload-url' ? json(401, { message: 'Token expired' }) : null) });
+  const c2 = createVendorClient({ env: ENV, fetchImpl: f2, breaker: { get: async () => null, set: async () => { throw new Error('db down'); } } });
+  assert.equal(await code(c2.submitOrder(ORDER, FILES)), 'vendor_token_expired');
 });
 
 test('getStatus uses GET /shipments/track by our partner order number', async () => {
