@@ -10,6 +10,7 @@ import { createPrintFilesProvider } from '../api/_lib/orders/printFiles.js';
 import { handlePaymentEvent, submitOrder } from '../api/_lib/orders/service.js';
 import { normalizeCreemEvent } from '../api/_lib/orders/payment/creem.js';
 import { endpoint } from '../api/_lib/orders/handlers.js';
+import { createSupabaseStore } from '../api/_lib/orders/store.js';
 import { ALICE, GOOD_ADDRESS, call, fakeReq, makeDeps } from './orders-helpers.mjs';
 
 const TOKEN = 'tok_' + 'x'.repeat(32);
@@ -402,6 +403,63 @@ test('CODEX #6: the price gate fails closed on NaN / Infinity / absurd config an
   assert.equal(e.code === 'vendor_price_mismatch' || e.code === 'vendor_rejected', true);
   // NEGATIVE CONTROL: sane config and a price inside the (maximum allowed) margin still go through
   assert.deepEqual((await run(ORDER, { ...ENV, BOOKPOD_PRICE_MARGIN_AGOROT: '1000' }, { total: 60 })).e, { ref: '00001612' });
+});
+
+test('CODEX #4: print files are bytes from our own code - a URL is never fetched; type and size are enforced', async () => {
+  const fetched = [];
+  const f = fakeVendor();
+  const spy = async (url, init) => { fetched.push(String(url)); return f(url, init); };
+  const c = createVendorClient({ env: ENV, fetchImpl: spy });
+  for (const files of [
+    { contentUrl: 'https://169.254.169.254/latest/meta-data', coverUrl: 'https://evil.test/c.pdf' },
+    { content: 'https://evil.test/a.pdf', cover: 'https://evil.test/b.pdf' },
+    { content: new Uint8Array([60, 104, 116, 109, 108, 62]), cover: FILES.cover }, // "<html>" is not a PDF
+    { content: FILES.content, cover: new Uint8Array(61 * 1024 * 1024).fill(0, 0).map((v, i) => (i < 4 ? [37, 80, 68, 70][i] : 0)) }, // 61 MB cover > cap
+    { content: FILES.content },
+    null,
+  ]) {
+    assert.equal(await code(c.submitOrder(ORDER, files)), 'vendor_rejected');
+  }
+  assert.equal(fetched.length, 0, 'nothing was fetched or sent for any of them');
+  // NEGATIVE CONTROL: real bytes go through the same client
+  assert.deepEqual(await c.submitOrder(ORDER, FILES), { ref: '00001612' });
+});
+
+test('CODEX #4: getPrintFiles reads only paths built from a safe book id; table columns with URLs are ignored', async () => {
+  const touched = [];
+  const spyStorage = { async download(bucket, path) { touched.push(`${bucket}/${path}`); return null; } };
+  const p = createPrintFilesProvider({ storage: spyStorage, log: () => {} });
+  for (const id of ['../../etc/passwd', 'a/b', 'x?y=z', 'https://evil.test', '', 'a'.repeat(65)]) {
+    await assert.rejects(p.getPrintFiles({ page_count: 24, preset_id: 'square-220' }, { id }), /unsafe book id/);
+  }
+  assert.equal(touched.length, 0, 'no storage access for an unsafe id');
+  // control: a normal id reads only under its own prefix
+  await p.getPrintFiles({ page_count: 24, preset_id: 'square-220' }, { id: 'book-alice' });
+  assert.ok(touched.length > 0 && touched.every((t) => /^print-(ready|artwork)\/book-alice\//.test(t)), touched.join(','));
+  // a books row whose print_*_url columns hold attacker URLs yields NO files
+  const db = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 7, created_by: 'u', title: 't', print_size: null, print_content_url: 'https://evil.test/a.pdf', print_cover_url: 'https://evil.test/b.pdf' }, error: null }) }) }) }) };
+  const book = await createSupabaseStore(db).getBook('7');
+  assert.equal(book.printFiles, null);
+});
+
+test('CODEX #4: oversized or non-image stored artwork stops the order (print_files_error), nothing is sent', async () => {
+  const png = solidPng(2400);
+  const mk = (over) => {
+    const files = new Map();
+    for (let i = 1; i <= 24; i += 1) files.set(`print-artwork/book-alice/page-${String(i).padStart(2, '0')}.png`, png);
+    files.set('print-artwork/book-alice/front.png', png);
+    files.set('print-artwork/book-alice/back.png', png);
+    for (const [k, v] of Object.entries(over)) files.set(k, v);
+    return createPrintFilesProvider({ storage: memStorage(files), log: () => {} });
+  };
+  await assert.rejects(mk({ 'print-artwork/book-alice/page-03.png': new TextEncoder().encode('<html>not an image</html>') }).getPrintFiles({ page_count: 24, preset_id: 'square-220' }, { id: 'book-alice' }), /not a PNG or JPEG/);
+  const tooBig = new Uint8Array(41 * 1024 * 1024); tooBig.set([0x89, 0x50, 0x4e, 0x47]);
+  await assert.rejects(mk({ 'print-artwork/book-alice/front.png': tooBig }).getPrintFiles({ page_count: 24, preset_id: 'square-220' }, { id: 'book-alice' }), /too large/);
+  // prebuilt PDFs in the service-role bucket are used as they are
+  const pdf = new Uint8Array(2048); pdf.set([37, 80, 68, 70]);
+  const ready = createPrintFilesProvider({ storage: memStorage(new Map([['print-ready/book-alice/interior.pdf', pdf], ['print-ready/book-alice/cover.pdf', pdf]])), log: () => {} });
+  const got = await ready.getPrintFiles({ page_count: 24, preset_id: 'square-220' }, { id: 'book-alice' });
+  assert.equal(got.meta.prebuilt, true);
 });
 
 test('getStatus uses GET /shipments/track by our partner order number', async () => {

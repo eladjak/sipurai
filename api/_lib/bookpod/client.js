@@ -6,7 +6,7 @@
  * Calculate Order Price v1.1, Shipment Tracking v1.1). Headers: x-user-id + x-custom-token.
  *
  * Interface (unchanged for service.js):
- *   submitOrder(order, files) -> {ref}      files = {content, cover} (bytes) | {contentUrl, coverUrl} (https)
+ *   submitOrder(order, files) -> {ref}      files = {content, cover}: PDF bytes built by our own server code (never URLs)
  *   getStatus(ref)            -> {status, trackingUrl}
  *   quote(order, bookId)      -> {totalAgorot, ...}   read-only price (POST /orders/price)
  *
@@ -58,6 +58,8 @@ export const DEFAULT_API_BASE = 'https://cloud-function-bookpod-festjdz7ga-ey.a.
 // The partner token is only ever sent to this origin. A different BOOKPOD_API_BASE is refused, not honoured.
 const PINNED_ORIGIN = DEFAULT_API_BASE;
 const UPLOAD_HOST = 'storage.googleapis.com';
+export const MAX_INTERIOR_BYTES = 250 * 1024 * 1024; // measured 123-155 MB for 24 pages
+export const MAX_COVER_BYTES = 60 * 1024 * 1024; // measured 10 MB
 
 /** Error text for logs/state: never the URL (signed query strings) or raw transport messages. */
 const safeNetErr = (e) => `${e?.name || 'Error'}${e?.cause?.code ? `:${e.cause.code}` : e?.code ? `:${e.code}` : ''}`;
@@ -233,21 +235,20 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
     return { status, data };
   }
 
-  async function toBytes(files, key) {
-    const direct = files?.[key];
-    if (direct) return direct instanceof Uint8Array ? direct : new Uint8Array(direct);
-    const url = files?.[`${key}Url`];
-    if (typeof url !== 'string' || !/^https:\/\//.test(url)) {
-      throw new VendorError('vendor_rejected', 'missing print files');
+  /**
+   * Print files are BYTES produced by our own server code (printFiles.js). A URL is never accepted: nothing a customer
+   * or a database column says can make this server fetch an address. Type and size are checked here as well.
+   */
+  function toBytes(files, key) {
+    const raw = files?.[key];
+    const bytes = raw instanceof Uint8Array ? raw : raw instanceof ArrayBuffer ? new Uint8Array(raw) : null;
+    if (!bytes) throw new VendorError('vendor_rejected', 'missing print files');
+    const max = key === 'content' ? MAX_INTERIOR_BYTES : MAX_COVER_BYTES;
+    if (bytes.length < 5 || bytes.length > max) throw new VendorError('vendor_rejected', `${key} pdf has an invalid size`);
+    if (String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]) !== '%PDF') {
+      throw new VendorError('vendor_rejected', `${key} is not a pdf`);
     }
-    let res;
-    try {
-      res = await fetchImpl(url, { method: 'GET' });
-    } catch (e) {
-      throw new VendorError('vendor_prestep_failed', `print file download failed: ${e?.message}`);
-    }
-    if (!res.ok) throw new VendorError('vendor_prestep_failed', `print file download status ${res.status}`);
-    return new Uint8Array(await res.arrayBuffer());
+    return bytes;
   }
 
   async function putPdf(uploadUrl, bytes) {
@@ -384,8 +385,8 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
     async submitOrder(order, files) {
       assertEnabled();
       buildShippingDetails(order, env); // throws before any I/O if the address/contact is unusable
-      const content = await toBytes(files, 'content');
-      const cover = await toBytes(files, 'cover');
+      const content = toBytes(files, 'content');
+      const cover = toBytes(files, 'cover');
 
       // 1 + 2: upload
       const stamp = new Date(now()).toISOString().slice(0, 7).replace('-', '');

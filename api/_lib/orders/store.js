@@ -165,11 +165,8 @@ export function createSupabaseStore(db) {
         ownerId: data.created_by,
         title: data.title || '',
         printSize: data.print_size || null,
-        // Optional pre-built files (https URLs). Normally null: printFiles.js builds the PDFs from stored artwork.
-        printFiles:
-          data.print_content_url && data.print_cover_url
-            ? { contentUrl: data.print_content_url, coverUrl: data.print_cover_url }
-            : null,
+        // Print files are never read from a column or fetched from a URL: see printFiles.js.
+        printFiles: null,
       };
     },
     async findByKey(userId, key) {
