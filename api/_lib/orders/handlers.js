@@ -162,7 +162,7 @@ const ENDPOINTS = {
     async run(req, res, { deps, userId }) {
       const body = bodyOf(req);
       if (!body || typeof body !== 'object') throw new OrderError('invalid_body', 400, 'בקשה לא תקינה');
-      const out = await adminAction(deps, { id: body.id, action: body.action, note: body.note, actor: userId });
+      const out = await adminAction(deps, { id: body.id, action: body.action, note: body.note, actor: userId, confirmNotOrdered: body.confirmNotOrdered === true });
       return send(res, 200, { order: adminOrderView(out.order) });
     },
   },

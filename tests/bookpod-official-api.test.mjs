@@ -279,6 +279,55 @@ test('order outcome classes: 5xx / timeout / 1502 / 202 are UNKNOWN; 4xx is a de
   assert.deepEqual([e.code, e.unknownOutcome], ['vendor_prestep_failed', false]);
 });
 
+test('CODEX #2: at the order call only a DOCUMENTED refusal proves "not created"; every other 4xx is UNKNOWN', async () => {
+  const run = (resp) => createVendorClient({ env: ENV, fetchImpl: fakeVendor({ fail: (path) => (path === '/api/v1/orders' ? resp : null) }) })
+    .submitOrder(ORDER, FILES).catch((e) => e);
+  const unknown = [
+    json(408, {}), json(429, { error: 'slow down' }), json(400, { weird: true }), json(404, null),
+    json(400, { success: false, code: 9999, message: 'undocumented' }),
+    json(401, { message: 'gateway says no' }), // 401 without the documented body at the order stage
+    json(400, { success: true, code: 1501 }), // wrong shape: success must be false
+  ];
+  for (const r of unknown) {
+    const e = await run(r);
+    assert.deepEqual([e.code, e.unknownOutcome], [r.status === 401 ? 'vendor_unknown' : 'vendor_unknown', true], `status ${r.status}`);
+  }
+  // NEGATIVE CONTROL: the documented refusals ARE definite
+  for (const c of [1100, 1501, 1506, 1507]) {
+    const e = await run(json(400, { success: false, code: c, message: 'documented' }));
+    assert.deepEqual([e.code, e.unknownOutcome], ['vendor_rejected', false], String(c));
+  }
+  assert.equal((await run(json(401, { error: 'Unauthorized', message: 'Token expired' }))).code, 'vendor_token_expired');
+});
+
+test('CODEX #2 through the service: an unknown outcome cannot be resubmitted without the reconcile confirmation; a safe failure can', async () => {
+  const deps = makeDeps({ withFiles: false });
+  let mode = 'unknown';
+  const f = fakeVendor({ fail: (path) => (path === '/api/v1/orders' && mode === 'unknown' ? json(408, {}) : null) });
+  deps.vendor = createVendorClient({ env: ENV, fetchImpl: f });
+  deps.getPrintFiles = async () => FILES;
+  const { orderId } = await place(deps);
+  await handlePaymentEvent(deps, paid(deps, orderId, 'evt_unk'));
+  const row = () => deps.store._orders.get(orderId);
+  assert.equal(row().status, 'failed_needs_attention');
+  assert.match(row().vendor_last_error, /^unknown_outcome\(vendor_unknown\)/);
+  const before = f.count('POST', '/api/v1/orders');
+  mode = 'ok';
+  const e1 = await submitOrder(deps, orderId, { explicit: true }).catch((e) => e);
+  assert.equal(e1.code, 'reconcile_required');
+  assert.equal(f.count('POST', '/api/v1/orders'), before, 'no order request without the confirmation');
+  const r = await submitOrder(deps, orderId, { explicit: true, confirmNotOrdered: true });
+  assert.equal(r.outcome, 'submitted');
+  // a SAFE failure (documented refusal) is retryable without the confirmation
+  const deps2 = makeDeps({ withFiles: false });
+  deps2.vendor = createVendorClient({ env: ENV, fetchImpl: fakeVendor({ total: 99 }) });
+  deps2.getPrintFiles = async () => FILES;
+  const o2 = await place(deps2);
+  await handlePaymentEvent(deps2, paid(deps2, o2.orderId, 'evt_safe'));
+  deps2.vendor = createVendorClient({ env: ENV, fetchImpl: fakeVendor() });
+  assert.equal((await submitOrder(deps2, o2.orderId, { explicit: true })).outcome, 'submitted');
+});
+
 test('getStatus uses GET /shipments/track by our partner order number', async () => {
   const f = fakeVendor();
   const c = createVendorClient({ env: ENV, fetchImpl: f });

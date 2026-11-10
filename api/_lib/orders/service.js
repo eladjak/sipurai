@@ -230,7 +230,7 @@ export async function handlePaymentEvent(deps, evt) {
  * Submit a paid order to the print partner. Never retried automatically after an
  * unknown outcome: the admin must call it again explicitly (explicit:true).
  */
-export async function submitOrder(deps, orderId, { explicit = false } = {}) {
+export async function submitOrder(deps, orderId, { explicit = false, confirmNotOrdered = false } = {}) {
   const { store, vendor } = deps;
   const order = await store.getOrder(orderId);
   if (!order) throw new OrderError('not_found', 404, 'ההזמנה לא נמצאה');
@@ -239,6 +239,11 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
     if (!explicit) throw new OrderError('retry_not_allowed', 409, 'נדרש אישור ידני לניסיון נוסף');
     if (!order.paid_at || String(order.vendor_last_error || '').startsWith('amount_mismatch')) {
       throw new OrderError('retry_not_allowed', 409, 'אי אפשר לשלוח הזמנה שלא שולמה במלואה');
+    }
+    // UNKNOWN outcome: the partner may already hold this order. Never resubmit until a human has checked the
+    // partner's dashboard for reference_num1 = our order id. (If they are wrong, the partner answers code 1502.)
+    if (String(order.vendor_last_error || '').startsWith('unknown_outcome') && !confirmNotOrdered) {
+      throw new OrderError('reconcile_required', 409, 'צריך לוודא קודם מול שותף ההדפסה שההזמנה לא קיימת');
     }
   }
 
@@ -309,7 +314,7 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
 }
 
 /* ------------------------------ admin ------------------------------ */
-export async function adminAction(deps, { id, action, note, actor }) {
+export async function adminAction(deps, { id, action, note, actor, confirmNotOrdered = false }) {
   const { store } = deps;
   if (!isUuid(id)) throw new OrderError('invalid_id', 400, 'מזהה הזמנה לא תקין');
   const order = await store.getOrder(id);
@@ -327,7 +332,7 @@ export async function adminAction(deps, { id, action, note, actor }) {
   switch (action) {
     case 'retry_submit': {
       await store.addEvent(id, 'admin_retry_submit', { actor, note: cleanNote });
-      const result = await submitOrder(deps, id, { explicit: true });
+      const result = await submitOrder(deps, id, { explicit: true, confirmNotOrdered });
       if (result.outcome === 'not_claimed') {
         throw new OrderError('invalid_transition', 409, 'אי אפשר לבצע את הפעולה במצב הנוכחי של ההזמנה');
       }

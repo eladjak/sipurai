@@ -59,6 +59,8 @@ const API = '/api/v1';
 const TIMEOUT_MS = 20000;
 const UPLOAD_TIMEOUT_MS = 170000;
 const BREAKER_MS = 10 * 60 * 1000;
+// Create Order "Common Errors" (v1.2): only these, with success:false, prove the order was NOT created.
+const ORDER_REFUSAL_CODES = new Set([1100, 1110, 1111, 1200, 1501, 1505, 1506, 1507, 1508, 1509, 1512]);
 
 // Documented enum values (Create Book, section 7 and Appendix A). Proof book #33377 used exactly these.
 const BOOK_SPEC = Object.freeze({
@@ -138,6 +140,11 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
   let breakerUntil = 0; // after an auth failure no further calls for BREAKER_MS (no retry storm)
   let breakerCode = null;
 
+  async function tripBreaker(code) {
+    breakerUntil = now() + BREAKER_MS;
+    breakerCode = code;
+  }
+
   function assertEnabled() {
     if (!isVendorEnabled(env)) throw new VendorError('vendor_disabled', 'fulfillment is switched off');
     if (!env.BOOKPOD_USER_ID) throw new VendorError('vendor_not_configured', 'fulfillment is not configured');
@@ -179,22 +186,32 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
       data = null;
     }
     const status = res.status;
+    // At the order stage only a DOCUMENTED, specific refusal proves that no order exists. Anything else (a gateway
+    // 408/429/4xx, an unexpected body, a 401 without the documented body) is an unknown outcome: the request may
+    // have been processed. Earlier stages create nothing, so for them any failure is safe.
+    const documented = data && typeof data === 'object' && data.success === false && ORDER_REFUSAL_CODES.has(Number(data.code));
+    const documentedAuth = data && typeof data === 'object' && data.error === 'Unauthorized';
     if (status === 401 || status === 403) {
       // Docs (Shipment Tracking, Common Errors): "401 Token expired" / "401 Invalid token or user ID" /
       // "403 The token is not enabled for the API".
+      if (stage === 'order' && !documentedAuth && status === 401) {
+        throw new VendorError('vendor_unknown', `status ${status} (undocumented body)`, { unknownOutcome: true });
+      }
       const text = JSON.stringify(data || {});
       const code = status === 401 && /expired/i.test(text) ? 'vendor_token_expired' : 'vendor_auth_failed';
-      breakerUntil = now() + BREAKER_MS;
-      breakerCode = code;
+      await tripBreaker(code);
       throw new VendorError(code, `status ${status}`);
     }
     if (status >= 400 && status < 500) {
       const first = data?.errors?.[0];
-      const detail = first ? `${first.code}: ${first.message}` : data?.code ? `${data.code}: ${data.message}` : data?.error || '';
       if (stage === 'order' && (first?.code === 1502 || data?.code === 1502)) {
         // 1502 = "reference_num1 already exists": the order is already at the vendor.
         throw new VendorError('vendor_duplicate_reference', 'reference already exists', { unknownOutcome: true });
       }
+      if (stage === 'order' && !documented) {
+        throw new VendorError('vendor_unknown', `status ${status} (not a documented refusal)`, { unknownOutcome: true });
+      }
+      const detail = first ? `${first.code}: ${first.message}` : data?.code ? `${data.code}: ${data.message}` : data?.error || '';
       throw new VendorError('vendor_rejected', `status ${status} ${detail}`.trim());
     }
     if (status >= 500) {

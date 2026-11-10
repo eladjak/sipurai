@@ -96,8 +96,8 @@ export const printOrderApi = {
   /** @returns {Promise<{orders: any[], alerts: any[]}>} */
   adminList: (status) => request('/api/orders/admin-list' + qs({ status })),
   /** @returns {Promise<any>} */
-  adminAction: ({ id, action, note }) =>
-    request('/api/orders/admin-action', { method: 'POST', body: { id, action, note } }),
+  adminAction: ({ id, action, note, confirmNotOrdered }) =>
+    request('/api/orders/admin-action', { method: 'POST', body: { id, action, note, confirmNotOrdered } }),
 };
 
 export default printOrderApi;
