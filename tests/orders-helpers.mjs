@@ -45,7 +45,9 @@ export function makeDeps({ env = {}, vendorScript = ['success'], books, withFile
   });
   const payment = createMockPayment();
   const vendor = createMockVendor(vendorScript);
-  return { env: { ...BASE_ENV, ...env }, store, payment, vendor, auth: fakeAuth };
+  // the privacy gate is tested in consent.test.mjs; here every parent has accepted
+  const consentStore = { has: async () => true, isDeleting: async () => false };
+  return { env: { ...BASE_ENV, ...env }, store, payment, vendor, auth: fakeAuth, consentStore };
 }
 
 export function fakeRes() {

@@ -1680,7 +1680,7 @@ export default {
         quote: "I use Sipurai in class to teach creative writing. The kids are so engaged when they see their ideas come to life with illustrations. Highly recommend!",
         initials: "NS"
       },
-      trustCoppa: "COPPA Compliant",
+      trustCoppa: "Parents stay in control",
       trustChildSafe: "Child-Safe AI",
       trustNoAds: "No Ads"
     },
@@ -1758,7 +1758,7 @@ export default {
       },
       safety: {
         title: "Built for Kids, Trusted by Parents",
-        description: "COPPA-compliant, no ads, no data collection, parental controls built-in. Every AI-generated story is filtered for age-appropriate content. Your child's safety isn't an afterthought \u2014 it's our foundation."
+        description: "No ads, parent-only accounts, built-in parental controls. Every story is written with age-appropriate safety instructions. We keep only what is needed to create the books, and a parent can ask to delete everything."
       },
       trilingual: {
         title: "Hebrew, English & Yiddish",
@@ -1778,7 +1778,7 @@ export default {
       },
       compare1: "The only Hebrew-native children's book AI",
       compare2: "Built for families who love stories",
-      compare3: "100% child-safe, no ads, COPPA compliant"
+      compare3: "No ads, parent-only accounts, and the parent decides what is kept"
     },
     faq: {
       sectionTitle: "Frequently Asked Questions",
@@ -1786,7 +1786,7 @@ export default {
       q1: "What is Sipurai?",
       a1: "Sipurai is an AI-powered platform that lets children and parents create personalized illustrated storybooks. You choose characters, art style, genre, and language \u2014 and our AI generates a complete book with story and illustrations.",
       q2: "Is Sipurai safe for children?",
-      a2: "Absolutely! Sipurai is COPPA compliant, uses child-safe AI content filters, has no ads, and includes parental controls. All generated content is age-appropriate and reviewed for safety. COPPA (Children's Online Privacy Protection Act) is the strictest international standard for children's online safety, ensuring no personal data is collected from children under 13 without parental consent.",
+      a2: "Sipurai is built for children: the account belongs to the parent, there are no ads, and there are parental controls. Stories are written with age-appropriate safety instructions. We keep only what is needed to create the books, a parent can ask to delete everything, and the privacy policy says exactly who receives what.",
       q3: "What ages is Sipurai designed for?",
       a3: "Sipurai is designed for children ages 3\u201312, with age-appropriate content settings for each range. Parents can set the age range to ensure stories and vocabulary match their child's level.",
       q4: "How does the AI create stories and illustrations?",
@@ -2023,7 +2023,7 @@ export default {
       voiceCloning: "Voice Cloning (Pro)",
       voiceCloningDesc: "Upload a sample and use your own voice!",
       uploadVoiceSample: "Upload Voice Sample",
-      poweredBy: "Powered by ElevenLabs"
+      poweredBy: "Narration is produced by OpenAI or Google, depending on the voice chosen"
     },
     model: {
       free: "Free",
@@ -2459,7 +2459,7 @@ export default {
   },
   testimonials: {
     disclaimer: "Names and stories are illustrative examples",
-    coppaTooltip: "International child privacy standard — click to learn more",
+    coppaTooltip: "The account belongs to the parent, who decides what information to enter. Tap for details",
     age7: "Age 7",
     ages5to9: "Ages 5–9",
     age6: "Age 6",

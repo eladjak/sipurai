@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/components/privacy/ConsentScreen.jsx"
+        ],
+        "createdAt": "2026-11-10T06:37:52.872Z",
+        "reason": "agent decided: purple/indigo is Sipurai's existing brand palette (756 uses in 116 files on main); brand-per-project rule"
+      }
+    ]
+  }
+}

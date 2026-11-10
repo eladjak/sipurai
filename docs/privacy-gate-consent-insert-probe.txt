@@ -1,0 +1,1 @@
+service_role insert (upsert-style, rolled back): 1 row; visible inside tx: 1 ; marker read OK: 0 ; rows left after rollback: 0

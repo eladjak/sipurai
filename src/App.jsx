@@ -23,9 +23,12 @@ const MyOrders = import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' ? lazy(() =
 const AdminPrintOrders = import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' ? lazy(() => import('@/pages/AdminPrintOrders')) : null;
 // Dev-only screenshot harness (never present in a normal build).
 const CheckoutHarness = import.meta.env.VITE_CHECKOUT_HARNESS === '1' ? lazy(() => import('@/pages/CheckoutStatesHarness')) : null;
+const PrivacyGateHarness = import.meta.env.VITE_PRIVACY_HARNESS === '1' ? lazy(() => import('@/pages/PrivacyGateHarness')) : null;
 import { I18nProvider } from '@/components/i18n/i18nProvider';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import PrivacyGate from '@/components/privacy/PrivacyGate';
+import { isGateExempt } from '@/lib/privacyConsent';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { trackPageView } from '@/lib/analytics';
 import { initErrorTracking } from '@/lib/errorTracking';
@@ -87,7 +90,8 @@ const AuthenticatedApp = () => {
     location.pathname === '/Contact' ||
     location.pathname === '/pricing' ||
     location.pathname === '/accessibility' ||
-    (CheckoutHarness !== null && location.pathname === '/__checkout-states');
+    (CheckoutHarness !== null && location.pathname === '/__checkout-states') ||
+    (PrivacyGateHarness !== null && location.pathname === '/__privacy-gate');
 
   // Show loading spinner while checking app public settings or auth
   // For public routes, skip auth loading wait (user will be null but that's fine)
@@ -124,6 +128,9 @@ const AuthenticatedApp = () => {
       </div>
     }>
       <AnimatedPage>
+        {/* Privacy gate: a signed-in parent who has not accepted the current policy version sees only the
+            consent screen. Legal, marketing and sign-in pages stay open to everyone (see isGateExempt). */}
+        <PrivacyGate enabled={!!user && !isGateExempt(location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}>
         <Routes location={location}>
           {/* Root: logged-in users see Home dashboard; guests see LandingPage */}
           <Route path="/" element={
@@ -172,8 +179,10 @@ const AuthenticatedApp = () => {
             <Route path="/admin/print-orders" element={<LayoutWrapper currentPageName="AdminPrintOrders"><AdminPrintOrders /></LayoutWrapper>} />
           )}
           {CheckoutHarness && <Route path="/__checkout-states" element={<CheckoutHarness />} />}
+          {PrivacyGateHarness && <Route path="/__privacy-gate" element={<PrivacyGateHarness />} />}
           <Route path="*" element={<PageNotFound />} />
         </Routes>
+        </PrivacyGate>
       </AnimatedPage>
     </Suspense>
   );

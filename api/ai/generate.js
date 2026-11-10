@@ -10,6 +10,7 @@
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
 import { getModel } from '../_lib/modelRegistry.js';
 import { gateAiCall } from '../_lib/quota.js';
+import { requireConsent } from '../_lib/consent.js';
 
 // ─── Simple in-memory rate limiter (per IP, resets every minute) ─────────────
 
@@ -115,11 +116,14 @@ export default async function handler(req, res, overrides = {}) {
 
   // Auth: require a valid Clerk session JWT so anonymous callers can't burn
   // Gemini/OpenAI quota. (Verifies RS256 signature against Clerk JWKS.)
-  const auth = await requireClerkAuth(req);
+  const auth = await (overrides.auth || requireClerkAuth)(req);
   if (!auth.ok) {
     log('UNAUTHORIZED', { reason: auth.reason });
     return res.status(401).json({ error: 'Authentication required.' });
   }
+
+  // Privacy gate: a parent who has not accepted the current policy version gets 403 before any token is spent.
+  if (await requireConsent(req, res, auth.payload?.sub, overrides)) return;
 
   // Free-tier quota + global daily cap (server-side; off until FREE_QUOTA_ENFORCE=true).
   if (await gateAiCall(req, res, auth.payload?.sub, overrides)) return;
@@ -144,7 +148,8 @@ export default async function handler(req, res, overrides = {}) {
   log('REQUEST', {
     type,
     promptLength: prompt?.length || 0,
-    promptPreview: typeof prompt === 'string' ? prompt.substring(0, 120) : '(not a string)',
+    // length only: a prompt can contain a child's name, and server logs are not the place for it
+    promptIsString: typeof prompt === 'string',
     hasOptions: !!options,
     ip: ip.substring(0, 8) + '...',
   });
@@ -369,7 +374,7 @@ async function handleImage(apiKey, prompt, options = {}) {
   log('IMAGE_API_PARSED', { finishReason, partCount, partTypes, hasCandidates: !!data.candidates?.length });
 
   if (finishReason === 'SAFETY') {
-    log('IMAGE_SAFETY_BLOCK', { promptPreview: prompt.substring(0, 100) });
+    log('IMAGE_SAFETY_BLOCK', { promptLength: prompt.length });
     const error = new Error('Image was blocked by safety filters. Please try a different prompt.');
     error.status = 422;
     throw error;

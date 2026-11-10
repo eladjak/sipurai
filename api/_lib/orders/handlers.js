@@ -11,6 +11,7 @@ import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
 import { createMorningPayment } from './payment/morning.js';
 import { createSupabaseStore } from './store.js';
+import { CONSENT_MESSAGES, createSupabaseConsentStore, hasConsent } from '../consent.js';
 import {
   OrderError,
   adminAction,
@@ -45,10 +46,12 @@ export async function defaultDeps(env = process.env) {
   const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('supabase service role not configured');
+  const db = createClient(url, key, { auth: { persistSession: false } });
   return {
     env,
     auth: requireClerkAuth,
-    store: createSupabaseStore(createClient(url, key, { auth: { persistSession: false } })),
+    consentStore: createSupabaseConsentStore(db),
+    store: createSupabaseStore(db),
     payment: createPrintPayment(env),
     vendor: createVendorClient({ env }),
   };
@@ -93,6 +96,7 @@ const ownedBook = async (store, bookId, userId) => {
 const ENDPOINTS = {
   quote: {
     method: 'GET',
+    consent: true,
     async run(req, res, { deps, userId }) {
       const q = queryOf(req);
       const book = await ownedBook(deps.store, q.bookId, userId);
@@ -110,6 +114,7 @@ const ENDPOINTS = {
   },
   create: {
     method: 'POST',
+    consent: true,
     async run(req, res, { deps, userId }) {
       const body = bodyOf(req);
       if (!body || typeof body !== 'object') throw new OrderError('invalid_body', 400, 'בקשה לא תקינה');
@@ -200,6 +205,14 @@ export function endpoint(name) {
 
       if (def.admin && !adminIds(env).includes(userId)) {
         return fail(res, 403, 'forbidden', 'אין הרשאה');
+      }
+      // Privacy gate: ordering a printed book handles a delivery address, so it needs the parent's consent too.
+      // No consent store, no order: there is no "skip" path (the tests inject a store that says yes).
+      if (def.consent) {
+        if (!deps.consentStore) return fail(res, 503, 'consent_unavailable', CONSENT_MESSAGES.unavailable);
+        if (!(await hasConsent({ store: deps.consentStore, userId }))) {
+          return fail(res, 403, 'consent_required', CONSENT_MESSAGES.required);
+        }
       }
       return await def.run(req, res, { deps, userId });
     } catch (e) {

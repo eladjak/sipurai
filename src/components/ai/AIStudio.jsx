@@ -33,6 +33,9 @@ import { GenerateImage, UploadFile } from '@/integrations/Core'; // New imports 
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { pickBestModel } from '@/lib/smartModelPicker';
 
+// The "voice cloning" card has no working feature behind it. Off by default so the UI does not promise it.
+const VOICE_CLONING_ENABLED = import.meta.env.VITE_VOICE_CLONING_ENABLED === 'true';
+
 const LS_KEY_MANUAL_PICK = 'sipurai_last_manual_model';
 const LS_KEY_AUTO_MODE = 'sipurai_ai_auto_mode';
 
@@ -421,6 +424,8 @@ export default function AIStudio({
                     </SelectContent>
                   </Select>
 
+                  {/* Voice cloning is not built. The card stays hidden until it is (VITE_VOICE_CLONING_ENABLED=true). */}
+                  {VOICE_CLONING_ENABLED && (
                   <Card className="bg-gray-50 dark:bg-gray-800/50">
                     <CardHeader>
                       <CardTitle className="text-base">{t("aiStudio.audio.voiceCloning")}</CardTitle>
@@ -433,6 +438,7 @@ export default function AIStudio({
                       </Button>
                     </CardContent>
                   </Card>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

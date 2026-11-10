@@ -53,6 +53,7 @@ import AIStudio from '../components/ai/AIStudio';
 import AIProvidersPanel from '../components/ai/AIProvidersPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
+import AccountDataControls from '../components/settings/AccountDataControls';
 import { PLANS, openCheckout } from '@/lib/creem';
 import useSubscription from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
@@ -748,6 +749,7 @@ export default function Settings() {
                 </AlertDialog>
               </div>
             </SettingCard>
+            <AccountDataControls language={language} isRTL={isRTL} onDeleted={() => window.location.assign('/')} />
           </motion.div>
         </TabsContent>
 

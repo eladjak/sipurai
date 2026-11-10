@@ -1,0 +1,13 @@
+Objects in the bucket by top folder:
+┌─────────┬─────────────┬─────┐
+│ (index) │ folder      │ n   │
+├─────────┼─────────────┼─────┤
+│ 0       │ 'generated' │ 114 │
+└─────────┴─────────────┴─────┘
+
+Leftover originals under uploads/: 0
+  (could not read community.cover_image: column "cover_image" does not exist)
+
+Would delete: 0   Would keep: 0
+
+DRY RUN: nothing was deleted. Run with --apply only after the owner approves.
