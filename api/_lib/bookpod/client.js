@@ -113,14 +113,16 @@ export function buildShippingDetails(order, env = process.env) {
 
   if (order.method === 'pickup') {
     // 3 - Factory self-pickup
-    return { shippingMethod: 3, ...base, ...(a.notes ? { notes: String(a.notes).slice(0, 200) } : {}) };
+    // Data minimisation: no free text for pickup, the partner needs nothing beyond who collects.
+    return { shippingMethod: 3, ...base };
   }
   // 2 - Home delivery. shippingCompanyId omitted => "Local shipments: assigned automatically".
   const house = digits(a.houseNumber); // docs: "House number (only numeric, no special characters like /)"
   if (!a.city || !a.street || !house) throw new VendorError('vendor_rejected', 'address incomplete');
   if (!a.zip) throw new VendorError('vendor_rejected', 'zipCode missing'); // docs: zipCode (string) is required
   const suffix = String(a.houseNumber || '').replace(/[0-9]/g, '').trim();
-  const notes = [a.notes, suffix ? `מספר בית: ${a.houseNumber}` : ''].filter(Boolean).join(' | ').slice(0, 200);
+  // Only the courier instruction the customer wrote in the delivery step (capped), plus the house letter the numeric field cannot hold.
+  const notes = [a.notes ? String(a.notes).slice(0, 100) : '', suffix ? `מספר בית: ${a.houseNumber}` : ''].filter(Boolean).join(' | ').slice(0, 140);
   return {
     shippingMethod: 2,
     ...base,
@@ -285,7 +287,8 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
     const [width, height] = TRIM_CM[order.preset_id || order.quote?.presetId] || [];
     if (!width) throw new VendorError('vendor_rejected', 'unknown print size');
     return {
-      title: String(order.quote?.bookTitle || `order-${order.id}`).slice(0, 120),
+      // Opaque on purpose: the child's story title can identify the family and is not needed for printing.
+      title: `Sipurai ${String(order.id).slice(0, 8)}`,
       category: ['childrens'],
       bookType: 'print',
       ...BOOK_SPEC,

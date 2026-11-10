@@ -114,7 +114,7 @@ test('HAPPY PATH: documented flow, in order, with documented shapes', async () =
     { ...book.body, title: undefined, contentUrl: undefined, coverUrl: undefined },
     { title: undefined, category: ['childrens'], bookType: 'print', printcolor: 'color', sheettype: 'wood-free-white-110', laminationtype: 'matt', finishtype: 'soft', readingdirection: 'right', bleed: true, width: 22, height: 22, status: false, contentUrl: undefined, coverUrl: undefined },
   );
-  assert.equal(book.body.title, 'הדרקון של נועה');
+  assert.equal(book.body.title, 'Sipurai 11111111');
   assert.match(book.body.contentUrl, /^gs:\/\/bookpod-profile-images\/.+_v1\.0\.pdf$/);
   assert.match(book.body.coverUrl, /^gs:\/\/bookpod-profile-images\/.+_cover_v1\.0\.pdf$/);
   // price call and order call carry the same body (docs: "same request body as Create Order")
@@ -460,6 +460,24 @@ test('CODEX #4: oversized or non-image stored artwork stops the order (print_fil
   const ready = createPrintFilesProvider({ storage: memStorage(new Map([['print-ready/book-alice/interior.pdf', pdf], ['print-ready/book-alice/cover.pdf', pdf]])), log: () => {} });
   const got = await ready.getPrintFiles({ page_count: 24, preset_id: 'square-220' }, { id: 'book-alice' });
   assert.equal(got.meta.prebuilt, true);
+});
+
+test('CODEX #8: only what printing and shipping need reaches the partner (opaque title, no pickup notes, capped courier note)', async () => {
+  const f = fakeVendor();
+  const secretNote = 'הילד סובל מאלרגיה חמורה';
+  const withNotes = { ...ORDER, address: { ...ORDER.address, notes: secretNote.repeat(10) } };
+  await createVendorClient({ env: ENV, fetchImpl: f }).submitOrder(withNotes, FILES);
+  const all = JSON.stringify(f.calls.map((c) => c.body));
+  assert.equal(all.includes('הדרקון של נועה'), false, 'the story title never leaves');
+  assert.equal(all.includes('דנה כהן'), true, 'recipient name is needed for delivery');
+  const ship = f.calls.find((c) => c.path === '/api/v1/orders').body.shippingDetails;
+  assert.ok(ship.notes.length <= 140 && ship.notes.includes('אלרגיה'), 'a delivery instruction is passed, capped');
+  // pickup: no free text at all
+  const pickup = buildShippingDetails({ ...withNotes, method: 'pickup' }, ENV);
+  assert.equal('notes' in pickup, false);
+  assert.deepEqual(Object.keys(pickup).sort(), ['email', 'name', 'phoneNumber', 'reference_num1', 'shippingMethod']);
+  // NEGATIVE CONTROL: a shipped order WITH a note carries it (so the pickup absence above is the minimisation, not a bug)
+  assert.ok(buildShippingDetails(withNotes, ENV).notes.includes('אלרגיה'));
 });
 
 test('getStatus uses GET /shipments/track by our partner order number', async () => {
