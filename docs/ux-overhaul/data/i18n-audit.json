@@ -1,0 +1,2788 @@
+{
+ "generatedAt": "2026-11-10T13:22:06.778Z",
+ "root": "/root/work/sipurai-ux-49eb82ff",
+ "filesScanned": 220,
+ "evalIssues": [],
+ "keysPerLocale": {
+  "he": 2053,
+  "en": 2056,
+  "yi": 1929
+ },
+ "missing": {
+  "he_vs_en(keys in en not in he)": [
+   "home.features.title",
+   "home.features.subtitle",
+   "onboarding.profile.age",
+   "onboarding.profile.name",
+   "onboarding.profile.namePlaceholder"
+  ],
+  "yi_vs_en(keys in en not in yi)": [
+   "pageTitles.home",
+   "pageTitles.settings",
+   "pageTitles.library",
+   "pageTitles.createbook",
+   "pageTitles.bookview",
+   "pageTitles.collaborate",
+   "pageTitles.feedback",
+   "pageTitles.community",
+   "pageTitles.Home",
+   "pageTitles.Library",
+   "pageTitles.Community",
+   "pageTitles.Settings",
+   "pageTitles.BookCreation",
+   "pageTitles.BookView",
+   "pageTitles.BookWizard",
+   "pageTitles.Feedback",
+   "pageTitles.CommunityPost",
+   "pageTitles.Characters",
+   "pageTitles.CharacterEditor",
+   "pageTitles.Profile",
+   "pageTitles.Leaderboard",
+   "pageTitles.StoryIdeas",
+   "pageTitles.Contact",
+   "home.features.title",
+   "home.features.subtitle",
+   "community.genreTags.adventure",
+   "community.genreTags.fantasy",
+   "community.genreTags.education",
+   "community.genreTags.educational",
+   "community.genreTags.animals",
+   "community.genreTags.family",
+   "community.genreTags.friendship",
+   "community.genreTags.science",
+   "community.genreTags.magic",
+   "community.genreTags.nature",
+   "community.genreTags.values",
+   "community.genreTags.bedtime",
+   "community.genreTags.fairy_tale",
+   "community.genreTags.sports",
+   "community.genreTags.humor",
+   "community.genreTags.custom",
+   "community.parentApproval",
+   "community.parentApprovalDesc",
+   "community.enterPin",
+   "settings.appearance.darkModeOn",
+   "settings.appearance.darkModeOff",
+   "settings.billing.currentPlanLabel",
+   "settings.billing.free",
+   "settings.billing.mostPopular",
+   "settings.billing.activeBadge",
+   "settings.billing.currentPlanBtn",
+   "settings.billing.upgradeNow",
+   "settings.billing.checkoutError",
+   "settings.billing.checkoutErrorDesc",
+   "settings.upgradeSuccess",
+   "settings.upgradeSuccessDesc",
+   "settings.errorLoadTitle",
+   "settings.errorLoadDesc",
+   "settings.savedTitle",
+   "settings.savedDesc",
+   "settings.errorSaveTitle",
+   "settings.errorSaveDesc",
+   "settings.logoutConfirmTitle",
+   "settings.logoutConfirmDesc",
+   "settings.logoutCancel",
+   "settings.logoutConfirmBtn",
+   "settings.audioSpeeds.slow",
+   "settings.audioSpeeds.normal",
+   "settings.audioSpeeds.fast",
+   "settings.audioSpeeds.veryFast",
+   "bookView.defaultDescription",
+   "bookView.tts.readAloud",
+   "bookView.tts.read",
+   "bookView.tts.resume",
+   "bookView.tts.pause",
+   "bookView.tts.stop",
+   "bookView.tts.slower",
+   "bookView.tts.faster",
+   "bookView.tts.slow",
+   "bookView.tts.normal",
+   "bookView.tts.fast",
+   "bookView.navigation.previous",
+   "bookView.navigation.next",
+   "leaderboard.loginToSeeRank",
+   "leaderboard.booksCount",
+   "onboarding.welcome.start",
+   "onboarding.topics.clearAll",
+   "onboarding.topics.selectAll",
+   "profile.activity.empty",
+   "profile.activity.empty.description",
+   "profile.activity.filter.achievements",
+   "profile.activity.filter.all",
+   "profile.activity.filter.books",
+   "profile.activity.filter.social",
+   "profile.activity.period.all",
+   "profile.activity.period.month",
+   "profile.activity.period.week",
+   "profile.activity.period.year",
+   "profile.activity.title",
+   "profile.activity.viewAll",
+   "book.styler.title",
+   "book.styler.subtitle",
+   "book.styler.fontSize",
+   "book.styler.fontFamily",
+   "book.styler.selectFont",
+   "book.styler.fontWeight",
+   "book.styler.weightNormal",
+   "book.styler.weightBold",
+   "book.styler.weightLight",
+   "book.styler.textColor",
+   "book.styler.textAlignment",
+   "book.styler.lineHeight",
+   "book.styler.showNikud",
+   "book.styler.applyStyles",
+   "book.styler.preview",
+   "book.styler.previewSubtitle",
+   "book.styler.selectWeight",
+   "book.styler.fontDavid",
+   "book.styler.fontMiriam",
+   "book.styler.fontNarkisim",
+   "book.styler.fontGuttmanYad",
+   "textOverlay.sampleText",
+   "textOverlay.newText",
+   "celebration.title",
+   "celebration.close",
+   "celebration.levelUp",
+   "celebration.levelAdvance",
+   "celebration.newBadge",
+   "celebration.awesome"
+  ],
+  "en_vs_he(keys in he not in en)": [
+   "landing.stats.booksCreated",
+   "landing.stats.pagesIllustrated"
+  ]
+ },
+ "untranslatedCopies": {
+  "he_identical_to_en": [
+   "social.notificationMessage.new_book",
+   "book.styler.fontDavid",
+   "book.styler.fontMiriam",
+   "book.styler.fontNarkisim",
+   "book.styler.fontGuttmanYad",
+   "contact.emailPlaceholder"
+  ],
+  "he_without_hebrew_letters": [
+   "social.notificationMessage.new_book",
+   "contact.emailPlaceholder"
+  ],
+  "yi_identical_to_en": [
+   "home.xp",
+   "social.notificationMessage.new_book",
+   "contact.emailPlaceholder",
+   "userStats.xp"
+  ],
+  "yi_without_hebrew_letters": [
+   "social.notificationMessage.new_book",
+   "contact.emailPlaceholder"
+  ]
+ },
+ "tUsage": {
+  "distinctKeysUsed": 1375,
+  "usedButMissing": {
+   "he": [
+    {
+     "key": "book.autoSaving",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:13"
+    },
+    {
+     "key": "book.autoSaved",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:22"
+    },
+    {
+     "key": "book.autoSaveError",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:31"
+    },
+    {
+     "key": "book.backToLibrary",
+     "at": "src/components/bookCreation/BookEditorTab.jsx:100"
+    },
+    {
+     "key": "book.viewFullBook",
+     "at": "src/components/bookCreation/BookEditorTab.jsx:106"
+    },
+    {
+     "key": "book.layoutUpdated",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:45"
+    },
+    {
+     "key": "book.rhymingOptions",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:56"
+    },
+    {
+     "key": "book.rhymingDesc",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:58"
+    },
+    {
+     "key": "book.enableRhyming",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:63"
+    },
+    {
+     "key": "book.applyRhyming",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:91"
+    },
+    {
+     "key": "book.createTitle",
+     "at": "src/components/bookCreation/DraftView.jsx:63"
+    },
+    {
+     "key": "book.readyMessage",
+     "at": "src/components/bookCreation/DraftView.jsx:66"
+    },
+    {
+     "key": "book.storyTitle",
+     "at": "src/components/bookCreation/DraftView.jsx:77"
+    },
+    {
+     "key": "book.bookSummary",
+     "at": "src/components/bookCreation/DraftView.jsx:80"
+    },
+    {
+     "key": "book.characterSettings",
+     "at": "src/components/bookCreation/DraftView.jsx:94"
+    },
+    {
+     "key": "book.characterSettingsDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:96"
+    },
+    {
+     "key": "book.mainCharDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:102"
+    },
+    {
+     "key": "book.mainCharPlaceholder",
+     "at": "src/components/bookCreation/DraftView.jsx:114"
+    },
+    {
+     "key": "book.secondaryChars",
+     "at": "src/components/bookCreation/DraftView.jsx:122"
+    },
+    {
+     "key": "book.name",
+     "at": "src/components/bookCreation/DraftView.jsx:135"
+    },
+    {
+     "key": "book.briefDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:149"
+    },
+    {
+     "key": "book.artStyleConsistency",
+     "at": "src/components/bookCreation/DraftView.jsx:176"
+    },
+    {
+     "key": "book.selectArtStyle",
+     "at": "src/components/bookCreation/DraftView.jsx:188"
+    },
+    {
+     "key": "book.generating",
+     "at": "src/components/bookCreation/DraftView.jsx:244"
+    },
+    {
+     "key": "book.generateMyBook",
+     "at": "src/components/bookCreation/DraftView.jsx:249"
+    },
+    {
+     "key": "book.editPageImage",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:38"
+    },
+    {
+     "key": "book.imagePrompt",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:44"
+    },
+    {
+     "key": "book.simpleMode",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:51"
+    },
+    {
+     "key": "book.editFullPrompt",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:51"
+    },
+    {
+     "key": "book.imagePromptPlaceholder",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:61"
+    },
+    {
+     "key": "book.imageSimplePlaceholder",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:69"
+    },
+    {
+     "key": "book.regenerateImage",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:108"
+    },
+    {
+     "key": "book.pageLayout",
+     "at": "src/components/bookCreation/PageLayoutEditor.jsx:34"
+    },
+    {
+     "key": "book.prevPage",
+     "at": "src/components/bookCreation/PageNavigation.jsx:23"
+    },
+    {
+     "key": "book.pageOf",
+     "at": "src/components/bookCreation/PageNavigation.jsx:32"
+    },
+    {
+     "key": "book.nextPage",
+     "at": "src/components/bookCreation/PageNavigation.jsx:40"
+    },
+    {
+     "key": "book.noImage",
+     "at": "src/components/bookCreation/PagePreview.jsx:103"
+    },
+    {
+     "key": "book.editPageText",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:35"
+    },
+    {
+     "key": "book.saveText",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:49"
+    },
+    {
+     "key": "book.makeRhyme",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:72"
+    },
+    {
+     "key": "sharing.parentalApprovalRequired",
+     "at": "src/components/bookCreation/ShareOptions.jsx:64"
+    },
+    {
+     "key": "sharing.shareFromCommunityPage",
+     "at": "src/components/bookCreation/ShareOptions.jsx:65"
+    },
+    {
+     "key": "welcome.title",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:298"
+    },
+    {
+     "key": "welcome.subtitle",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:299"
+    },
+    {
+     "key": "welcome.start",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:305"
+    },
+    {
+     "key": "topics.title",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:373"
+    },
+    {
+     "key": "topics.subtitle",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:374"
+    },
+    {
+     "key": "topics.selectAll",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:385"
+    },
+    {
+     "key": "topics.clearAll",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:394"
+    },
+    {
+     "key": "book.loadError",
+     "at": "src/pages/BookCreation.jsx:236"
+    },
+    {
+     "key": "book.rateLimit",
+     "at": "src/pages/BookCreation.jsx:254"
+    },
+    {
+     "key": "book.imagePartial",
+     "at": "src/pages/BookCreation.jsx:386"
+    },
+    {
+     "key": "book.bookGenerated",
+     "at": "src/pages/BookCreation.jsx:390"
+    },
+    {
+     "key": "book.bookGenerateError",
+     "at": "src/pages/BookCreation.jsx:397"
+    },
+    {
+     "key": "book.textUpdated",
+     "at": "src/pages/BookCreation.jsx:509"
+    },
+    {
+     "key": "book.textUpdateError",
+     "at": "src/pages/BookCreation.jsx:513"
+    },
+    {
+     "key": "book.imageUpdated",
+     "at": "src/pages/BookCreation.jsx:541"
+    },
+    {
+     "key": "book.imageUpdateError",
+     "at": "src/pages/BookCreation.jsx:545"
+    },
+    {
+     "key": "book.layoutUpdateError",
+     "at": "src/pages/BookCreation.jsx:572"
+    },
+    {
+     "key": "book.nikudAdded",
+     "at": "src/pages/BookCreation.jsx:593"
+    },
+    {
+     "key": "book.nikudError",
+     "at": "src/pages/BookCreation.jsx:598"
+    },
+    {
+     "key": "book.rhymeSuccess",
+     "at": "src/pages/BookCreation.jsx:623"
+    },
+    {
+     "key": "book.rhymeError",
+     "at": "src/pages/BookCreation.jsx:628"
+    },
+    {
+     "key": "book.creatingMessage",
+     "at": "src/pages/BookCreation.jsx:690"
+    },
+    {
+     "key": "book.creatingTitle",
+     "at": "src/pages/BookCreation.jsx:701"
+    },
+    {
+     "key": "book.editingLabel",
+     "at": "src/pages/BookCreation.jsx:761"
+    },
+    {
+     "key": "book.tab.editor",
+     "at": "src/pages/BookCreation.jsx:795"
+    },
+    {
+     "key": "book.tab.preview",
+     "at": "src/pages/BookCreation.jsx:806"
+    },
+    {
+     "key": "book.tab.share",
+     "at": "src/pages/BookCreation.jsx:817"
+    },
+    {
+     "key": "book.previewTitle",
+     "at": "src/pages/BookCreation.jsx:879"
+    },
+    {
+     "key": "characterEditor.preview",
+     "at": "src/pages/CharacterEditor.jsx:445"
+    },
+    {
+     "key": "characterEditor.generating",
+     "at": "src/pages/CharacterEditor.jsx:497"
+    },
+    {
+     "key": "characters.noResults",
+     "at": "src/pages/Characters.jsx:277"
+    }
+   ],
+   "en": [
+    {
+     "key": "book.autoSaving",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:13"
+    },
+    {
+     "key": "book.autoSaved",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:22"
+    },
+    {
+     "key": "book.autoSaveError",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:31"
+    },
+    {
+     "key": "book.backToLibrary",
+     "at": "src/components/bookCreation/BookEditorTab.jsx:100"
+    },
+    {
+     "key": "book.viewFullBook",
+     "at": "src/components/bookCreation/BookEditorTab.jsx:106"
+    },
+    {
+     "key": "book.layoutUpdated",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:45"
+    },
+    {
+     "key": "book.rhymingOptions",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:56"
+    },
+    {
+     "key": "book.rhymingDesc",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:58"
+    },
+    {
+     "key": "book.enableRhyming",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:63"
+    },
+    {
+     "key": "book.applyRhyming",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:91"
+    },
+    {
+     "key": "book.createTitle",
+     "at": "src/components/bookCreation/DraftView.jsx:63"
+    },
+    {
+     "key": "book.readyMessage",
+     "at": "src/components/bookCreation/DraftView.jsx:66"
+    },
+    {
+     "key": "book.storyTitle",
+     "at": "src/components/bookCreation/DraftView.jsx:77"
+    },
+    {
+     "key": "book.bookSummary",
+     "at": "src/components/bookCreation/DraftView.jsx:80"
+    },
+    {
+     "key": "book.characterSettings",
+     "at": "src/components/bookCreation/DraftView.jsx:94"
+    },
+    {
+     "key": "book.characterSettingsDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:96"
+    },
+    {
+     "key": "book.mainCharDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:102"
+    },
+    {
+     "key": "book.mainCharPlaceholder",
+     "at": "src/components/bookCreation/DraftView.jsx:114"
+    },
+    {
+     "key": "book.secondaryChars",
+     "at": "src/components/bookCreation/DraftView.jsx:122"
+    },
+    {
+     "key": "book.name",
+     "at": "src/components/bookCreation/DraftView.jsx:135"
+    },
+    {
+     "key": "book.briefDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:149"
+    },
+    {
+     "key": "book.artStyleConsistency",
+     "at": "src/components/bookCreation/DraftView.jsx:176"
+    },
+    {
+     "key": "book.selectArtStyle",
+     "at": "src/components/bookCreation/DraftView.jsx:188"
+    },
+    {
+     "key": "book.generating",
+     "at": "src/components/bookCreation/DraftView.jsx:244"
+    },
+    {
+     "key": "book.generateMyBook",
+     "at": "src/components/bookCreation/DraftView.jsx:249"
+    },
+    {
+     "key": "book.editPageImage",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:38"
+    },
+    {
+     "key": "book.imagePrompt",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:44"
+    },
+    {
+     "key": "book.simpleMode",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:51"
+    },
+    {
+     "key": "book.editFullPrompt",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:51"
+    },
+    {
+     "key": "book.imagePromptPlaceholder",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:61"
+    },
+    {
+     "key": "book.imageSimplePlaceholder",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:69"
+    },
+    {
+     "key": "book.regenerateImage",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:108"
+    },
+    {
+     "key": "book.pageLayout",
+     "at": "src/components/bookCreation/PageLayoutEditor.jsx:34"
+    },
+    {
+     "key": "book.prevPage",
+     "at": "src/components/bookCreation/PageNavigation.jsx:23"
+    },
+    {
+     "key": "book.pageOf",
+     "at": "src/components/bookCreation/PageNavigation.jsx:32"
+    },
+    {
+     "key": "book.nextPage",
+     "at": "src/components/bookCreation/PageNavigation.jsx:40"
+    },
+    {
+     "key": "book.noImage",
+     "at": "src/components/bookCreation/PagePreview.jsx:103"
+    },
+    {
+     "key": "book.editPageText",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:35"
+    },
+    {
+     "key": "book.saveText",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:49"
+    },
+    {
+     "key": "book.makeRhyme",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:72"
+    },
+    {
+     "key": "sharing.parentalApprovalRequired",
+     "at": "src/components/bookCreation/ShareOptions.jsx:64"
+    },
+    {
+     "key": "sharing.shareFromCommunityPage",
+     "at": "src/components/bookCreation/ShareOptions.jsx:65"
+    },
+    {
+     "key": "welcome.title",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:298"
+    },
+    {
+     "key": "welcome.subtitle",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:299"
+    },
+    {
+     "key": "welcome.start",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:305"
+    },
+    {
+     "key": "topics.title",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:373"
+    },
+    {
+     "key": "topics.subtitle",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:374"
+    },
+    {
+     "key": "topics.selectAll",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:385"
+    },
+    {
+     "key": "topics.clearAll",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:394"
+    },
+    {
+     "key": "book.loadError",
+     "at": "src/pages/BookCreation.jsx:236"
+    },
+    {
+     "key": "book.rateLimit",
+     "at": "src/pages/BookCreation.jsx:254"
+    },
+    {
+     "key": "book.imagePartial",
+     "at": "src/pages/BookCreation.jsx:386"
+    },
+    {
+     "key": "book.bookGenerated",
+     "at": "src/pages/BookCreation.jsx:390"
+    },
+    {
+     "key": "book.bookGenerateError",
+     "at": "src/pages/BookCreation.jsx:397"
+    },
+    {
+     "key": "book.textUpdated",
+     "at": "src/pages/BookCreation.jsx:509"
+    },
+    {
+     "key": "book.textUpdateError",
+     "at": "src/pages/BookCreation.jsx:513"
+    },
+    {
+     "key": "book.imageUpdated",
+     "at": "src/pages/BookCreation.jsx:541"
+    },
+    {
+     "key": "book.imageUpdateError",
+     "at": "src/pages/BookCreation.jsx:545"
+    },
+    {
+     "key": "book.layoutUpdateError",
+     "at": "src/pages/BookCreation.jsx:572"
+    },
+    {
+     "key": "book.nikudAdded",
+     "at": "src/pages/BookCreation.jsx:593"
+    },
+    {
+     "key": "book.nikudError",
+     "at": "src/pages/BookCreation.jsx:598"
+    },
+    {
+     "key": "book.rhymeSuccess",
+     "at": "src/pages/BookCreation.jsx:623"
+    },
+    {
+     "key": "book.rhymeError",
+     "at": "src/pages/BookCreation.jsx:628"
+    },
+    {
+     "key": "book.creatingMessage",
+     "at": "src/pages/BookCreation.jsx:690"
+    },
+    {
+     "key": "book.creatingTitle",
+     "at": "src/pages/BookCreation.jsx:701"
+    },
+    {
+     "key": "book.editingLabel",
+     "at": "src/pages/BookCreation.jsx:761"
+    },
+    {
+     "key": "book.tab.editor",
+     "at": "src/pages/BookCreation.jsx:795"
+    },
+    {
+     "key": "book.tab.preview",
+     "at": "src/pages/BookCreation.jsx:806"
+    },
+    {
+     "key": "book.tab.share",
+     "at": "src/pages/BookCreation.jsx:817"
+    },
+    {
+     "key": "book.previewTitle",
+     "at": "src/pages/BookCreation.jsx:879"
+    },
+    {
+     "key": "characterEditor.preview",
+     "at": "src/pages/CharacterEditor.jsx:445"
+    },
+    {
+     "key": "characterEditor.generating",
+     "at": "src/pages/CharacterEditor.jsx:497"
+    },
+    {
+     "key": "characters.noResults",
+     "at": "src/pages/Characters.jsx:277"
+    }
+   ],
+   "yi": [
+    {
+     "key": "textOverlay.sampleText",
+     "at": "src/components/ai/TextOverlay.jsx:41"
+    },
+    {
+     "key": "textOverlay.newText",
+     "at": "src/components/ai/TextOverlay.jsx:127"
+    },
+    {
+     "key": "book.autoSaving",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:13"
+    },
+    {
+     "key": "book.autoSaved",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:22"
+    },
+    {
+     "key": "book.autoSaveError",
+     "at": "src/components/bookCreation/AutoSaveIndicator.jsx:31"
+    },
+    {
+     "key": "book.backToLibrary",
+     "at": "src/components/bookCreation/BookEditorTab.jsx:100"
+    },
+    {
+     "key": "book.viewFullBook",
+     "at": "src/components/bookCreation/BookEditorTab.jsx:106"
+    },
+    {
+     "key": "book.layoutUpdated",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:45"
+    },
+    {
+     "key": "book.rhymingOptions",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:56"
+    },
+    {
+     "key": "book.rhymingDesc",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:58"
+    },
+    {
+     "key": "book.enableRhyming",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:63"
+    },
+    {
+     "key": "book.applyRhyming",
+     "at": "src/components/bookCreation/BookStylingTab.jsx:91"
+    },
+    {
+     "key": "book.createTitle",
+     "at": "src/components/bookCreation/DraftView.jsx:63"
+    },
+    {
+     "key": "book.readyMessage",
+     "at": "src/components/bookCreation/DraftView.jsx:66"
+    },
+    {
+     "key": "book.storyTitle",
+     "at": "src/components/bookCreation/DraftView.jsx:77"
+    },
+    {
+     "key": "book.bookSummary",
+     "at": "src/components/bookCreation/DraftView.jsx:80"
+    },
+    {
+     "key": "book.characterSettings",
+     "at": "src/components/bookCreation/DraftView.jsx:94"
+    },
+    {
+     "key": "book.characterSettingsDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:96"
+    },
+    {
+     "key": "book.mainCharDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:102"
+    },
+    {
+     "key": "book.mainCharPlaceholder",
+     "at": "src/components/bookCreation/DraftView.jsx:114"
+    },
+    {
+     "key": "book.secondaryChars",
+     "at": "src/components/bookCreation/DraftView.jsx:122"
+    },
+    {
+     "key": "book.name",
+     "at": "src/components/bookCreation/DraftView.jsx:135"
+    },
+    {
+     "key": "book.briefDesc",
+     "at": "src/components/bookCreation/DraftView.jsx:149"
+    },
+    {
+     "key": "book.artStyleConsistency",
+     "at": "src/components/bookCreation/DraftView.jsx:176"
+    },
+    {
+     "key": "book.selectArtStyle",
+     "at": "src/components/bookCreation/DraftView.jsx:188"
+    },
+    {
+     "key": "book.generating",
+     "at": "src/components/bookCreation/DraftView.jsx:244"
+    },
+    {
+     "key": "book.generateMyBook",
+     "at": "src/components/bookCreation/DraftView.jsx:249"
+    },
+    {
+     "key": "book.editPageImage",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:38"
+    },
+    {
+     "key": "book.imagePrompt",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:44"
+    },
+    {
+     "key": "book.simpleMode",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:51"
+    },
+    {
+     "key": "book.editFullPrompt",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:51"
+    },
+    {
+     "key": "book.imagePromptPlaceholder",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:61"
+    },
+    {
+     "key": "book.imageSimplePlaceholder",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:69"
+    },
+    {
+     "key": "book.regenerateImage",
+     "at": "src/components/bookCreation/PageImageEditor.jsx:108"
+    },
+    {
+     "key": "book.pageLayout",
+     "at": "src/components/bookCreation/PageLayoutEditor.jsx:34"
+    },
+    {
+     "key": "book.prevPage",
+     "at": "src/components/bookCreation/PageNavigation.jsx:23"
+    },
+    {
+     "key": "book.pageOf",
+     "at": "src/components/bookCreation/PageNavigation.jsx:32"
+    },
+    {
+     "key": "book.nextPage",
+     "at": "src/components/bookCreation/PageNavigation.jsx:40"
+    },
+    {
+     "key": "book.noImage",
+     "at": "src/components/bookCreation/PagePreview.jsx:103"
+    },
+    {
+     "key": "book.styler.fontDavid",
+     "at": "src/components/bookCreation/PageStyler.jsx:36"
+    },
+    {
+     "key": "book.styler.fontMiriam",
+     "at": "src/components/bookCreation/PageStyler.jsx:37"
+    },
+    {
+     "key": "book.styler.fontNarkisim",
+     "at": "src/components/bookCreation/PageStyler.jsx:38"
+    },
+    {
+     "key": "book.styler.fontGuttmanYad",
+     "at": "src/components/bookCreation/PageStyler.jsx:39"
+    },
+    {
+     "key": "book.styler.title",
+     "at": "src/components/bookCreation/PageStyler.jsx:79"
+    },
+    {
+     "key": "book.styler.subtitle",
+     "at": "src/components/bookCreation/PageStyler.jsx:82"
+    },
+    {
+     "key": "book.styler.fontSize",
+     "at": "src/components/bookCreation/PageStyler.jsx:88"
+    },
+    {
+     "key": "book.styler.fontFamily",
+     "at": "src/components/bookCreation/PageStyler.jsx:101"
+    },
+    {
+     "key": "book.styler.selectFont",
+     "at": "src/components/bookCreation/PageStyler.jsx:107"
+    },
+    {
+     "key": "book.styler.fontWeight",
+     "at": "src/components/bookCreation/PageStyler.jsx:120"
+    },
+    {
+     "key": "book.styler.selectWeight",
+     "at": "src/components/bookCreation/PageStyler.jsx:126"
+    },
+    {
+     "key": "book.styler.weightNormal",
+     "at": "src/components/bookCreation/PageStyler.jsx:129"
+    },
+    {
+     "key": "book.styler.weightBold",
+     "at": "src/components/bookCreation/PageStyler.jsx:130"
+    },
+    {
+     "key": "book.styler.weightLight",
+     "at": "src/components/bookCreation/PageStyler.jsx:131"
+    },
+    {
+     "key": "book.styler.textColor",
+     "at": "src/components/bookCreation/PageStyler.jsx:137"
+    },
+    {
+     "key": "book.styler.textAlignment",
+     "at": "src/components/bookCreation/PageStyler.jsx:156"
+    },
+    {
+     "key": "book.styler.lineHeight",
+     "at": "src/components/bookCreation/PageStyler.jsx:195"
+    },
+    {
+     "key": "book.styler.showNikud",
+     "at": "src/components/bookCreation/PageStyler.jsx:209"
+    },
+    {
+     "key": "book.styler.applyStyles",
+     "at": "src/components/bookCreation/PageStyler.jsx:220"
+    },
+    {
+     "key": "book.styler.preview",
+     "at": "src/components/bookCreation/PageStyler.jsx:227"
+    },
+    {
+     "key": "book.styler.previewSubtitle",
+     "at": "src/components/bookCreation/PageStyler.jsx:229"
+    },
+    {
+     "key": "book.editPageText",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:35"
+    },
+    {
+     "key": "book.saveText",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:49"
+    },
+    {
+     "key": "book.makeRhyme",
+     "at": "src/components/bookCreation/PageTextEditor.jsx:72"
+    },
+    {
+     "key": "sharing.parentalApprovalRequired",
+     "at": "src/components/bookCreation/ShareOptions.jsx:64"
+    },
+    {
+     "key": "sharing.shareFromCommunityPage",
+     "at": "src/components/bookCreation/ShareOptions.jsx:65"
+    },
+    {
+     "key": "bookView.navigation.next",
+     "at": "src/components/bookReader/PageFlip.jsx:90"
+    },
+    {
+     "key": "bookView.navigation.previous",
+     "at": "src/components/bookReader/PageFlip.jsx:90"
+    },
+    {
+     "key": "bookView.tts.slow",
+     "at": "src/components/bookReader/TTSControls.jsx:59"
+    },
+    {
+     "key": "bookView.tts.normal",
+     "at": "src/components/bookReader/TTSControls.jsx:61"
+    },
+    {
+     "key": "bookView.tts.fast",
+     "at": "src/components/bookReader/TTSControls.jsx:62"
+    },
+    {
+     "key": "bookView.tts.readAloud",
+     "at": "src/components/bookReader/TTSControls.jsx:92"
+    },
+    {
+     "key": "bookView.tts.read",
+     "at": "src/components/bookReader/TTSControls.jsx:95"
+    },
+    {
+     "key": "bookView.tts.resume",
+     "at": "src/components/bookReader/TTSControls.jsx:103"
+    },
+    {
+     "key": "bookView.tts.pause",
+     "at": "src/components/bookReader/TTSControls.jsx:114"
+    },
+    {
+     "key": "bookView.tts.stop",
+     "at": "src/components/bookReader/TTSControls.jsx:127"
+    },
+    {
+     "key": "bookView.tts.slower",
+     "at": "src/components/bookReader/TTSControls.jsx:141"
+    },
+    {
+     "key": "bookView.tts.faster",
+     "at": "src/components/bookReader/TTSControls.jsx:154"
+    },
+    {
+     "key": "celebration.title",
+     "at": "src/components/gamification/CelebrationModal.jsx:138"
+    },
+    {
+     "key": "celebration.close",
+     "at": "src/components/gamification/CelebrationModal.jsx:147"
+    },
+    {
+     "key": "celebration.levelUp",
+     "at": "src/components/gamification/CelebrationModal.jsx:170"
+    },
+    {
+     "key": "celebration.levelAdvance",
+     "at": "src/components/gamification/CelebrationModal.jsx:183"
+    },
+    {
+     "key": "celebration.newBadge",
+     "at": "src/components/gamification/CelebrationModal.jsx:206"
+    },
+    {
+     "key": "celebration.awesome",
+     "at": "src/components/gamification/CelebrationModal.jsx:248"
+    },
+    {
+     "key": "welcome.title",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:298"
+    },
+    {
+     "key": "welcome.subtitle",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:299"
+    },
+    {
+     "key": "welcome.start",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:305"
+    },
+    {
+     "key": "topics.title",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:373"
+    },
+    {
+     "key": "topics.subtitle",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:374"
+    },
+    {
+     "key": "topics.selectAll",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:385"
+    },
+    {
+     "key": "topics.clearAll",
+     "at": "src/components/onboarding/OnboardingWizard.jsx:394"
+    },
+    {
+     "key": "book.loadError",
+     "at": "src/pages/BookCreation.jsx:236"
+    },
+    {
+     "key": "book.rateLimit",
+     "at": "src/pages/BookCreation.jsx:254"
+    },
+    {
+     "key": "book.imagePartial",
+     "at": "src/pages/BookCreation.jsx:386"
+    },
+    {
+     "key": "book.bookGenerated",
+     "at": "src/pages/BookCreation.jsx:390"
+    },
+    {
+     "key": "book.bookGenerateError",
+     "at": "src/pages/BookCreation.jsx:397"
+    },
+    {
+     "key": "book.textUpdated",
+     "at": "src/pages/BookCreation.jsx:509"
+    },
+    {
+     "key": "book.textUpdateError",
+     "at": "src/pages/BookCreation.jsx:513"
+    },
+    {
+     "key": "book.imageUpdated",
+     "at": "src/pages/BookCreation.jsx:541"
+    },
+    {
+     "key": "book.imageUpdateError",
+     "at": "src/pages/BookCreation.jsx:545"
+    },
+    {
+     "key": "book.layoutUpdateError",
+     "at": "src/pages/BookCreation.jsx:572"
+    },
+    {
+     "key": "book.nikudAdded",
+     "at": "src/pages/BookCreation.jsx:593"
+    },
+    {
+     "key": "book.nikudError",
+     "at": "src/pages/BookCreation.jsx:598"
+    },
+    {
+     "key": "book.rhymeSuccess",
+     "at": "src/pages/BookCreation.jsx:623"
+    },
+    {
+     "key": "book.rhymeError",
+     "at": "src/pages/BookCreation.jsx:628"
+    },
+    {
+     "key": "book.creatingMessage",
+     "at": "src/pages/BookCreation.jsx:690"
+    },
+    {
+     "key": "book.creatingTitle",
+     "at": "src/pages/BookCreation.jsx:701"
+    },
+    {
+     "key": "book.editingLabel",
+     "at": "src/pages/BookCreation.jsx:761"
+    },
+    {
+     "key": "book.tab.editor",
+     "at": "src/pages/BookCreation.jsx:795"
+    },
+    {
+     "key": "book.tab.preview",
+     "at": "src/pages/BookCreation.jsx:806"
+    },
+    {
+     "key": "book.tab.share",
+     "at": "src/pages/BookCreation.jsx:817"
+    },
+    {
+     "key": "book.previewTitle",
+     "at": "src/pages/BookCreation.jsx:879"
+    },
+    {
+     "key": "bookView.defaultDescription",
+     "at": "src/pages/BookView.jsx:188"
+    },
+    {
+     "key": "characterEditor.preview",
+     "at": "src/pages/CharacterEditor.jsx:445"
+    },
+    {
+     "key": "characterEditor.generating",
+     "at": "src/pages/CharacterEditor.jsx:497"
+    },
+    {
+     "key": "characters.noResults",
+     "at": "src/pages/Characters.jsx:277"
+    },
+    {
+     "key": "community.parentApproval",
+     "at": "src/pages/Community.jsx:746"
+    },
+    {
+     "key": "community.parentApprovalDesc",
+     "at": "src/pages/Community.jsx:749"
+    },
+    {
+     "key": "community.enterPin",
+     "at": "src/pages/Community.jsx:758"
+    },
+    {
+     "key": "leaderboard.booksCount",
+     "at": "src/pages/Leaderboard.jsx:360"
+    },
+    {
+     "key": "leaderboard.loginToSeeRank",
+     "at": "src/pages/Leaderboard.jsx:368"
+    },
+    {
+     "key": "settings.billing.checkoutError",
+     "at": "src/pages/Settings.jsx:112"
+    },
+    {
+     "key": "settings.billing.checkoutErrorDesc",
+     "at": "src/pages/Settings.jsx:113"
+    },
+    {
+     "key": "settings.billing.currentPlanLabel",
+     "at": "src/pages/Settings.jsx:126"
+    },
+    {
+     "key": "settings.billing.free",
+     "at": "src/pages/Settings.jsx:132"
+    },
+    {
+     "key": "settings.billing.mostPopular",
+     "at": "src/pages/Settings.jsx:158"
+    },
+    {
+     "key": "settings.billing.activeBadge",
+     "at": "src/pages/Settings.jsx:167"
+    },
+    {
+     "key": "settings.billing.currentPlanBtn",
+     "at": "src/pages/Settings.jsx:186"
+    },
+    {
+     "key": "settings.billing.upgradeNow",
+     "at": "src/pages/Settings.jsx:197"
+    },
+    {
+     "key": "settings.upgradeSuccess",
+     "at": "src/pages/Settings.jsx:279"
+    },
+    {
+     "key": "settings.upgradeSuccessDesc",
+     "at": "src/pages/Settings.jsx:280"
+    },
+    {
+     "key": "settings.errorLoadTitle",
+     "at": "src/pages/Settings.jsx:315"
+    },
+    {
+     "key": "settings.errorLoadDesc",
+     "at": "src/pages/Settings.jsx:316"
+    },
+    {
+     "key": "settings.savedTitle",
+     "at": "src/pages/Settings.jsx:344"
+    },
+    {
+     "key": "settings.savedDesc",
+     "at": "src/pages/Settings.jsx:345"
+    },
+    {
+     "key": "settings.errorSaveTitle",
+     "at": "src/pages/Settings.jsx:351"
+    },
+    {
+     "key": "settings.errorSaveDesc",
+     "at": "src/pages/Settings.jsx:352"
+    },
+    {
+     "key": "settings.logoutConfirmTitle",
+     "at": "src/pages/Settings.jsx:368"
+    },
+    {
+     "key": "settings.logoutConfirmDesc",
+     "at": "src/pages/Settings.jsx:369"
+    },
+    {
+     "key": "settings.audioSpeeds.slow",
+     "at": "src/pages/Settings.jsx:533"
+    },
+    {
+     "key": "settings.audioSpeeds.normal",
+     "at": "src/pages/Settings.jsx:534"
+    },
+    {
+     "key": "settings.audioSpeeds.fast",
+     "at": "src/pages/Settings.jsx:535"
+    },
+    {
+     "key": "settings.audioSpeeds.veryFast",
+     "at": "src/pages/Settings.jsx:536"
+    },
+    {
+     "key": "settings.appearance.darkModeOn",
+     "at": "src/pages/Settings.jsx:594"
+    },
+    {
+     "key": "settings.appearance.darkModeOff",
+     "at": "src/pages/Settings.jsx:594"
+    },
+    {
+     "key": "settings.logoutCancel",
+     "at": "src/pages/Settings.jsx:743"
+    },
+    {
+     "key": "settings.logoutConfirmBtn",
+     "at": "src/pages/Settings.jsx:745"
+    }
+   ]
+  },
+  "unusedKeys": {
+   "he": 751,
+   "en": 754,
+   "yi": 700
+  }
+ },
+ "hardcoded": {
+  "totals": {
+   "hebText": 56,
+   "hebProp": 44,
+   "enText": 26,
+   "enProp": 17,
+   "ternary": 127,
+   "parseErrors": 0
+  },
+  "topFiles": [
+   {
+    "file": "src/components/bookCreation/ScenePlanStep.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 36,
+    "tKeys": 0,
+    "total": 36
+   },
+   {
+    "file": "src/pages/AdminPrintOrders.jsx",
+    "hebText": 18,
+    "hebProp": 6,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 24
+   },
+   {
+    "file": "src/pages/PrintCheckout.jsx",
+    "hebText": 14,
+    "hebProp": 10,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 24
+   },
+   {
+    "file": "src/components/storyBuilder/SceneCard.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 17,
+    "tKeys": 0,
+    "total": 17
+   },
+   {
+    "file": "src/components/storyBuilder/StoryStructure.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 17,
+    "tKeys": 0,
+    "total": 17
+   },
+   {
+    "file": "src/components/checkout/AddressForm.jsx",
+    "hebText": 1,
+    "hebProp": 12,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 13
+   },
+   {
+    "file": "src/components/ai/AIProvidersPanel.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 3,
+    "ternary": 7,
+    "tKeys": 0,
+    "total": 10
+   },
+   {
+    "file": "src/components/landing/FAQChat.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 9,
+    "tKeys": 0,
+    "total": 9
+   },
+   {
+    "file": "src/lib/sceneGenerator.js",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 8,
+    "tKeys": 0,
+    "total": 8
+   },
+   {
+    "file": "src/pages/MyOrders.jsx",
+    "hebText": 4,
+    "hebProp": 4,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 8
+   },
+   {
+    "file": "src/components/UserNotRegisteredError.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 6,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 6
+   },
+   {
+    "file": "src/components/feedback/FeedbackList.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 6,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 6
+   },
+   {
+    "file": "src/components/feedback/FeedbackStats.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 6,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 6
+   },
+   {
+    "file": "src/pages/BookView.jsx",
+    "hebText": 0,
+    "hebProp": 2,
+    "enText": 0,
+    "enProp": 2,
+    "ternary": 2,
+    "tKeys": 51,
+    "total": 6
+   },
+   {
+    "file": "src/components/checkout/OrderCard.jsx",
+    "hebText": 5,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 5
+   },
+   {
+    "file": "src/components/checkout/PaymentReturn.jsx",
+    "hebText": 3,
+    "hebProp": 2,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 5
+   },
+   {
+    "file": "src/components/checkout/SummaryCard.jsx",
+    "hebText": 4,
+    "hebProp": 1,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 5
+   },
+   {
+    "file": "src/components/feedback/FeedbackContext.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 5,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 5
+   },
+   {
+    "file": "src/pages/Pricing.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 5,
+    "tKeys": 8,
+    "total": 5
+   },
+   {
+    "file": "src/pages/Settings.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 5,
+    "tKeys": 64,
+    "total": 5
+   },
+   {
+    "file": "src/components/landing/FooterSection.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 2,
+    "enProp": 0,
+    "ternary": 2,
+    "tKeys": 12,
+    "total": 4
+   },
+   {
+    "file": "src/Layout.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 3,
+    "ternary": 0,
+    "tKeys": 23,
+    "total": 3
+   },
+   {
+    "file": "src/components/ai/TextOverlay.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 1,
+    "ternary": 2,
+    "tKeys": 13,
+    "total": 3
+   },
+   {
+    "file": "src/components/bookReader/TTSControls.jsx",
+    "hebText": 0,
+    "hebProp": 3,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 12,
+    "total": 3
+   },
+   {
+    "file": "src/components/checkout/QtyStepper.jsx",
+    "hebText": 0,
+    "hebProp": 3,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 3
+   },
+   {
+    "file": "src/components/checkout/Stepper.jsx",
+    "hebText": 2,
+    "hebProp": 1,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 3
+   },
+   {
+    "file": "src/components/wizard/SaveStep.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 3,
+    "tKeys": 16,
+    "total": 3
+   },
+   {
+    "file": "src/pages/Library.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 3,
+    "ternary": 0,
+    "tKeys": 53,
+    "total": 3
+   },
+   {
+    "file": "src/components/profile/AvatarSelector.jsx",
+    "hebText": 0,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 1,
+    "ternary": 1,
+    "tKeys": 19,
+    "total": 2
+   },
+   {
+    "file": "src/components/shared/QuotaLimitCard.jsx",
+    "hebText": 2,
+    "hebProp": 0,
+    "enText": 0,
+    "enProp": 0,
+    "ternary": 0,
+    "tKeys": 0,
+    "total": 2
+   }
+  ],
+  "samples": {
+   "hebrew": [
+    "src/components/bookReader/TTSControls.jsx:78 prop \"סגור הודעה\"",
+    "src/components/bookReader/TTSControls.jsx:182 prop \"בחר מנוע קריינות\"",
+    "src/components/bookReader/TTSControls.jsx:190 prop \"קול טבעי\"",
+    "src/components/checkout/AddressForm.jsx:15 text \"לא חובה\"",
+    "src/components/checkout/AddressForm.jsx:54 prop \"שם מלא של מקבל החבילה\"",
+    "src/components/checkout/AddressForm.jsx:55 prop \"דנה לוי\"",
+    "src/components/checkout/AddressForm.jsx:58 prop \"טלפון נייד\"",
+    "src/components/checkout/AddressForm.jsx:71 prop \"עיר\"",
+    "src/components/checkout/AddressForm.jsx:72 prop \"חיפה\"",
+    "src/components/checkout/AddressForm.jsx:76 prop \"רחוב\"",
+    "src/components/checkout/AddressForm.jsx:77 prop \"הנרקיסים\"",
+    "src/components/checkout/AddressForm.jsx:79 prop \"מספר בית\"",
+    "src/components/checkout/AddressForm.jsx:85 prop \"דירה\"",
+    "src/components/checkout/AddressForm.jsx:88 prop \"מיקוד\"",
+    "src/components/checkout/AddressForm.jsx:93 prop \"הערות לשליח\"",
+    "src/components/checkout/AddressForm.jsx:94 prop \"קומה 2, לצלצל פעמיים\"",
+    "src/components/checkout/MethodCards.jsx:14 text \"איך תרצו לקבל את הספר?\"",
+    "src/components/checkout/OrderBookButton.jsx:11 text \"להזמין ספר מודפס\"",
+    "src/components/checkout/OrderCard.jsx:28 text \"עותקים\"",
+    "src/components/checkout/OrderCard.jsx:32 text \"סה״כ\"",
+    "src/components/checkout/OrderCard.jsx:38 text \"קבלה\"",
+    "src/components/checkout/OrderCard.jsx:45 text \"הוזמן ב\"",
+    "src/components/checkout/OrderCard.jsx:56 text \"מעקב אחרי המשלוח\"",
+    "src/components/checkout/PaymentReturn.jsx:67 prop \"התשלום התקבל, והספר ממתין לנו\"",
+    "src/components/checkout/PaymentReturn.jsx:74 prop \"ההזמנה בוטלה\""
+   ],
+   "english": [
+    "src/Layout.jsx:236 prop \"Close sidebar\"",
+    "src/Layout.jsx:360 prop \"Open menu\"",
+    "src/Layout.jsx:377 prop \"View profile\"",
+    "src/components/UserNotRegisteredError.jsx:13 text \"Access Restricted\"",
+    "src/components/UserNotRegisteredError.jsx:14 text \"You are not registered to use this application. Please conta\"",
+    "src/components/UserNotRegisteredError.jsx:18 text \"If you believe this is an error, you can:\"",
+    "src/components/UserNotRegisteredError.jsx:20 text \"Verify you are logged in with the correct account\"",
+    "src/components/UserNotRegisteredError.jsx:21 text \"Contact the app administrator for access\"",
+    "src/components/UserNotRegisteredError.jsx:22 text \"Try logging out and back in again\"",
+    "src/components/ai/AIProvidersPanel.jsx:66 prop \"image provider\"",
+    "src/components/ai/AIProvidersPanel.jsx:87 prop \"tts engine\"",
+    "src/components/ai/AIProvidersPanel.jsx:103 prop \"tts voice\"",
+    "src/components/ai/TextOverlay.jsx:234 prop \"Generated image\"",
+    "src/components/feedback/FeedbackContext.jsx:35 text \"Book Context\"",
+    "src/components/feedback/FeedbackContext.jsx:47 text \"Book Info\"",
+    "src/components/feedback/FeedbackContext.jsx:97 text \"years old\"",
+    "src/components/feedback/FeedbackContext.jsx:109 text \"Target Age Range\"",
+    "src/components/feedback/FeedbackContext.jsx:114 text \"Art Style\"",
+    "src/components/feedback/FeedbackList.jsx:32 text \"No feedback yet\"",
+    "src/components/feedback/FeedbackList.jsx:33 text \"No one has provided feedback for this page yet\"",
+    "src/components/feedback/FeedbackList.jsx:197 text \"Mark as Implemented\"",
+    "src/components/feedback/FeedbackList.jsx:204 text \"Accept Suggestion\"",
+    "src/components/feedback/FeedbackList.jsx:214 text \"Decline Suggestion\"",
+    "src/components/feedback/FeedbackList.jsx:221 text \"Reset to Pending\"",
+    "src/components/feedback/FeedbackStats.jsx:111 text \"Feedback Statistics\""
+   ],
+   "ternaries": [
+    "src/components/ai/AIProvidersPanel.jsx:52 isRTL ? [\"ספקי AI\",\"AI Providers\"]",
+    "src/components/ai/AIProvidersPanel.jsx:60 isRTL ? [\"ספק תמונות\",\"Image provider\"]",
+    "src/components/ai/AIProvidersPanel.jsx:73 isRTL ? [\"ההגדרה משפיעה על איורי ספרים ודמויות חדשות.\",\"Affects new book illus",
+    "src/components/ai/AIProvidersPanel.jsx:81 isRTL ? [\"מנוע קריינות (TTS)\",\"Narration engine (TTS)\"]",
+    "src/components/ai/AIProvidersPanel.jsx:97 isRTL ? [\"קול\",\"Voice\"]",
+    "src/components/ai/AIProvidersPanel.jsx:105 isRTL ? [\"ברירת מחדל לפי שפה\",\"Default per language\"]",
+    "src/components/ai/AIProvidersPanel.jsx:114 isRTL ? [\"מנוע \\\"דפדפן\\\" עובד לוקלית בחינם אבל לעיתים רובוטי בעברית. מנועי AI ",
+    "src/components/ai/TextOverlay.jsx:45 isRTL ? [\"Heebo\",\"Arial\"]",
+    "src/components/ai/TextOverlay.jsx:131 isRTL ? [\"Heebo\",\"Arial\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:75 isHebrew ? [\"תכנון סצנות הסיפור\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:75 isYiddish ? [\"פלאַנירן די סצענעס\",\"Plan Your Scenes\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:79 isHebrew ? [\"ה-AI יבנה לך מתווה סצנה-אחר-סצנה. תוכל לערוך כל סצנה לפני שיוצרים את",
+    "src/components/bookCreation/ScenePlanStep.jsx:81 isYiddish ? [\"די AI וועט בויען א סצענע-נאך-סצענע אַוטליין. דו קענסט רעדאַקטירן יעד",
+    "src/components/bookCreation/ScenePlanStep.jsx:87 isHebrew ? [\"צור מתווה סצנות\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:87 isYiddish ? [\"מאַך אַ סצענע-פּלאַן\",\"Generate Scene Plan\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:91 isHebrew ? [\"צור מחדש\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:91 isYiddish ? [\"מאַך פֿון דאָס נײַ\",\"Regenerate plan\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:95 isHebrew ? [\"סצנה\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:95 isYiddish ? [\"סצענע\",\"Scene\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:99 isHebrew ? [\"כותרת\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:99 isYiddish ? [\"טיטל\",\"Title\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:103 isHebrew ? [\"תיאור\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:103 isYiddish ? [\"באַשרײַבונג\",\"Description\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:107 isHebrew ? [\"מצב רוח\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:107 isYiddish ? [\"שטימונג\",\"Mood\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:111 isHebrew ? [\"תפאורה\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:111 isYiddish ? [\"באַשטעלונג\",\"Setting\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:115 isHebrew ? [\"דמויות\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:115 isYiddish ? [\"פֿיגורן\",\"Characters\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:119 isHebrew ? [\"פרומפט לאיור\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:119 isYiddish ? [\"אילוסטראציע-פּראָמפּט\",\"Illustration prompt\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:123 isHebrew ? [\"תצוגה מקדימה\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:123 isYiddish ? [\"פאָרשוי\",\"Preview image\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:127 isHebrew ? [\"יוצר תמונה...\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:127 isYiddish ? [\"מאַכן בילד...\",\"Generating image...\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:131 isHebrew ? [\"חזרה\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:131 isYiddish ? [\"צוריק\",\"Back\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:135 isHebrew ? [\"אישור והמשך ליצירת הספר\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:135 isYiddish ? [\"באַשטעטיק און פאָרזעצן\",\"Confirm & continue\"]",
+    "src/components/bookCreation/ScenePlanStep.jsx:139 isHebrew ? [\"עדיין לא נוצר מתווה. לחץ על \\\"צור מתווה סצנות\\\" כדי להתחיל.\"]"
+   ]
+  }
+ },
+ "dataFindings": [],
+ "inlineContent": [
+  {
+   "file": "src/components/ErrorBoundary.jsx",
+   "line": 60,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Don't worry, this happens sometimes. Let's try again!",
+   "siblingKeys": "heading,description,tryAgain,goHome"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 83,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Gemini 2.5 Flash Image",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 91,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Sipurai's default — fast, cheap, great for kids' books",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 95,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Gemini 3 Pro Image",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 103,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Best Hebrew text fidelity, highest-quality kids' book art",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 108,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Stable Diffusion XL",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 116,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Open-source model, great for general illustrations",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 120,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "GPT Image 1 (OpenAI)",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 128,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Advanced understanding of complex prompts",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 134,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Ideogram Basic",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 142,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Excellent for text integration, supports Hebrew text",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 146,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Flux Fast 1.1",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 154,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Ultra-fast generation for rapid prototyping",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 158,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Flux Kontext Fast",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 166,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Fast context-aware generation with good consistency",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 178,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Google's latest fast image generation model",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 182,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Luma Photon Flash",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 190,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Fastest generation for real-time applications",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 196,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Flux Kontext Pro",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 204,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Professional-grade context understanding and consistency",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 208,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Flux Pro",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 216,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Top-tier quality for professional applications",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 228,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Advanced text integration with professional typography",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 240,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Google's flagship photorealistic generation",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 244,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Leonardo Phoenix",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 252,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Specialized in artistic and character illustration",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 256,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Luma Photon",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 264,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Professional photography-grade generation",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 278,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "DALL-E 3 at maximum resolution and quality",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 282,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Flux Kontext Max",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 290,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Maximum context understanding for complex series",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 294,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Flux Ultra",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 302,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Ultra-high quality for cinema and professional use",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 306,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "GPT Image",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 314,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "GPT-powered image generation with conversational interface",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 318,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "GPT Image Fast",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 326,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Fast GPT-powered generation for quick iterations",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 338,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Perfect text integration in any language",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 350,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Professional brand and vector art generation",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 354,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Recraft Realistic",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 362,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Ultra-realistic commercial photography generation",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 369,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Stable Video Diffusion",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 377,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Animates a still image into a short video clip.",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 382,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Pika Labs",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 390,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Generates high-quality video clips from text prompts.",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 394,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Luma Dream Machine",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 402,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "State-of-the-art model for creating realistic and consistent video cli",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 407,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Runway Gen-3",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 415,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Professional-grade video generation with advanced controls.",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 419,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Google Veo",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 427,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Google's flagship model for creating longer, high-definition videos.",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 432,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "OpenAI Sora",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 440,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "The most anticipated model for generating hyper-realistic and long vid",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 447,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Suno Basic",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 455,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Create short songs and music clips from text prompts.",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 460,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Udio Creator",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 468,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Generate full-length, high-quality music tracks and instrumentals.",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 473,
+   "kind": "english-only-inline-content",
+   "key": "name",
+   "value": "Stable Audio Pro",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/ModelSelector.jsx",
+   "line": 481,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Professional tool for generating high-fidelity music and sound effects",
+   "siblingKeys": "id,name,provider,tier,speed,quality,specialties"
+  },
+  {
+   "file": "src/components/ai/TextOverlay.jsx",
+   "line": 70,
+   "kind": "english-only-inline-content",
+   "key": "label",
+   "value": "Times New Roman",
+   "siblingKeys": "value,label"
+  },
+  {
+   "file": "src/components/ai/TextOverlay.jsx",
+   "line": 72,
+   "kind": "english-only-inline-content",
+   "key": "label",
+   "value": "Comic Sans",
+   "siblingKeys": "value,label"
+  },
+  {
+   "file": "src/components/bookCreation/PageStyler.jsx",
+   "line": 30,
+   "kind": "english-only-inline-content",
+   "key": "label",
+   "value": "Times New Roman",
+   "siblingKeys": "value,label"
+  },
+  {
+   "file": "src/components/bookCreation/PageStyler.jsx",
+   "line": 31,
+   "kind": "english-only-inline-content",
+   "key": "label",
+   "value": "Courier New",
+   "siblingKeys": "value,label"
+  },
+  {
+   "file": "src/components/onboarding/OnboardingWizard.jsx",
+   "line": 57,
+   "kind": "english-with-he-sibling",
+   "key": "description",
+   "value": "Early reader",
+   "siblingKeys": "id,label,icon,gradient,description,descriptionHe"
+  },
+  {
+   "file": "src/components/settings/DeleteAccountCard.jsx",
+   "line": 34,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Delete account and data",
+   "siblingKeys": "title,desc,open,dialogTitle,dialogLead,items,keep"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 177,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Privacy Policy",
+   "siblingKeys": "metaTitle,metaDesc,title,subtitle,backLink,termsLink,sections"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 368,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Before we start: you decide",
+   "siblingKeys": "title,lead,rows,fullPolicy,terms,guardian,agree"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 371,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "What we keep",
+   "siblingKeys": "icon,title,text"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 372,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Photos you upload",
+   "siblingKeys": "icon,title,text"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 374,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Who else handles it",
+   "siblingKeys": "icon,title,text,help"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 375,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "You can delete everything",
+   "siblingKeys": "icon,title,text"
+  },
+  {
+   "file": "src/data/privacyPolicyContent.js",
+   "line": 376,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "You, the parent, decide",
+   "siblingKeys": "icon,title,text"
+  },
+  {
+   "file": "src/lib/smartModelPicker.js",
+   "line": 37,
+   "kind": "english-only-inline-content",
+   "key": "label",
+   "value": "Gemini Fast",
+   "siblingKeys": "id,provider,backendModel,tier,label,hebrewQuality,photoRealism"
+  },
+  {
+   "file": "src/lib/smartModelPicker.js",
+   "line": 59,
+   "kind": "english-only-inline-content",
+   "key": "label",
+   "value": "GPT Image 1 (OpenAI)",
+   "siblingKeys": "id,provider,backendModel,tier,label,hebrewQuality,photoRealism"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 62,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Short, evocative book title in target language",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 63,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "One-sentence age-appropriate takeaway",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 66,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Locked character descriptors (referenced verbatim in each image prompt",
+   "siblingKeys": "type,description,items"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 76,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Physical anchor: age, hair, eye color, clothing, accessories, body lan",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 84,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "One sentence, reused as the style anchor in every image prompt. e.g. \"",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 88,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "bedtime | playful | dramatic-lite — drives TTS voice + instructions",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 92,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Page-by-page beats",
+   "siblingKeys": "type,description,items"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 98,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "narrative beat (setup/inciting/rising/climax/falling/resolution)",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 99,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Final reading text — 2-4 sentences in target language",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 103,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Self-contained image prompt: combines global_style + character descrip",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/lib/storyBible.js",
+   "line": 108,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "One-line per-page steering for TTS engine — e.g. \"soft, slightly excit",
+   "siblingKeys": "type,description"
+  },
+  {
+   "file": "src/pages/AccessibilityStatement.jsx",
+   "line": 25,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Accessibility Statement",
+   "siblingKeys": "metaTitle,metaDesc,title,subtitle,backLink,sections"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 77,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "The Dragon's Quest",
+   "siblingKeys": "id,title,description,cover_image,genre,age_range,isSample"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 78,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Join Maya on her adventure with a friendly dragon who lost his fire.",
+   "siblingKeys": "id,title,description,cover_image,genre,age_range,isSample"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 86,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Ocean Explorers",
+   "siblingKeys": "id,title,description,cover_image,genre,age_range,isSample"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 87,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Dive deep with Sam as he discovers the magical world under the sea.",
+   "siblingKeys": "id,title,description,cover_image,genre,age_range,isSample"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 95,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Stars and Dreams",
+   "siblingKeys": "id,title,description,cover_image,genre,age_range,isSample"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 96,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "A bedtime story about catching dreams among the stars.",
+   "siblingKeys": "id,title,description,cover_image,genre,age_range,isSample"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 138,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "The Magical Forest",
+   "siblingKeys": "title,description"
+  },
+  {
+   "file": "src/pages/Home.jsx",
+   "line": 138,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "A child discovers a forest where animals can talk and trees whisper an",
+   "siblingKeys": "title,description"
+  },
+  {
+   "file": "src/pages/TermsOfService.jsx",
+   "line": 13,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Terms of Service",
+   "siblingKeys": "metaTitle,metaDesc,title,subtitle,backLink,intro,sections"
+  },
+  {
+   "file": "src/schemas/author.js",
+   "line": 21,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Profile Image",
+   "siblingKeys": "name,title,type,options"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 13,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Blog Post",
+   "siblingKeys": "name,title,type,fields,orderings,preview"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 47,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Main Image",
+   "siblingKeys": "name,title,type,options,fields"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 55,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Alt Text",
+   "siblingKeys": "name,title,type"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 72,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Published At",
+   "siblingKeys": "name,title,type,initialValue"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 103,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Site ID",
+   "siblingKeys": "name,title,type,initialValue,description,validation"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 106,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Identifies which site/project this post belongs to (e.g., \"eyai-kids\")",
+   "siblingKeys": "name,title,type,initialValue,description,validation"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 120,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Post language for filtering",
+   "siblingKeys": "name,title,type,options,description"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 150,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Meta Title",
+   "siblingKeys": "name,title,type"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 155,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Meta Description",
+   "siblingKeys": "name,title,type,rows"
+  },
+  {
+   "file": "src/schemas/blogPost.js",
+   "line": 174,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Published Date, New",
+   "siblingKeys": "title,name,by"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 50,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Landing Page",
+   "siblingKeys": "name,title,type,fields,preview"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 65,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Internal Name",
+   "siblingKeys": "name,title,type,description"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 67,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Used only in the CMS (e.g. \"Home Landing Page\")",
+   "siblingKeys": "name,title,type,description"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 75,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Hero Section",
+   "siblingKeys": "name,title,type,fields"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 83,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Hero Image",
+   "siblingKeys": "name,title,type,options,fields"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 86,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Alt Text",
+   "siblingKeys": "name,title,type"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 104,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Icon Name (Lucide)",
+   "siblingKeys": "name,title,type,description"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 106,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "Lucide icon name, e.g. \"BookOpen\", \"Star\", \"Wand2\"",
+   "siblingKeys": "name,title,type,description"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 130,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Author Name",
+   "siblingKeys": "name,title,type"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 131,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Author Role / Title",
+   "siblingKeys": "name,title,type"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 134,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Author Image",
+   "siblingKeys": "name,title,type,options"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 151,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Pricing Plans",
+   "siblingKeys": "name,title,type,of"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 157,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Plan Name",
+   "siblingKeys": "name,title,type"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 162,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Currency Code",
+   "siblingKeys": "name,title,type,initialValue,description"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 165,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "ISO 4217 currency code, e.g. ILS, USD, EUR",
+   "siblingKeys": "name,title,type,initialValue,description"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 169,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Feature List (Trilingual)",
+   "siblingKeys": "name,title,type,description,fields"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 171,
+   "kind": "english-only-inline-content",
+   "key": "description",
+   "value": "One array of strings per language",
+   "siblingKeys": "name,title,type,description,fields"
+  },
+  {
+   "file": "src/schemas/landingPage.js",
+   "line": 180,
+   "kind": "english-only-inline-content",
+   "key": "title",
+   "value": "Highlighted (recommended plan)",
+   "siblingKeys": "name,title,type,initialValue"
+  }
+ ],
+ "controlFixture": {
+  "checks": {
+   "hardcodedHebrewJsxText_counted": true,
+   "hardcodedEnglishJsxText_counted": true,
+   "tMissingKey_detected": true,
+   "keyMissingInHe_detected": true,
+   "keyMissingInYi_detected": true,
+   "untranslatedCopy_detected": true,
+   "ternary_detected": true,
+   "dataEnglishOnly_detected": true,
+   "inlineEnglishContent_detected": true
+  },
+  "pass": true,
+  "counts": {
+   "hebText": 1,
+   "enText": 1,
+   "ternary": 1,
+   "missingKeyHits": 1
+  }
+ }
+}
