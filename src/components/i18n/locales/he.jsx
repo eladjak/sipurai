@@ -147,6 +147,8 @@ export default {
       }
     },
     features: {
+      title: "תכונות",
+      subtitle: "כל מה שצריך כדי ליצור סיפורים ייחודיים",
       personalized: {
         title: "סיפורים מותאמים אישית",
         description: "כל סיפור נכתב סביב הילד שלכם — עם השם שלו, מה שהוא אוהב, והרפתקאות שרק הוא יכול לחוות"
@@ -1117,7 +1119,8 @@ export default {
       backstory: "סיפור רקע"
     },
     appearance: "מראה",
-    personality: "אישיות"
+    personality: "אישיות",
+    noResults: "לא נמצאו דמויות שמתאימות לחיפוש"
   },
   leaderboard: {
     title: "טבלת המובילים",
@@ -1192,6 +1195,17 @@ export default {
     moralLabel: "מוסר השכל",
     plotPointsLabel: "נקודות עלילה"
   },
+  welcome: {
+    title: "ברוכים הבאים לסיפוראי!",
+    subtitle: "בואו נכין את סטודיו הספרים הקסום שלכם",
+    start: "בואו נתחיל!"
+  },
+  topics: {
+    title: "מה אתם אוהבים?",
+    subtitle: "בחרו את הנושאים האהובים עליכם (לפחות אחד)",
+    selectAll: "בחירת הכל",
+    clearAll: "ניקוי הכל"
+  },
   onboarding: {
     welcome: {
       title: "!ברוכים הבאים לסיפוראי",
@@ -1201,7 +1215,10 @@ export default {
     profile: {
       title: "ספרו לנו על עצמכם",
       nameLabel: "השם שלך",
-      ageLabel: "קבוצת גיל"
+      ageLabel: "קבוצת גיל",
+      age: "גיל",
+      name: "שם",
+      namePlaceholder: "הקלידו את השם שלכם..."
     },
     language: {
       title: "בחרו את השפה שלכם",
@@ -1302,7 +1319,9 @@ export default {
     linkCopied: "הקישור הועתק!",
     linkCopiedDesc: "קישור הספר הועתק ללוח.",
     copiedForInstagram: "הועתק לאינסטגרם!",
-    copiedForInstagramDesc: "הטקסט והקישור הועתקו ללוח. הדבק אותם בפוסט האינסטגרם שלך."
+    copiedForInstagramDesc: "הטקסט והקישור הועתקו ללוח. הדבק אותם בפוסט האינסטגרם שלך.",
+    parentalApprovalRequired: "נדרש אישור הורה",
+    shareFromCommunityPage: "בקשו מההורים לשתף את הספר מעמוד הקהילה, שם הם יכולים לאשר אותו בעזרת קוד ה-PIN שלהם."
   },
   ideaGenerator: {
     title: "מחולל רעיונות לסיפור",
@@ -1869,7 +1888,9 @@ export default {
     styleWatercolor: "צבעי מים",
     styleSketch: "סקיצה",
     styleRealistic: "ריאליסטי",
-    styleAnime: "אנימה"
+    styleAnime: "אנימה",
+    preview: "תצוגה מקדימה של הדמות",
+    generating: "יוצרים תמונה..."
   },
   blog: {
     title: "הבלוג שלנו",
@@ -2184,6 +2205,69 @@ export default {
       fontMiriam: "מרים (Miriam)",
       fontNarkisim: "נרקיסים (Narkisim)",
       fontGuttmanYad: "גוטמן יד (Guttman Yad)"
+    },
+    autoSaving: "שומרים...",
+    autoSaved: "נשמר",
+    autoSaveError: "לא הצלחנו לשמור",
+    backToLibrary: "חזרה לספרייה",
+    viewFullBook: "צפייה בספר המלא",
+    layoutUpdated: "פריסת העמוד עודכנה",
+    rhymingOptions: "אפשרויות חרוזים",
+    rhymingDesc: "אפשר לכתוב את הסיפור בחרוזים, כמו בהרבה ספרי ילדים",
+    enableRhyming: "כתיבה בחרוזים",
+    applyRhyming: "הוספת חרוזים לספר",
+    createTitle: "הספר החדש",
+    readyMessage: "הכל מוכן. בדקו את הפרטים ואז צרו את הספר.",
+    storyTitle: "סיפור עבור {{name}}",
+    bookSummary: "גיל {{age}} · {{genre}} · סגנון {{style}}",
+    characterSettings: "הגדרות דמויות",
+    characterSettingsDesc: "תארו את הדמויות כדי שייראו אותו דבר בכל העמודים",
+    mainCharDesc: "תיאור הדמות הראשית",
+    mainCharPlaceholder: "למשל: ילדה בת שבע עם שיער מתולתל וחולצה צהובה",
+    secondaryChars: "דמויות נוספות",
+    name: "שם",
+    briefDesc: "תיאור קצר",
+    artStyleConsistency: "אותו סגנון איור בכל הספר",
+    selectArtStyle: "בחירת סגנון איור",
+    generating: "יוצרים את הספר...",
+    generateMyBook: "צרו את הספר שלי",
+    editPageImage: "עריכת התמונה בעמוד",
+    imagePrompt: "תיאור התמונה",
+    simpleMode: "תיאור פשוט",
+    editFullPrompt: "תיאור מפורט",
+    imagePromptPlaceholder: "תארו בפירוט מה יופיע בתמונה: הדמויות, המקום והאווירה",
+    imageSimplePlaceholder: "תארו במשפט קצר מה יופיע בתמונה",
+    regenerateImage: "יצירת תמונה חדשה",
+    pageLayout: "פריסת העמוד",
+    prevPage: "לעמוד הקודם",
+    pageOf: "עמוד {{current}} מתוך {{total}}",
+    nextPage: "לעמוד הבא",
+    noImage: "אין תמונה בעמוד הזה",
+    editPageText: "עריכת הטקסט בעמוד",
+    saveText: "שמירת הטקסט",
+    makeRhyme: "הפיכה לחרוזים",
+    loadError: "לא הצלחנו לטעון את הספר. נסו לרענן את הדף.",
+    rateLimit: "הגעתם למגבלה היומית של {{limit}} ספרים. אפשר להמשיך מחר.",
+    imagePartial: "{{success}} מתוך {{total}} איורים נוצרו. את שאר האיורים אפשר ליצור מחדש בעורך.",
+    bookGenerated: "הספר מוכן!",
+    bookGenerateError: "משהו השתבש ביצירת הספר. נסו שוב.",
+    textUpdated: "הטקסט נשמר",
+    textUpdateError: "לא הצלחנו לשמור את הטקסט. נסו שוב.",
+    imageUpdated: "התמונה עודכנה",
+    imageUpdateError: "לא הצלחנו ליצור את התמונה. נסו שוב.",
+    layoutUpdateError: "לא הצלחנו לעדכן את פריסת העמוד. נסו שוב.",
+    nikudAdded: "הניקוד נוסף",
+    nikudError: "לא הצלחנו להוסיף ניקוד. נסו שוב.",
+    rhymeSuccess: "הטקסט עבר לחרוזים",
+    rhymeError: "לא הצלחנו ליצור חרוזים. נסו שוב.",
+    creatingMessage: "הסיפור שלך בדרך. זה יכול לקחת כמה רגעים.",
+    creatingTitle: "יוצרים את הספר שלך",
+    editingLabel: "עריכת הספר",
+    previewTitle: "תצוגה מקדימה של הספר",
+    tab: {
+      editor: "עריכה",
+      preview: "תצוגה מקדימה",
+      share: "שיתוף"
     }
   },
   rhyme: {
