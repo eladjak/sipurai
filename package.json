@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
+    "typecheck:gate": "node scripts/check-types.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
