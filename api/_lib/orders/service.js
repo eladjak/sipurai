@@ -9,6 +9,7 @@
 import crypto from 'node:crypto';
 import { computeQuote, PRINT_PAGE_COUNT, PricingError } from '../../../src/lib/printOrder/pricing.js';
 import { validateAddress } from './address.js';
+import { SAFE_VENDOR_CODES } from '../bookpod/client.js';
 import { STATUS_LABEL_HE, canTransition } from './states.js';
 
 export class OrderError extends Error {
@@ -229,7 +230,7 @@ export async function handlePaymentEvent(deps, evt) {
  * Submit a paid order to the print partner. Never retried automatically after an
  * unknown outcome: the admin must call it again explicitly (explicit:true).
  */
-export async function submitOrder(deps, orderId, { explicit = false } = {}) {
+export async function submitOrder(deps, orderId, { explicit = false, confirmNotOrdered = false } = {}) {
   const { store, vendor } = deps;
   const order = await store.getOrder(orderId);
   if (!order) throw new OrderError('not_found', 404, 'ההזמנה לא נמצאה');
@@ -239,18 +240,37 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
     if (!order.paid_at || String(order.vendor_last_error || '').startsWith('amount_mismatch')) {
       throw new OrderError('retry_not_allowed', 409, 'אי אפשר לשלוח הזמנה שלא שולמה במלואה');
     }
+    // UNKNOWN outcome: the partner may already hold this order. Never resubmit until a human has checked the
+    // partner's dashboard for reference_num1 = our order id. (If they are wrong, the partner answers code 1502.)
+    if (String(order.vendor_last_error || '').startsWith('unknown_outcome') && !confirmNotOrdered) {
+      throw new OrderError('reconcile_required', 409, 'צריך לוודא קודם מול שותף ההדפסה שההזמנה לא קיימת');
+    }
   }
 
   // CLAIM: only one caller can move the order into "submitting".
+  // submit_started_at is the durable "in progress since": if the platform kills this invocation (timeout, memory)
+  // no handler runs, and the sweeper (runStuckWatch) finds the order by this timestamp.
   const claimed = await store.transition(orderId, explicit ? ['paid', 'failed_needs_attention'] : ['paid'], {
     status: 'submitting',
+    submit_started_at: (deps.now ? deps.now() : new Date()).toISOString(),
   });
   if (!claimed) return { outcome: 'not_claimed' };
   await store.update(orderId, { vendor_submit_attempts: (order.vendor_submit_attempts || 0) + 1 });
   await store.addEvent(orderId, 'submit_started', { explicit });
 
   const book = await store.getBook(order.book_id);
-  const files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
+  let files;
+  try {
+    files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
+  } catch (e) {
+    // e.g. artwork below 300 dpi, or the generator ran out of time/memory: nothing was sent.
+    await store.transition(orderId, ['submitting'], {
+      status: 'failed_needs_attention',
+      vendor_last_error: `print_files_error: ${sanitize(e?.message)}`,
+    });
+    await store.addEvent(orderId, 'alert_print_files_error', {});
+    return { outcome: 'files_error' };
+  }
   if (!files) {
     await store.transition(orderId, ['submitting'], {
       status: 'failed_needs_attention',
@@ -262,7 +282,14 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
 
   try {
     const { ref } = await vendor.submitOrder(claimed, files);
-    await store.transition(orderId, ['submitting'], { status: 'submitted', vendor_ref: ref, vendor_last_error: null });
+    const done = await store.transition(orderId, ['submitting'], { status: 'submitted', vendor_ref: ref, vendor_last_error: null });
+    if (!done) {
+      // The sweeper declared this order stuck while the partner call was still running. The order DOES exist now:
+      // keep the partner reference and make a human look at it. Never lose the reference.
+      await store.update(orderId, { vendor_ref: ref });
+      await store.addEvent(orderId, 'alert_submitted_after_sweep', { ref });
+      return { outcome: 'submitted_after_sweep', ref };
+    }
     await store.addEvent(orderId, 'submitted', { ref });
     return { outcome: 'submitted', ref };
   } catch (e) {
@@ -274,21 +301,30 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
       await store.addEvent(orderId, 'submit_skipped', { code });
       return { outcome: 'disabled' };
     }
-    const unknown = code !== 'vendor_rejected';
-    await store.transition(orderId, ['submitting'], {
-      status: 'failed_needs_attention',
-      vendor_last_error: unknown
-        ? `unknown_outcome(${code}): the order may already exist at the partner, verify before retrying. ${msg}`
-        : `rejected: ${msg}`,
-    });
+    // Only codes that PROVE nothing was ordered are safe; anything else is an unknown outcome.
+    const unknown = !SAFE_VENDOR_CODES.has(code);
+    const lastError = unknown
+      ? `unknown_outcome(${code}): the order may already exist at the partner, verify before retrying. ${msg}`
+      : code === 'vendor_token_expired'
+        ? 'token_expired: nothing was ordered. Renew the partner API token, then retry from the admin screen.'
+        : code === 'vendor_auth_failed'
+          ? `auth_failed: nothing was ordered. Check the partner credentials, then retry. ${msg}`
+          : code === 'vendor_price_mismatch'
+            ? `price_mismatch: nothing was ordered, the partner price is not what we expect. ${msg}`
+            : `rejected: ${msg}`;
+    await store.transition(orderId, ['submitting'], { status: 'failed_needs_attention', vendor_last_error: lastError });
     await store.addEvent(orderId, unknown ? 'submit_unknown_outcome' : 'submit_rejected', { code });
     await store.addEvent(orderId, 'alert_submit_failed', { code, unknownOutcome: unknown });
-    return { outcome: unknown ? 'unknown_outcome' : 'rejected' };
+    if (code === 'vendor_token_expired' || code === 'vendor_auth_failed') {
+      await store.addEvent(orderId, 'alert_vendor_auth', { code });
+    }
+    if (code === 'vendor_price_mismatch') await store.addEvent(orderId, 'alert_price_mismatch', {});
+    return { outcome: unknown ? 'unknown_outcome' : 'rejected', code };
   }
 }
 
 /* ------------------------------ admin ------------------------------ */
-export async function adminAction(deps, { id, action, note, actor }) {
+export async function adminAction(deps, { id, action, note, actor, confirmNotOrdered = false }) {
   const { store } = deps;
   if (!isUuid(id)) throw new OrderError('invalid_id', 400, 'מזהה הזמנה לא תקין');
   const order = await store.getOrder(id);
@@ -306,7 +342,7 @@ export async function adminAction(deps, { id, action, note, actor }) {
   switch (action) {
     case 'retry_submit': {
       await store.addEvent(id, 'admin_retry_submit', { actor, note: cleanNote });
-      const result = await submitOrder(deps, id, { explicit: true });
+      const result = await submitOrder(deps, id, { explicit: true, confirmNotOrdered });
       if (result.outcome === 'not_claimed') {
         throw new OrderError('invalid_transition', 409, 'אי אפשר לבצע את הפעולה במצב הנוכחי של ההזמנה');
       }
@@ -328,8 +364,33 @@ export async function adminAction(deps, { id, action, note, actor }) {
 }
 
 /* ------------------------------- cron ------------------------------ */
+export const DEFAULT_STALE_SUBMIT_MINUTES = 10;
+
+/** Minutes after which a "submitting" order is declared stuck. Must exceed the function's maxDuration (5 min). */
+export function staleSubmitMinutes(env = {}) {
+  const raw = env?.PRINT_SUBMITTING_STALE_MINUTES;
+  if (raw === undefined || raw === null || raw === '') return DEFAULT_STALE_SUBMIT_MINUTES;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 6 && n <= 240 ? n : DEFAULT_STALE_SUBMIT_MINUTES;
+}
+
 export async function runStuckWatch(deps) {
   const { store, env, fetchImpl = globalThis.fetch, now = () => new Date() } = deps;
+
+  // 1. Sweep: orders left in "submitting" by a killed invocation. The partner call may or may not have happened, so
+  //    they become UNKNOWN outcomes: no automatic resubmission, a human reconciles by the order id (reference_num1).
+  const staleBefore = new Date(now().getTime() - staleSubmitMinutes(env) * 60 * 1000).toISOString();
+  let swept = 0;
+  for (const o of await store.listStaleSubmitting({ before: staleBefore })) {
+    const moved = await store.transition(o.id, ['submitting'], {
+      status: 'failed_needs_attention',
+      vendor_last_error: `unknown_outcome(stuck_submitting): the function stopped before finishing, the order may already exist at the partner. Look for reference ${o.id} there before retrying.`,
+    });
+    if (!moved) continue;
+    swept += 1;
+    await store.addEvent(o.id, 'alert_stuck_submitting', { since: o.submit_started_at || o.updated_at });
+  }
+
   const paidBefore = new Date(now().getTime() - 2 * 3600 * 1000).toISOString();
   const stuck = await store.listStuck({ paidBefore });
   const fresh = [];
@@ -357,7 +418,7 @@ export async function runStuckWatch(deps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: `${toSend.length} הזמנות הדפסה תקועות וממתינות לטיפול`,
-            orders: toSend.map((o) => ({ id: o.id, status: o.status, paidAt: o.paid_at })),
+            orders: toSend.map((o) => ({ id: o.id, reference: o.id, status: o.status, paidAt: o.paid_at, lastError: sanitize(o.vendor_last_error).slice(0, 120) })),
           }),
         });
         if (res.ok) {
@@ -371,7 +432,11 @@ export async function runStuckWatch(deps) {
       }
     }
   }
-  return { checked: stuck.length, newAlerts: fresh.length, delivery };
+  if (stuck.length > 0 && delivery === 'not_configured') {
+    // No destination means nobody hears about stuck paid orders: make it loud in the function logs / cron failures.
+    console.error(`[print-orders-watch] ${stuck.length} stuck order(s) and PRINT_ALERT_WEBHOOK_URL is not set: NOBODY IS NOTIFIED`);
+  }
+  return { checked: stuck.length, newAlerts: fresh.length, delivery, swept };
 }
 
 export const newIdempotencyKey = () => crypto.randomUUID();

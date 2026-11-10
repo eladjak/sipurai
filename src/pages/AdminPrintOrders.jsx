@@ -43,10 +43,13 @@ function AdminOrderCard({ order, api, onChanged }) {
   const allowed = allowedActions(order);
 
   const run = async (action) => {
+    // An unknown outcome may already be a real order at the print partner: a human must check first.
+    const unknown = action === 'retry_submit' && String(order.lastError || '').startsWith('unknown_outcome');
+    if (unknown && !window.confirm('התוצאה של ההזמנה הקודמת לא ידועה. בדקתם במסך של שותף ההדפסה שאין שם הזמנה עם המזהה של ההזמנה הזאת? לשלוח שוב רק אם אין.')) return;
     setBusy(action);
     setResult(null);
     try {
-      await api.adminAction({ id: order.id, action, note: note.trim() || undefined });
+      await api.adminAction({ id: order.id, action, note: note.trim() || undefined, confirmNotOrdered: unknown || undefined });
       setResult({ ok: true, text: 'הפעולה בוצעה.' });
       setConfirmCancel(false);
       setNote('');

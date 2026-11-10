@@ -170,7 +170,7 @@ test('CRON endpoint: bearer secret required, missing CRON_SECRET fails closed', 
   assert.equal((await call(h, fakeReq({ method: 'GET', headers: { authorization: 'Bearer wrong' } }), deps)).status, 401);
   const ok = await call(h, fakeReq({ method: 'GET', headers: { authorization: `Bearer ${CRON_TOKEN}` } }), deps);
   assert.equal(ok.status, 200);
-  assert.deepEqual(ok.body, { checked: 0, newAlerts: 0, delivery: 'not_configured' });
+  assert.deepEqual(ok.body, { checked: 0, newAlerts: 0, delivery: 'not_configured', swept: 0 });
   const noSecret = makeDeps();
   delete noSecret.env.CRON_SECRET;
   // even sending "Bearer undefined" or an empty bearer must not get in

@@ -12,6 +12,8 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:api": "node --test tests/*.test.mjs",
+    "bookpod:smoke": "node scripts/bookpod-smoke.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

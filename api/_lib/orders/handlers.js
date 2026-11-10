@@ -8,6 +8,8 @@
 import { requireClerkAuth } from '../verifyClerk.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
+import { createStoreBreaker } from '../bookpod/breaker.js';
+import { createPrintFilesProvider, createSupabaseArtworkStorage } from './printFiles.js';
 import { createCreemPayment } from './payment/creem.js';
 import { createMorningPayment } from './payment/morning.js';
 import { createSupabaseStore } from './store.js';
@@ -45,12 +47,15 @@ export async function defaultDeps(env = process.env) {
   const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('supabase service role not configured');
+  const db = createClient(url, key, { auth: { persistSession: false } });
+  const store = createSupabaseStore(db);
   return {
     env,
     auth: requireClerkAuth,
-    store: createSupabaseStore(createClient(url, key, { auth: { persistSession: false } })),
+    store,
     payment: createPrintPayment(env),
-    vendor: createVendorClient({ env }),
+    vendor: createVendorClient({ env, breaker: createStoreBreaker(store) }),
+    getPrintFiles: createPrintFilesProvider({ storage: createSupabaseArtworkStorage(db), env }).getPrintFiles,
   };
 }
 
@@ -159,7 +164,7 @@ const ENDPOINTS = {
     async run(req, res, { deps, userId }) {
       const body = bodyOf(req);
       if (!body || typeof body !== 'object') throw new OrderError('invalid_body', 400, 'בקשה לא תקינה');
-      const out = await adminAction(deps, { id: body.id, action: body.action, note: body.note, actor: userId });
+      const out = await adminAction(deps, { id: body.id, action: body.action, note: body.note, actor: userId, confirmNotOrdered: body.confirmNotOrdered === true });
       return send(res, 200, { order: adminOrderView(out.order) });
     },
   },

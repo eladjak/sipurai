@@ -49,11 +49,10 @@ export function validateAddress(input, method) {
 
     const apartment = clean(a.apartment, 10);
     if (apartment) out.apartment = apartment;
+    // The print partner's API requires zipCode for home delivery, so it is mandatory here.
     const zip = clean(a.zip, 10);
-    if (zip) {
-      if (!ZIP_RE.test(zip)) errors.zip = 'מיקוד בן 7 ספרות, או להשאיר ריק';
-      else out.zip = zip;
-    }
+    if (!ZIP_RE.test(zip)) errors.zip = 'נא למלא מיקוד בן 7 ספרות';
+    else out.zip = zip;
   }
   const notes = clean(a.notes, 200);
   if (notes) out.notes = notes;

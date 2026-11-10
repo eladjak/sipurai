@@ -195,13 +195,16 @@ test('UNKNOWN OUTCOME (timeout): no automatic resubmission; admin retry is expli
   assert.equal(await submitOrder(deps, orderId, { explicit: false }).catch((e) => e.code), 'retry_not_allowed');
   await runStuckWatch({ ...deps, now: () => new Date(Date.now() + 5 * 3600 * 1000) });
   assert.equal(deps.vendor.calls.length, 1, 'still exactly one call');
-  // explicit admin retry goes through (mock now succeeds)
-  const out = await adminAction(deps, { id: orderId, action: 'retry_submit', actor: ADMIN, note: 'checked with partner' });
+  // an explicit admin retry WITHOUT the reconcile confirmation is refused
+  assert.equal(await adminAction(deps, { id: orderId, action: 'retry_submit', actor: ADMIN }).catch((e) => e.code), 'reconcile_required');
+  assert.equal(deps.vendor.calls.length, 1);
+  // with the confirmation that a human checked the partner side, it goes through (mock now succeeds)
+  const out = await adminAction(deps, { id: orderId, action: 'retry_submit', actor: ADMIN, note: 'checked with partner', confirmNotOrdered: true });
   assert.equal(out.order.status, 'submitted');
   assert.equal(deps.vendor.calls.length, 2);
   assert.equal(deps.store._orders.get(orderId).vendor_submit_attempts, 2);
   assert.equal(count(deps, orderId, 'submit_unknown_outcome'), 1);
-  assert.equal(count(deps, orderId, 'admin_retry_submit'), 1);
+  assert.equal(count(deps, orderId, 'admin_retry_submit'), 2, 'the refused attempt and the confirmed one are both logged');
 });
 
 test('REJECTION: marked failed_needs_attention with a note, not retried automatically', async () => {

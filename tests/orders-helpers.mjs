@@ -15,6 +15,7 @@ export const GOOD_ADDRESS = {
   city: 'חיפה',
   street: 'הנשיא',
   houseNumber: '12',
+  zip: '3500000',
 };
 
 export const PRINT_FILES = { contentUrl: 'https://files.test/content.pdf', coverUrl: 'https://files.test/cover.pdf' };
