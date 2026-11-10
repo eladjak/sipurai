@@ -18,6 +18,9 @@
 //   (c) no !important on a token;
 //   (d) colour tokens are literal #rrggbb or #rrggbbaa (no var(), no functions);
 //       other tokens may use var() but are not part of the contrast check;
+//   (f) closed vocabulary: outside comments no backslash, no non-ASCII byte,
+//       no @import/@layer/@property/@scope/@container, and every custom
+//       property is exactly --sp-[a-z0-9-]+ (the file is read as bytes);
 //   (e) a pair that names an undeclared token fails; every violation is
 //       reported with its line number.
 //
@@ -85,6 +88,13 @@ export function parseTokensFile(css) {
   const base = new Map();
   const scopes = new Map();
   let baseRules = 0;
+
+  // Closed vocabulary: the file may only contain what this checker understands.
+  for (const m of text.matchAll(/[^\x00-\x7f]/g)) err(m.index, "non-ASCII byte outside a comment");
+  for (const m of text.matchAll(/\\/g)) err(m.index, "backslash (CSS escape) outside a comment is not allowed");
+  for (const m of text.matchAll(/@(import|layer|property|scope|container)(?![a-z0-9-])/gi)) err(m.index, `@${m[1].toLowerCase()} is not allowed`);
+  for (const m of text.matchAll(/(^|[;{\s])(--[^\s:;{}()]*)\s*:/g))
+    if (!/^--sp-[a-z0-9-]+$/.test(m[2])) err(m.index + m[1].length, `custom property "${m[2]}" is not exactly --sp-[a-z0-9-]+ in plain ASCII`);
 
   const declsOf = (body, bodyStart) => {
     const out = [];
@@ -264,7 +274,7 @@ function useLabel(u) {
 }
 
 function selfTest() {
-  const base = readFileSync(join(here, "..", "src", "styles", "sp-tokens.css"), "utf8");
+  const base = readFileSync(join(here, "..", "src", "styles", "sp-tokens.css"), "latin1");
   const cases = [];
   const t = (name, ok) => cases.push([name, !!ok]);
   const P16 = (fg, bg = "paper") => [[fg, bg, { px: 16, weight: 400 }]];
@@ -325,6 +335,20 @@ function selfTest() {
   const expected = base.split("\n").findIndex((l) => l.includes("--sp-ink-900")) + 1;
   t("(e) violation names the right line (the later duplicate, after the first at " + expected + ")", dupLine && Number(dupLine[1]) > expected);
 
+  // (f) closed vocabulary
+  const esc = run(base + "\n.sp-shell, :root[data-sp-shell] { --sp-ink\\2d 900: #cccccc; }\n", P16("ink-900"));
+  t("(f) Codex example (escaped name --sp-ink\\2d 900) FAILS naming the line", rejected(esc, /backslash/));
+  t("(f) FAIL: backslash in a value", rejected(run(swap(base, "ink-900", "#23194\\32"), P16("ink-900")), /backslash/));
+  t("(f) FAIL: backslash in a selector", rejected(run(base + "\n.a\\:b { color: red; }\n", P16("ink-900")), /backslash/));
+  t("(f) pass: a backslash inside a comment is ignored", run(base.replace("--sp-ink-900: #231942;", "--sp-ink-900: #231942; /* \\2d */"), P16("ink-900")).failed === 0);
+  t("(f) FAIL: @import", rejected(run('@import "x.css";\n' + base, P16("ink-900")), /@import/));
+  for (const at of ["layer", "property", "scope", "container"])
+    t("(f) FAIL: @" + at, rejected(run(base + "\n@" + at + " x { .a { color: red; } }\n", P16("ink-900")), new RegExp("@" + at)));
+  t("(f) FAIL: non-ASCII byte outside a comment", rejected(run(base + "\n.sp-shell { content: 'é'; }\n", P16("ink-900")), /non-ASCII/));
+  t("(f) pass: non-ASCII inside a comment is ignored", run(base + "\n/* é */\n", P16("ink-900")).failed === 0);
+  t("(f) FAIL: custom property not exactly --sp-[a-z0-9-]+ (uppercase)", rejected(run(base + "\n.sp-shell, :root[data-sp-shell] { --sp-Ink-900: #000000; }\n", P16("ink-900")), /not exactly --sp-/));
+  t("(f) FAIL: custom property outside the sp namespace", rejected(run(base + "\n.sp-shell, :root[data-sp-shell] { --other: #000000; }\n", P16("ink-900")), /not exactly --sp-/));
+
   // WCAG large-text rule
   t("ink-400 as 18px regular text FAILS", run(base, [["ink-400", "paper", { px: 18, weight: 400 }]]).failed === 1);
   t("ink-400 as 20px bold passes (18.66px+ bold)", run(base, [["ink-400", "paper", { px: 20, weight: 700 }]]).failed === 0);
@@ -346,7 +370,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const file = process.argv[2] ?? join(here, "..", "src", "styles", "sp-tokens.css");
   let css;
   try {
-    css = readFileSync(file, "utf8");
+    css = readFileSync(file, "latin1"); // bytes: a non-ASCII byte can never hide
   } catch (e) {
     console.error(`cannot read ${file}: ${e.message}`);
     process.exit(1);

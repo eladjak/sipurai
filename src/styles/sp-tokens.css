@@ -8,6 +8,7 @@
  * switch-gated modules (VITE_NEW_SHELL), so production is unchanged.
  *
  * FORMAT (enforced by scripts/check-contrast.mjs): one base rule, each --sp-* token once, colours as literal #rrggbb[aa], no !important; tokens may be re-set only inside the allowlisted @media scopes dark / more-contrast, once each.
+ * Closed vocabulary: no backslash, no non-ASCII, no @import/@layer/@property/@scope/@container, custom properties exactly --sp-[a-z0-9-]+.
  */
 .sp-shell,
 :root[data-sp-shell] {
