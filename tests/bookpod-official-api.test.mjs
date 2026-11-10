@@ -328,6 +328,43 @@ test('CODEX #2 through the service: an unknown outcome cannot be resubmitted wit
   assert.equal((await submitOrder(deps2, o2.orderId, { explicit: true })).outcome, 'submitted');
 });
 
+test('CODEX #5: authenticated calls never follow redirects (token cannot reach another host); host is pinned', async () => {
+  const evilSeen = [];
+  // models fetch: redirect 'follow' (the default) re-sends the custom headers to the Location host
+  const redirecting = async (url, init = {}) => {
+    if (String(url).includes('/books/upload-url')) {
+      if (init.redirect === 'error') throw new TypeError('fetch failed');
+      evilSeen.push({ url: 'https://evil.test/x', headers: init.headers });
+      return json(200, {});
+    }
+    return json(200, {});
+  };
+  const c = createVendorClient({ env: ENV, fetchImpl: redirecting });
+  const e = await c.submitOrder(ORDER, FILES).catch((x) => x);
+  assert.equal(e.code, 'vendor_prestep_failed');
+  assert.equal(evilSeen.length, 0, 'the token was never forwarded');
+  assert.doesNotMatch(e.message, /https?:|googleapis|token/i, 'no URL or secret in the error text');
+  // NEGATIVE CONTROL: the same fake with default redirect handling does leak the header, so the model is real
+  await redirecting('https://x.test/api/v1/books/upload-url', { headers: { 'x-custom-token': TOKEN } });
+  assert.equal(evilSeen[0].headers['x-custom-token'], TOKEN);
+  // every request the client makes carries redirect:'error'
+  const f = fakeVendor();
+  const spy = async (url, init) => { assert.equal(init.redirect, 'error', String(url)); return f(url, init); };
+  await createVendorClient({ env: ENV, fetchImpl: spy }).submitOrder(ORDER, FILES);
+  // a base URL pointing elsewhere is refused and nothing is sent
+  const f2 = fakeVendor();
+  const bad = createVendorClient({ env: { ...ENV, BOOKPOD_API_BASE: 'https://evil.test' }, fetchImpl: f2 });
+  assert.equal(await code(bad.submitOrder(ORDER, FILES)), 'vendor_not_configured');
+  assert.equal(f2.calls.length, 0);
+  // same origin with a trailing slash is fine
+  const ok = createVendorClient({ env: { ...ENV, BOOKPOD_API_BASE: `${DEFAULT_API_BASE}/` }, fetchImpl: fakeVendor() });
+  assert.deepEqual(await ok.submitOrder(ORDER, FILES), { ref: '00001612' });
+  // an upload URL on another host is never PUT to
+  const f3 = fakeVendor({ fail: (path) => (path === '/api/v1/books/upload-url' ? json(200, { contentUploadUrl: 'https://evil.test/upload/storage/v1/b/x/o?name=a', coverUploadUrl: 'https://evil.test/b', contentFileName: 'a', coverFileName: 'b' }) : null) });
+  assert.equal(await code(createVendorClient({ env: ENV, fetchImpl: f3 }).submitOrder(ORDER, FILES)), 'vendor_upload_failed');
+  assert.equal(f3.calls.filter((c2) => c2.method === 'PUT').length, 0);
+});
+
 test('getStatus uses GET /shipments/track by our partner order number', async () => {
   const f = fakeVendor();
   const c = createVendorClient({ env: ENV, fetchImpl: f });

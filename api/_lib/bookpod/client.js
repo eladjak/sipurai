@@ -55,6 +55,12 @@ export const SAFE_VENDOR_CODES = new Set([
 ]);
 
 export const DEFAULT_API_BASE = 'https://cloud-function-bookpod-festjdz7ga-ey.a.run.app';
+// The partner token is only ever sent to this origin. A different BOOKPOD_API_BASE is refused, not honoured.
+const PINNED_ORIGIN = DEFAULT_API_BASE;
+const UPLOAD_HOST = 'storage.googleapis.com';
+
+/** Error text for logs/state: never the URL (signed query strings) or raw transport messages. */
+const safeNetErr = (e) => `${e?.name || 'Error'}${e?.cause?.code ? `:${e.cause.code}` : e?.code ? `:${e.code}` : ''}`;
 const API = '/api/v1';
 const TIMEOUT_MS = 20000;
 const UPLOAD_TIMEOUT_MS = 170000;
@@ -148,11 +154,16 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
   function assertEnabled() {
     if (!isVendorEnabled(env)) throw new VendorError('vendor_disabled', 'fulfillment is switched off');
     if (!env.BOOKPOD_USER_ID) throw new VendorError('vendor_not_configured', 'fulfillment is not configured');
+    if (env.BOOKPOD_API_BASE) {
+      let origin = '';
+      try { origin = new URL(env.BOOKPOD_API_BASE).origin; } catch { /* falls through */ }
+      if (origin !== PINNED_ORIGIN) throw new VendorError('vendor_not_configured', 'BOOKPOD_API_BASE is not the pinned partner host');
+    }
     if (now() < breakerUntil) {
       throw new VendorError(breakerCode, 'authentication with the print partner is failing; call skipped');
     }
   }
-  const base = () => (env.BOOKPOD_API_BASE || DEFAULT_API_BASE).replace(/\/+$/, '');
+  const base = () => PINNED_ORIGIN;
 
   /** stage 'pre' = nothing can have been ordered yet; 'order' = POST /orders (outcome unknown on doubt). */
   async function call(method, path, body, { stage = 'pre' } = {}) {
@@ -169,13 +180,14 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: ctrl.signal,
+        redirect: 'error', // credentials must never follow a redirect to another host; a redirect is a failure
       });
     } catch (e) {
       const timedOut = e?.name === 'AbortError';
       if (stage === 'order') {
-        throw new VendorError(timedOut ? 'vendor_timeout' : 'vendor_unknown', e?.message, { unknownOutcome: true });
+        throw new VendorError(timedOut ? 'vendor_timeout' : 'vendor_unknown', timedOut ? 'timeout' : safeNetErr(e), { unknownOutcome: true });
       }
-      throw new VendorError('vendor_prestep_failed', `${path}: ${timedOut ? 'timeout' : e?.message}`);
+      throw new VendorError('vendor_prestep_failed', `${path}: ${timedOut ? 'timeout' : safeNetErr(e)}`);
     } finally {
       clearTimeout(timer);
     }
@@ -239,6 +251,12 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
   }
 
   async function putPdf(uploadUrl, bytes) {
+    let host = '';
+    let proto = '';
+    try { const u = new URL(uploadUrl); host = u.hostname; proto = u.protocol; } catch { /* refused below */ }
+    if (proto !== 'https:' || host !== UPLOAD_HOST) {
+      throw new VendorError('vendor_upload_failed', 'upload url is not on the expected storage host');
+    }
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), UPLOAD_TIMEOUT_MS);
     try {
@@ -248,6 +266,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
         headers: { 'Content-Type': 'application/pdf' },
         body: bytes,
         signal: ctrl.signal,
+        redirect: 'error',
       });
       if (!res.ok) {
         // Docs: "403 Upload URL Expired - request a new one". A new attempt re-requests URLs from scratch.
@@ -255,7 +274,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
       }
     } catch (e) {
       if (e instanceof VendorError) throw e;
-      throw new VendorError('vendor_upload_failed', e?.name === 'AbortError' ? 'upload timeout' : e?.message);
+      throw new VendorError('vendor_upload_failed', e?.name === 'AbortError' ? 'upload timeout' : safeNetErr(e));
     } finally {
       clearTimeout(timer);
     }
