@@ -184,7 +184,7 @@
       "TS2322: Type '{ rhymeSettings: any; setRhymeSettings: any; currentLanguage: any; }' is not assignable to type 'IntrinsicAttributes & { rhymeSettings: any; setRhymeSettings: any; }'.": 1
     },
     "src/entities/User.js": {
-      "TS2694: Namespace '\"C:/Users/eladj/projects/_sipurai-ci-types/node_modules/@clerk/clerk-react/dist/index\"' has no exported member 'UserResource'.": 1
+      "TS2694: Namespace '\"node_modules/@clerk/clerk-react/dist/index\"' has no exported member 'UserResource'.": 1
     },
     "src/hooks/useAutoSave.js": {
       "TS2739: Type '{}' is missing the following properties from type '{ onSaveToDb: Function; delayMs: number; enabled: boolean; }': onSaveToDb, delayMs, enabled": 1

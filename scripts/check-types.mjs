@@ -43,7 +43,9 @@ function runTsc() {
       continue;
     }
     const file = m[1].split(BACKSLASH).join('/');
-    const sig = `${m[4]}: ${m[5].replace(/\s+/g, ' ').trim()}`;
+    // machine-independent: absolute install paths differ between Windows and the CI runner
+    const msg = m[5].replace(/\s+/g, ' ').trim().replace(/"[^"]*?node_modules\//g, '"node_modules/');
+    const sig = `${m[4]}: ${msg}`;
     files[file] ||= {};
     files[file][sig] = (files[file][sig] || 0) + 1;
     total += 1;
