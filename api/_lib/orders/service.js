@@ -248,8 +248,11 @@ export async function submitOrder(deps, orderId, { explicit = false, confirmNotO
   }
 
   // CLAIM: only one caller can move the order into "submitting".
+  // submit_started_at is the durable "in progress since": if the platform kills this invocation (timeout, memory)
+  // no handler runs, and the sweeper (runStuckWatch) finds the order by this timestamp.
   const claimed = await store.transition(orderId, explicit ? ['paid', 'failed_needs_attention'] : ['paid'], {
     status: 'submitting',
+    submit_started_at: (deps.now ? deps.now() : new Date()).toISOString(),
   });
   if (!claimed) return { outcome: 'not_claimed' };
   await store.update(orderId, { vendor_submit_attempts: (order.vendor_submit_attempts || 0) + 1 });
@@ -279,7 +282,14 @@ export async function submitOrder(deps, orderId, { explicit = false, confirmNotO
 
   try {
     const { ref } = await vendor.submitOrder(claimed, files);
-    await store.transition(orderId, ['submitting'], { status: 'submitted', vendor_ref: ref, vendor_last_error: null });
+    const done = await store.transition(orderId, ['submitting'], { status: 'submitted', vendor_ref: ref, vendor_last_error: null });
+    if (!done) {
+      // The sweeper declared this order stuck while the partner call was still running. The order DOES exist now:
+      // keep the partner reference and make a human look at it. Never lose the reference.
+      await store.update(orderId, { vendor_ref: ref });
+      await store.addEvent(orderId, 'alert_submitted_after_sweep', { ref });
+      return { outcome: 'submitted_after_sweep', ref };
+    }
     await store.addEvent(orderId, 'submitted', { ref });
     return { outcome: 'submitted', ref };
   } catch (e) {
@@ -354,8 +364,33 @@ export async function adminAction(deps, { id, action, note, actor, confirmNotOrd
 }
 
 /* ------------------------------- cron ------------------------------ */
+export const DEFAULT_STALE_SUBMIT_MINUTES = 10;
+
+/** Minutes after which a "submitting" order is declared stuck. Must exceed the function's maxDuration (5 min). */
+export function staleSubmitMinutes(env = {}) {
+  const raw = env?.PRINT_SUBMITTING_STALE_MINUTES;
+  if (raw === undefined || raw === null || raw === '') return DEFAULT_STALE_SUBMIT_MINUTES;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 6 && n <= 240 ? n : DEFAULT_STALE_SUBMIT_MINUTES;
+}
+
 export async function runStuckWatch(deps) {
   const { store, env, fetchImpl = globalThis.fetch, now = () => new Date() } = deps;
+
+  // 1. Sweep: orders left in "submitting" by a killed invocation. The partner call may or may not have happened, so
+  //    they become UNKNOWN outcomes: no automatic resubmission, a human reconciles by the order id (reference_num1).
+  const staleBefore = new Date(now().getTime() - staleSubmitMinutes(env) * 60 * 1000).toISOString();
+  let swept = 0;
+  for (const o of await store.listStaleSubmitting({ before: staleBefore })) {
+    const moved = await store.transition(o.id, ['submitting'], {
+      status: 'failed_needs_attention',
+      vendor_last_error: `unknown_outcome(stuck_submitting): the function stopped before finishing, the order may already exist at the partner. Look for reference ${o.id} there before retrying.`,
+    });
+    if (!moved) continue;
+    swept += 1;
+    await store.addEvent(o.id, 'alert_stuck_submitting', { since: o.submit_started_at || o.updated_at });
+  }
+
   const paidBefore = new Date(now().getTime() - 2 * 3600 * 1000).toISOString();
   const stuck = await store.listStuck({ paidBefore });
   const fresh = [];
@@ -383,7 +418,7 @@ export async function runStuckWatch(deps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: `${toSend.length} הזמנות הדפסה תקועות וממתינות לטיפול`,
-            orders: toSend.map((o) => ({ id: o.id, status: o.status, paidAt: o.paid_at })),
+            orders: toSend.map((o) => ({ id: o.id, reference: o.id, status: o.status, paidAt: o.paid_at, lastError: sanitize(o.vendor_last_error).slice(0, 120) })),
           }),
         });
         if (res.ok) {
@@ -397,7 +432,11 @@ export async function runStuckWatch(deps) {
       }
     }
   }
-  return { checked: stuck.length, newAlerts: fresh.length, delivery };
+  if (stuck.length > 0 && delivery === 'not_configured') {
+    // No destination means nobody hears about stuck paid orders: make it loud in the function logs / cron failures.
+    console.error(`[print-orders-watch] ${stuck.length} stuck order(s) and PRINT_ALERT_WEBHOOK_URL is not set: NOBODY IS NOTIFIED`);
+  }
+  return { checked: stuck.length, newAlerts: fresh.length, delivery, swept };
 }
 
 export const newIdempotencyKey = () => crypto.randomUUID();

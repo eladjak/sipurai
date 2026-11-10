@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createVendorClient, buildShippingDetails, gsUriFromUploadUrl, DEFAULT_API_BASE } from '../api/_lib/bookpod/client.js';
 import { expectedVendorTotalAgorot } from '../api/_lib/bookpod/expected.js';
 import { createPrintFilesProvider } from '../api/_lib/orders/printFiles.js';
-import { handlePaymentEvent, submitOrder } from '../api/_lib/orders/service.js';
+import { handlePaymentEvent, submitOrder, runStuckWatch, staleSubmitMinutes } from '../api/_lib/orders/service.js';
 import { normalizeCreemEvent } from '../api/_lib/orders/payment/creem.js';
 import { endpoint } from '../api/_lib/orders/handlers.js';
 import { createSupabaseStore, createMemoryStore } from '../api/_lib/orders/store.js';
@@ -513,6 +513,75 @@ test('CODEX #7: an unreadable breaker fails CLOSED (no partner call), and a fail
   const f2 = fakeVendor({ fail: (path) => (path === '/api/v1/books/upload-url' ? json(401, { message: 'Token expired' }) : null) });
   const c2 = createVendorClient({ env: ENV, fetchImpl: f2, breaker: { get: async () => null, set: async () => { throw new Error('db down'); } } });
   assert.equal(await code(c2.submitOrder(ORDER, FILES)), 'vendor_token_expired');
+});
+
+const settle = async (cond) => { for (let i = 0; i < 200 && !cond(); i += 1) await new Promise((r) => setImmediate(r)); };
+
+test('CODEX #3: an invocation killed mid-submit leaves a durable marker; the sweeper alerts and parks the order as UNKNOWN (before and after the partner call)', async () => {
+  for (const killedAt of ['while building the PDFs', 'after the partner order was created']) {
+    const deps = makeDeps({ withFiles: false });
+    const alerts = [];
+    const hook = async (url, init) => { alerts.push(JSON.parse(init.body)); return { ok: true, status: 200 }; };
+    const f = fakeVendor();
+    if (killedAt === 'while building the PDFs') {
+      deps.getPrintFiles = () => new Promise(() => {}); // never settles: the platform killed the process
+      deps.vendor = createVendorClient({ env: ENV, fetchImpl: f });
+    } else {
+      deps.getPrintFiles = async () => FILES;
+      // the partner creates the order, then the process dies before we can record it
+      deps.vendor = { async submitOrder(order, files) { await createVendorClient({ env: ENV, fetchImpl: f }).submitOrder(order, files); return new Promise(() => {}); } };
+    }
+    const { orderId } = await place(deps);
+    void handlePaymentEvent(deps, paid(deps, orderId, 'evt_kill')); // intentionally never awaited
+    const row = () => deps.store._orders.get(orderId);
+    await settle(() => row().status === 'submitting' && (killedAt !== 'after the partner order was created' || f.count('POST', '/api/v1/orders') === 1));
+    assert.equal(row().status, 'submitting', killedAt);
+    assert.ok(row().submit_started_at, 'durable in-progress marker is written at the claim');
+
+    const env = { ...deps.env, PRINT_ALERT_WEBHOOK_URL: 'https://hooks.test/x' };
+    const t0 = Date.now();
+    // NEGATIVE CONTROL: before the threshold the sweeper must NOT touch a healthy in-flight order
+    let out = await runStuckWatch({ ...deps, env, fetchImpl: hook, now: () => new Date(t0 + 5 * 60 * 1000) });
+    assert.equal(out.swept, 0);
+    assert.equal(row().status, 'submitting');
+    // past the threshold it is parked, an alert is delivered, and it is an UNKNOWN outcome
+    out = await runStuckWatch({ ...deps, env, fetchImpl: hook, now: () => new Date(t0 + 11 * 60 * 1000) });
+    assert.equal(out.swept, 1);
+    assert.equal(row().status, 'failed_needs_attention');
+    assert.match(row().vendor_last_error, /^unknown_outcome\(stuck_submitting\)/);
+    assert.ok(deps.store._events.some((e) => e.order_id === orderId && e.type === 'alert_stuck_submitting'));
+    assert.equal(out.delivery, 'sent');
+    assert.equal(alerts.length, 1);
+    assert.equal(alerts[0].orders[0].reference, orderId, 'the alert names the reference to look up at the partner');
+    // not repeated on the next run
+    out = await runStuckWatch({ ...deps, env, fetchImpl: hook, now: () => new Date(t0 + 70 * 60 * 1000) });
+    assert.equal(out.swept, 0);
+    assert.equal(alerts.length, 1);
+    // and resubmission needs the human reconcile confirmation
+    assert.equal(await submitOrder(deps, orderId, { explicit: true }).catch((e) => e.code), 'reconcile_required');
+  }
+});
+
+test('CODEX #3: a late finish after the sweep keeps the partner reference and alerts; stale threshold is bounded', async () => {
+  const deps = makeDeps({ withFiles: false });
+  deps.getPrintFiles = async () => FILES;
+  let release;
+  const f = fakeVendor();
+  deps.vendor = { async submitOrder(order, files) { await new Promise((r) => { release = r; }); return createVendorClient({ env: ENV, fetchImpl: f }).submitOrder(order, files); } };
+  const { orderId } = await place(deps);
+  const pending = handlePaymentEvent(deps, paid(deps, orderId, 'evt_late'));
+  await settle(() => typeof release === 'function');
+  await runStuckWatch({ ...deps, now: () => new Date(Date.now() + 11 * 60 * 1000) });
+  assert.equal(deps.store._orders.get(orderId).status, 'failed_needs_attention');
+  release();
+  const res = await pending;
+  assert.equal(res.submit.outcome, 'submitted_after_sweep');
+  assert.equal(deps.store._orders.get(orderId).vendor_ref, '00001612');
+  assert.ok(deps.store._events.some((e) => e.order_id === orderId && e.type === 'alert_submitted_after_sweep'));
+  // threshold can never be set below the function limit
+  assert.equal(staleSubmitMinutes({ PRINT_SUBMITTING_STALE_MINUTES: '1' }), 10);
+  assert.equal(staleSubmitMinutes({ PRINT_SUBMITTING_STALE_MINUTES: '6' }), 6);
+  assert.equal(staleSubmitMinutes({}), 10);
 });
 
 test('getStatus uses GET /shipments/track by our partner order number', async () => {

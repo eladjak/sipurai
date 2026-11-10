@@ -130,6 +130,11 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
     async listAlerts(limit = 50) {
       return events.filter((e) => e.type.startsWith('alert')).slice(-limit).reverse().map(clone);
     },
+    async listStaleSubmitting({ before }) {
+      return [...orders.values()]
+        .filter((o) => o.status === 'submitting' && (o.submit_started_at || o.updated_at) < before)
+        .map(clone);
+    },
     async getVendorState(key) {
       return clone(vendorState.get(key)) || null;
     },
@@ -229,6 +234,13 @@ export function createSupabaseStore(db) {
       return must(
         await db.from('print_order_events').select('*').like('type', 'alert%').order('id', { ascending: false }).limit(limit),
       );
+    },
+    async listStaleSubmitting({ before }) {
+      const stamped = must(await db.from('print_orders').select('*').eq('status', 'submitting').lt('submit_started_at', before));
+      const unstamped = must(
+        await db.from('print_orders').select('*').eq('status', 'submitting').is('submit_started_at', null).lt('updated_at', before),
+      );
+      return [...stamped, ...unstamped];
     },
     async getVendorState(key) {
       return must(await db.from('print_vendor_state').select('*').eq('key', key).maybeSingle());
