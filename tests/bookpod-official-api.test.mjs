@@ -27,6 +27,7 @@ function fakeVendor(knobs = {}) {
   const calls = [];
   const refs = new Set();
   let books = 0;
+  let priceCalls = 0;
   const f = async (url, init = {}) => {
     const path = url.startsWith(DEFAULT_API_BASE) ? url.slice(DEFAULT_API_BASE.length) : url;
     const body = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
@@ -46,7 +47,9 @@ function fakeVendor(knobs = {}) {
       return json(201, { success: true, bookid: 33990 + books });
     }
     if (path === '/api/v1/orders/price') {
-      return json(200, { success: true, currency: 'ILS', itemsSubtotal: 24.66, shipping: { method: 2, price: 29 }, total: knobs.total ?? 53.66, priceable: knobs.priceable ?? true, validationErrors: [] });
+      const seq = knobs.totalSeq ? knobs.totalSeq[Math.min(priceCalls, knobs.totalSeq.length - 1)] : undefined;
+      priceCalls += 1;
+      return json(200, { success: true, currency: 'ILS', itemsSubtotal: 24.66, shipping: { method: 2, price: 29 }, total: seq ?? knobs.total ?? 53.66, priceable: knobs.priceable ?? true, validationErrors: [] });
     }
     if (path === '/api/v1/orders') {
       if (refs.has(body.shippingDetails.reference_num1)) return json(400, { success: false, code: 1502, message: 'reference_num1 already exists' });
@@ -293,14 +296,49 @@ test('quote(): read-only price call, never uploads or orders', async () => {
   assert.deepEqual(f.calls.map((x) => x.path), ['/api/v1/orders/price']);
 });
 
-test('orderExistingBook (first live order): same price gate, no upload, one order call', async () => {
-  let f = fakeVendor();
-  const ok = await createVendorClient({ env: ENV, fetchImpl: f }).orderExistingBook(ORDER, 33377);
+test('orderExistingBook (first live order): needs an approval, same price gate, no upload, one order call', async () => {
+  const mk = (knobs) => { const f = fakeVendor(knobs); return [createVendorClient({ env: ENV, fetchImpl: f }), f]; };
+  let [c, f] = mk();
+  const q = await c.quote(ORDER, 33377);
+  const ok = await c.orderExistingBook(ORDER, 33377, { totalAgorot: q.totalAgorot, fingerprint: q.fingerprint });
   assert.deepEqual(ok, { ref: '00001612' });
-  assert.deepEqual(f.calls.map((c) => c.path), ['/api/v1/orders/price', '/api/v1/orders']);
-  assert.equal(f.calls[1].body.items[0].bookid, 33377);
-  f = fakeVendor({ total: 70 });
-  assert.equal(await code(createVendorClient({ env: ENV, fetchImpl: f }).orderExistingBook(ORDER, 33377)), 'vendor_price_mismatch');
+  assert.deepEqual(f.calls.map((x) => x.path), ['/api/v1/orders/price', '/api/v1/orders/price', '/api/v1/orders']);
+  assert.equal(f.calls[2].body.items[0].bookid, 33377);
+  // no approval -> refused before any call
+  [c, f] = mk();
+  assert.equal(await code(c.orderExistingBook(ORDER, 33377)), 'vendor_rejected');
+  assert.equal(f.calls.length, 0);
+});
+
+test('FIRST ORDER binding: price moves 53.66 -> 55.66 between approval and order -> refused, nothing ordered (control: the margin gate alone would accept 55.66)', async () => {
+  const f = fakeVendor({ totalSeq: [53.66, 55.66] });
+  const c = createVendorClient({ env: ENV, fetchImpl: f });
+  const q = await c.quote(ORDER, 33377); // the owner sees and approves 53.66
+  assert.equal(q.totalAgorot, 5366);
+  const e = await c.orderExistingBook(ORDER, 33377, { totalAgorot: q.totalAgorot, fingerprint: q.fingerprint }).catch((x) => x);
+  assert.equal(e.code, 'vendor_price_mismatch');
+  assert.match(e.message, /price changed since approval/);
+  assert.equal(f.count('POST', '/api/v1/orders'), 0);
+  // NEGATIVE CONTROL: had the owner approved 55.66, the very same second price is accepted by the same code path,
+  // so the refusal above is caused by the binding and not by the margin gate.
+  const f2 = fakeVendor({ totalSeq: [55.66] });
+  const c2 = createVendorClient({ env: ENV, fetchImpl: f2 });
+  const q2 = await c2.quote(ORDER, 33377);
+  assert.deepEqual(await c2.orderExistingBook(ORDER, 33377, { totalAgorot: 5566, fingerprint: q2.fingerprint }), { ref: '00001612' });
+});
+
+test('FIRST ORDER binding: a different address / quantity than the approved request is refused', async () => {
+  const f = fakeVendor();
+  const c = createVendorClient({ env: ENV, fetchImpl: f });
+  const q = await c.quote(ORDER, 33377);
+  for (const changed of [
+    { ...ORDER, address: { ...ORDER.address, street: 'אחר' } },
+    { ...ORDER, qty: 2 },
+    { ...ORDER, id: 'other-id' },
+  ]) {
+    assert.equal(await code(c.orderExistingBook(changed, 33377, { totalAgorot: q.totalAgorot, fingerprint: q.fingerprint })), 'vendor_price_mismatch');
+  }
+  assert.equal(await code(c.orderExistingBook(ORDER, 99999, { totalAgorot: q.totalAgorot, fingerprint: q.fingerprint })), 'vendor_price_mismatch');
   assert.equal(f.count('POST', '/api/v1/orders'), 0);
 });
 

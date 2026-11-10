@@ -30,6 +30,7 @@
  *     vendor_timeout, vendor_unknown, vendor_duplicate_reference, vendor_created_with_errors
  * Only step 5 can create an order, so only step 5 can produce an unknown outcome.
  */
+import crypto from 'node:crypto';
 import { expectedVendorTotalAgorot, priceMarginAgorot } from './expected.js';
 
 export class VendorError extends Error {
@@ -293,11 +294,30 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
     return { expected, margin };
   }
 
-  /** Steps 4 + 5: price gate (fail closed), then the only call that creates an order. */
-  async function placeChecked(order, bookid) {
+  /** Short hash of the exact request body (address, book, quantity, reference). Binds an approval to the request. */
+  const fingerprintOf = (body) => crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex').slice(0, 12);
+
+  /**
+   * Steps 4 + 5: price gate (fail closed), then the only call that creates an order.
+   * approval = { totalAgorot, fingerprint } (first-order flow): the fresh price must EQUAL the approved amount
+   * and the body must hash to the approved fingerprint, otherwise nothing is ordered.
+   */
+  async function placeChecked(order, bookid, approval = null) {
+    const body = orderBody(order, bookid);
+    if (approval) {
+      if (approval.fingerprint !== fingerprintOf(body)) {
+        throw new VendorError('vendor_price_mismatch', 'order request differs from the approved request');
+      }
+    }
     const { totalAgorot } = await priceOf(order, bookid);
+    if (approval && totalAgorot !== approval.totalAgorot) {
+      throw new VendorError(
+        'vendor_price_mismatch',
+        `price changed since approval (approved ${approval.totalAgorot}, now ${totalAgorot})`,
+      );
+    }
     checkPrice(order, totalAgorot);
-    const { status, data } = await call('POST', '/orders', orderBody(order, bookid), { stage: 'order' });
+    const { status, data } = await call('POST', '/orders', body, { stage: 'order' });
     const orderNo = data?.order_no != null ? String(data.order_no) : '';
     if (data?.success !== true || !orderNo) {
       throw new VendorError('vendor_unknown', 'order response not understood', { unknownOutcome: true });
@@ -346,16 +366,24 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
     },
 
     /** Order an ALREADY REGISTERED book (no upload): same price gate, same order call. Used for the first live order. */
-    async orderExistingBook(order, bookid) {
+    async orderExistingBook(order, bookid, approval) {
       assertEnabled();
-      return placeChecked(order, bookid);
+      if (!approval || !Number.isSafeInteger(approval.totalAgorot) || !approval.fingerprint) {
+        throw new VendorError('vendor_rejected', 'an approved total and request fingerprint are required');
+      }
+      return placeChecked(order, bookid, approval);
     },
 
     /** Read-only price for an order against an existing book id. Used by the smoke test and the price gate. */
     async quote(order, bookid) {
       assertEnabled();
       const { totalAgorot, raw } = await priceOf(order, bookid);
-      return { totalAgorot, expectedAgorot: expectedVendorTotalAgorot(order, env), raw };
+      return {
+        totalAgorot,
+        expectedAgorot: expectedVendorTotalAgorot(order, env),
+        fingerprint: fingerprintOf(orderBody(order, bookid)),
+        raw,
+      };
     },
 
     async getStatus(ref) {

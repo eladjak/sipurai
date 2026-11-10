@@ -5,10 +5,12 @@
  * seen the exact total and typed it back:
  *
  *   step 1 (prices only, spends nothing):   node scripts/bookpod-first-order.mjs --address-file addr.json
- *   step 2 (after the owner approves 53.66): node scripts/bookpod-first-order.mjs --address-file addr.json --confirm-total 53.66
+ *   step 2 (after the owner approves):      node scripts/bookpod-first-order.mjs --address-file addr.json --confirm-total 53.66 --confirm-request <fingerprint printed in step 1>
  *
  * addr.json: {"fullName","phone","city","street","houseNumber","zip"}  (the owner's address, same fields as checkout)
  * Env: BOOKPOD_USER_ID, BOOKPOD_API_TOKEN, BOOKPOD_CONTACT_EMAIL (sourced from the keyvault, see docs/BOOKPOD-GO-LIVE.md).
+ * The approved total and the request fingerprint are passed INTO the order call, which re-prices and refuses unless
+ * the new price equals the approved one to the agora and the request body hashes to the approved fingerprint.
  * The same price gate as production applies: a partner price that differs from ours by more than the margin is refused.
  */
 import fs from 'node:fs';
@@ -33,14 +35,28 @@ const order = {
   address: addr.address, quote: { presetId: 'square-220', pageCount: 24 },
 };
 const client = createVendorClient({ env: { ...process.env, BOOKPOD_ENABLED: 'true' } });
+const toAgorot = (t) => (/^\d{1,6}\.\d{2}$/.test(String(t)) ? Number(String(t).replace('.', '')) : null);
 try {
   const q = await client.quote(order, bookid);
   const total = (q.totalAgorot / 100).toFixed(2);
   console.log(`book ${bookid}, 1 copy, shipped to the given address`);
   console.log(`EXACT TOTAL the partner will charge: ${total} ILS   (our expected ${(q.expectedAgorot / 100).toFixed(2)})`);
-  if (confirm === null) { console.log('Nothing was ordered. To order, rerun with --confirm-total ' + total); process.exit(0); }
-  if (confirm !== total) { console.error(`REFUSED: --confirm-total ${confirm} does not equal the live total ${total}. Nothing ordered.`); process.exit(1); }
-  const out = await client.orderExistingBook(order, bookid);
+  console.log(`request fingerprint: ${q.fingerprint}`);
+  if (confirm === null) {
+    console.log(`Nothing was ordered. To order, rerun with --confirm-total ${total} --confirm-request ${q.fingerprint}`);
+    process.exit(0);
+  }
+  const approvedAgorot = toAgorot(confirm);
+  if (approvedAgorot === null || approvedAgorot !== q.totalAgorot) {
+    console.error(`REFUSED: --confirm-total ${confirm} does not equal the live total ${total}. Nothing ordered.`);
+    process.exit(1);
+  }
+  if (arg('confirm-request', null) !== q.fingerprint) {
+    console.error('REFUSED: --confirm-request does not match this exact request (address, book or quantity changed). Nothing ordered.');
+    process.exit(1);
+  }
+  // The order call re-prices and refuses unless the price still equals the approved amount to the agora.
+  const out = await client.orderExistingBook(order, bookid, { totalAgorot: approvedAgorot, fingerprint: arg('confirm-request') });
   console.log(`ORDERED. partner order_no=${out.ref} reference_num1=${ref}`);
 } catch (e) {
   console.error(`FAIL code=${e.code || 'error'} ${String(e.message).slice(0, 200)}${e.unknownOutcome ? '  (OUTCOME UNKNOWN: check the partner dashboard before retrying)' : ''}`);
