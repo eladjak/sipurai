@@ -7,7 +7,11 @@ import { hasCredentials, SKIP_REASON } from './credentials.js';
 // the stand-in refuses to answer without a Bearer token, so "the app sent the login token" is
 // still checked for real.
 test.skip(!hasCredentials, SKIP_REASON);
-test.use({ locale: 'he-IL' });
+// The app registers a service worker (public/sw.js) that answers GET /api/* itself, network-first.
+// Requests made by a service worker are invisible to page.route(), so with it running the stand-in
+// below never sees the consent check, the real server (no database in CI) answers 503 and the gate
+// correctly shows its fail-closed error screen. Block it so the stand-in really is in front.
+test.use({ locale: 'he-IL', serviceWorkers: 'block' });
 
 const POLICY = '2026-11-10';
 
