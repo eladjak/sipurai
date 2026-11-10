@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+/** @type {React.Context<{ toast: (props?: any) => any, dismiss: (id?: any) => void, dismissAll: () => void }>} */
 const ToastContext = createContext({
   toast: () => {},
   dismiss: () => {},
