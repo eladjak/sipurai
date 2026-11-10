@@ -32,13 +32,31 @@ export function scrubEvent(event) {
     event.user = { id: event.user.id };
   }
 
+  // Allowlist, not blocklist: a children's app must not guess which fields hold a name. A breadcrumb
+  // keeps only its kind, time and a few technical fields; free text (console output, messages) and
+  // query strings (which can carry ids or names) are dropped.
+  const pathOnly = (u) => (typeof u === 'string' ? u.split(/[?#]/)[0] : u);
+  const SAFE_DATA = ['method', 'status_code', 'from', 'to', 'url'];
   const scrubCrumb = (crumb) => {
-    if (crumb && crumb.data) {
-      const { email: _e, name: _n, username: _u, ...safeData } = crumb.data;
-      return { ...crumb, data: safeData };
+    if (!crumb || typeof crumb !== 'object') return crumb;
+    const out = { type: crumb.type, category: crumb.category, level: crumb.level, timestamp: crumb.timestamp };
+    if (crumb.category && /^(ui.click|navigation)$/.test(crumb.category) && typeof crumb.message === 'string') {
+      out.message = crumb.message; // DOM selector / route, no user text
     }
-    return crumb;
+    if (crumb.data && typeof crumb.data === 'object') {
+      const data = {};
+      for (const k of SAFE_DATA) if (crumb.data[k] !== undefined) data[k] = k === 'url' || k === 'from' || k === 'to' ? pathOnly(crumb.data[k]) : crumb.data[k];
+      out.data = data;
+    }
+    return out;
   };
+
+  if (event.request && typeof event.request === 'object') {
+    event.request = { ...event.request, url: pathOnly(event.request.url) };
+    delete event.request.query_string;
+    delete event.request.cookies;
+    if (event.request.headers) delete event.request.headers.Referer;
+  }
 
   if (Array.isArray(event.breadcrumbs)) {
     event.breadcrumbs = event.breadcrumbs.map(scrubCrumb);

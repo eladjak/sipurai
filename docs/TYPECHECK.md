@@ -4,15 +4,15 @@
 
 ## The gate: "never worse"
 
-`node scripts/check-types.mjs` (also `bun run typecheck:gate`, and the **Type check** GitHub job) compares the per-file error counts with `typecheck-baseline.json`.
+`node scripts/check-types.mjs` (also `bun run typecheck:gate`, and the **Type check** GitHub job) compares every error, by identity (file + error code + message, not line number), with `typecheck-baseline.json`.
 
 | Situation | Result |
 |---|---|
-| any file has more errors than in the baseline, or a clean file gets one | **fails**, lists the files |
+| any error appears that is not in the baseline (including swapping one old error for a different new one in the same file) | **fails**, lists the files |
 | you fixed errors but did not lower the baseline | **fails** (so the freed room cannot be used up by new errors later) |
 | same or equal | passes |
 
-**Lowering the baseline** after you fix errors: `node scripts/check-types.mjs --update`, commit `typecheck-baseline.json`. The command refuses to raise any number.
+**Lowering the baseline** after you fix errors: `node scripts/check-types.mjs --update`, commit `typecheck-baseline.json`. The command refuses to add or raise anything.
 **Raising it** (only if a new error is truly unavoidable, say why in the PR): add `--allow-increase`.
 
 ## What was done (numbers measured with `tsc -p jsconfig.json`, TypeScript 5.9.3)
