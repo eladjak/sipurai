@@ -165,7 +165,7 @@ export function createSupabaseStore(db) {
         ownerId: data.created_by,
         title: data.title || '',
         printSize: data.print_size || null,
-        // TODO(unverified): the print-file columns do not exist yet; the print pipeline owner decides.
+        // Optional pre-built files (https URLs). Normally null: printFiles.js builds the PDFs from stored artwork.
         printFiles:
           data.print_content_url && data.print_cover_url
             ? { contentUrl: data.print_content_url, coverUrl: data.print_cover_url }

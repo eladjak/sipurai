@@ -3,6 +3,10 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "functions": {
+    "api/webhooks/morning.js": { "maxDuration": 300 },
+    "api/orders/admin-action.js": { "maxDuration": 300 }
+  },
   "crons": [
     { "path": "/api/cron/print-orders-watch", "schedule": "0 * * * *" }
   ],

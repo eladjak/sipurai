@@ -85,7 +85,7 @@ export function AddressForm({ values, onChange, errors, shown, idPrefix = 'addr'
         <Field id={`${idPrefix}-apartment`} label="דירה" optional hint="למשל: 4" error={err('apartment')}>
           <Input value={values.apartment} onChange={set('apartment')} dir="ltr" inputMode="text" placeholder="4" className={cn(inputCls(err('apartment')), 'text-right')} />
         </Field>
-        <Field id={`${idPrefix}-zip`} label="מיקוד" optional hint="7 ספרות, למשל: 1234567" error={err('zip')}>
+        <Field id={`${idPrefix}-zip`} label="מיקוד" hint="7 ספרות, למשל: 1234567" error={err('zip')}>
           <Input value={values.zip} onChange={digitsOnly('zip')} inputMode="numeric" dir="ltr" maxLength={7} autoComplete="postal-code" placeholder="1234567" className={cn(inputCls(err('zip')), 'text-right')} />
         </Field>
       </div>

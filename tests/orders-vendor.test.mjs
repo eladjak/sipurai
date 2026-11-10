@@ -26,41 +26,15 @@ test('vendor OFF: submitOrder/getStatus throw vendor_disabled and fetch is never
   }
 });
 
-test('CONTROL: when enabled the same client DOES call the network', async () => {
-  const f = countingFetch();
-  const c = createVendorClient({ env: ENABLED, fetchImpl: f });
-  const out = await c.submitOrder(order, PRINT_FILES);
-  assert.equal(out.ref, 'x');
-  assert.equal(f.calls.length, 2); // create book, then order
-  assert.equal(f.calls[0].init.headers['x-user-id'], 'u');
-  assert.equal(f.calls[0].init.headers['x-custom-token'], 'k');
-  assert.match(f.calls[1].url, /\/api\/v1\/orders$/);
-  assert.equal(JSON.parse(f.calls[1].init.body).external_reference, 'o-1');
-});
-
 test('enabled but not configured (no base url) -> vendor_not_configured, still no network', async () => {
   const f = countingFetch();
-  const c = createVendorClient({ env: { BOOKPOD_ENABLED: 'true', BOOKPOD_API_KEY: 'k' }, fetchImpl: f });
+  const c = createVendorClient({ env: { BOOKPOD_ENABLED: 'true', BOOKPOD_API_TOKEN: 'k' }, fetchImpl: f });
   assert.equal(await codeOf(c.submitOrder(order, PRINT_FILES)), 'vendor_not_configured');
   assert.equal(f.calls.length, 0);
 });
 
-test('outcome classification: 4xx rejected (definite), 5xx and timeouts are UNKNOWN outcome', async () => {
-  const mk = (status) => createVendorClient({ env: ENABLED, fetchImpl: countingFetch(async () => ({ ok: false, status, json: async () => ({}) })) });
-  const rej = await mk(422).submitOrder(order, PRINT_FILES).catch((e) => e);
-  assert.deepEqual([rej.code, rej.unknownOutcome], ['vendor_rejected', false]);
-  const five = await mk(503).submitOrder(order, PRINT_FILES).catch((e) => e);
-  assert.deepEqual([five.code, five.unknownOutcome], ['vendor_unknown', true]);
-  const abort = createVendorClient({ env: ENABLED, fetchImpl: async () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; } });
-  const t = await abort.submitOrder(order, PRINT_FILES).catch((e) => e);
-  assert.deepEqual([t.code, t.unknownOutcome], ['vendor_timeout', true]);
-  const net = createVendorClient({ env: ENABLED, fetchImpl: async () => { throw new Error('ECONNRESET'); } });
-  assert.equal((await net.submitOrder(order, PRINT_FILES).catch((e) => e)).unknownOutcome, true);
-  // missing files never reach the network
-  const f = countingFetch();
-  assert.equal(await codeOf(createVendorClient({ env: ENABLED, fetchImpl: f }).submitOrder(order, null)), 'vendor_rejected');
-  assert.equal(f.calls.length, 0);
-});
+// The enabled-path behaviour of the vendor client (official API flow, outcome classes) is covered in
+// tests/bookpod-official-api.test.mjs.
 
 test('mock vendor is scriptable and records calls', async () => {
   const v = createMockVendor(['timeout', 'reject', 'success']);

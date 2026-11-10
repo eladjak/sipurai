@@ -9,6 +9,7 @@
 import crypto from 'node:crypto';
 import { computeQuote, PRINT_PAGE_COUNT, PricingError } from '../../../src/lib/printOrder/pricing.js';
 import { validateAddress } from './address.js';
+import { SAFE_VENDOR_CODES } from '../bookpod/client.js';
 import { STATUS_LABEL_HE, canTransition } from './states.js';
 
 export class OrderError extends Error {
@@ -250,7 +251,18 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
   await store.addEvent(orderId, 'submit_started', { explicit });
 
   const book = await store.getBook(order.book_id);
-  const files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
+  let files;
+  try {
+    files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
+  } catch (e) {
+    // e.g. artwork below 300 dpi, or the generator ran out of time/memory: nothing was sent.
+    await store.transition(orderId, ['submitting'], {
+      status: 'failed_needs_attention',
+      vendor_last_error: `print_files_error: ${sanitize(e?.message)}`,
+    });
+    await store.addEvent(orderId, 'alert_print_files_error', {});
+    return { outcome: 'files_error' };
+  }
   if (!files) {
     await store.transition(orderId, ['submitting'], {
       status: 'failed_needs_attention',
@@ -274,16 +286,25 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
       await store.addEvent(orderId, 'submit_skipped', { code });
       return { outcome: 'disabled' };
     }
-    const unknown = code !== 'vendor_rejected';
-    await store.transition(orderId, ['submitting'], {
-      status: 'failed_needs_attention',
-      vendor_last_error: unknown
-        ? `unknown_outcome(${code}): the order may already exist at the partner, verify before retrying. ${msg}`
-        : `rejected: ${msg}`,
-    });
+    // Only codes that PROVE nothing was ordered are safe; anything else is an unknown outcome.
+    const unknown = !SAFE_VENDOR_CODES.has(code);
+    const lastError = unknown
+      ? `unknown_outcome(${code}): the order may already exist at the partner, verify before retrying. ${msg}`
+      : code === 'vendor_token_expired'
+        ? 'token_expired: nothing was ordered. Renew the partner API token, then retry from the admin screen.'
+        : code === 'vendor_auth_failed'
+          ? `auth_failed: nothing was ordered. Check the partner credentials, then retry. ${msg}`
+          : code === 'vendor_price_mismatch'
+            ? `price_mismatch: nothing was ordered, the partner price is not what we expect. ${msg}`
+            : `rejected: ${msg}`;
+    await store.transition(orderId, ['submitting'], { status: 'failed_needs_attention', vendor_last_error: lastError });
     await store.addEvent(orderId, unknown ? 'submit_unknown_outcome' : 'submit_rejected', { code });
     await store.addEvent(orderId, 'alert_submit_failed', { code, unknownOutcome: unknown });
-    return { outcome: unknown ? 'unknown_outcome' : 'rejected' };
+    if (code === 'vendor_token_expired' || code === 'vendor_auth_failed') {
+      await store.addEvent(orderId, 'alert_vendor_auth', { code });
+    }
+    if (code === 'vendor_price_mismatch') await store.addEvent(orderId, 'alert_price_mismatch', {});
+    return { outcome: unknown ? 'unknown_outcome' : 'rejected', code };
   }
 }
 
