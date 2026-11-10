@@ -1,13 +1,21 @@
 /**
  * Sipurai Service Worker — offline support for the PUBLIC app shell only.
  *
- * - Cache-first for static assets (JS, CSS, fonts) and same-origin images
- * - Offline fallback page for navigation requests
- * - /api/* is NEVER cached and NEVER answered from a cache: it carries parents' and children's
- *   personal data, and a shared device must not hand one person's answers to the next person.
- *   (v1 cached it network-first, keyed by URL only, and ignored Cache-Control: no-store.)
- * - Nothing is stored for a request carrying an Authorization header, or for a response that
- *   says Cache-Control: no-store / private, or Vary: *.
+ * POSITIVE ALLOWLIST. The worker stores and replays ONLY:
+ *   - the shell files precached at install (/, /offline.html, /manifest.json, /favicon.svg, /entry-splash.js)
+ *   - build output under /assets/ (hashed JS/CSS/fonts/images)
+ *   - the app's own static files under /fonts/, /icons/, /images/ and the public demo books /demo/<demo-slug>/
+ * and only when the URL has no query string. Everything else (every /api path in any spelling,
+ * anything with a query, anything id-like, any storage URL, unknown paths) is network-only:
+ * the worker does not even call respondWith, so nothing is stored and nothing is replayed.
+ *
+ * Navigations: the SPA shell is identical for everyone (Vercel serves static index.html for every
+ * non-/api path; no server-side rendering, no cookies in the HTML). A navigation is never stored
+ * under its own URL. Online it goes to the network untouched; offline it gets the single shell
+ * ('/') or the offline page. The shell is refreshed only from a 200, non-redirected '/' response.
+ *
+ * Cache access is best effort: a storage failure never breaks a request that the network can serve.
+ * Range requests and 206 responses are never cached.
  *
  * Bump CACHE_VERSION to make every device drop the caches of older versions on activation.
  */
@@ -56,120 +64,108 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ─── Allowlist ───────────────────────────────────────────────────────────────
+
+const SHELL_PATHS = new Set(['/', '/offline.html', '/manifest.json', '/favicon.svg', '/entry-splash.js']);
+const ASSET_RE = /^\/assets\/[A-Za-z0-9._-]+\.(js|css|woff2?|ttf|png|jpe?g|webp|svg|gif)$/;
+const FONT_RE = /^\/fonts\/[A-Za-z0-9._-]+\.(woff2?|ttf)$/;
+const ICON_RE = /^\/icons\/[A-Za-z0-9._-]+\.(png|jpe?g|svg)$/;
+const IMAGE_RE = /^\/images\/[A-Za-z0-9._-]+\.(png|jpe?g|webp|svg|gif)$/;
+const DEMO_RE = /^\/demo\/demo-[a-z-]+\/[A-Za-z0-9._-]+\.(webp|jpe?g|png)$/;
+
+// Returns the cache name for an allowlisted static URL, or null (= network-only).
+function cacheFor(url) {
+  if (url.search || url.hash) return null; // a query string can be a token or an id
+  const p = url.pathname;
+  if (p.includes('%') || p.includes('..') || p.includes('//')) return null;
+  if (SHELL_PATHS.has(p)) return STATIC_CACHE;
+  if (ASSET_RE.test(p) || FONT_RE.test(p)) return STATIC_CACHE;
+  if (ICON_RE.test(p) || IMAGE_RE.test(p) || DEMO_RE.test(p)) return IMAGE_CACHE;
+  return null;
+}
+
 // ─── Fetch ───────────────────────────────────────────────────────────────────
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip chrome-extension, browser-sync, etc.
+  const url = new URL(request.url);
   if (!url.protocol.startsWith('http')) return;
+  if (url.hostname !== location.hostname) return; // external services: browser handles them
 
-  // Skip external services — let browser handle directly
-  if (url.hostname !== location.hostname) return;
+  // Never touch ranged requests or requests that carry credentials in a header.
+  if (request.headers.has('Range') || request.headers.has('Authorization')) return;
 
-  // Auth routes — always pass directly to the network, never cache
-  if (url.pathname.startsWith('/sign-in') || url.pathname.startsWith('/sign-up')) {
-    return; // let the browser handle it
-  }
-
-  // API calls: straight to the network. No respondWith, so the browser makes the request itself,
-  // nothing is stored, nothing is read from any cache, and a network failure stays a failure.
-  if (url.pathname.startsWith('/api/')) return;
-
-  // A request that carries credentials in a header is never ours to cache or replay.
-  if (request.headers.has('Authorization')) return;
-
-  // Images: cache-first
-  if (isImageRequest(request)) {
-    event.respondWith(cacheFirst(request, IMAGE_CACHE));
-    return;
-  }
-
-  // Static assets (JS, CSS, fonts): cache-first
-  if (isStaticAsset(request)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
-    return;
-  }
-
-  // Navigation requests: network-first with offline fallback
+  // Navigations: never stored per URL; offline fallback is the single shell.
   if (request.mode === 'navigate') {
-    event.respondWith(navigationHandler(request));
+    if (url.pathname.startsWith('/sign-in') || url.pathname.startsWith('/sign-up')) return;
+    event.respondWith(navigationHandler(event, request, url));
     return;
   }
 
-  // Everything else (unknown same-origin GETs): straight to the network, never cached.
+  // Static allowlist only. Anything else: no respondWith => straight to the network.
+  const cacheName = cacheFor(url);
+  if (!cacheName) return;
+  event.respondWith(cacheFirst(event, request, cacheName));
 });
 
 // ─── Strategies ──────────────────────────────────────────────────────────────
 
-async function cacheFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
+async function safeMatch(cacheName, key) {
+  try {
+    const cache = await caches.open(cacheName);
+    return await cache.match(key);
+  } catch {
+    return undefined;
+  }
+}
+
+function safePut(event, cacheName, key, response) {
+  const write = caches
+    .open(cacheName)
+    .then((cache) => cache.put(key, response))
+    .catch(() => {});
+  event.waitUntil(write);
+}
+
+async function cacheFirst(event, request, cacheName) {
+  const cached = await safeMatch(cacheName, request);
   if (cached) return cached;
 
   try {
     const response = await fetch(request);
-    if (isCacheable(response)) {
-      cache.put(request, response.clone());
-    }
+    if (isCacheable(response)) safePut(event, cacheName, request, response.clone());
     return response;
   } catch {
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
-async function navigationHandler(request) {
+async function navigationHandler(event, request, url) {
   try {
     const response = await fetch(request);
-    if (isCacheable(response)) {
-      const cache = await caches.open(STATIC_CACHE);
-      cache.put(request, response.clone());
+    // Refresh the single shell from the home page only; never store any other navigation.
+    if (url.pathname === '/' && !url.search && response.status === 200 && !response.redirected && isCacheable(response)) {
+      safePut(event, STATIC_CACHE, '/', response.clone());
     }
     return response;
   } catch {
-    const cache = await caches.open(STATIC_CACHE);
-
-    // Try to serve cached version of the page
-    const cached = await cache.match(request);
-    if (cached) return cached;
-
-    // Try the root page (SPA)
-    const rootCached = await cache.match('/');
-    if (rootCached) return rootCached;
-
-    // Last resort: offline fallback page
-    const offlinePage = await cache.match(OFFLINE_URL);
+    const shell = await safeMatch(STATIC_CACHE, '/');
+    if (shell) return shell;
+    const offlinePage = await safeMatch(STATIC_CACHE, OFFLINE_URL);
     if (offlinePage) return offlinePage;
-
     return new Response('Offline', { status: 503 });
   }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Only successful responses that did not ask to stay out of shared/persistent caches.
+// Only complete (200) responses that did not ask to stay out of persistent caches.
 function isCacheable(response) {
-  if (!response || !response.ok) return false;
+  if (!response || response.status !== 200) return false;
   const cc = (response.headers.get('Cache-Control') || '').toLowerCase();
   if (/(^|[\s,])(no-store|private)([\s,=]|$)/.test(cc)) return false;
   if ((response.headers.get('Vary') || '').includes('*')) return false;
   return true;
-}
-
-function isImageRequest(request) {
-  const url = new URL(request.url);
-  return /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(url.pathname) ||
-    request.destination === 'image';
-}
-
-function isStaticAsset(request) {
-  const url = new URL(request.url);
-  return /\.(js|css|woff|woff2|ttf|eot)$/i.test(url.pathname) ||
-    request.destination === 'script' ||
-    request.destination === 'style' ||
-    request.destination === 'font';
 }
