@@ -184,12 +184,12 @@ export default function Characters() {
       <div className="mb-6 space-y-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4`} />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder={t("characters.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`${isRTL ? 'pr-9' : 'pl-9'}`}
+              className="ps-9"
             />
           </div>
           
@@ -232,7 +232,7 @@ export default function Characters() {
               size="sm"
               onClick={() => setViewMode("grid")}
               className="h-8 w-8 p-0"
-              aria-label="Grid view"
+              aria-label={t("libraryLegacy.gridView")}
             >
               <Grid3x3 className="h-4 w-4" />
             </Button>
@@ -241,7 +241,7 @@ export default function Characters() {
               size="sm"
               onClick={() => setViewMode("list")}
               className="h-8 w-8 p-0"
-              aria-label="List view"
+              aria-label={t("libraryLegacy.listView")}
             >
               <List className="h-4 w-4" />
             </Button>
