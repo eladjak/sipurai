@@ -1119,7 +1119,8 @@ export default {
       backstory: "Backstory"
     },
     appearance: "Appearance",
-    personality: "Personality"
+    personality: "Personality",
+    noResults: "No characters match your search"
   },
   leaderboard: {
     title: "Storytellers Leaderboard",
@@ -1193,6 +1194,17 @@ export default {
     inappropriateInput: "Some input contains inappropriate content. Please revise.",
     moralLabel: "Moral",
     plotPointsLabel: "Plot Points"
+  },
+  welcome: {
+    title: "Welcome to Sipurai!",
+    subtitle: "Let's set up your magical book studio",
+    start: "Let's Go!"
+  },
+  topics: {
+    title: "What Do You Love?",
+    subtitle: "Pick your favorite topics (at least 1)",
+    selectAll: "Select All",
+    clearAll: "Clear All"
   },
   onboarding: {
     welcome: {
@@ -1307,7 +1319,9 @@ export default {
     linkCopied: "Link copied!",
     linkCopiedDesc: "Book link has been copied to clipboard.",
     copiedForInstagram: "Copied for Instagram!",
-    copiedForInstagramDesc: "Text and link copied to clipboard. Paste it in your Instagram post."
+    copiedForInstagramDesc: "Text and link copied to clipboard. Paste it in your Instagram post.",
+    parentalApprovalRequired: "Parental Approval Required",
+    shareFromCommunityPage: "Ask your parents to share this book from the Community page, where they can approve it with their PIN."
   },
   ideaGenerator: {
     title: "Story Idea Generator",
@@ -1872,7 +1886,9 @@ export default {
     styleWatercolor: "Watercolor",
     styleSketch: "Sketch",
     styleRealistic: "Realistic",
-    styleAnime: "Anime"
+    styleAnime: "Anime",
+    preview: "Character preview",
+    generating: "Creating image..."
   },
   blog: {
     title: "Our Blog",
@@ -2183,10 +2199,73 @@ export default {
       preview: "Text Preview",
       previewSubtitle: "See how your text will appear in the book",
       selectWeight: "Select weight",
-      fontDavid: "דוד (David)",
-      fontMiriam: "מרים (Miriam)",
-      fontNarkisim: "נרקיסים (Narkisim)",
-      fontGuttmanYad: "גוטמן יד (Guttman Yad)"
+      fontDavid: "David",
+      fontMiriam: "Miriam",
+      fontNarkisim: "Narkisim",
+      fontGuttmanYad: "Guttman Yad"
+    },
+    autoSaving: "Saving...",
+    autoSaved: "Saved",
+    autoSaveError: "Couldn't save",
+    backToLibrary: "Back to Library",
+    viewFullBook: "View Full Book",
+    layoutUpdated: "Page layout updated",
+    rhymingOptions: "Rhyming Options",
+    rhymingDesc: "Write the story in rhyme, like many children's books",
+    enableRhyming: "Write in rhyme",
+    applyRhyming: "Add Rhymes to the Book",
+    createTitle: "Your New Book",
+    readyMessage: "Everything is ready. Check the details, then create your book.",
+    storyTitle: "A story for {{name}}",
+    bookSummary: "Age {{age}} · {{genre}} · {{style}} style",
+    characterSettings: "Character Settings",
+    characterSettingsDesc: "Describe your characters so they look the same on every page",
+    mainCharDesc: "Main character description",
+    mainCharPlaceholder: "For example: a seven-year-old girl with curly hair and a yellow shirt",
+    secondaryChars: "Other characters",
+    name: "Name",
+    briefDesc: "Short description",
+    artStyleConsistency: "Same art style throughout the book",
+    selectArtStyle: "Choose an art style",
+    generating: "Creating your book...",
+    generateMyBook: "Create My Book",
+    editPageImage: "Edit Page Image",
+    imagePrompt: "Image description",
+    simpleMode: "Simple description",
+    editFullPrompt: "Detailed description",
+    imagePromptPlaceholder: "Describe in detail what the picture shows: the characters, the place and the mood",
+    imageSimplePlaceholder: "Describe the picture in one short sentence",
+    regenerateImage: "Create a New Image",
+    pageLayout: "Page Layout",
+    prevPage: "Previous page",
+    pageOf: "Page {{current}} of {{total}}",
+    nextPage: "Next page",
+    noImage: "No image on this page",
+    editPageText: "Edit Page Text",
+    saveText: "Save Text",
+    makeRhyme: "Turn into Rhyme",
+    loadError: "We couldn't load the book. Please try refreshing the page.",
+    rateLimit: "You've reached today's limit of {{limit}} books. You can create more tomorrow.",
+    imagePartial: "{{success}} of {{total}} illustrations were created. You can recreate the rest in the editor.",
+    bookGenerated: "Your book is ready!",
+    bookGenerateError: "Something went wrong while creating your book. Please try again.",
+    textUpdated: "Text saved",
+    textUpdateError: "We couldn't save the text. Please try again.",
+    imageUpdated: "Image updated",
+    imageUpdateError: "We couldn't create the image. Please try again.",
+    layoutUpdateError: "We couldn't update the page layout. Please try again.",
+    nikudAdded: "Nikud added",
+    nikudError: "We couldn't add nikud. Please try again.",
+    rhymeSuccess: "The text now rhymes",
+    rhymeError: "We couldn't create rhymes. Please try again.",
+    creatingMessage: "Your story is on its way. This can take a few moments.",
+    creatingTitle: "Creating Your Book",
+    editingLabel: "Editing your book",
+    previewTitle: "Book preview",
+    tab: {
+      editor: "Edit",
+      preview: "Preview",
+      share: "Share"
     }
   },
   rhyme: {
