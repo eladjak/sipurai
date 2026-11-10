@@ -41,3 +41,7 @@ docs/guides/
 .claude/worktrees/
 .claude/cc10x/
 .claude/settings.local.json
+
+# Playwright output
+test-results/
+playwright-report/
