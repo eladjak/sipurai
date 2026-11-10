@@ -1,0 +1,28 @@
+export function LogoMark({ className = "" }) {
+  return (
+    <svg
+      viewBox="0 0 260 260"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <rect width="260" height="260" rx="48" fill="var(--sp-night-700)" />
+      <g
+        fill="none"
+        stroke="var(--sp-gold-400)"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        transform="translate(0 42)"
+      >
+        <path d="M130 30 C158 22 194 24 214 33 L214 141 C194 132 158 130 130 138 Z" />
+        <path d="M130 30 C102 22 66 24 46 33 L46 141 C66 132 102 130 130 138 Z" />
+        <path d="M130 30 L130 138" />
+        <path
+          opacity=".55"
+          d="M203 58 L150 55 M203 76 L141 74 M203 94 L158 93 M110 55 L57 58 M119 74 L57 76 M102 93 L57 94"
+        />
+      </g>
+    </svg>
+  );
+}

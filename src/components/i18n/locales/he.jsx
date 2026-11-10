@@ -1,6 +1,8 @@
 // Hebrew translations
 export default {
   common: {
+    brandName: "סיפוראי",
+    close: "סגור",
     home: "דף הבית",
     haveQuestions: "יש שאלות? דברו איתנו",
     library: "הספרייה שלי",
