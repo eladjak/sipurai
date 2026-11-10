@@ -1,6 +1,8 @@
 // English translations
 export default {
   common: {
+    brandName: "Sipurai",
+    close: "Close",
     home: "Home",
     haveQuestions: "Questions? Get in touch",
     library: "My Library",

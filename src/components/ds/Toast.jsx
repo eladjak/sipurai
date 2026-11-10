@@ -18,7 +18,7 @@ export function useDsToast() {
             {description}
             <button
               type="button"
-              aria-label={t("celebration.close")}
+              aria-label={t("common.close")}
               className="absolute end-2 top-2 flex min-h-11 min-w-11 items-center justify-center rounded-sp-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600"
               onClick={() => dismiss(id)}
             >

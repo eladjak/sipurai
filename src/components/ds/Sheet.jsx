@@ -1,5 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useI18n } from "@/components/i18n/i18nProvider";
 
 export function Sheet({
   trigger,
@@ -8,8 +9,9 @@ export function Sheet({
   children,
   open,
   onOpenChange,
-  closeLabel = "סגור",
+  closeLabel,
 }) {
+  const { t } = useI18n();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
@@ -21,7 +23,7 @@ export function Sheet({
             className="mx-auto mb-4 h-1 w-12 rounded-full bg-sp-line sm:hidden"
           />
           <Dialog.Close
-            aria-label={closeLabel}
+            aria-label={closeLabel || t("common.close")}
             className="absolute end-3 top-3 flex min-h-11 min-w-11 items-center justify-center rounded-sp-sm text-sp-ink-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600"
           >
             <X aria-hidden="true" className="h-5 w-5" />

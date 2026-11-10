@@ -9,11 +9,52 @@ import { useDsToast } from "../Toast";
 import { Wordmark } from "../../brand/Wordmark";
 import { LogoMark } from "../../brand/LogoMark";
 
+const locale = vi.hoisted(() => ({ language: "he" }));
 vi.mock("../../i18n/i18nProvider", () => ({
-  useI18n: () => ({ t: () => "סגור" }),
+  useI18n: () => ({ t: () => (locale.language === "en" ? "Close" : "סגור") }),
 }));
 
 describe("primitives B", () => {
+  it("exposes the wordmark as a named image", () => {
+    render(<Wordmark language="he" />);
+    expect(screen.getByRole("img", { name: "סיפוראי" })).toBeTruthy();
+  });
+  it("distinguishes the current step visually from completed steps", () => {
+    render(<StepIndicator steps={["One", "Two"]} current={1} />);
+    expect(screen.getByText("Two").className).toContain("font-semibold");
+    expect(screen.getByText("One").previousElementSibling.className).not.toBe(
+      screen.getByText("Two").previousElementSibling.className,
+    );
+  });
+  it("uses the current language for the sheet close control", async () => {
+    locale.language = "en";
+    render(
+      <Sheet trigger={<button>Open</button>} title="Title">
+        Content
+      </Sheet>,
+    );
+    fireEvent.click(screen.getByText("Open"));
+    expect(await screen.findByRole("button", { name: "Close" })).toBeTruthy();
+    locale.language = "he";
+  });
+  it("allows a suitable heading level in an empty state", () => {
+    render(
+      <EmptyState
+        title="Nothing yet"
+        headingLevel={3}
+        action={<button>Create</button>}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Nothing yet" }),
+    ).toBeTruthy();
+  });
+  it("keeps each wordmark animation within the motion limit", () => {
+    render(<Wordmark />);
+    expect(
+      screen.getByRole("img").querySelector("[class*=logo-enter]").className,
+    ).toContain("150ms");
+  });
   it("offers a visible Hebrew close button and exit animation on the sheet", async () => {
     render(
       <Sheet trigger={<button>Open</button>} title="Title">
