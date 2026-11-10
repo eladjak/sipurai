@@ -10,7 +10,7 @@ module.exports = {
   		fontFamily: {
   			sans: ['Nunito', 'sans-serif'],
   			heading: ['Fredoka', 'sans-serif'],
-			'sp-display': ['var(--sp-font-display)', 'Rubik', 'system-ui', 'sans-serif'],
+			'sp-display': ['var(--sp-font-display)', 'SP Rubik', 'system-ui', 'sans-serif'],
 			'sp-body': ['var(--sp-font-body)', 'system-ui', 'sans-serif'],
   		},
   		borderRadius: {

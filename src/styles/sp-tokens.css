@@ -33,7 +33,7 @@
   --sp-ink-900: #231942; /* text */
   --sp-ink-600: #5b5478; /* secondary */
   --sp-ink-500: #6e6889; /* small notes, at least 4.5:1 on paper */
-  --sp-ink-400: #857f9e; /* ONLY icons, 18px+ text, disabled */
+  --sp-ink-400: #857f9e; /* ONLY icons, disabled, and text >= 24px regular or >= 18.66px bold (3.7:1) */
 
   /* Surfaces */
   --sp-paper: #fffdf8;
@@ -61,8 +61,8 @@
   --sp-shadow-2: 0 2px 6px rgba(35, 25, 66, 0.08), 0 14px 34px rgba(35, 25, 66, 0.12);
 
   /* Type */
-  --sp-font-display: "Fredoka"; /* 600 / 700 */
-  --sp-font-body: "Rubik"; /* 400 / 500 / 600 */
+  --sp-font-display: "SP Fredoka"; /* 600 / 700; self-hosted, own name on purpose */
+  --sp-font-body: "SP Rubik"; /* 400 / 500 / 600 */
   --sp-lh-body: 1.6;
 
   /* Motion */

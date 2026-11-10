@@ -1,10 +1,10 @@
-/* P1-02 - self-hosted display + body fonts for the new shell (Hebrew + Latin subsets only).
+/* P1-02 - self-hosted (families are named SP Fredoka / SP Rubik so they can never mix with the Fredoka loaded from Google Fonts in index.html) display + body fonts for the new shell (Hebrew + Latin subsets only).
    NOT imported anywhere yet: P1-03a/b, P1-05 and P1-06b import it inside switch-gated modules,
    so production downloads nothing new. unicode-range is kept so each subset loads only when used. */
 
 /* fredoka-hebrew-600-normal */
 @font-face {
-  font-family: "Fredoka";
+  font-family: "SP Fredoka";
   font-style: normal;
   font-display: swap;
   font-weight: 600;
@@ -14,7 +14,7 @@
 
 /* fredoka-latin-600-normal */
 @font-face {
-  font-family: "Fredoka";
+  font-family: "SP Fredoka";
   font-style: normal;
   font-display: swap;
   font-weight: 600;
@@ -24,7 +24,7 @@
 
 /* fredoka-hebrew-700-normal */
 @font-face {
-  font-family: "Fredoka";
+  font-family: "SP Fredoka";
   font-style: normal;
   font-display: swap;
   font-weight: 700;
@@ -34,7 +34,7 @@
 
 /* fredoka-latin-700-normal */
 @font-face {
-  font-family: "Fredoka";
+  font-family: "SP Fredoka";
   font-style: normal;
   font-display: swap;
   font-weight: 700;
@@ -44,7 +44,7 @@
 
 /* rubik-hebrew-400-normal */
 @font-face {
-  font-family: "Rubik";
+  font-family: "SP Rubik";
   font-style: normal;
   font-display: swap;
   font-weight: 400;
@@ -54,7 +54,7 @@
 
 /* rubik-latin-400-normal */
 @font-face {
-  font-family: "Rubik";
+  font-family: "SP Rubik";
   font-style: normal;
   font-display: swap;
   font-weight: 400;
@@ -64,7 +64,7 @@
 
 /* rubik-hebrew-500-normal */
 @font-face {
-  font-family: "Rubik";
+  font-family: "SP Rubik";
   font-style: normal;
   font-display: swap;
   font-weight: 500;
@@ -74,7 +74,7 @@
 
 /* rubik-latin-500-normal */
 @font-face {
-  font-family: "Rubik";
+  font-family: "SP Rubik";
   font-style: normal;
   font-display: swap;
   font-weight: 500;
@@ -84,7 +84,7 @@
 
 /* rubik-hebrew-600-normal */
 @font-face {
-  font-family: "Rubik";
+  font-family: "SP Rubik";
   font-style: normal;
   font-display: swap;
   font-weight: 600;
@@ -94,7 +94,7 @@
 
 /* rubik-latin-600-normal */
 @font-face {
-  font-family: "Rubik";
+  font-family: "SP Rubik";
   font-style: normal;
   font-display: swap;
   font-weight: 600;
