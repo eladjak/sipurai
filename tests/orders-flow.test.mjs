@@ -204,7 +204,7 @@ test('UNKNOWN OUTCOME (timeout): no automatic resubmission; admin retry is expli
   assert.equal(deps.vendor.calls.length, 2);
   assert.equal(deps.store._orders.get(orderId).vendor_submit_attempts, 2);
   assert.equal(count(deps, orderId, 'submit_unknown_outcome'), 1);
-  assert.equal(count(deps, orderId, 'admin_retry_submit'), 1);
+  assert.equal(count(deps, orderId, 'admin_retry_submit'), 2, 'the refused attempt and the confirmed one are both logged');
 });
 
 test('REJECTION: marked failed_needs_attention with a note, not retried automatically', async () => {
