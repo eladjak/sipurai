@@ -125,7 +125,7 @@ We are working to improve these areas continuously. If you encounter a barrier, 
 };
 
 const AccessibilityStatement = () => {
-  const { language, isRTL } = useI18n();
+  const { language, isRTL, t } = useI18n();
   const lang = language === 'hebrew' || language === 'yiddish' ? 'he' : 'en';
   const c = content[lang];
 
@@ -143,7 +143,7 @@ const AccessibilityStatement = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-purple-100 hover:text-white transition-colors mb-8 text-sm font-medium"
+            className="inline-flex min-h-11 items-center gap-2 text-purple-100 hover:text-white transition-colors mb-8 text-sm font-medium"
           >
             <BackIcon className="h-4 w-4" />
             {c.backLink}
@@ -190,7 +190,7 @@ const AccessibilityStatement = () => {
                     <a
                       href={`mailto:${COORDINATOR.email}`}
                       dir="ltr"
-                      className="text-purple-700 dark:text-purple-300 underline underline-offset-2 hover:text-purple-900 dark:hover:text-purple-200 transition-colors"
+                      className="inline-flex min-h-11 items-center text-purple-700 dark:text-purple-300 underline underline-offset-2 hover:text-purple-900 dark:hover:text-purple-200 transition-colors"
                     >
                       {COORDINATOR.email}
                     </a>
@@ -203,7 +203,7 @@ const AccessibilityStatement = () => {
                     <a
                       href={`tel:${COORDINATOR_TEL}`}
                       dir="ltr"
-                      className="text-purple-700 dark:text-purple-300 underline underline-offset-2 tabular-nums hover:text-purple-900 dark:hover:text-purple-200 transition-colors"
+                      className="inline-flex min-h-11 items-center text-purple-700 dark:text-purple-300 underline underline-offset-2 tabular-nums hover:text-purple-900 dark:hover:text-purple-200 transition-colors"
                     >
                       {COORDINATOR.phone}
                     </a>
@@ -244,12 +244,12 @@ const AccessibilityStatement = () => {
 
         {/* Footer links */}
         <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 space-x-4 rtl:space-x-reverse">
-          <Link to="/privacy" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors underline">
-            {lang === 'he' ? 'מדיניות פרטיות' : 'Privacy Policy'}
+          <Link to="/privacy" className="inline-flex min-h-11 items-center hover:text-purple-600 dark:hover:text-purple-400 transition-colors underline">
+            {t('legal.privacy')}
           </Link>
           <span>·</span>
-          <Link to="/terms" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors underline">
-            {lang === 'he' ? 'תנאי שימוש' : 'Terms of Service'}
+          <Link to="/terms" className="inline-flex min-h-11 items-center hover:text-purple-600 dark:hover:text-purple-400 transition-colors underline">
+            {t('legal.terms')}
           </Link>
         </div>
       </div>

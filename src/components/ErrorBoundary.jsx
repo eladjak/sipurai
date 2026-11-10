@@ -1,6 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import heLegal from '@/components/i18n/locales/he/legal';
+import enLegal from '@/components/i18n/locales/en/legal';
 import { captureError } from "@/lib/errorTracking";
 
 export default class ErrorBoundary extends React.Component {
@@ -53,16 +55,8 @@ export default class ErrorBoundary extends React.Component {
         ? localStorage.getItem('language') || 'hebrew'
         : 'hebrew';
       const isRTL = storedLanguage === 'hebrew' || storedLanguage === 'yiddish';
-      const isHebrew = storedLanguage === 'hebrew';
-      const isYiddish = storedLanguage === 'yiddish';
-
-      const ERROR_LABELS = {
-        english: { heading: 'Oops! Something went wrong', description: "Don't worry, this happens sometimes. Let's try again!", tryAgain: 'Try Again', goHome: 'Go Home' },
-        hebrew: { heading: 'אופס! משהו השתבש', description: 'לא לדאוג, זה קורה לפעמים. בואו ננסה שוב!', tryAgain: 'נסה שוב', goHome: 'חזרה הביתה' },
-        yiddish: { heading: 'אוי! עפּעס איז פֿאַלשׁ', description: 'קיין זאָרגן, דאָס פּאַסירט אַמאָל. לאָמיר פּרוּוון ווידער!', tryAgain: 'פּרוּוו ווידער', goHome: 'גיי אַהיים' },
-      };
-      const labels = ERROR_LABELS[storedLanguage] || ERROR_LABELS.english;
-      const { heading, description, tryAgain: tryAgainLabel, goHome: goHomeLabel } = labels;
+      const labels = (storedLanguage === 'english' ? enLegal : heLegal).legal;
+      const { errorTitle: heading, errorDescription: description, retry: tryAgainLabel, home: goHomeLabel } = labels;
 
       return (
         <div
@@ -86,15 +80,16 @@ export default class ErrorBoundary extends React.Component {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={this.handleReset} variant="default" className="gap-2" aria-label={tryAgainLabel}>
+              <Button onClick={this.handleReset} variant="default" className="gap-2 min-h-11" style={{ minHeight: 44 }} aria-label={tryAgainLabel}>
                 <RefreshCw className="w-4 h-4" aria-hidden="true" />
                 {tryAgainLabel}
               </Button>
-              <Button onClick={this.handleGoHome} variant="outline" className="gap-2" aria-label={goHomeLabel}>
+              <Button onClick={this.handleGoHome} variant="outline" className="gap-2 min-h-11" style={{ minHeight: 44 }} aria-label={goHomeLabel}>
                 <Home className="w-4 h-4" aria-hidden="true" />
                 {goHomeLabel}
               </Button>
             </div>
+            <a className="inline-flex min-h-11 items-center underline" href="mailto:support@sipurai.ai">{labels.help}</a>
           </div>
         </div>
       );

@@ -41,12 +41,12 @@ export default function FriendlyError({ title, message, onRetry, onGoBack, isRTL
 
       {/* Title */}
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-        {title || t("error.defaultTitle")}
+        {title || t("legal.errorTitle")}
       </h2>
 
       {/* Message */}
       <p className="text-gray-600 dark:text-gray-400 text-lg mb-8 max-w-md">
-        {message || t("error.defaultMessage")}
+        {message || t("legal.errorDescription")}
       </p>
 
       {/* Action buttons */}
@@ -54,25 +54,26 @@ export default function FriendlyError({ title, message, onRetry, onGoBack, isRTL
         {onRetry && (
           <Button
             onClick={onRetry}
-            className="bg-purple-600 hover:bg-purple-700 gap-2"
-            aria-label={t("error.retry")}
+            className="bg-purple-600 hover:bg-purple-700 gap-2 min-h-11"
+            aria-label={t("legal.retry")}
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            {t("error.retryButton")}
+            {t("legal.retry")}
           </Button>
         )}
         {onGoBack && (
           <Button
             variant="outline"
             onClick={onGoBack}
-            className="gap-2"
-            aria-label={t("error.goBack")}
+            className="gap-2 min-h-11"
+            aria-label={t("legal.back")}
           >
             <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} aria-hidden="true" />
-            {t("error.goBack")}
+            {t("legal.back")}
           </Button>
         )}
       </div>
+      <a className="inline-flex min-h-11 items-center underline" href="mailto:support@sipurai.ai">{t("legal.help")}</a>
     </motion.div>
   );
 }

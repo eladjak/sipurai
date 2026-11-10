@@ -36,8 +36,8 @@ describe('ErrorBoundary', () => {
     );
 
     // Check for Hebrew error message
-    expect(screen.getByText('אופס! משהו השתבש')).toBeInTheDocument();
-    expect(screen.getByText('לא לדאוג, זה קורה לפעמים. בואו ננסה שוב!')).toBeInTheDocument();
+    expect(screen.getByText('משהו השתבש')).toBeInTheDocument();
+    expect(screen.getByText('אפשר לנסות שוב או לחזור לדף הבית.')).toBeInTheDocument();
   });
 
   it('shows retry and home buttons in error state', () => {
@@ -47,7 +47,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('נסה שוב')).toBeInTheDocument();
+    expect(screen.getByText('לנסות שוב')).toBeInTheDocument();
     expect(screen.getByText('חזרה הביתה')).toBeInTheDocument();
   });
 
@@ -59,10 +59,10 @@ describe('ErrorBoundary', () => {
     );
 
     // Error UI should be visible after the throw
-    expect(screen.getByText('אופס! משהו השתבש')).toBeInTheDocument();
+    expect(screen.getByText('משהו השתבש')).toBeInTheDocument();
 
-    // Click the retry button ("נסה שוב")
-    fireEvent.click(screen.getByText('נסה שוב'));
+    // Click the retry button ("לנסות שוב")
+    fireEvent.click(screen.getByText('לנסות שוב'));
 
     // After reset the error boundary re-renders its children.
     // ProblemChild will throw again (it always throws), so the error
@@ -70,6 +70,6 @@ describe('ErrorBoundary', () => {
     // cleared the state (hasError = false) causing a new render cycle.
     // We verify the retry button still exists, meaning the boundary
     // correctly caught the second throw and is showing error UI again.
-    expect(screen.getByText('נסה שוב')).toBeInTheDocument();
+    expect(screen.getByText('לנסות שוב')).toBeInTheDocument();
   });
 });

@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { Shield, BookOpen, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { updateMeta, resetMeta } from '@/lib/seo';
-import { policyContent as content } from '@/data/privacyPolicyContent';
+import { policyContent as content, POLICY_VERSION, LAST_UPDATED } from '@/data/privacyPolicyContent';
 
 
 const PrivacyPolicy = () => {
-  const { language, isRTL } = useI18n();
+  const { language, isRTL, t } = useI18n();
   const lang = language === 'hebrew' || language === 'yiddish' ? 'he' : 'en';
   const c = content[lang];
 
@@ -25,7 +25,7 @@ const PrivacyPolicy = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-purple-200 hover:text-white transition-colors mb-8 text-sm font-medium"
+            className="inline-flex min-h-11 items-center gap-2 text-purple-200 hover:text-white transition-colors mb-8 text-sm font-medium"
           >
             <BackIcon className="h-4 w-4" />
             {c.backLink}
@@ -40,7 +40,11 @@ const PrivacyPolicy = () => {
             </div>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">{c.title}</h1>
-          <p className="text-purple-200 text-sm">{c.subtitle}</p>
+          <p className="text-purple-200 text-sm flex flex-wrap gap-x-2">
+            <span>{t('legal.version')} <bdi dir="ltr">{POLICY_VERSION}</bdi></span>
+            <span aria-hidden="true">·</span>
+            <span>{t('legal.updated')} {LAST_UPDATED[lang]}</span>
+          </p>
         </div>
       </div>
 
@@ -87,11 +91,11 @@ const PrivacyPolicy = () => {
 
         {/* Footer links */}
         <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 space-x-4 rtl:space-x-reverse">
-          <Link to="/terms" className="hover:text-purple-600 transition-colors underline">
-            {lang === 'he' ? 'תנאי שימוש' : 'Terms of Service'}
+          <Link to="/terms" className="inline-flex min-h-11 items-center hover:text-purple-600 transition-colors underline">
+            {t('legal.terms')}
           </Link>
           <span>·</span>
-          <a href="mailto:support@sipurai.ai" className="hover:text-purple-600 transition-colors">
+          <a href="mailto:support@sipurai.ai" className="inline-flex min-h-11 items-center hover:text-purple-600 transition-colors">
             support@sipurai.ai
           </a>
         </div>

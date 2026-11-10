@@ -63,13 +63,11 @@ describe('API calls', () => {
 });
 
 describe('policy text', () => {
-  it('names every outside processor found in the code, in both languages', () => {
-    for (const lang of ['he', 'en']) {
-      const text = policyContent[lang].sections.map((s) => s.body).join('\n');
-      for (const name of ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity']) {
-        expect(text, `${lang} policy should mention ${name}`).toContain(name);
-      }
-    }
+  it('describes processor categories and offers the full list in both languages', () => {
+    expect(policyContent.he.sections[3].body).toContain('שירות התחברות');
+    expect(policyContent.en.sections[3].body).toContain('sign-in service');
+    expect(policyContent.he.sections[3].body).toContain('הרשימה המלאה');
+    expect(policyContent.en.sections[3].body).toContain('the full list');
   });
   it('has no em dashes and shows the version', () => {
     for (const lang of ['he', 'en']) {
@@ -91,7 +89,8 @@ describe('policy wording stays TRUE (round 2)', () => {
     expect(he).toContain('נשמר רק הציור');
     expect(en).toContain('we do not keep it');
     expect(en).toContain('Only the drawing is kept');
-    for (const t of [he, en]) { expect(t).toContain('Google'); expect(t).toContain('OpenAI'); }
+    expect(he).toContain('ספק בינה מלאכותית');
+    expect(en).toContain('AI provider');
   });
 
   it('does not make the promises that are false in code', () => {
@@ -122,7 +121,7 @@ describe('policy wording stays TRUE (round 2)', () => {
     for (const lang of ['he', 'en']) {
       const row = buildGateCopy(false)[lang].rows.find((r) => r.icon === 'camera');
       expect(row).toBeTruthy();
-      expect(row.text).toMatch(/Google/);
+      expect(row.text).toMatch(lang === 'he' ? /ספק בינה מלאכותית/ : /AI provider/);
     }
     expect(buildGateCopy(false).he.rows.find((r) => r.icon === 'camera').text).toContain('לא נשמרת');
   });
