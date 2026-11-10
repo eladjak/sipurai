@@ -1,0 +1,47 @@
+[
+  {
+    "name": "welcome",
+    "path": "/welcome",
+    "setup": {
+      "localStorage": {
+        "sipurai-entry-seen-v1": "1"
+      }
+    },
+    "waitFor": "#root > *"
+  },
+  {
+    "name": "privacy",
+    "path": "/privacy",
+    "setup": {
+      "localStorage": {
+        "sipurai-entry-seen-v1": "1"
+      }
+    },
+    "waitFor": "#root > *"
+  },
+  {
+    "name": "terms",
+    "path": "/terms",
+    "setup": {
+      "localStorage": {
+        "sipurai-entry-seen-v1": "1"
+      }
+    },
+    "waitFor": "#root > *"
+  },
+  {
+    "name": "welcome-slow-4g",
+    "path": "/welcome",
+    "setup": {
+      "localStorage": {
+        "sipurai-entry-seen-v1": "1"
+      }
+    },
+    "actions": [
+      {
+        "throttle": "slow-4g"
+      }
+    ],
+    "waitFor": "#root > *"
+  }
+]
