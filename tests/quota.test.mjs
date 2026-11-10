@@ -4,6 +4,7 @@ import { createMemoryQuotaStore, reserveBook, checkCall, israelParts, resetInfo,
 import reserveHandler from '../api/books/reserve.js';
 
 const NOV = new Date('2026-11-09T12:00:00Z');
+const acceptedConsent = { has: async () => true, isDeleting: async () => false }; // the privacy gate is tested in consent.test.mjs
 const env = {};
 const mkRes = () => {
   const r = { code: 200, body: null, headers: {} };
@@ -118,7 +119,7 @@ test('HTTP: 401 without auth, 400 on bad key, 200 x5 then 429, store error = 503
   const auth = async () => ({ ok: true, payload: { sub: 'user_http' } });
   const post = async (body, over) => {
     const res = mkRes();
-    await reserveHandler({ method: 'POST', headers: {}, body }, res, { env, store, now: NOV, auth, ...over });
+    await reserveHandler({ method: 'POST', headers: {}, body }, res, { env, store, now: NOV, auth, consentStore: acceptedConsent, ...over });
     return res;
   };
   assert.equal((await post({ bookKey: 'abcdefgh1' }, { auth: async () => ({ ok: false }) })).code, 401);

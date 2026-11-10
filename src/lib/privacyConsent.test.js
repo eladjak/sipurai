@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { isGateExempt, waitForAuthHeaders, fetchConsentStatus, acceptConsent, deleteMyAccount, CURRENT_POLICY_VERSION } from './privacyConsent';
-import { policyContent } from '@/data/privacyPolicyContent';
+import { policyContent, buildPolicyContent, buildGateCopy } from '@/data/privacyPolicyContent';
+import { readFileSync } from 'node:fs';
 
 const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
 const headers = async () => ({ Authorization: 'Bearer t' });
@@ -76,5 +77,62 @@ describe('policy text', () => {
       expect(all.includes('—')).toBe(false);
       expect(policyContent[lang].subtitle).toContain(CURRENT_POLICY_VERSION);
     }
+  });
+});
+
+
+describe('policy wording stays TRUE (round 2)', () => {
+  const all = (lang, deleteEnabled = false) => buildPolicyContent(deleteEnabled)[lang].sections.map((x) => x.heading + ' ' + x.body).join(' ');
+
+  it('says the photo is used once to draw, is not kept, only the drawing is, and names who receives it', () => {
+    const he = all('he');
+    const en = all('en');
+    expect(he).toContain('לא נשמרת אצלנו');
+    expect(he).toContain('נשמר רק הציור');
+    expect(en).toContain('we do not keep it');
+    expect(en).toContain('Only the drawing is kept');
+    for (const t of [he, en]) { expect(t).toContain('Google'); expect(t).toContain('OpenAI'); }
+  });
+
+  it('does not make the promises that are false in code', () => {
+    for (const lang of ['he', 'en']) {
+      const t = all(lang, true).toLowerCase();
+      expect(t).not.toMatch(/we keep no information|we share nothing|nothing is public unless/);
+      expect(t).not.toMatch(/לא שומרים שום מידע|לא משתפים כלום|שום דבר לא ציבורי/);
+      expect(t).not.toContain('coppa');
+    }
+  });
+
+  it('is honest that drawing files sit in public storage', () => {
+    expect(all('he')).toContain('אחסון ציבורי');
+    expect(all('en')).toContain('public storage');
+  });
+
+  it('deletion wording follows the switch: no button promised while the button is off', () => {
+    const off = all('he', false);
+    const on = all('he', true);
+    expect(off).not.toContain('מחיקת החשבון והנתונים');
+    expect(off).toContain('support@sipurai.ai');
+    expect(on).toContain('מחיקת החשבון והנתונים');
+    expect(buildGateCopy(false).he.rows.find((r) => r.icon === 'trash').text).toContain('במייל');
+    expect(buildGateCopy(true).he.rows.find((r) => r.icon === 'trash').text).toContain('בהגדרות');
+  });
+
+  it('the gate has a photos row that says the photo is not kept', () => {
+    for (const lang of ['he', 'en']) {
+      const row = buildGateCopy(false)[lang].rows.find((r) => r.icon === 'camera');
+      expect(row).toBeTruthy();
+      expect(row.text).toMatch(/Google/);
+    }
+    expect(buildGateCopy(false).he.rows.find((r) => r.icon === 'camera').text).toContain('לא נשמרת');
+  });
+
+  it('the marketing claims without backing are gone from every locale', () => {
+    for (const f of ['he', 'en', 'yi']) {
+      const src = readFileSync(`src/components/i18n/locales/${f}.jsx`, 'utf8');
+      expect(src, f).not.toMatch(/COPPA/);
+      expect(src, f).not.toMatch(/ElevenLabs/);
+    }
+    expect(readFileSync('src/lib/seo.js', 'utf8')).not.toMatch(/COPPA/);
   });
 });

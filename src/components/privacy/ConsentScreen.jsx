@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Database, Sparkles, Users, Trash2, Heart, HelpCircle, Loader2, Check, ExternalLink, AlertTriangle, RefreshCw,
+  Database, Sparkles, Users, Trash2, Heart, Camera, HelpCircle, Loader2, Check, ExternalLink, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { gateCopy, POLICY_VERSION } from '@/data/privacyPolicyContent';
 
-const ICONS = { database: Database, sparkles: Sparkles, users: Users, trash: Trash2, heart: Heart };
+const ICONS = { camera: Camera, database: Database, sparkles: Sparkles, users: Users, trash: Trash2, heart: Heart };
 
 /** Small friendly picture: a shield holding an open book. No text inside the image. */
 export function ShieldBookArt({ label, className = '' }) {

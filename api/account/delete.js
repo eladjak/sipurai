@@ -1,7 +1,7 @@
 // POST /api/account/delete  { confirm: 'delete-my-account' }
 // Deletes the SIGNED-IN user's data, files and Clerk account. Who is decided only by the verified token.
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
-import { DELETE_MESSAGES, clerkDeleteUser, defaultDeletionDeps, deleteAccount } from '../_lib/accountDeletion.js';
+import { DELETE_MESSAGES, accountDeleteEnabled, clerkDeleteUser, defaultDeletionDeps, deleteAccount } from '../_lib/accountDeletion.js';
 
 const ORIGINS = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
 
@@ -16,6 +16,12 @@ export default async function handler(req, res, overrides = {}) {
   }
   if (req.method !== 'POST') return res.status(405).json({ error: { code: 'method_not_allowed' } });
 
+  // Switched off by default (ACCOUNT_DELETE_ENABLED=true turns it on). Off means: no auth, no database, no network.
+  const env = overrides.env || process.env;
+  if (!accountDeleteEnabled(env)) {
+    return res.status(503).json({ error: { code: 'disabled', message_he: DELETE_MESSAGES.disabled } });
+  }
+
   const auth = await (overrides.auth || requireClerkAuth)(req);
   const userId = auth?.ok ? auth.payload?.sub : null;
   if (!userId) return res.status(401).json({ error: { code: 'unauthorized', message_he: 'נדרשת התחברות' } });
@@ -23,7 +29,6 @@ export default async function handler(req, res, overrides = {}) {
   if (req.body?.confirm !== 'delete-my-account') {
     return res.status(400).json({ error: { code: 'confirm_required', message_he: DELETE_MESSAGES.needConfirm } });
   }
-  const env = overrides.env || process.env;
   let deps = overrides;
   if (!deps.store || !deps.consentStore) {
     try {

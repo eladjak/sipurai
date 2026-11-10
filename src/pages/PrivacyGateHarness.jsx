@@ -3,6 +3,8 @@
 import { useSearchParams } from 'react-router-dom';
 import ConsentScreen, { GateLoadError, GateLoading, GateSuccess } from '@/components/privacy/ConsentScreen';
 import DeleteAccountCard from '@/components/settings/DeleteAccountCard';
+import AccountDataControls from '@/components/settings/AccountDataControls';
+import AvatarSelector from '@/components/profile/AvatarSelector';
 
 export default function PrivacyGateHarness() {
   const [params] = useSearchParams();
@@ -11,6 +13,14 @@ export default function PrivacyGateHarness() {
   const isRTL = lang === 'he';
   const noop = () => {};
 
+  if (state === 'delete-off') {
+    return (
+      <div dir={isRTL ? 'rtl' : 'ltr'} className="mx-auto max-w-2xl bg-gray-50 p-4">
+        <AccountDataControls language={lang === 'en' ? 'english' : 'hebrew'} isRTL={isRTL} enabled={false} />
+      </div>
+    );
+  }
+  if (state === 'avatar') return <AvatarSelector open onOpenChange={noop} currentAvatar="" onSelectAvatar={noop} />;
   if (state === 'loading') return <GateLoading lang={lang} isRTL={isRTL} />;
   if (state === 'loaderror') return <GateLoadError lang={lang} isRTL={isRTL} onRetry={noop} onSignOut={noop} />;
   if (state === 'success') return <GateSuccess lang={lang} isRTL={isRTL} />;

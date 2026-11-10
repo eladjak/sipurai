@@ -1,20 +1,15 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { GenerateImage } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, moderateInput } from "@/utils/content-moderation";
 import {
-  Camera,
   Wand2,
   Palette,
   RefreshCw,
-  Sparkles,
-  Download,
   Upload,
   User,
   Check,
   X,
-  Image as ImageIcon,
-  BookOpen,
   Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "@/components/i18n/i18nProvider";
+import { photoNote } from "@/lib/photoToCharacter";
 
 export default function AvatarStudio({ currentAvatar, onAvatarSelected, onClose }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -81,11 +77,12 @@ export default function AvatarStudio({ currentAvatar, onAvatarSelected, onClose 
     
     try {
       setIsLoading(true);
-      const { UploadFile } = await import("@/integrations/Core");
-      const result = await UploadFile({ file });
-      
-      if (result?.file_url) {
-        setSelectedAvatar(result.file_url);
+      // The photo is NOT stored. It is drawn into a character and only the drawing is kept (see photoToCharacter.js).
+      const { createAvatarFromPhoto } = await import("@/lib/photoToCharacter");
+      const result = await createAvatarFromPhoto(file);
+
+      if (result?.url) {
+        setSelectedAvatar(result.url);
       }
     } catch (error) {
       // silently handled
@@ -138,6 +135,9 @@ export default function AvatarStudio({ currentAvatar, onAvatarSelected, onClose 
             onDrop={handleDrop}
           >
             <Upload className="h-10 w-10 text-gray-400 mx-auto mb-4" />
+            <p className="mx-auto mb-3 max-w-md rounded-xl bg-purple-50 px-3 py-2 text-sm leading-relaxed text-purple-900" data-testid="photo-note">
+              {isRTL ? photoNote.he : photoNote.en}
+            </p>
             <p className="text-gray-600 dark:text-gray-300 mb-2">{t("avatar.drag")}</p>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">{t("avatar.or")}</p>
             <Input

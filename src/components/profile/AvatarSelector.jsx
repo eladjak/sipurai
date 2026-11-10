@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { useState, useRef, useEffect } from 'react';
+import { DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,17 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
   Camera,
-  X,
-  Crop,
-  RotateCw,
-  ZoomIn,
   Check,
   Loader2,
   Sparkles,
   Image as ImageIcon,
   AlertCircle
 } from 'lucide-react';
-import { GenerateImage, UploadFile } from "@/integrations/Core";
+import { GenerateImage } from "@/integrations/Core";
+import { createAvatarFromPhoto, photoNote } from "@/lib/photoToCharacter";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
 export default function AvatarSelector({
@@ -69,7 +66,7 @@ export default function AvatarSelector({
     setIsUploading(true);
 
     try {
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         setError(t("avatar.error.format"));
         return;
@@ -84,13 +81,12 @@ export default function AvatarSelector({
       const tempUrl = URL.createObjectURL(file);
       setTempPreviewUrl(tempUrl);
       
-      const response = await UploadFile({
-        file: file
-      });
+      // The photo is NOT stored. It is drawn into a character and only the drawing is kept (see photoToCharacter.js).
+      const response = await createAvatarFromPhoto(file);
 
-      if (response?.file_url) {
-        setPreviewUrl(response.file_url);
-        onSelectAvatar(response.file_url);
+      if (response?.url) {
+        setPreviewUrl(response.url);
+        onSelectAvatar(response.url);
       } else {
         throw new Error('No URL in response');
       }
@@ -178,6 +174,9 @@ export default function AvatarSelector({
           >
             <div className="text-center">
               <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mx-auto mb-2 max-w-md rounded-xl bg-purple-50 px-3 py-2 text-sm leading-relaxed text-purple-900" data-testid="photo-note">
+                {isRTL ? photoNote.he : photoNote.en}
+              </p>
               <p className="mt-2">{t("avatar.upload.drag")}</p>
               <p className="text-sm text-gray-500 mt-1">{t("avatar.upload.or")}</p>
               
@@ -185,7 +184,7 @@ export default function AvatarSelector({
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileSelect}
               />
               
@@ -206,7 +205,7 @@ export default function AvatarSelector({
               </Button>
               
               <p className="text-xs text-gray-500 mt-2">
-                {t("avatar.formats")}
+                {isRTL ? "JPG, PNG או WebP, עד 10MB" : "JPG, PNG or WebP, up to 10MB"}
               </p>
             </div>
           </div>

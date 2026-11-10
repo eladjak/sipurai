@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMemoryConsentStore, requireConsent, recordConsent, hasConsent, validateAcceptance, forgetConsent } from '../api/_lib/consent.js';
+import { createMemoryConsentStore, requireConsent, recordConsent, hasConsent, validateAcceptance } from '../api/_lib/consent.js';
 import { CURRENT_POLICY_VERSION } from '../api/_lib/policyVersion.js';
 import consentHandler from '../api/privacy/consent.js';
 import generateHandler from '../api/ai/generate.js';
@@ -21,7 +21,7 @@ const accept = (store, userId) => recordConsent({ store, userId, body: goodBody,
 
 test('no consent record -> 403 with a clear code, before anything else runs', async () => {
   const res = mkRes();
-  const stopped = await requireConsent({}, res, 'user_A', { store: createMemoryConsentStore() });
+  const stopped = await requireConsent({}, res, 'user_A', { consentStore: createMemoryConsentStore() });
   assert.equal(stopped, true);
   assert.equal(res.code, 403);
   assert.equal(res.body.code, 'consent_required');
@@ -32,10 +32,10 @@ test('after the parent accepts, the same user passes and another user still does
   const store = createMemoryConsentStore();
   await accept(store, 'user_A');
   const a = mkRes();
-  assert.equal(await requireConsent({}, a, 'user_A', { store }), false);
+  assert.equal(await requireConsent({}, a, 'user_A', { consentStore: store }), false);
   assert.equal(a.code, 200);
   const b = mkRes();
-  assert.equal(await requireConsent({}, b, 'user_B', { store }), true);
+  assert.equal(await requireConsent({}, b, 'user_B', { consentStore: store }), true);
   assert.equal(b.code, 403);
 });
 
@@ -43,14 +43,14 @@ test('bumping the policy version asks everyone again', async () => {
   const store = createMemoryConsentStore();
   await store.save({ userId: 'user_A', policyVersion: '2025-01-01', items: {}, locale: 'he', userAgent: null });
   const res = mkRes();
-  assert.equal(await requireConsent({}, res, 'user_A', { store }), true);
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: store }), true);
   assert.equal(res.code, 403);
 });
 
 test('a store that cannot answer fails CLOSED (503), never open', async () => {
   const broken = { has: async () => { throw new Error('db down'); } };
   const res = mkRes();
-  assert.equal(await requireConsent({}, res, 'user_A', { store: broken }), true);
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: broken }), true);
   assert.equal(res.code, 503);
   assert.equal(res.body.code, 'consent_unavailable');
 });
@@ -82,21 +82,21 @@ test('stored record carries version, items, locale and a truncated user agent', 
 test('consent endpoint: needs login; user comes from the token, never from the body', async () => {
   const store = createMemoryConsentStore();
   const anon = mkRes();
-  await consentHandler({ method: 'GET', headers: {} }, anon, { auth: noUser, store });
+  await consentHandler({ method: 'GET', headers: {} }, anon, { auth: noUser, consentStore: store });
   assert.equal(anon.code, 401);
 
   // user A posts a body that tries to name user B
   const post = mkRes();
-  await consentHandler({ method: 'POST', headers: { 'user-agent': 'ua' }, body: { ...goodBody, userId: 'user_B', user_id: 'user_B' } }, post, { auth: asUser('user_A'), store });
+  await consentHandler({ method: 'POST', headers: { 'user-agent': 'ua' }, body: { ...goodBody, userId: 'user_B', user_id: 'user_B' } }, post, { auth: asUser('user_A'), consentStore: store });
   assert.equal(post.code, 200);
   assert.equal(await hasConsent({ store, userId: 'user_A' }), true);
   assert.equal(await hasConsent({ store, userId: 'user_B' }), false);
 
   const getB = mkRes();
-  await consentHandler({ method: 'GET', headers: {} }, getB, { auth: asUser('user_B'), store });
+  await consentHandler({ method: 'GET', headers: {} }, getB, { auth: asUser('user_B'), consentStore: store });
   assert.equal(getB.body.hasConsent, false);
   const getA = mkRes();
-  await consentHandler({ method: 'GET', headers: {} }, getA, { auth: asUser('user_A'), store });
+  await consentHandler({ method: 'GET', headers: {} }, getA, { auth: asUser('user_A'), consentStore: store });
   assert.equal(getA.body.hasConsent, true);
 });
 
@@ -104,7 +104,7 @@ test('AI routes: generate and tts answer 403 consent_required when the parent ha
   for (const [name, handler] of [['generate', generateHandler], ['tts', ttsHandler]]) {
     const store = createMemoryConsentStore();
     const res = mkRes();
-    await handler({ method: 'POST', headers: {}, body: { prompt: 'שלום', type: 'text', text: 'שלום', provider: 'openai' } }, res, { auth: asUser('user_A'), store });
+    await handler({ method: 'POST', headers: {}, body: { prompt: 'שלום', type: 'text', text: 'שלום', provider: 'openai' } }, res, { auth: asUser('user_A'), consentStore: store });
     assert.equal(res.code, 403, `${name} should refuse without consent`);
     assert.equal(res.body.code, 'consent_required', name);
   }
@@ -114,9 +114,8 @@ test('AI routes: with consent the request goes past the privacy gate', async () 
   for (const [name, handler] of [['generate', generateHandler], ['tts', ttsHandler]]) {
     const store = createMemoryConsentStore();
     await accept(store, 'user_A');
-    forgetConsent('user_A');
     const res = mkRes();
-    await handler({ method: 'POST', headers: {}, body: {} }, res, { auth: asUser('user_A'), store });
+    await handler({ method: 'POST', headers: {}, body: {} }, res, { auth: asUser('user_A'), consentStore: store });
     assert.ok(![401, 403, 503].includes(res.code), `${name} got ${res.code}; it should be past the gate (400/500 from later checks)`);
     assert.notEqual(res.body?.code, 'consent_required', name);
   }
@@ -126,6 +125,63 @@ test('AI routes: another user\'s consent does not open the gate for this user', 
   const store = createMemoryConsentStore();
   await accept(store, 'user_B');
   const res = mkRes();
-  await generateHandler({ method: 'POST', headers: {}, body: { prompt: 'x', type: 'text' } }, res, { auth: asUser('user_A'), store });
+  await generateHandler({ method: 'POST', headers: {}, body: { prompt: 'x', type: 'text' } }, res, { auth: asUser('user_A'), consentStore: store });
   assert.equal(res.code, 403);
+});
+
+test('NO CACHE: consent removed after a successful call -> the very next call is 403', async () => {
+  const store = createMemoryConsentStore();
+  await accept(store, 'user_A');
+  const first = mkRes();
+  assert.equal(await requireConsent({}, first, 'user_A', { consentStore: store }), false);
+  await store.deleteAll('user_A'); // e.g. another serverless instance removed the record
+  const second = mkRes();
+  assert.equal(await requireConsent({}, second, 'user_A', { consentStore: store }), true);
+  assert.equal(second.code, 403);
+});
+
+test('NO CACHE: a database outage right after a successful call is 503, not "let through"', async () => {
+  const store = createMemoryConsentStore();
+  await accept(store, 'user_A');
+  assert.equal(await requireConsent({}, mkRes(), 'user_A', { consentStore: store }), false);
+  const down = { has: async () => { throw new Error('db down'); } };
+  const res = mkRes();
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: down }), true);
+  assert.equal(res.code, 503);
+});
+
+test('a user whose account is being deleted cannot record a new acceptance', async () => {
+  const store = createMemoryConsentStore();
+  store._deleting.add('user_A');
+  const r = await recordConsent({ store, userId: 'user_A', body: goodBody, userAgent: 'x' });
+  assert.equal(r.http, 409);
+  assert.equal(r.body.error.code, 'account_deleting');
+  assert.equal(store._rows.length, 0);
+});
+
+import reserveHandler from '../api/books/reserve.js';
+import { endpoint } from '../api/_lib/orders/handlers.js';
+
+test('item 8: books/reserve refuses (403) a parent who has not accepted, and passes one who has', async () => {
+  const store = createMemoryConsentStore();
+  const res = mkRes();
+  await reserveHandler({ method: 'POST', headers: {}, body: { bookKey: 'abcdefgh1234' } }, res, { auth: asUser('user_A'), consentStore: store, env: {} });
+  assert.equal(res.code, 403);
+  assert.equal(res.body.code, 'consent_required');
+  await accept(store, 'user_A');
+  const ok = mkRes();
+  await reserveHandler({ method: 'POST', headers: {}, body: { bookKey: 'abcdefgh1234' } }, ok, { auth: asUser('user_A'), consentStore: store, env: {}, store: { reserve: async () => ({ status: 'ok', used: 1, paid: false }) } });
+  assert.notEqual(ok.code, 403);
+});
+
+test('item 8: print-order create and quote refuse (403) without consent', async () => {
+  const env = { PRINT_ORDER_ENABLED: 'true' };
+  for (const [name, method] of [['create', 'POST'], ['quote', 'GET']]) {
+    const res = mkRes();
+    await endpoint(name)({ method, headers: {}, query: {}, body: {} }, res, {
+      env, store: {}, auth: asUser('user_A'), consentStore: createMemoryConsentStore(),
+    });
+    assert.equal(res.code, 403, name);
+    assert.equal(res.body.error?.code ?? res.body.code, 'consent_required', name);
+  }
 });

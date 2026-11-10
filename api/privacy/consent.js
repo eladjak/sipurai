@@ -25,7 +25,7 @@ export default async function handler(req, res, overrides = {}) {
   if (!userId) return res.status(401).json({ error: { code: 'unauthorized', message_he: 'נדרשת התחברות' } });
 
   try {
-    const store = overrides.store || (await defaultConsentStore(overrides.env || process.env));
+    const store = overrides.consentStore || (await defaultConsentStore(overrides.env || process.env));
     if (req.method === 'GET') {
       const ok = await hasConsent({ store, userId });
       return res.status(200).json({ hasConsent: ok, policyVersion: CURRENT_POLICY_VERSION });

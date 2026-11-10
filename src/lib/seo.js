@@ -97,7 +97,7 @@ export const PAGE_META = {
   PrivacyPolicy: {
     title: 'מדיניות פרטיות',
     description:
-      'כיצד סיפוראי מגינה על הפרטיות שלכם ועל מידע הילדים, בהתאם ל-COPPA ולתקנות GDPR.',
+      'כיצד סיפוראי מגינה על הפרטיות שלכם ועל מידע הילדים, ומה כל שירות חיצוני מקבל.',
     url: `${BASE_URL}/privacy`,
   },
   TermsOfService: {

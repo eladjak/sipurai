@@ -1,6 +1,7 @@
 // POST /api/books/reserve  { bookKey }  -> take one slot from this month's free books.
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
 import { defaultQuotaStore, reserveBook, MESSAGES } from '../_lib/quota.js';
+import { requireConsent } from '../_lib/consent.js';
 
 const ORIGINS = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
 
@@ -19,6 +20,9 @@ export default async function handler(req, res, overrides = {}) {
   const auth = await (overrides.auth || requireClerkAuth)(req);
   const userId = auth?.ok ? auth.payload?.sub : null;
   if (!userId) return res.status(401).json({ error: { code: 'unauthorized', message_he: 'נדרשת התחברות' } });
+
+  // Privacy gate: no accepted policy, no book slot.
+  if (await requireConsent(req, res, userId, { consentStore: overrides.consentStore, env })) return;
 
   const bookKey = String(req.body?.bookKey || '').trim();
   if (!/^[A-Za-z0-9_-]{8,80}$/.test(bookKey)) {

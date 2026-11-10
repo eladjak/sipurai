@@ -14,7 +14,7 @@ export const POLICY_VERSION = CURRENT_POLICY_VERSION;
 export const CONTACT_EMAIL = 'support@sipurai.ai';
 export const LAST_UPDATED = { he: '10 בנובמבר 2026', en: 'November 10, 2026' };
 
-export const policyContent = {
+const buildPolicyContent = (deleteEnabled) => ({
   he: {
     metaTitle: 'מדיניות פרטיות',
     metaDesc: 'איזה מידע סיפוראי שומרת עליכם ועל הילדים, מי מטפל בו, כמה זמן, ואיך מוחקים.',
@@ -41,7 +41,7 @@ export const policyContent = {
 
 **על הילדים:**
 • שם, טווח גיל ותיאור של הדמות, כמו שהקלדתם אותם כשיצרתם ספר
-• תמונה, רק אם אתם מעלים אותה. אנחנו לא מבקשים תמונה של ילד כדי ליצור ספר.
+• תמונה: אנחנו לא מבקשים תמונה כדי ליצור ספר. אם תעלו תמונה כדי ליצור דמות, היא לא נשמרת אצלנו. נשמר רק הציור שנוצר ממנה (ראו סעיף 6).
 
 **מה שיצרתם:**
 • הסיפורים, האיורים, הדמויות והרעיונות שלכם
@@ -59,7 +59,7 @@ export const policyContent = {
 • למנוע שימוש לרעה ולתקן תקלות
 • לעמוד בדרישות החוק
 
-אנחנו לא מוכרים מידע, לא משכירים אותו ולא מציגים פרסומות מותאמות לילדים.`,
+אנחנו לא מוכרים מידע, לא משכירים אותו, לא משתפים אותו לצורכי פרסום ולא מציגים פרסומות מותאמות לילדים.`,
       },
       {
         heading: '4. מי עוד מטפל במידע',
@@ -71,9 +71,9 @@ export const policyContent = {
 
 **Vercel** (vercel.com): אירוח האתר והשרת שלנו. כל בקשה עוברת דרכו.
 
-**Google, שירותי Gemini:** יצירת סיפורים, איורים וקול. מקבלת את בקשת היצירה: נושא, שמות הדמויות ותיאורן, טווח הגיל והשפה, ולפעמים את תמונת העטיפה כדי לשמור על דמות עקבית.
+**Google, שירותי Gemini:** יצירת סיפורים, איורים וקול. מקבלת את בקשת היצירה: נושא, שמות הדמויות ותיאורן, טווח הגיל והשפה, ולפעמים את תמונת העטיפה כדי לשמור על דמות עקבית. אם העליתם תמונה ליצירת דמות, היא מגיעה אליה, רק לשניות שלוקח לצייר.
 
-**OpenAI:** יצירת איורים והקראה בקול, לפי המודל שנבחר. מקבלת את הטקסט להקראה או את בקשת האיור, ולפעמים את תמונת העטיפה.
+**OpenAI:** יצירת איורים והקראה בקול, לפי המודל שנבחר. מקבלת את הטקסט להקראה או את בקשת האיור, ולפעמים את תמונת העטיפה. אם העליתם תמונה ליצירת דמות והמודל שנבחר הוא של OpenAI, היא מגיעה אליה, רק לשניות שלוקח לצייר.
 
 **Creem** (creem.io): תשלום על מנוי. אצלם נשמרים פרטי כרטיס האשראי.
 
@@ -89,6 +89,8 @@ export const policyContent = {
 
 **Google Fonts:** הגופנים של האתר נטענים מגוגל, ולכן כתובת ה-IP שלכם מגיעה אליהם.
 
+**צ'אט השאלות באתר** (פתוח גם למי שלא נרשם): ההודעות שכותבים בו נשלחות ל-Google כדי שיענו. אל תכתבו בו פרטים על הילדים.
+
 בינה מלאכותית לא לומדת מהספרים שלכם אצלנו, כי אנחנו לא מאמנים מודל. מה שהספקים החיצוניים עושים בבקשות נקבע בתנאים שלהם, ואנחנו לא שולטים בכך.`,
       },
       {
@@ -102,17 +104,34 @@ export const policyContent = {
 • אם אתם חושבים שילד פתח חשבון או שמידע על ילד נשמר בלי הסכמת הורה, כתבו לנו ל-${CONTACT_EMAIL} ונמחק.`,
       },
       {
-        heading: '6. כמה זמן אנחנו שומרים',
+        heading: '6. תמונות שאתם מעלים',
+        id: 'photos',
+        body: `תמונה שמעלים כדי ליצור דמות משמשת פעם אחת לציור, ואחר כך היא לא נשמרת אצלנו. נשמר רק הציור.
+
+**איך זה עובד:** הדפדפן מקטין את התמונה ומעביר אותה לשרת שלנו, והשרת מעביר אותה לשירות הציור (Google או OpenAI, לפי המודל שנבחר). הציור שחוזר הוא מה שנשמר. התמונה עצמה לא נכתבת אצלנו לאחסון ולא נכנסת לבסיס הנתונים.
+
+**מה אנחנו לא שולטים בו:** כמה זמן שירות הציור שומר בקשה אצלו נקבע בתנאים שלו. לכן כתבנו בסעיף 4 מי מקבל את התמונה.
+
+**מה כן גלוי:** קבצי הציורים נשמרים באחסון ציבורי. מי שיש לו את כתובת הציור יכול לפתוח אותו, גם אם הספר לא שותף בקהילה.`,
+      },
+      {
+        heading: '7. כמה זמן אנחנו שומרים',
         body: `המידע נשמר כל עוד החשבון קיים. אין לנו כרגע מחיקה אוטומטית של חשבונות שלא בשימוש.
 
-ספר או דמות שמחקתם מהספרייה נמחקים משם. אחרי מחיקת חשבון הכל נמחק, כמו שמוסבר בסעיף הבא.
+ספר או דמות שמחקתם מהספרייה נמחקים משם. אחרי מחיקת חשבון הכל נמחק, כמו שמוסבר בסעיף 8.
 
 דיווחי תקלות ויומני שרת נשמרים אצל הספקים לפי הכללים שלהם.`,
       },
       {
-        heading: '7. איך מוחקים הכל',
+        heading: '8. איך מוחקים הכל',
         id: 'delete',
-        body: `בכל רגע אפשר ללחוץ על **הגדרות, חשבון, מחיקת החשבון והנתונים**. המחיקה מיידית ואי אפשר לשחזר אותה.
+        body: !deleteEnabled
+          ? `כרגע מחיקה אוטומטית של החשבון עדיין לא פתוחה. כדי למחוק, כתבו ל-${CONTACT_EMAIL} ואנחנו נמחק את החשבון, הילדים, הספרים, התמונות וההגדרות. נענה תוך 30 יום.
+
+**מה נשאר:** אם הזמנתם ספר מודפס והוא נשלח, הרשומה הכספית של ההזמנה נשמרת כי החוק מחייב אותנו לשמור אותה, בלי כתובת המשלוח.
+
+עותקי גיבוי אצל ספק האחסון עשויים להישמר זמן מוגבל אחרי המחיקה.`
+          : `בכל רגע אפשר ללחוץ על **הגדרות, חשבון, מחיקת החשבון והנתונים**. המחיקה מיידית ואי אפשר לשחזר אותה.
 
 **מה נמחק:** החשבון, הילדים והדמויות, הספרים, הדפים, התמונות והקבצים שהעליתם, ההגדרות וההישגים, ואישורי הפרטיות.
 
@@ -125,13 +144,13 @@ export const policyContent = {
 אפשר גם לכתוב ל-${CONTACT_EMAIL} ונמחק בשבילכם.`,
       },
       {
-        heading: '8. הזכויות שלכם',
+        heading: '9. הזכויות שלכם',
         body: `אתם יכולים לבקש לראות את המידע שיש לנו עליכם ועל הילדים, לתקן אותו, לקבל עותק, או למחוק אותו.
 
-מחיקה אפשר לעשות לבד, כמו בסעיף 7. את שאר הבקשות שלחו ל-${CONTACT_EMAIL}. נענה תוך 30 יום.`,
+מחיקה אפשר לעשות כמו בסעיף 8. את שאר הבקשות שלחו ל-${CONTACT_EMAIL}. נענה תוך 30 יום.`,
       },
       {
-        heading: '9. אבטחה',
+        heading: '10. אבטחה',
         body: `• כל התקשורת מוצפנת (HTTPS).
 • בבסיס הנתונים כל משתמש רואה רק את מה שיצר בעצמו. ההרשאות נבדקות בשרת ולא רק בדפדפן.
 • הגישה לשירותי הבינה המלאכותית עוברת דרך השרת שלנו, והמפתחות לא נחשפים לדפדפן.
@@ -139,15 +158,15 @@ export const policyContent = {
 שום מערכת אינה מאובטחת במאה אחוז. אם נגלה אירוע שפגע במידע שלכם, נודיע לכם.`,
       },
       {
-        heading: '10. עוגיות',
+        heading: '11. עוגיות',
         body: `אין לנו עוגיות מעקב ואין פרסומות. ספירת הביקורים נעשית בלי עוגיות. שירות ההתחברות (Clerk) שומר עוגיית התחברות הכרחית כדי שתישארו מחוברים.`,
       },
       {
-        heading: '11. כשהמדיניות משתנה',
+        heading: '12. כשהמדיניות משתנה',
         body: `כשאנחנו משנים משהו מהותי, מעדכנים את מספר הגרסה למעלה. בפעם הבאה שתיכנסו תתבקשו לקרוא ולאשר מחדש, ועד שתאשרו לא נוכל ליצור בשבילכם ספרים.`,
       },
       {
-        heading: '12. יצירת קשר',
+        heading: '13. יצירת קשר',
         body: `מייל: ${CONTACT_EMAIL}`,
       },
     ],
@@ -178,7 +197,7 @@ Privacy questions: ${CONTACT_EMAIL}`,
 
 **About your children:**
 • Name, age range and a description of the character, as you typed them when creating a book
-• A photo, only if you upload one. We do not ask for a child's photo to create a book.
+• Photos: we do not ask for a photo to create a book. If you upload a photo to create a character, we do not keep it. Only the drawing made from it is kept (see section 6).
 
 **What you created:**
 • Your stories, illustrations, characters and ideas
@@ -196,7 +215,7 @@ Privacy questions: ${CONTACT_EMAIL}`,
 • To prevent abuse and fix problems
 • To meet legal requirements
 
-We do not sell or rent information, and we do not show targeted ads to children.`,
+We do not sell or rent information, we do not share it for advertising, and we do not show targeted ads to children.`,
       },
       {
         heading: '4. Who else handles it',
@@ -208,9 +227,9 @@ We do not sell or rent information, and we do not show targeted ads to children.
 
 **Vercel** (vercel.com): hosts our website and server. Every request passes through it.
 
-**Google, Gemini services:** creates stories, illustrations and voice. Receives the creation request: topic, character names and descriptions, age range and language, and sometimes the cover image to keep a character consistent.
+**Google, Gemini services:** creates stories, illustrations and voice. Receives the creation request: topic, character names and descriptions, age range and language, and sometimes the cover image to keep a character consistent. If you uploaded a photo to create a character, it reaches them, only for the seconds it takes to draw.
 
-**OpenAI:** creates illustrations and read-aloud voice, depending on the model chosen. Receives the text to read or the illustration request, and sometimes the cover image.
+**OpenAI:** creates illustrations and read-aloud voice, depending on the model chosen. Receives the text to read or the illustration request, and sometimes the cover image. If you uploaded a photo to create a character and the chosen model is OpenAI's, it reaches them, only for the seconds it takes to draw.
 
 **Creem** (creem.io): payment for subscriptions. Your card details are kept by them.
 
@@ -226,6 +245,8 @@ We do not sell or rent information, and we do not show targeted ads to children.
 
 **Google Fonts:** the site fonts load from Google, so your IP address reaches them.
 
+**The FAQ chat on the site** (open to people who have not signed up): the messages typed into it are sent to Google so that it can answer. Please do not write details about your children in it.
+
 Artificial intelligence does not learn from your books on our side, because we do not train a model. What the outside providers do with requests is set by their own terms, and we do not control that.`,
       },
       {
@@ -239,17 +260,34 @@ Artificial intelligence does not learn from your books on our side, because we d
 • If you think a child opened an account, or information about a child is kept without a parent's consent, write to ${CONTACT_EMAIL} and we will delete it.`,
       },
       {
-        heading: '6. How long we keep it',
+        heading: '6. Photos you upload',
+        id: 'photos',
+        body: `A photo uploaded to create a character is used once to draw, and then we do not keep it. Only the drawing is kept.
+
+**How it works:** the browser makes the photo smaller and sends it to our server, and our server passes it to the drawing service (Google or OpenAI, depending on the model chosen). The drawing that comes back is what is kept. The photo itself is never written to our storage or database.
+
+**What we do not control:** how long the drawing service holds a request is set by its own terms. That is why section 4 says who receives the photo.
+
+**What is visible:** drawing files are kept in public storage. Anyone who has the address of a drawing can open it, even if the book was not shared to the community.`,
+      },
+      {
+        heading: '7. How long we keep it',
         body: `Information is kept as long as the account exists. We currently have no automatic deletion of unused accounts.
 
-A book or character you delete from the library is deleted from there. After you delete the account, everything is deleted, as explained in the next section.
+A book or character you delete from the library is deleted from there. After you delete the account, everything is deleted, as explained in section 8.
 
 Error reports and server logs are kept by the providers under their own rules.`,
       },
       {
-        heading: '7. How to delete everything',
+        heading: '8. How to delete everything',
         id: 'delete',
-        body: `At any time, press **Settings, Account, Delete my account and data**. Deletion is immediate and cannot be undone.
+        body: !deleteEnabled
+          ? `Automatic account deletion is not open yet. To delete, write to ${CONTACT_EMAIL} and we will delete the account, the children, books, images and settings. We will answer within 30 days.
+
+**What stays:** if you ordered a printed book and it shipped, the financial record of the order is kept because the law requires us to keep it, without the delivery address.
+
+Backup copies at the hosting provider may be kept for a limited time after deletion.`
+          : `At any time, press **Settings, Account, Delete my account and data**. Deletion is immediate and cannot be undone.
 
 **What is deleted:** the account, the children and characters, books, pages, images and files you uploaded, settings and achievements, and your privacy approvals.
 
@@ -262,13 +300,13 @@ Backup copies at the hosting provider may be kept for a limited time after delet
 You can also write to ${CONTACT_EMAIL} and we will delete it for you.`,
       },
       {
-        heading: '8. Your rights',
+        heading: '9. Your rights',
         body: `You can ask to see the information we hold about you and your children, correct it, get a copy, or delete it.
 
-You can delete by yourself, as in section 7. Send other requests to ${CONTACT_EMAIL}. We will answer within 30 days.`,
+You can delete as described in section 8. Send other requests to ${CONTACT_EMAIL}. We will answer within 30 days.`,
       },
       {
-        heading: '9. Security',
+        heading: '10. Security',
         body: `• All communication is encrypted (HTTPS).
 • In the database each user sees only what they created. Permissions are checked on the server, not only in the browser.
 • Access to the AI services goes through our server, and the keys are not exposed to the browser.
@@ -276,34 +314,35 @@ You can delete by yourself, as in section 7. Send other requests to ${CONTACT_EM
 No system is 100 percent secure. If we discover an incident that affected your information, we will tell you.`,
       },
       {
-        heading: '10. Cookies',
+        heading: '11. Cookies',
         body: `We have no tracking cookies and no ads. Visit counting is done without cookies. The sign-in service (Clerk) keeps a necessary sign-in cookie so that you stay signed in.`,
       },
       {
-        heading: '11. When the policy changes',
+        heading: '12. When the policy changes',
         body: `When we change something important, we update the version number above. The next time you sign in you will be asked to read and approve again, and until you approve we cannot create books for you.`,
       },
       {
-        heading: '12. Contact',
+        heading: '13. Contact',
         body: `Email: ${CONTACT_EMAIL}`,
       },
     ],
   },
-};
+});
 
 /**
  * The plain summary shown on the privacy gate. Short on purpose; the full text is one tap away.
  * Each row is { icon, title, text }. Icons are lucide names resolved in the component.
  */
-export const gateCopy = {
+const buildGateCopy = (deleteEnabled) => ({
   he: {
     title: 'לפני שמתחילים: ההחלטה בידיים שלכם',
     lead: 'סיפוראי שומרת מידע על הילדים שלכם כדי ליצור להם ספרים. הנה בקצרה מה קורה איתו, ואתם מחליטים אם להמשיך.',
     rows: [
-      { icon: 'database', title: 'מה אנחנו שומרים', text: 'עליכם: מייל ושם. על הילד: שם, גיל ותיאור הדמות, ותמונה רק אם תעלו. ואת הספרים והאיורים שיצרתם.' },
-      { icon: 'sparkles', title: 'למה', text: 'רק כדי ליצור את הספר, לשמור אותו בספרייה שלכם ולהדפיס אותו אם תזמינו. לא מוכרים מידע ולא מפרסמים לילדים.' },
+      { icon: 'database', title: 'מה אנחנו שומרים', text: 'עליכם: מייל ושם. על הילד: שם, גיל ותיאור הדמות. ואת הספרים והאיורים שיצרתם.' },
+      { icon: 'camera', title: 'תמונות שמעלים', text: 'תמונה שתעלו כדי ליצור דמות משמשת פעם אחת לציור ולא נשמרת אצלנו. נשמר רק הציור. לשניות שלוקח לצייר היא עוברת ל-Google או ל-OpenAI.' },
+      { icon: 'sparkles', title: 'למה', text: 'רק כדי ליצור את הספר, לשמור אותו בספרייה שלכם ולהדפיס אותו אם תזמינו. לא מוכרים מידע, לא משתפים אותו לפרסום ולא מפרסמים לילדים.' },
       { icon: 'users', title: 'מי עוד מטפל בו', text: 'Google ו-OpenAI מקבלות את בקשת היצירה כדי לכתוב ולצייר. Clerk מנהלת את ההתחברות, Supabase שומרת את הקבצים, Vercel מארחת את האתר, ו-Creem מטפלת בתשלום.', help: 'חברה חיצונית היא חברה אחרת שהאפליקציה משתמשת בה כדי לעבוד, למשל כדי להתחבר או ליצור תמונה. ברשימה המלאה במדיניות מופיעה כל אחת ומה היא מקבלת.' },
-      { icon: 'trash', title: 'אפשר למחוק הכל', text: 'בכל רגע, בהגדרות, בלחיצה אחת. הכל נמחק מיד, כולל התמונות.' },
+      { icon: 'trash', title: 'אפשר למחוק הכל', text: deleteEnabled ? 'בכל רגע, בהגדרות. הכל נמחק, כולל התמונות והציורים.' : 'בכל רגע אפשר לבקש במייל שנמחק הכל, כולל התמונות והציורים. הכתובת: support@sipurai.ai' },
       { icon: 'heart', title: 'אתם ההורים מחליטים', text: 'החשבון הוא שלכם. הילדים לא נרשמים בעצמם, ואתם בוחרים איזה מידע עליהם להכניס. אפשר גם שם בדוי.' },
     ],
     fullPolicy: 'לקריאת המדיניות המלאה',
@@ -329,10 +368,11 @@ export const gateCopy = {
     title: 'Before we start: you decide',
     lead: "Sipurai keeps information about your children so it can create books for them. Here is a short summary of what happens with it, and you decide whether to continue.",
     rows: [
-      { icon: 'database', title: 'What we keep', text: 'About you: email and name. About your child: name, age and character description, and a photo only if you upload one. Plus the books and illustrations you create.' },
-      { icon: 'sparkles', title: 'Why', text: 'Only to create the book, keep it in your library and print it if you order. We do not sell information or advertise to children.' },
+      { icon: 'database', title: 'What we keep', text: 'About you: email and name. About your child: name, age and character description. Plus the books and illustrations you create.' },
+      { icon: 'camera', title: 'Photos you upload', text: 'A photo you upload to create a character is used once to draw and is not kept by us. Only the drawing is kept. For the few seconds it takes to draw, it passes to Google or OpenAI.' },
+      { icon: 'sparkles', title: 'Why', text: 'Only to create the book, keep it in your library and print it if you order. We do not sell information, share it for advertising, or advertise to children.' },
       { icon: 'users', title: 'Who else handles it', text: 'Google and OpenAI receive the creation request to write and draw. Clerk handles sign-in, Supabase stores the files, Vercel hosts the site, and Creem handles payment.', help: 'An outside company is another company the app uses to work, for example to sign in or to create an image. The full list in the policy shows each one and what it receives.' },
-      { icon: 'trash', title: 'You can delete everything', text: 'At any time, in Settings, with one tap. Everything is deleted right away, including the images.' },
+      { icon: 'trash', title: 'You can delete everything', text: deleteEnabled ? 'At any time, in Settings. Everything is deleted, including images and drawings.' : 'At any time you can ask by email to support@sipurai.ai and we will delete everything, including images and drawings.' },
       { icon: 'heart', title: 'You, the parent, decide', text: 'The account is yours. Children do not sign up themselves, and you choose what to enter about them. A made-up name is fine.' },
     ],
     fullPolicy: 'Read the full policy',
@@ -354,4 +394,12 @@ export const gateCopy = {
     version: 'Policy version',
     illustration: 'Illustration of a shield and an open book',
   },
-};
+});
+
+// Account deletion by button is switched off until it is fully tested. The wording follows the switch, so the
+// text never promises a button that is not there. (Vite replaces import.meta.env at build time.)
+export const ACCOUNT_DELETE_UI = import.meta.env?.VITE_ACCOUNT_DELETE_ENABLED === 'true';
+export const policyContent = buildPolicyContent(ACCOUNT_DELETE_UI);
+export const gateCopy = buildGateCopy(ACCOUNT_DELETE_UI);
+export { buildPolicyContent, buildGateCopy };
+

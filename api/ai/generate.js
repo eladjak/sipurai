@@ -148,7 +148,8 @@ export default async function handler(req, res, overrides = {}) {
   log('REQUEST', {
     type,
     promptLength: prompt?.length || 0,
-    promptPreview: typeof prompt === 'string' ? prompt.substring(0, 120) : '(not a string)',
+    // length only: a prompt can contain a child's name, and server logs are not the place for it
+    promptIsString: typeof prompt === 'string',
     hasOptions: !!options,
     ip: ip.substring(0, 8) + '...',
   });
@@ -373,7 +374,7 @@ async function handleImage(apiKey, prompt, options = {}) {
   log('IMAGE_API_PARSED', { finishReason, partCount, partTypes, hasCandidates: !!data.candidates?.length });
 
   if (finishReason === 'SAFETY') {
-    log('IMAGE_SAFETY_BLOCK', { promptPreview: prompt.substring(0, 100) });
+    log('IMAGE_SAFETY_BLOCK', { promptLength: prompt.length });
     const error = new Error('Image was blocked by safety filters. Please try a different prompt.');
     error.status = 422;
     throw error;

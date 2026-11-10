@@ -17,6 +17,7 @@ export const CONSENT_MESSAGES = {
   unavailable: 'לא הצלחנו לבדוק את אישור הפרטיות כרגע. נסו שוב בעוד רגע.',
   badBody: 'כדי להמשיך צריך לסמן את שתי התיבות.',
   staleVersion: 'המדיניות התעדכנה בינתיים. רעננו את הדף ואשרו את הגרסה החדשה.',
+  deleting: 'החשבון הזה נמצא בתהליך מחיקה, ולכן אי אפשר לאשר או להמשיך.',
 };
 
 const LOCALES = new Set(['he', 'en', 'yi']);
@@ -24,8 +25,13 @@ const LOCALES = new Set(['he', 'en', 'yi']);
 /* ---------------- in-memory store (tests only; same contract as the SQL table) ---------------- */
 export function createMemoryConsentStore() {
   const rows = [];
+  const deleting = new Set();
   return {
     _rows: rows,
+    _deleting: deleting,
+    async isDeleting(userId) {
+      return deleting.has(userId);
+    },
     async has({ userId, policyVersion }) {
       return rows.some((r) => r.user_id === userId && r.policy_version === policyVersion);
     },
@@ -43,6 +49,11 @@ export function createMemoryConsentStore() {
 /* ---------------- Supabase store (service-role client) ---------------- */
 export function createSupabaseConsentStore(db) {
   return {
+    async isDeleting(userId) {
+      const { data, error } = await db.from('account_deletions').select('user_id').eq('user_id', userId).limit(1);
+      if (error) throw new Error(`deletion marker read: ${error.message}`);
+      return Array.isArray(data) && data.length > 0;
+    },
     async has({ userId, policyVersion }) {
       const { data, error } = await db
         .from('privacy_consents')
@@ -79,23 +90,13 @@ export async function defaultConsentStore(env = process.env) {
   return createSupabaseConsentStore(await serviceClient(env));
 }
 
-/* Positive answers only, short-lived, default store only: a parent who accepted does not cost a DB
-   read on every AI call. A "no" is never cached, so accepting takes effect immediately. */
-const POSITIVE_TTL_MS = 5 * 60_000;
-const positive = new Map();
-export const forgetConsent = (userId) => {
-  for (const k of positive.keys()) if (k.startsWith(`${userId}|`)) positive.delete(k);
-};
-
-export async function hasConsent({ store, userId, policyVersion = CURRENT_POLICY_VERSION, useCache = false, now = Date.now() }) {
-  const key = `${userId}|${policyVersion}`;
-  if (useCache) {
-    const hit = positive.get(key);
-    if (hit && hit > now) return true;
-  }
-  const ok = await store.has({ userId, policyVersion });
-  if (ok && useCache) positive.set(key, now + POSITIVE_TTL_MS);
-  return ok;
+/**
+ * Asked on EVERY protected request, never cached. A per-instance cache would let a request through for
+ * minutes after the record was removed, and during a database outage, which breaks the two promises
+ * "no record -> 403" and "cannot check -> 503". One small indexed read is the price of that.
+ */
+export async function hasConsent({ store, userId, policyVersion = CURRENT_POLICY_VERSION }) {
+  return store.has({ userId, policyVersion });
 }
 
 /** Validates what the browser sent. Returns {ok:true, items} or {ok:false, code, message_he}. */
@@ -113,6 +114,9 @@ export function validateAcceptance(body = {}) {
 }
 
 export async function recordConsent({ store, userId, body, userAgent }) {
+  if (await store.isDeleting(userId)) {
+    return { ok: false, http: 409, body: { error: { code: 'account_deleting', message_he: CONSENT_MESSAGES.deleting } } };
+  }
   const v = validateAcceptance(body);
   if (!v.ok) return { ok: false, http: 400, body: { error: { code: v.code, message_he: v.message_he } } };
   await store.save({
@@ -122,7 +126,6 @@ export async function recordConsent({ store, userId, body, userAgent }) {
     locale: v.locale,
     userAgent: String(userAgent || '').slice(0, 300) || null,
   });
-  forgetConsent(userId);
   return { ok: true, http: 200, body: { ok: true, hasConsent: true, policyVersion: CURRENT_POLICY_VERSION } };
 }
 
@@ -132,9 +135,8 @@ export async function recordConsent({ store, userId, body, userAgent }) {
  */
 export async function requireConsent(req, res, userId, overrides = {}) {
   try {
-    const useCache = !overrides.store;
-    const store = overrides.store || (await defaultConsentStore(overrides.env || process.env));
-    if (await hasConsent({ store, userId, useCache })) return false;
+    const store = overrides.consentStore || (await defaultConsentStore(overrides.env || process.env));
+    if (await hasConsent({ store, userId })) return false;
     res.status(403).json({ error: CONSENT_MESSAGES.required, code: 'consent_required', policyVersion: CURRENT_POLICY_VERSION });
     return true;
   } catch (e) {
