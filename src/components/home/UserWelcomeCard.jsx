@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 
 function getTimeOfDayGreeting(t, name) {
   const hour = new Date().getHours();
-  const displayName = name && name !== "Guest" ? name : "";
+  const displayName = name || "";
 
   if (hour >= 5 && hour < 12) return t("userWelcome.morning", { name: displayName });
   if (hour >= 12 && hour < 17) return t("userWelcome.afternoon", { name: displayName });
@@ -53,7 +53,7 @@ const UserWelcomeCard = React.memo(function UserWelcomeCard({ userData }) {
                     <AvatarImage src={userData.avatar_url} alt={userData.full_name} />
                   ) : (
                     <AvatarFallback className="bg-gradient-to-br from-white/30 to-white/10 text-white text-xl font-bold">
-                      {userData.full_name?.charAt(0) || "G"}
+                      {userData.full_name?.charAt(0) || t("homeLegacy.guest").charAt(0)}
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -62,7 +62,7 @@ const UserWelcomeCard = React.memo(function UserWelcomeCard({ userData }) {
 
             <div className={`flex-1 min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
               <p className="text-sm text-purple-100 font-medium">{greeting}</p>
-              <h2 className="font-bold text-xl text-white truncate drop-shadow">{userData.full_name}</h2>
+              <h2 className="font-bold text-xl text-white truncate drop-shadow">{userData.full_name || t("homeLegacy.guest")}</h2>
             </div>
           </div>
 

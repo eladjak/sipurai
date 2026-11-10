@@ -39,7 +39,7 @@ const DraftBooksSection = React.memo(function DraftBooksSection({ draftBooks }) 
                 )}
               </div>
               <div className={`flex-1 min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                <h3 className="font-medium text-sm truncate">{book.title || "Untitled Book"}</h3>
+                <h3 className="font-medium text-sm truncate">{book.title || t("homeLegacy.untitled")}</h3>
                 <Badge variant="outline" className="text-xs mt-1 bg-orange-100 text-orange-700 border-orange-200">
                   {book.status === "generating"
                     ? t("home.drafts.status.generating")
