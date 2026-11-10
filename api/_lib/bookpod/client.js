@@ -31,7 +31,7 @@
  * Only step 5 can create an order, so only step 5 can produce an unknown outcome.
  */
 import crypto from 'node:crypto';
-import { expectedVendorTotalAgorot, priceMarginAgorot } from './expected.js';
+import { expectedVendorTotalAgorot, priceMarginAgorot, maxOrderAgorot } from './expected.js';
 
 export class VendorError extends Error {
   constructor(code, message, { unknownOutcome = false } = {}) {
@@ -305,26 +305,39 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
 
   async function priceOf(order, bookid) {
     const { data } = await call('POST', '/orders/price', orderBody(order, bookid));
-    if (!data || data.success !== true || data.priceable !== true || !(Number(data.total) > 0)) {
+    if (!data || data.success !== true || data.priceable !== true) {
       const why = (data?.validationErrors || []).map((v) => `${v.code}`).join(',');
       throw new VendorError('vendor_price_mismatch', `price unavailable ${why}`.trim());
     }
-    return { totalAgorot: Math.round(Number(data.total) * 100), raw: data };
+    // Fail closed on anything that is not a plain, finite, positive ILS amount.
+    const total = data.total;
+    if (typeof total !== 'number' || !Number.isFinite(total) || total <= 0) {
+      throw new VendorError('vendor_price_mismatch', 'partner price is not a finite positive number');
+    }
+    if (data.currency !== 'ILS') throw new VendorError('vendor_price_mismatch', 'partner price is not in ILS');
+    const agorot = Math.round(total * 100);
+    if (!Number.isSafeInteger(agorot) || agorot <= 0) throw new VendorError('vendor_price_mismatch', 'partner price out of range');
+    return { totalAgorot: agorot, raw: data };
   }
 
   function checkPrice(order, totalAgorot) {
     let expected;
     let margin;
+    let ceiling;
     try {
       expected = expectedVendorTotalAgorot(order, env);
       margin = priceMarginAgorot(env);
+      ceiling = maxOrderAgorot(env);
     } catch (e) {
-      throw new VendorError('vendor_rejected', `cannot compute expected cost: ${e.message}`);
+      throw new VendorError(e?.code === 'config_invalid' ? 'vendor_not_configured' : 'vendor_rejected', `cannot compute expected cost: ${e.message}`);
     }
-    if (Math.abs(totalAgorot - expected) > margin) {
+    // Written so that NaN / Infinity can never pass: only a comparison that is TRUE lets the order through.
+    const withinMargin = Math.abs(totalAgorot - expected) <= margin;
+    const underCeiling = totalAgorot <= ceiling;
+    if (!(withinMargin && underCeiling)) {
       throw new VendorError(
         'vendor_price_mismatch',
-        `partner price ${totalAgorot} differs from expected ${expected} by more than ${margin} (agorot)`,
+        `partner price ${totalAgorot} differs from expected ${expected} by more than ${margin} (agorot) or exceeds the ceiling`,
       );
     }
     return { expected, margin };

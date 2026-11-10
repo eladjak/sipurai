@@ -365,6 +365,45 @@ test('CODEX #5: authenticated calls never follow redirects (token cannot reach a
   assert.equal(f3.calls.filter((c2) => c2.method === 'PUT').length, 0);
 });
 
+test('CODEX #6: the price gate fails closed on NaN / Infinity / absurd config and non-ILS or non-numeric totals', async () => {
+  const run = async (o = ORDER, env = ENV, vend = {}) => {
+    const f = fakeVendor(vend);
+    const e = await createVendorClient({ env, fetchImpl: f }).submitOrder(o, FILES).catch((x) => x);
+    return { e, f };
+  };
+  // absurd margin values: a 30-digit string used to become Infinity and accept any price
+  for (const bad of ['9'.repeat(30), '99999999', '1001', '-5', '1e9', 'abc']) {
+    const { e, f } = await run(ORDER, { ...ENV, BOOKPOD_PRICE_MARGIN_AGOROT: bad }, { total: 5000 });
+    assert.equal(e.code, 'vendor_not_configured', bad);
+    assert.equal(f.count('POST', '/api/v1/orders'), 0, bad);
+  }
+  // malformed order data makes the expected amount NaN: refused, never compared
+  for (const o of [{ ...ORDER, qty: NaN }, { ...ORDER, qty: 'x' }, { ...ORDER, qty: 0 }, { ...ORDER, qty: 51 }, { ...ORDER, page_count: 25 }, { ...ORDER, page_count: undefined, quote: { presetId: 'square-220', pageCount: 'many' } }]) {
+    const { e, f } = await run(o);
+    assert.ok(['vendor_rejected', 'vendor_not_configured'].includes(e.code), `${e.code}`);
+    assert.equal(f.count('POST', '/api/v1/orders'), 0);
+  }
+  // partner answers that are not a plain positive ILS number
+  for (const total of [null, 'NaN', '53.66', Infinity, -1, 0]) {
+    const f = fakeVendor();
+    const wrap = async (url, init) => {
+      if (String(url).endsWith('/orders/price')) return json(200, { success: true, priceable: true, currency: 'ILS', total, validationErrors: [] });
+      return f(url, init);
+    };
+    const e = await createVendorClient({ env: ENV, fetchImpl: wrap }).submitOrder(ORDER, FILES).catch((x) => x);
+    assert.equal(e.code, 'vendor_price_mismatch', String(total));
+    assert.equal(f.count('POST', '/api/v1/orders'), 0);
+  }
+  const wrongCurrency = async (url, init) => (String(url).endsWith('/orders/price') ? json(200, { success: true, priceable: true, currency: 'USD', total: 53.66 }) : fakeVendor()(url, init));
+  assert.equal(await code(createVendorClient({ env: ENV, fetchImpl: wrongCurrency }).submitOrder(ORDER, FILES)), 'vendor_price_mismatch');
+  // absolute ceiling holds
+  const { e } = await run({ ...ORDER, qty: 50 }, { ...ENV, BOOKPOD_MAX_ORDER_AGOROT: '1000' }, { total: 1000 });
+  assert.notEqual(e.code, undefined);
+  assert.equal(e.code === 'vendor_price_mismatch' || e.code === 'vendor_rejected', true);
+  // NEGATIVE CONTROL: sane config and a price inside the (maximum allowed) margin still go through
+  assert.deepEqual((await run(ORDER, { ...ENV, BOOKPOD_PRICE_MARGIN_AGOROT: '1000' }, { total: 60 })).e, { ref: '00001612' });
+});
+
 test('getStatus uses GET /shipments/track by our partner order number', async () => {
   const f = fakeVendor();
   const c = createVendorClient({ env: ENV, fetchImpl: f });
