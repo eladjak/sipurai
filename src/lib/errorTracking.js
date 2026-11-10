@@ -15,6 +15,40 @@
  * SDK is included in the vendor chunk.
  */
 
+/**
+ * PII filter for COPPA compliance (Sentry `beforeSend`).
+ *
+ * Strip email and name from the user context before the event leaves the browser. We keep only the
+ * anonymous user ID so we can count affected users without storing personal data.
+ *
+ * Sentry v8+ delivers `event.breadcrumbs` as an ARRAY. The old code read `event.breadcrumbs.values`,
+ * which on an array is Array.prototype.values (a function), so `.map` on it threw inside beforeSend
+ * and Sentry dropped the event: errors with breadcrumbs were never reported and never scrubbed.
+ * The legacy `{ values: [...] }` shape is still handled.
+ */
+export function scrubEvent(event) {
+  if (event.user) {
+    // Keep only the anonymous id: drop email and username/name
+    event.user = { id: event.user.id };
+  }
+
+  const scrubCrumb = (crumb) => {
+    if (crumb && crumb.data) {
+      const { email: _e, name: _n, username: _u, ...safeData } = crumb.data;
+      return { ...crumb, data: safeData };
+    }
+    return crumb;
+  };
+
+  if (Array.isArray(event.breadcrumbs)) {
+    event.breadcrumbs = event.breadcrumbs.map(scrubCrumb);
+  } else if (Array.isArray(event.breadcrumbs?.values)) {
+    event.breadcrumbs.values = event.breadcrumbs.values.map(scrubCrumb);
+  }
+
+  return event;
+}
+
 /** @type {import('@sentry/react') | null} */
 let _sentry = null;
 let _initPromise = null;
@@ -61,25 +95,7 @@ export async function initErrorTracking() {
        * the browser. We keep only the anonymous user ID so we can count
        * affected users without storing personal data.
        */
-      beforeSend(event) {
-        if (event.user) {
-          // Keep only the anonymous id — drop email and username/name
-          event.user = { id: event.user.id };
-        }
-
-        // Also scrub breadcrumbs that might contain PII in their data
-        if (event.breadcrumbs?.values) {
-          event.breadcrumbs.values = event.breadcrumbs.values.map((crumb) => {
-            if (crumb.data) {
-              const { email: _e, name: _n, username: _u, ...safeData } = crumb.data;
-              return { ...crumb, data: safeData };
-            }
-            return crumb;
-          });
-        }
-
-        return event;
-      },
+      beforeSend: scrubEvent,
     });
 
     _sentry = Sentry;
