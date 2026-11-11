@@ -1,0 +1,182 @@
+[
+  {
+    "name": "he-list",
+    "path": "/heroes",
+    "setup": {
+      "localStorage": {
+        "language": "hebrew"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": []
+  },
+  {
+    "name": "he-empty",
+    "path": "/heroes",
+    "setup": {
+      "localStorage": {
+        "language": "hebrew"
+      },
+      "sessionStorage": {
+        "fixture": "empty"
+      }
+    },
+    "waitFor": "main",
+    "actions": []
+  },
+  {
+    "name": "he-editor",
+    "path": "/heroes/h1",
+    "setup": {
+      "localStorage": {
+        "language": "hebrew"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": []
+  },
+  {
+    "name": "he-editor-error",
+    "path": "/heroes/h1",
+    "setup": {
+      "localStorage": {
+        "language": "hebrew"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": [
+      {
+        "waitFor": "[data-ux=hero-save]"
+      },
+      {
+        "click": "[data-ux=hero-save]"
+      },
+      {
+        "waitFor": "[role=alert]"
+      }
+    ]
+  },
+  {
+    "name": "he-delete",
+    "path": "/heroes/h1",
+    "setup": {
+      "localStorage": {
+        "language": "hebrew"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": [
+      {
+        "waitFor": "[data-ux=hero-delete]"
+      },
+      {
+        "click": "[data-ux=hero-delete]"
+      },
+      {
+        "waitFor": "[role=alertdialog]"
+      }
+    ]
+  },
+  {
+    "name": "en-list",
+    "path": "/heroes",
+    "setup": {
+      "localStorage": {
+        "language": "english"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": []
+  },
+  {
+    "name": "en-empty",
+    "path": "/heroes",
+    "setup": {
+      "localStorage": {
+        "language": "english"
+      },
+      "sessionStorage": {
+        "fixture": "empty"
+      }
+    },
+    "waitFor": "main",
+    "actions": []
+  },
+  {
+    "name": "en-editor",
+    "path": "/heroes/h1",
+    "setup": {
+      "localStorage": {
+        "language": "english"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": []
+  },
+  {
+    "name": "en-editor-error",
+    "path": "/heroes/h1",
+    "setup": {
+      "localStorage": {
+        "language": "english"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": [
+      {
+        "waitFor": "[data-ux=hero-save]"
+      },
+      {
+        "click": "[data-ux=hero-save]"
+      },
+      {
+        "waitFor": "[role=alert]"
+      }
+    ]
+  },
+  {
+    "name": "en-delete",
+    "path": "/heroes/h1",
+    "setup": {
+      "localStorage": {
+        "language": "english"
+      },
+      "sessionStorage": {
+        "fixture": "list"
+      }
+    },
+    "waitFor": "main",
+    "actions": [
+      {
+        "waitFor": "[data-ux=hero-delete]"
+      },
+      {
+        "click": "[data-ux=hero-delete]"
+      },
+      {
+        "waitFor": "[role=alertdialog]"
+      }
+    ]
+  }
+]
