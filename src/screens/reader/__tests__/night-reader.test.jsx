@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, renderHook, waitFor } from '@testing-library/react';
 import ReaderControls from '../ReaderControls';
 import AdultExit from '../AdultExit';
 import ReaderPage from '../ReaderPage';
@@ -91,4 +91,19 @@ describe('App reader routing', () => {
       expect(screen.queryByText('Story')).toBeNull();
     } finally { vi.unstubAllEnvs(); }
   });
+});
+
+const entities = vi.hoisted(() => ({ privateBook: vi.fn(), privatePages: vi.fn(), publicBook: vi.fn(), publicPages: vi.fn() }));
+vi.mock('@/entities/Book', () => ({Book: {get: entities.privateBook}}));
+vi.mock('@/entities/Page', () => ({Page: {filter: entities.privatePages}}));
+vi.mock('@/entities/PublicBook', () => ({PublicBook: {get: entities.publicBook}, PublicPage: {filter: entities.publicPages}}));
+it('does not fall back to public entities when the private book fails', async () => {
+  entities.privateBook.mockRejectedValue(new Error('not available'));
+  entities.publicBook.mockResolvedValue({id:'1'});
+  entities.publicPages.mockResolvedValue([]);
+  const {useNightReader: realHook} = await vi.importActual('../useNightReader');
+  const {result} = renderHook(() => realHook('1'));
+  await waitFor(() => expect(result.current.state).toBe('failed'));
+  expect(entities.publicBook).not.toHaveBeenCalled();
+  expect(entities.publicPages).not.toHaveBeenCalled();
 });
