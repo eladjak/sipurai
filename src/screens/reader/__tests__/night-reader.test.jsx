@@ -26,3 +26,29 @@ describe('night reader', () => {
   });
   it('shows a calm fallback for missing art', () => { render(<ReaderPage page={{text_content:'hello'}} t={t}/>); expect(screen.getByText('nightReader.missingArt')).toBeTruthy(); });
 });
+
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import NightReader from '../NightReader';
+import { useNightReader } from '../useNightReader';
+vi.mock('../useNightReader', () => ({ useNightReader: vi.fn() }));
+vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({t, language:'hebrew', isRTL:true}) }));
+vi.mock('@/hooks/useTTS', () => ({ useTTS: () => ({speak:vi.fn(),stop:vi.fn(), currentWordIndex:-1}) }));
+vi.mock('@/components/bookReader/TTSControls', () => ({ getStoredTTSEngine: () => 'browser' }));
+const renderReader = (state, pages=[]) => {
+  useNightReader.mockReturnValue({state, pages, index:0, setIndex:vi.fn(), book:{title:'Story'}});
+  return render(<MemoryRouter initialEntries={['/book/1/read']}><Routes><Route path="/book/:id/read" element={<NightReader/>}/></Routes></MemoryRouter>);
+};
+describe('reader states', () => {
+  it.each(['loading','building','paused','failed'])( 'shows %s state', (status) => {
+    const internal = {loading:'loading', building:'starting', paused:'interrupted', failed:'failed'}[status];
+    renderReader(internal); expect(screen.getByText(`nightReader.${status}`)).toBeTruthy();
+  });
+  it('keeps a ready page visible while more are building', () => {
+    renderReader('building',[{text_content:'A ready page'}]);
+    expect(screen.getByText('nightReader.building')).toBeTruthy(); expect(document.querySelector('.reader-text').textContent).toBe('A ready page');
+  });
+  it('disables next at the last page', () => {
+    render(<ReaderControls index={1} count={2} go={vi.fn()} t={t} tts={{}} text="hello"/>);
+    expect(screen.getByRole('button',{name:'nightReader.next'}).disabled).toBe(true);
+  });
+});
