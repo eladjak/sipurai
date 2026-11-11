@@ -1,0 +1,23 @@
+export default {
+  reader: {
+    guestBanner: 'רוצים ספר כזה עם הילד שלכם? נסו בחינם',
+    finished: 'איזה כיף שסיימתם לקרוא יחד!',
+    zoomIn: 'הגדלה',
+    zoomOut: 'הקטנה',
+    pdfDownload: 'הורדת PDF לקריאה ביתית',
+    pdfTitle: 'PDF לקריאה ביתית; אינו קובץ מוכן לדפוס מקצועי',
+    print: 'הדפסה',
+    musicOn: 'הפעלת מוזיקת רקע',
+    musicOff: 'כיבוי מוזיקת רקע',
+    closeNotice: 'סגירת הודעה',
+    autoOn: 'הפעלת הקראה אוטומטית',
+    autoOff: 'כיבוי הקראה אוטומטית',
+    auto: '🔊 אוטומטי',
+    manual: '🔇 ידני',
+    chooseVoice: 'בחירת קול להקראה',
+    naturalVoice: 'קול טבעי',
+    browserVoice: 'דפדפן (חינם)',
+    openaiVoice: 'OpenAI (טבעי)',
+    geminiVoice: 'Gemini (טבעי)',
+  },
+};

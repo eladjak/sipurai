@@ -1,0 +1,23 @@
+export default {
+  reader: {
+    guestBanner: 'Want a book like this with your child? Try it free',
+    finished: 'What a joy to finish reading together!',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    pdfDownload: 'Download PDF for home reading',
+    pdfTitle: 'Home-reading PDF; not a print-ready file',
+    print: 'Print',
+    musicOn: 'Turn background music on',
+    musicOff: 'Turn background music off',
+    closeNotice: 'Close notice',
+    autoOn: 'Turn automatic narration on',
+    autoOff: 'Turn automatic narration off',
+    auto: '🔊 Auto',
+    manual: '🔇 Manual',
+    chooseVoice: 'Choose narration voice',
+    naturalVoice: 'Natural voice',
+    browserVoice: 'Browser (free)',
+    openaiVoice: 'OpenAI (natural)',
+    geminiVoice: 'Gemini (natural)',
+  },
+};
