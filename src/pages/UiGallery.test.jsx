@@ -41,7 +41,7 @@ describe('UI gallery acceptance', () => {
   it('demonstrates forced interaction states and disabled, loading, error, empty, selected and cost states', () => {
     const { container } = render(<UiGallery />);
     for (const state of ['hover', 'focus', 'active']) expect(block(container, `button-${state}`).querySelector('button').className).toMatch(state === 'hover' ? /violet-700/ : state === 'focus' ? /outline/ : /scale/);
-    expect(within(block(container, 'button-disabled')).getAllByRole('button')[0].disabled).toBe(true);
+    expect(within(block(container, 'button-disabled')).getAllByRole('button')[0].hasAttribute('disabled')).toBe(true);
     expect(block(container, 'button-loading').querySelector('button').disabled).toBe(true);
     expect(within(block(container, 'field-error')).getByText('כדאי להוסיף שם לסיפור.')).toBeTruthy();
     expect(within(block(container, 'emptystate-empty')).getByText('עדיין אין כאן סיפורים')).toBeTruthy();

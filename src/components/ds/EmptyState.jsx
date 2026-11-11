@@ -7,7 +7,7 @@ export function EmptyState({
   headingLevel = 2,
 }) {
   /** @type {import('react').ElementType} */
-  const Heading = `h${headingLevel}`;
+  const Heading = /** @type {any} */ (`h${headingLevel}`);
   return (
     <section className="flex flex-col items-center gap-4 p-6 text-center text-sp-ink-900">
       {illustration && <div aria-hidden="true">{illustration}</div>}
