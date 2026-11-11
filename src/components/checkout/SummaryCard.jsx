@@ -5,7 +5,7 @@ import { formatIls } from './format';
 
 /** Price lines come ONLY from the server quote. Nothing here is computed on the client. */
 export function PriceLines({ quote, loading }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   if (!quote && loading) {
     return (
       <div className="space-y-3" aria-busy="true" aria-label={t('print.checkoutCopy.calculating')}>
@@ -21,7 +21,7 @@ export function PriceLines({ quote, loading }) {
       <ul className="divide-y divide-purple-100 dark:divide-slate-800" data-testid="price-lines">
         {quote.lines.map((l) => (
           <li key={l.key} className="flex items-center justify-between py-2.5 text-base">
-            <span className="text-slate-700 dark:text-slate-200">{language === 'english' ? (l.key === 'book' ? (quote.qty > 1 ? t('print.checkoutCopy.bookMany', { qty: quote.qty }) : t('print.checkoutCopy.book')) : l.key === 'shipping' ? (quote.method === 'pickup' ? t('print.checkoutCopy.pickup') : t('print.checkoutCopy.delivery')) : t('print.checkoutCopy.total')) : l.label_he}</span>
+            <span className="text-slate-700 dark:text-slate-200">{l.key === 'book' ? (quote.qty > 1 ? t('print.checkoutCopy.bookMany', { qty: quote.qty }) : t('print.checkoutCopy.book')) : l.key === 'shipping' ? (quote.method === 'pickup' ? t('print.checkoutCopy.pickup') : t('print.checkoutCopy.delivery')) : t('print.checkoutCopy.item')}</span>
             <span className="font-semibold tabular-nums text-slate-900 dark:text-white" dir="ltr">
               {l.amountAgorot === 0 ? t('print.checkoutCopy.free') : formatIls(l.amountAgorot)}
             </span>

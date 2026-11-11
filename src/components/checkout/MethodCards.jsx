@@ -4,12 +4,12 @@ import { cn } from '@/lib/utils';
 
 /** Ship / pickup choice. Native radios underneath, so keyboard and screen readers just work. */
 export function MethodCards({ value, onChange, pickup }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const options = [
     { id: 'ship', title: t('print.checkoutCopy.delivery'), text: t('print.checkoutCopy.deliveryHint'), Icon: Truck },
   ];
   if (pickup?.enabled) {
-    options.push({ id: 'pickup', title: language !== 'english' && pickup.label_he || t('print.checkoutCopy.pickup'), text: t('print.checkoutCopy.pickupHint'), Icon: Store });
+    options.push({ id: 'pickup', title: t('print.checkoutCopy.pickup'), text: t('print.checkoutCopy.pickupHint'), Icon: Store });
   }
   return (
     <fieldset>

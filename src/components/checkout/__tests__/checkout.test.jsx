@@ -105,7 +105,7 @@ describe('checkout states', () => {
   it('config error -> message with retry that works', async () => {
     const getConfig = vi.fn().mockRejectedValueOnce(new PrintOrderApiError({ code: 'network', message_he: 'אין חיבור' })).mockResolvedValue({ enabled: true, pickup: { enabled: false }, maxQty: 5 });
     checkout(mkApi({ getConfig }));
-    await screen.findByText('אין חיבור');
+    await screen.findByText('אין חיבור לאינטרנט כרגע. בדקו את החיבור ונסו שוב.');
     fireEvent.click(screen.getByText('נסו שוב'));
     await screen.findByText('כמה עותקים להדפיס?');
     expect(screen.queryByText('איסוף עצמי')).toBeNull(); // pickup hidden when config disables it
@@ -152,7 +152,7 @@ describe('checkout states', () => {
   it('step 3: quote failure -> alert with retry, button disabled with reason', async () => {
     const api = mkApi({ getQuote: vi.fn(async () => { throw new PrintOrderApiError({ message_he: 'לא הצלחנו לחשב מחיר כרגע.' }); }) });
     checkout(api, { initialStep: 3, initialAddress: FILLED });
-    await screen.findByText('לא הצלחנו לחשב מחיר כרגע.');
+    await screen.findByText('משהו השתבש. נסו שוב בעוד רגע.');
     expect(screen.getByTestId('pay-button')).toBeDisabled();
     expect(screen.getByTestId('disabled-reason').textContent).toMatch(/נסו שוב/);
   });
@@ -220,7 +220,7 @@ describe('creating the order', () => {
       return b;
     });
     fireEvent.click(btn);
-    await screen.findByText('אין חיבור לאינטרנט כרגע.');
+    await screen.findByText('אין חיבור לאינטרנט כרגע. בדקו את החיבור ונסו שוב.');
     expect(screen.getByRole('alert').textContent).toMatch(/לא חויבתם|לא הצלחנו/);
     fireEvent.click(screen.getByTestId('pay-button'));
     await waitFor(() => expect(createOrder).toHaveBeenCalledTimes(2));
