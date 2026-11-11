@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from '@/data/privacyPolicyContent';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from "@/components/i18n/i18nProvider";
@@ -58,7 +59,7 @@ export default function PageNotFound({}) {
                             {t("legal.notFoundHome")}
                         </button>
                     </div>
-                    <a className="inline-flex min-h-11 items-center underline" href="mailto:support@sipurai.ai">{t("legal.help")}</a>
+                    <a className="inline-flex min-h-11 items-center underline" href={`mailto:${CONTACT_EMAIL}`}>{t("legal.help")}: <span dir="ltr">{CONTACT_EMAIL}</span></a>
                 </div>
             </div>
         </div>

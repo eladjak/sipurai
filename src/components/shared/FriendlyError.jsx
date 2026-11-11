@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from '@/data/privacyPolicyContent';
 import React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ export default function FriendlyError({ title, message, onRetry, onGoBack, isRTL
           </Button>
         )}
       </div>
-      <a className="inline-flex min-h-11 items-center underline" href="mailto:support@sipurai.ai">{t("legal.help")}</a>
+      <a className="inline-flex min-h-11 items-center underline" href={`mailto:${CONTACT_EMAIL}`}>{t("legal.help")}: <span dir="ltr">{CONTACT_EMAIL}</span></a>
     </motion.div>
   );
 }

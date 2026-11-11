@@ -12,9 +12,17 @@ describe('legal content', () => {
       expect(text(gateCopy[lang])).not.toMatch(brands);
     }
   });
-  it('explains the home page sample in both languages', () => {
-    expect(text(policyContent.he)).toContain('בדף הבית, לפני הרשמה:');
-    expect(text(policyContent.en)).toContain('On the home page, before signing up:');
+  it('does not promise an unavailable personalized home sample', () => {
+    expect(text(policyContent.he)).not.toContain('בדף הבית, לפני הרשמה:');
+    expect(text(policyContent.en)).not.toContain('On the home page, before signing up:');
+  });
+  it('avoids an unverified primary transfer destination', () => {
+    expect(text(policyContent.he)).not.toContain('בעיקר בארצות הברית');
+    expect(text(policyContent.en)).not.toContain('mainly in the United States');
+  });
+  it('directs parents to categories and the full list in consent help', () => {
+    expect(gateCopy.he.rows.find((row) => row.icon === 'users').help).toContain('סוגי השירותים');
+    expect(gateCopy.en.rows.find((row) => row.icon === 'users').help).toContain('categories');
   });
   it('offers the full processor list in both languages', () => {
     expect(text(policyContent.he)).toContain('ונשלח את הרשימה המלאה');
@@ -62,4 +70,13 @@ it('renders brand-free policy and consent copy in each supported language', () =
     expect(consent.container.textContent).not.toMatch(brands);
     cleanup();
   }
+});
+
+import { termsContent } from '@/data/termsContent';
+it('preserves the complete Hebrew terms from the original main branch', () => {
+  let hash = 2166136261;
+  for (const character of JSON.stringify(termsContent)) {
+    hash = Math.imul(hash ^ character.codePointAt(0), 16777619);
+  }
+  expect((hash >>> 0).toString(16)).toBe('ff60a3ab');
 });

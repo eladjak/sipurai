@@ -33,9 +33,7 @@ const buildPolicyContent = (deleteEnabled) => ({
       },
       {
         heading: '2. איזה מידע אנחנו שומרים',
-        body: `**בדף הבית, לפני הרשמה:** אפשר להקליד שם כדי לראות ספר לדוגמה. השם נשאר רק בדפדפן שלכם, לא נשלח אלינו ולא נשמר.
-
-**עליכם, ההורים:**
+        body: `**עליכם, ההורים:**
 • כתובת מייל, ושם אם הוספתם
 • תמונת פרופיל, אם בחרתם או העליתם
 • פרטי המנוי שלכם (איזו תוכנית ומתי היא נגמרת). את פרטי כרטיס האשראי אנחנו לא רואים ולא שומרים.
@@ -65,7 +63,7 @@ const buildPolicyContent = (deleteEnabled) => ({
       },
       {
         heading: '4. מי עוד מטפל במידע',
-        body: `אנחנו עובדים עם חברות חיצוניות. הנה סוגי השירותים ומה כל אחד מקבל. חלק מהספקים פועלים מחוץ לישראל, בעיקר בארצות הברית.
+        body: `אנחנו עובדים עם חברות חיצוניות. הנה סוגי השירותים ומה כל אחד מקבל. חלק מהספקים פועלים מחוץ לישראל.
 
 רוצים לדעת בדיוק אילו חברות? כתבו ל־${CONTACT_EMAIL} ונשלח את הרשימה המלאה.
 
@@ -193,9 +191,7 @@ Privacy questions: ${CONTACT_EMAIL}`,
       },
       {
         heading: '2. What we keep',
-        body: `**On the home page, before signing up:** you can type a name to see a sample book. The name stays in your browser only; it is not sent to us and not stored.
-
-**About you, the parent:**
+        body: `**About you, the parent:**
 • Email address, and your name if you add it
 • Profile picture, if you choose or upload one
 • Your subscription details (which plan and when it ends). We never see or store your card details.
@@ -225,7 +221,7 @@ We do not sell or rent information, we do not share it for advertising, and we d
       },
       {
         heading: '4. Who else handles it',
-        body: `We work with outside companies. Here are the categories of services and what each receives. Some providers operate outside Israel, mainly in the United States.
+        body: `We work with outside companies. Here are the categories of services and what each receives. Some providers operate outside Israel.
 
 Want the exact companies? Write to ${CONTACT_EMAIL} and we will send the full list.
 
@@ -349,7 +345,7 @@ const buildGateCopy = (deleteEnabled) => ({
       { icon: 'database', title: 'מה אנחנו שומרים', text: 'עליכם: מייל ושם. על הילד: שם, גיל ותיאור הדמות. ואת הספרים והאיורים שיצרתם.' },
       { icon: 'camera', title: 'תמונות שמעלים', text: 'תמונה שתעלו כדי ליצור דמות משמשת פעם אחת לציור ולא נשמרת אצלנו. נשמר רק הציור. לשניות שלוקח לצייר היא עוברת לספק בינה מלאכותית.' },
       { icon: 'sparkles', title: 'למה', text: 'רק כדי ליצור את הספר, לשמור אותו בספרייה שלכם ולהדפיס אותו אם תזמינו. לא מוכרים מידע, לא משתפים אותו לפרסום ולא מפרסמים לילדים.' },
-      { icon: 'users', title: 'מי עוד מטפל בו', text: 'ספקי בינה מלאכותית מקבלים את בקשת היצירה כדי לכתוב ולצייר. שירות התחברות מנהל את ההתחברות, שירות אחסון שומר את הקבצים, שירות אירוח מארח את האתר וספק סליקה מטפל בתשלום.', help: 'חברה חיצונית היא חברה אחרת שהאפליקציה משתמשת בה כדי לעבוד, למשל כדי להתחבר או ליצור תמונה. ברשימה המלאה במדיניות מופיעה כל אחת ומה היא מקבלת.' },
+      { icon: 'users', title: 'מי עוד מטפל בו', text: 'ספקי בינה מלאכותית מקבלים את בקשת היצירה כדי לכתוב ולצייר. שירות התחברות מנהל את ההתחברות, שירות אחסון שומר את הקבצים, שירות אירוח מארח את האתר וספק סליקה מטפל בתשלום.', help: 'חברה חיצונית היא חברה אחרת שהאפליקציה משתמשת בה כדי לעבוד, למשל כדי להתחבר או ליצור תמונה. במדיניות מופיעים סוגי השירותים ומה הם מקבלים. אפשר לפנות אלינו ולבקש את רשימת החברות המלאה.' },
       { icon: 'trash', title: 'אפשר למחוק הכל', text: deleteEnabled ? 'בכל רגע, בהגדרות. הכל נמחק, כולל התמונות והציורים.' : 'בכל רגע אפשר לבקש במייל שנמחק הכל, כולל התמונות והציורים. הכתובת: support@sipurai.ai' },
       { icon: 'heart', title: 'אתם ההורים מחליטים', text: 'החשבון הוא שלכם. הילדים לא נרשמים בעצמם, ואתם בוחרים איזה מידע עליהם להכניס. אפשר גם שם בדוי.' },
     ],
@@ -379,7 +375,7 @@ const buildGateCopy = (deleteEnabled) => ({
       { icon: 'database', title: 'What we keep', text: 'About you: email and name. About your child: name, age and character description. Plus the books and illustrations you create.' },
       { icon: 'camera', title: 'Photos you upload', text: 'A photo you upload to create a character is used once to draw and is not kept by us. Only the drawing is kept. For the few seconds it takes to draw, it passes to an AI provider.' },
       { icon: 'sparkles', title: 'Why', text: 'Only to create the book, keep it in your library and print it if you order. We do not sell information, share it for advertising, or advertise to children.' },
-      { icon: 'users', title: 'Who else handles it', text: 'AI providers receive the creation request to write and draw. A sign-in service handles sign-in, a storage service stores the files, a hosting service hosts the site, and a payment provider handles payment.', help: 'An outside company is another company the app uses to work, for example to sign in or to create an image. The full list in the policy shows each one and what it receives.' },
+      { icon: 'users', title: 'Who else handles it', text: 'AI providers receive the creation request to write and draw. A sign-in service handles sign-in, a storage service stores the files, a hosting service hosts the site, and a payment provider handles payment.', help: 'An outside company is another company the app uses to work, for example to sign in or to create an image. The policy describes the categories and what they receive. Contact us to request the full list of companies.' },
       { icon: 'trash', title: 'You can delete everything', text: deleteEnabled ? 'At any time, in Settings. Everything is deleted, including images and drawings.' : 'At any time you can ask by email to support@sipurai.ai and we will delete everything, including images and drawings.' },
       { icon: 'heart', title: 'You, the parent, decide', text: 'The account is yours. Children do not sign up themselves, and you choose what to enter about them. A made-up name is fine.' },
     ],

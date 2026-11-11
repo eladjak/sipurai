@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from '@/data/privacyPolicyContent';
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
@@ -80,16 +81,16 @@ export default class ErrorBoundary extends React.Component {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={this.handleReset} variant="default" className="gap-2 min-h-11" style={{ minHeight: 44 }} aria-label={tryAgainLabel}>
+              <Button onClick={this.handleReset} variant="default" className="gap-2 min-h-11" aria-label={tryAgainLabel}>
                 <RefreshCw className="w-4 h-4" aria-hidden="true" />
                 {tryAgainLabel}
               </Button>
-              <Button onClick={this.handleGoHome} variant="outline" className="gap-2 min-h-11" style={{ minHeight: 44 }} aria-label={goHomeLabel}>
+              <Button onClick={this.handleGoHome} variant="outline" className="gap-2 min-h-11" aria-label={goHomeLabel}>
                 <Home className="w-4 h-4" aria-hidden="true" />
                 {goHomeLabel}
               </Button>
             </div>
-            <a className="inline-flex min-h-11 items-center underline" href="mailto:support@sipurai.ai">{labels.help}</a>
+            <a className="inline-flex min-h-11 items-center underline" href={`mailto:${CONTACT_EMAIL}`}>{labels.help}: <span dir="ltr">{CONTACT_EMAIL}</span></a>
           </div>
         </div>
       );
