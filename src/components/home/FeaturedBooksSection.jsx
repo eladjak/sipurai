@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 
 function translateGenre(genre, t) {
+  if (genre === "science-fiction") return t("homeLegacy.scienceFiction");
   const translated = t(`community.genreTags.${genre}`);
   return translated !== `community.genreTags.${genre}` ? translated : genre;
 }

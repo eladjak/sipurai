@@ -7,6 +7,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
+import demoBooks from "@/data/demoBooks";
 import { getDailyPrompt } from "@/lib/dailyPrompt";
 import { captureError } from "@/lib/errorTracking";
 import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
@@ -59,7 +60,7 @@ export default function Home() {
   const [dailyPrompt, setDailyPrompt] = useState(null);
   const [isPromptLoading, setIsPromptLoading] = useState(false);
   const [userData, setUserData] = useState({
-    full_name: "Guest",
+    full_name: "",
     avatar_url: "",
     level: 1,
     xp: 0,
@@ -71,35 +72,21 @@ export default function Home() {
   });
 
 
-  const createSampleFeaturedBooks = () => [
-    {
-      id: "sample1",
-      title: "The Dragon's Quest",
-      description: "Join Maya on her adventure with a friendly dragon who lost his fire.",
-      cover_image: "/images/style-fantasy.jpg",
-      genre: "adventure",
-      age_range: "5-7",
-      isSample: true
-    },
-    {
-      id: "sample2",
-      title: "Ocean Explorers",
-      description: "Dive deep with Sam as he discovers the magical world under the sea.",
-      cover_image: "/images/style-watercolor.jpg",
-      genre: "fantasy",
-      age_range: "8-10",
-      isSample: true
-    },
-    {
-      id: "sample3",
-      title: "Stars and Dreams",
-      description: "A bedtime story about catching dreams among the stars.",
-      cover_image: "/images/topic-space.jpg",
-      genre: "bedtime",
-      age_range: "2-4",
-      isSample: true
-    }
+  const createSampleFeaturedBooks = () => demoBooks.map((book) => ({
+    ...book,
+    isSample: true,
+  }));
+  const sampleDescriptionKeys = [
+    t("homeLegacy.dragonDescription"),
+    t("homeLegacy.spaceDescription"),
+    t("homeLegacy.foxDescription"),
   ];
+  const localizedFeaturedBooks = featuredBooks.map((book, index) => book.isSample ? {
+    ...book,
+    title: book.title[currentLanguage === "english" ? "en" : "he"],
+    description: sampleDescriptionKeys[index],
+  } : book);
+
 
   useEffect(() => {
     const generateDailyPrompt = async (lang) => {
@@ -133,9 +120,7 @@ export default function Home() {
       } catch (err) {
         captureError(err, { context: 'Home.generateDailyPrompt' });
         setDailyPrompt(
-          lang === "hebrew"
-            ? { title: "היער הקסום", description: "ילד מגלה יער שבו החיות יכולים לדבר והעצים לוחשים סודות עתיקים." }
-            : { title: "The Magical Forest", description: "A child discovers a forest where animals can talk and trees whisper ancient secrets." }
+          { title: t("homeLegacy.promptTitle"), description: t("homeLegacy.promptDescription") }
         );
       } finally {
         setIsPromptLoading(false);
@@ -161,7 +146,7 @@ export default function Home() {
             ...prev,
             ...user,
             completedBooks: completedBooks.length,
-            full_name: user.display_name || user.full_name || "Guest",
+            full_name: user.display_name || user.full_name || "",
             level: user.level || 1,
             xp: user.xp || 0,
             nextLevelXp: user.next_level_xp || 200,
@@ -281,7 +266,7 @@ export default function Home() {
           </Card>
         </section>
 
-        <span className="sr-only">Loading homepage content...</span>
+        <span className="sr-only">{t("homeLegacy.loading")}</span>
       </div>
     );
   }
@@ -387,7 +372,7 @@ export default function Home() {
         transition={{ duration: 0.4, delay: 0.15 }}
       >
         <FeaturedBooksSection
-          featuredBooks={featuredBooks}
+          featuredBooks={localizedFeaturedBooks}
           recentBooks={recentBooks}
           isLoading={isLoading}
         />
@@ -410,7 +395,7 @@ export default function Home() {
       {showOnboarding && (
         <OnboardingWizard
           onComplete={() => setShowOnboarding(false)}
-          userName={userData.full_name !== "Guest" ? userData.full_name : ""}
+          userName={userData.full_name}
         />
       )}
     </div>
