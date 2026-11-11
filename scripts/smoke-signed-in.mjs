@@ -28,6 +28,6 @@ try {
   const ok = result.status === 0 && valid && counts.failed === 0;
   const readOnlyComplete = target.readOnly && counts.passed === 1 && counts.skipped === 2;
   console.log(`SMOKE ${ok ? (counts.skipped && !readOnlyComplete ? 'INCOMPLETE' : 'PASS') : 'FAIL'}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped${counts.skipped ? ` (${target.readOnly ? 'production read-only restriction or missing credentials' : target.local ? 'local credentials missing or local admin fixtures unavailable' : 'test credentials missing'})` : ''}`);
-  if (!ok) console.log('Diagnostics: run Playwright directly for failure details; its output can contain sensitive data.');
+  if (!ok) console.log('Diagnostics: run npx playwright test --project=signed-in --no-deps e2e/signed-in/main-flow.spec.js e2e/signed-in/admin.spec.js; output can contain sensitive data.');
   process.exitCode = ok && (target.local || counts.skipped === 0 || readOnlyComplete) ? 0 : 1;
 } finally { rmSync(dir, { recursive: true, force: true }); }

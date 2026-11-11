@@ -44,7 +44,7 @@ export async function isolateBrowser(page, target) {
       return route.fulfill({ json: single ? (data[0] || null) : data, headers });
     }
     if (target.local && sameApp && url.pathname.startsWith('/api/')) return route.abort();
-    if ((sameApp && read) || clerkDev || (target.production && host === 'clerk.sipurai.ai') || (!target.local && target.supabaseHost && host === target.supabaseHost && url.protocol === 'https:' && read)) return route.continue();
+    if ((sameApp && read) || clerkDev || (target.production && host === 'clerk.sipurai.ai') || (!target.local && target.supabaseHost && host === target.supabaseHost && url.protocol === 'https:' && !url.pathname.startsWith('/rest/v1/rpc/') && read)) return route.continue();
     return route.abort();
   });
 }

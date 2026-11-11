@@ -34,6 +34,7 @@ it('permits only read requests to the explicitly configured test Supabase host',
   expect(await action('https://testproject.supabase.co/rest/v1/books', 'GET')).toBe('allow');
   expect(await action('https://testproject.supabase.co/rest/v1/books', 'POST')).toBe('block');
   expect(await action('https://other.supabase.co/rest/v1/books', 'GET')).toBe('block');
+  expect(await action('https://testproject.supabase.co/rest/v1/rpc/change_data', 'GET')).toBe('block');
 });
 
 it('rejects the production Supabase project and accepts the isolated preview hostname', () => {
