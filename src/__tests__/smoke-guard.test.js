@@ -62,3 +62,26 @@ it('serves local synthetic books and blocks local service writes', async () => {
   expect(await run('http://localhost:4173/api/story', 'GET')).toBe('block');
   expect((await run('http://localhost:4173/api/privacy/consent', 'GET')).json.hasConsent).toBe(true);
 });
+
+it('allows only the Clerk package on jsDelivr over HTTPS GET', async () => {
+  const { isolateBrowser } = await import('../../e2e/signed-in/guard.js');
+  let handler;
+  await isolateBrowser({ route: async (_, fn) => { handler = fn; } }, targetFor({}));
+  async function action(url, method = 'GET') {
+    let result;
+    await handler({ request: () => ({ url: () => url, method: () => method }), continue: () => { result = 'allow'; }, abort: () => { result = 'block'; } });
+    return result;
+  }
+  expect(await action('https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js')).toBe('allow');
+  expect(await action('https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js', 'POST')).toBe('block');
+  expect(await action('https://cdn.jsdelivr.net/npm/other/package.js')).toBe('block');
+  expect(await action('http://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js')).toBe('block');
+  expect(await action('https://cdn.jsdelivr.net/npm/@clerk/../other/package.js')).toBe('block');
+});
+
+it('derives local consent from the shared policy version', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile('e2e/signed-in/guard.js', 'utf8');
+  expect(source).toMatch(/import\s*\{\s*CURRENT_POLICY_VERSION\s*\}\s*from\s*['"]\.\.\/\.\.\/api\/_lib\/policyVersion\.js['"]/);
+  expect(source).toMatch(/policyVersion:\s*CURRENT_POLICY_VERSION/);
+});

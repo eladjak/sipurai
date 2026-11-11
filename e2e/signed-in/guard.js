@@ -1,3 +1,5 @@
+import { CURRENT_POLICY_VERSION } from '../../api/_lib/policyVersion.js';
+
 const PRODUCTION_SUPABASE = 'furviizyohryyqubosut.supabase.co';
 
 export function targetFor(env = process.env) {
@@ -6,6 +8,7 @@ export function targetFor(env = process.env) {
   try { url = new URL(raw); } catch { throw new Error('Invalid smoke target URL'); }
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error('Invalid smoke target URL');
   const host = url.hostname.toLowerCase().replace(/\.$/, '');
+  // This exemption is safe only while preview.sipurai.ai serves isolated test data.
   const production = host !== 'preview.sipurai.ai' && (host === 'sipurai.ai' || host.endsWith('.sipurai.ai'));
   if (production && env.SMOKE_ALLOW_PRODUCTION_READONLY !== '1') throw new Error('Production target refused; explicit read-only opt-in required');
   const supabaseHost = (env.SMOKE_SUPABASE_HOST || '').toLowerCase().replace(/\.$/, '');
@@ -33,8 +36,9 @@ export async function isolateBrowser(page, target) {
     const method = request.method();
     const read = ['GET', 'HEAD', 'OPTIONS'].includes(method);
     const sameApp = url.origin === target.baseURL;
+    const clerkCdn = url.protocol === 'https:' && host === 'cdn.jsdelivr.net' && method === 'GET' && url.pathname.startsWith('/npm/@clerk/');
     const clerkDev = host.endsWith('.clerk.accounts.dev') || host.endsWith('.clerk.dev');
-    if (target.local && sameApp && url.pathname === '/api/privacy/consent' && method === 'GET') return route.fulfill({ json: { hasConsent: true, policyVersion: '2026-11-10' } });
+    if (target.local && sameApp && url.pathname === '/api/privacy/consent' && method === 'GET') return route.fulfill({ json: { hasConsent: true, policyVersion: CURRENT_POLICY_VERSION } });
     if (target.local && host.endsWith('.supabase.co') && url.pathname.startsWith('/rest/v1/') && read) {
       const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET, HEAD, OPTIONS' };
       if (method === 'OPTIONS') return route.fulfill({ status: 204, headers });
@@ -44,7 +48,7 @@ export async function isolateBrowser(page, target) {
       return route.fulfill({ json: single ? (data[0] || null) : data, headers });
     }
     if (target.local && sameApp && url.pathname.startsWith('/api/')) return route.abort();
-    if ((sameApp && read) || clerkDev || (target.production && host === 'clerk.sipurai.ai') || (!target.local && target.supabaseHost && host === target.supabaseHost && url.protocol === 'https:' && !url.pathname.startsWith('/rest/v1/rpc/') && read)) return route.continue();
+    if ((sameApp && read) || clerkCdn || clerkDev || (target.production && host === 'clerk.sipurai.ai') || (!target.local && target.supabaseHost && host === target.supabaseHost && url.protocol === 'https:' && !url.pathname.startsWith('/rest/v1/rpc/') && read)) return route.continue();
     return route.abort();
   });
 }
