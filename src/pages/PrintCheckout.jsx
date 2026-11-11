@@ -328,7 +328,10 @@ export function PrintCheckoutView({
               {createError && (
                 <div id="create-error">
                 <InlineAlert title={t('print.checkoutPage.createError')} onRetry={submit} retryLabel={t('print.checkoutPage.retry')}>
-                  {/** @type {any} */ (t('print.checkoutPage.createUncertain'))}
+                  {/** @type {any} */ (<>
+                    {(createError.code === 'unauthorized' || createError.code === 'network') && <p>{errorText(createError)}</p>}
+                    <p>{/** @type {any} */ (t('print.checkoutPage.createUncertain'))}</p>
+                  </>)}
                 </InlineAlert>
                 </div>
               )}

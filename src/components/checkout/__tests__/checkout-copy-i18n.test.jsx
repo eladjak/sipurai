@@ -48,7 +48,7 @@ it('explains uncertain payment status in English when checkout cannot open', asy
   wrap(<PrintCheckoutView bookId="b" api={api} persist={false} initialStep={3} initialAddress={{ fullName: 'Dana Levy', phone: '0501234567', city: 'Haifa', street: 'Main', houseNumber: '12' }} quoteDebounceMs={0} redirect={() => {}} />);
   await waitFor(() => expect(screen.getByTestId('pay-button')).not.toBeDisabled());
   fireEvent.click(screen.getByTestId('pay-button'));
-  expect(await screen.findByText('We could not confirm the payment status. Check your orders before trying again.')).toBeInTheDocument();
+  expect(await screen.findByText('You did not reach the payment page, so this attempt did not charge you. You can try again; if you tried earlier, check My Orders.')).toBeInTheDocument();
 });
 
 it.each([
@@ -60,4 +60,21 @@ it.each([
   wrap(<PaymentReturn api={{ getOrder: async () => ({ status }) }} orderId="1" />);
   expect(await screen.findByText(title)).toBeInTheDocument();
   expect(screen.getByText(hint)).toBeInTheDocument();
+});
+
+
+it('shows sign-in guidance above the payment explanation for unauthorized checkout', async () => {
+  const { fireEvent, waitFor } = await import('@testing-library/react');
+  const { PrintCheckoutView } = await import('@/pages/PrintCheckout');
+  const api = {
+    getConfig: async () => ({ enabled: true, pickup: { enabled: false }, maxQty: 5 }),
+    getQuote: async () => ({ qty: 1, method: 'ship', lines: [], totalAgorot: 100 }),
+    createOrder: async () => { throw { code: 'unauthorized' }; },
+  };
+  wrap(<PrintCheckoutView bookId="b" api={api} persist={false} initialStep={3} initialAddress={{ fullName: 'Dana Levy', phone: '0501234567', city: 'Haifa', street: 'Main', houseNumber: '12' }} quoteDebounceMs={0} redirect={() => {}} />);
+  await waitFor(() => expect(screen.getByTestId('pay-button')).not.toBeDisabled());
+  fireEvent.click(screen.getByTestId('pay-button'));
+  const guidance = await screen.findByText('Please sign in again.');
+  const explanation = screen.getByText('You did not reach the payment page, so this attempt did not charge you. You can try again; if you tried earlier, check My Orders.');
+  expect(guidance.compareDocumentPosition(explanation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

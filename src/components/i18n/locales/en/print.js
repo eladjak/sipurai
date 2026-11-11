@@ -9,7 +9,7 @@ export default {
   "generic": "Something went wrong. Please try again.",
   "unauthorized": "Please sign in again.",
   "forbidden": "You do not have permission to do this.",
-  "createUncertain": "We could not confirm the payment status. Check your orders before trying again.",
+  "createUncertain": "You did not reach the payment page, so this attempt did not charge you. You can try again; if you tried earlier, check My Orders.",
   "network": "There is no internet connection. Check your connection and try again.",
   "unavailable": "Printed book orders are not available yet",
   "unavailableHint": "We are getting things ready. Your digital book still works as usual.",
