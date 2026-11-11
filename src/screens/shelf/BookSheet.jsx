@@ -1,0 +1,20 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { BookOpen, Pencil, Printer } from 'lucide-react';
+import { Sheet } from '@/components/ds/Sheet';
+import { useI18n } from '@/components/i18n/i18nProvider';
+
+export default function BookSheet({ book, open, onOpenChange, onRead }) {
+  const { t } = useI18n();
+  if (!book) return null;
+  const ready = book.status === 'complete';
+  const actions = [
+    ready && { label: t('shelf.read'), to: `/BookView?id=${encodeURIComponent(book.id)}`, icon: BookOpen, onClick: onRead },
+    book.status !== 'generating' && { label: t('shelf.edit'), to: `/BookCreation?id=${encodeURIComponent(book.id)}`, icon: Pencil },
+    ready && import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' && { label: t('shelf.print'), to: `/book/${encodeURIComponent(book.id)}/order`, icon: Printer },
+  ].filter(Boolean);
+  return <Sheet open={open} onOpenChange={onOpenChange} title={book.title || t('shelf.untitled')} description={book.child_name || t('shelf.chooseAction')}>
+    {book.status !== 'complete' && <p className="mb-4 text-sp-ink-600">{t(`shelf.${book.status}`)}</p>}
+    <div className="grid gap-2">{actions.map(({ label, to, icon: Icon, onClick }) => <Link key={to} to={to} onClick={onClick} className="flex min-h-12 items-center gap-3 rounded-sp-sm border border-sp-line bg-sp-card px-4 font-medium text-sp-ink-900 hover:bg-sp-violet-50 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600"><Icon aria-hidden="true" className="h-5 w-5" />{label}</Link>)}</div>
+  </Sheet>;
+}
