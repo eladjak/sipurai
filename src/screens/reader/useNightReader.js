@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Book } from '@/entities/Book';
 import { Page } from '@/entities/Page';
-import { PublicBook, PublicPage } from '@/entities/PublicBook';
 import { readablePages, viewState } from '@/lib/bookProgress';
 import { isRunLive } from '@/lib/generationLock';
 
@@ -13,9 +12,8 @@ export function useNightReader(id) {
     let active = true, timer;
     async function load(first) {
       try {
-        let b; try { b = await Book.get(id); } catch { /* public fallback */ }
-        if (!b) b = await PublicBook.get(id);
-        let p; try { p = await Page.filter({ book_id: id }, 'page_number'); } catch { p = await PublicPage.filter({ book_id: id }, 'page_number'); }
+        const b = await Book.get(id);
+        const p = await Page.filter({ book_id: id }, 'page_number');
         if (!active) return;
         const list = Array.isArray(p) ? p : [];
         setBook(b); setRows(list); setFailed(!b);

@@ -31,7 +31,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import NightReader from '../NightReader';
 import { useNightReader } from '../useNightReader';
 vi.mock('../useNightReader', () => ({ useNightReader: vi.fn() }));
-vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({t, language:'hebrew', isRTL:true}) }));
+vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({t, language:'hebrew', isRTL:true}), I18nProvider: ({children}) => children }));
 vi.mock('@/hooks/useTTS', () => ({ useTTS: () => ({speak:vi.fn(),stop:vi.fn(), currentWordIndex:-1}) }));
 vi.mock('@/components/bookReader/TTSControls', () => ({ getStoredTTSEngine: () => 'browser' }));
 const renderReader = (state, pages=[]) => {
@@ -50,5 +50,45 @@ describe('reader states', () => {
   it('disables next at the last page', () => {
     render(<ReaderControls index={1} count={2} go={vi.fn()} t={t} tts={{}} text="hello"/>);
     expect(screen.getByRole('button',{name:'nightReader.next'}).disabled).toBe(true);
+  });
+});
+
+const auth = vi.hoisted(() => ({ user: null }));
+vi.mock('@/lib/AuthContext', () => ({ useAuth: () => ({...auth, isLoadingAuth:false, isLoadingPublicSettings:false}), AuthProvider: ({children}) => children, FallbackAuthProvider: ({children}) => children }));
+vi.mock('@/components/privacy/PrivacyGate', () => ({default: ({children}) => children}));
+vi.mock('@/lib/PageNotFound', () => ({default: () => <div data-testid="route">NotFound</div>}));
+vi.mock('@/lib/analytics', () => ({trackPageView: vi.fn(), identifyUser: vi.fn()}));
+vi.mock('@/lib/NavigationTracker', () => ({default: () => null}));
+vi.mock('@/lib/errorTracking', () => ({initErrorTracking: vi.fn(), captureError: vi.fn()}));
+vi.mock('@/utils/storageCleanup', () => ({cleanupStorage: vi.fn()}));
+vi.mock('@/components/ClerkLocaleProvider', () => ({default: ({children}) => children}));
+vi.mock('@/pages/SignIn', () => ({default: () => <div data-testid="route">SignIn</div>}));
+vi.mock('@/shell/AppShell', () => ({default: ({children}) => <div>{children}</div>}));
+vi.mock('@/pages.config', () => {
+  const names = ['Blog','BlogPost','BookCreation','PrivacyPolicy','TermsOfService','BookView','BookWizard','CharacterEditor','Characters','Community','CommunityPost','Feedback','Home','LandingPage','Leaderboard','Library','Profile','Settings','StoryIdeas','Contact','Pricing','Accessibility'];
+  return {pagesConfig: {Pages: Object.fromEntries(names.map(name => [name, () => <div data-testid="route">{name}</div>])), mainPage:'Home', Layout: ({children}) => children}};
+});
+
+describe('App reader routing', () => {
+  it('switch off keeps BookView and does not route the night reader', async () => {
+    vi.stubEnv('VITE_NEW_SHELL', 'false'); vi.stubEnv('DEV', false); auth.user = {id:'fixture'};
+    try {
+      const {default: App} = await import('../../../App.jsx?reader-off');
+      window.history.pushState({}, '', '/BookView?id=1');
+      const view = render(<App />);
+      expect(await screen.findByTestId('route')).toHaveTextContent('BookView');
+      view.unmount(); window.history.pushState({}, '', '/book/1/read'); render(<App />);
+      expect(await screen.findByTestId('route')).toHaveTextContent('NotFound');
+      expect(screen.queryByRole('main', {name: /night reader/i})).toBeNull();
+    } finally { vi.unstubAllEnvs(); }
+  });
+  it('redirects a signed-out night reader visit without rendering the reader', async () => {
+    vi.stubEnv('VITE_NEW_SHELL', 'true'); auth.user = null;
+    try {
+      const {NewShellRoutes} = await import('../../../App.jsx?reader-on');
+      render(<MemoryRouter initialEntries={['/book/1/read']}><NewShellRoutes /></MemoryRouter>);
+      expect(await screen.findByTestId('route')).toHaveTextContent('SignIn');
+      expect(screen.queryByText('Story')).toBeNull();
+    } finally { vi.unstubAllEnvs(); }
   });
 });

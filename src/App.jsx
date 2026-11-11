@@ -109,7 +109,7 @@ export const NewShellRoutes = () => {
     <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
     <Route path="/parents" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(Pages.BookWizard)} />
     <Route path="/help" element={protectedPage(Help)} />
-    <Route path="/book/:id/read" element={<NightReader />} />
+    <Route path="/book/:id/read" element={protectedPage(NightReader)} />
     <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
     {['CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
     <Route path="/BlogPost" element={<BlogPost />} />
