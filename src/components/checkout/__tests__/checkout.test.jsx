@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { I18nContext, LANGUAGES } from '@/components/i18n/i18nProvider';
 import { isPrintOrderEnabled } from '@/lib/printOrder/flag';
 import { PrintOrderApiError } from '@/lib/printOrder/api';
 import { OrderBookButton } from '@/components/checkout/OrderBookButton';
@@ -14,7 +15,11 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const wrap = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
+const t = (key, values = {}) => {
+  const value = key.split('.').reduce((item, part) => item?.[part], LANGUAGES.hebrew.translations);
+  return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '') : value;
+};
+const wrap = (ui) => render(<I18nContext.Provider value={{ t, language: 'hebrew', direction: 'rtl' }}><MemoryRouter>{ui}</MemoryRouter></I18nContext.Provider>);
 
 const quote = {
   currency: 'ILS', presetId: 'sq22', qty: 1, method: 'ship', vatIncluded: true,
@@ -100,7 +105,7 @@ describe('checkout states', () => {
   it('config error -> message with retry that works', async () => {
     const getConfig = vi.fn().mockRejectedValueOnce(new PrintOrderApiError({ code: 'network', message_he: 'אין חיבור' })).mockResolvedValue({ enabled: true, pickup: { enabled: false }, maxQty: 5 });
     checkout(mkApi({ getConfig }));
-    await screen.findByText('אין חיבור');
+    await screen.findByText('אין חיבור לאינטרנט כרגע. בדקו את החיבור ונסו שוב.');
     fireEvent.click(screen.getByText('נסו שוב'));
     await screen.findByText('כמה עותקים להדפיס?');
     expect(screen.queryByText('איסוף עצמי')).toBeNull(); // pickup hidden when config disables it
@@ -147,7 +152,7 @@ describe('checkout states', () => {
   it('step 3: quote failure -> alert with retry, button disabled with reason', async () => {
     const api = mkApi({ getQuote: vi.fn(async () => { throw new PrintOrderApiError({ message_he: 'לא הצלחנו לחשב מחיר כרגע.' }); }) });
     checkout(api, { initialStep: 3, initialAddress: FILLED });
-    await screen.findByText('לא הצלחנו לחשב מחיר כרגע.');
+    await screen.findByText('משהו השתבש. נסו שוב בעוד רגע.');
     expect(screen.getByTestId('pay-button')).toBeDisabled();
     expect(screen.getByTestId('disabled-reason').textContent).toMatch(/נסו שוב/);
   });
@@ -215,8 +220,8 @@ describe('creating the order', () => {
       return b;
     });
     fireEvent.click(btn);
-    await screen.findByText('אין חיבור לאינטרנט כרגע.');
-    expect(screen.getByRole('alert').textContent).toMatch(/לא חויבתם|לא הצלחנו/);
+    await screen.findByText("לא הגעתם לעמוד התשלום, ולכן לא חויבתם בניסיון הזה. אפשר לנסות שוב, ואם ניסיתם קודם, בדקו ב'ההזמנות שלי'.");
+    expect(screen.getByText('אין חיבור לאינטרנט כרגע. בדקו את החיבור ונסו שוב.')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('pay-button'));
     await waitFor(() => expect(createOrder).toHaveBeenCalledTimes(2));
     expect(createOrder.mock.calls[1][0].idempotencyKey).toBe(createOrder.mock.calls[0][0].idempotencyKey);
@@ -236,7 +241,7 @@ describe('my orders', () => {
 
     const bad = mkApi({ getMyOrders: vi.fn().mockRejectedValueOnce(new PrintOrderApiError({ message_he: 'אין חיבור' })).mockResolvedValue({ orders: [] }) });
     wrap(<MyOrdersView api={bad} />);
-    await screen.findByText('אין חיבור');
+    await screen.findByText('משהו השתבש. נסו שוב בעוד רגע.');
     fireEvent.click(screen.getByText('נסו שוב'));
     await screen.findByTestId('orders-empty');
   });
@@ -298,4 +303,11 @@ describe('admin', () => {
     fireEvent.click(screen.getByText('כן, לבטל'));
     await waitFor(() => expect(api.adminAction).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'cancel' })));
   });
+});
+
+it('explains uncertain payment status after a missing checkout URL', async () => {
+  checkout(mkApi({ createOrder: vi.fn(async () => ({})) }), { initialStep: 3, initialAddress: FILLED });
+  await waitFor(() => expect(screen.getByTestId('pay-button')).not.toBeDisabled());
+  fireEvent.click(screen.getByTestId('pay-button'));
+  expect(await screen.findByText("לא הגעתם לעמוד התשלום, ולכן לא חויבתם בניסיון הזה. אפשר לנסות שוב, ואם ניסיתם קודם, בדקו ב'ההזמנות שלי'.")).toBeInTheDocument();
 });

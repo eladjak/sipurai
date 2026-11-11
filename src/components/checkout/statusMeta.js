@@ -1,14 +1,14 @@
 /** Customer-facing wording and colour for each order status. The print vendor is never named. */
 export const STATUS_META = {
-  awaiting_payment: { label: 'ממתינה לתשלום', tone: 'amber', hint: 'ההזמנה נשמרה. ההדפסה מתחילה רק אחרי אישור התשלום.' },
-  paid: { label: 'שולם, מתכוננים להדפסה', tone: 'blue', hint: 'התשלום התקבל. אנחנו מכינים את הספר להדפסה.' },
-  submitting: { label: 'מעבירים להדפסה', tone: 'blue', hint: 'הספר בדרך לדפוס.' },
-  submitted: { label: 'הועברה להדפסה', tone: 'blue', hint: 'ספק ההדפסה קיבל את הספר שלך.' },
-  in_production: { label: 'בהדפסה', tone: 'purple', hint: 'הספר שלך מודפס ומוכן בימים אלה.' },
-  shipped: { label: 'נשלחה אליך', tone: 'green', hint: 'הספר בדרך אליך.' },
-  ready_for_pickup: { label: 'מוכנה לאיסוף', tone: 'green', hint: 'הספר מוכן לאיסוף.' },
-  cancelled: { label: 'בוטלה', tone: 'gray', hint: 'ההזמנה בוטלה.' },
-  failed_needs_attention: { label: 'דורשת טיפול שלנו', tone: 'red', hint: 'נתקלנו בבעיה בהעברה להדפסה. ההזמנה שמורה ואנחנו מטפלים בזה.' },
+  awaiting_payment: { labelKey: 'print.orderStatuses.awaiting_payment.label', tone: 'amber', hintKey: 'print.orderStatuses.awaiting_payment.hint' },
+  paid: { labelKey: 'print.orderStatuses.paid.label', tone: 'blue', hintKey: 'print.orderStatuses.paid.hint' },
+  submitting: { labelKey: 'print.orderStatuses.submitting.label', tone: 'blue', hintKey: 'print.orderStatuses.submitting.hint' },
+  submitted: { labelKey: 'print.orderStatuses.submitted.label', tone: 'blue', hintKey: 'print.orderStatuses.submitted.hint' },
+  in_production: { labelKey: 'print.orderStatuses.in_production.label', tone: 'purple', hintKey: 'print.orderStatuses.in_production.hint' },
+  shipped: { labelKey: 'print.orderStatuses.shipped.label', tone: 'green', hintKey: 'print.orderStatuses.shipped.hint' },
+  ready_for_pickup: { labelKey: 'print.orderStatuses.ready_for_pickup.label', tone: 'green', hintKey: 'print.orderStatuses.ready_for_pickup.hint' },
+  cancelled: { labelKey: 'print.orderStatuses.cancelled.label', tone: 'gray', hintKey: 'print.orderStatuses.cancelled.hint' },
+  failed_needs_attention: { labelKey: 'print.orderStatuses.failed_needs_attention.label', tone: 'red', hintKey: 'print.orderStatuses.failed_needs_attention.hint' },
 };
 
 export const ORDER_STATUSES = Object.keys(STATUS_META);
@@ -26,5 +26,5 @@ export const TONE_CLASSES = {
 };
 
 export function statusMeta(status) {
-  return STATUS_META[status] || { label: 'בטיפול', tone: 'gray', hint: '' };
+  return STATUS_META[status] || { labelKey: 'print.orderStatuses.unknown.label', tone: 'gray', hintKey: null };
 }

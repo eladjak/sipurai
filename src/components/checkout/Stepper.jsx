@@ -1,18 +1,21 @@
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const CHECKOUT_STEPS = [
-  { n: 1, label: 'עותקים ומשלוח' },
-  { n: 2, label: 'כתובת' },
-  { n: 3, label: 'סיכום ותשלום' },
+  { n: 1, label: 0 },
+  { n: 2, label: 1 },
+  { n: 3, label: 2 },
 ];
 
 /** "Where am I and what is left" indicator. */
 export function Stepper({ current }) {
+  const { t } = useI18n();
+  const labels = [t('print.checkoutCopy.stepCopies'), t('print.checkoutCopy.stepAddress'), t('print.checkoutCopy.stepPayment')];
   return (
-    <nav aria-label="שלבי ההזמנה">
+    <nav aria-label={t('print.checkoutCopy.stepsLabel')}>
       <p className="mb-2 text-sm font-semibold text-purple-700 dark:text-purple-300">
-        שלב {current} מתוך {CHECKOUT_STEPS.length}
+        {t('print.checkoutCopy.stepProgress', { current, total: CHECKOUT_STEPS.length })}
       </p>
       <ol className="flex items-start">
         {CHECKOUT_STEPS.map((s, i) => {
@@ -37,7 +40,7 @@ export function Stepper({ current }) {
                     )}
                   >
                     {done ? <Check className="h-4 w-4" aria-hidden="true" /> : s.n}
-                    <span className="sr-only">{done ? ' הושלם' : active ? ' השלב הנוכחי' : ''}</span>
+                    <span className="sr-only">{done ? ` ${t('print.checkoutCopy.completed')}` : active ? ` ${t('print.checkoutCopy.current')}` : ''}</span>
                   </span>
                   <span
                     className={cn(
@@ -47,7 +50,7 @@ export function Stepper({ current }) {
                   />
                 </div>
                 <span className={cn('mt-1.5 text-center text-xs leading-tight', active ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400')}>
-                  {s.label}
+                  {labels[s.label]}
                 </span>
               </div>
             </li>

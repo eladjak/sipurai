@@ -1,13 +1,16 @@
 import React from 'react';
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 /** Page frame shared by the checkout, my-orders and admin screens (Hebrew, RTL, mobile first). */
-export function PageShell({ title, subtitle, backTo, backLabel = 'חזרה', children, wide = false, headingRef }) {
+export function PageShell({ title, subtitle, backTo, backLabel = '', children, wide = false, headingRef }) {
+  const { language, direction, t } = useI18n();
+  const lang = { hebrew: 'he', english: 'en', yiddish: 'yi' }[language] || 'he';
   return (
-    <div dir="rtl" lang="he" className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-amber-50/60 pb-48 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <div dir={direction} lang={lang} className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-amber-50/60 pb-48 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className={cn('mx-auto w-full px-4 pt-5 sm:px-6', wide ? 'max-w-5xl' : 'max-w-xl')}>
         {backTo && (
           <Link
@@ -15,7 +18,7 @@ export function PageShell({ title, subtitle, backTo, backLabel = 'חזרה', chi
             className="mb-3 inline-flex min-h-11 items-center gap-1.5 rounded-xl pe-3 text-sm font-medium text-purple-700 hover:text-purple-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 dark:text-purple-300"
           >
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            {backLabel}
+            {backLabel || t('print.checkoutPage.back')}
           </Link>
         )}
         <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold tracking-tight text-slate-900 focus:outline-none sm:text-3xl dark:text-white">
@@ -73,7 +76,8 @@ export function SecondaryButton({ className, children, ...props }) {
 }
 
 /** Error / notice block. Announced to screen readers, always says what to do next. */
-export function InlineAlert({ tone = 'error', title, children, onRetry, retryLabel = 'נסו שוב', className }) {
+export function InlineAlert({ tone = 'error', title, children, onRetry, retryLabel = '', className }) {
+  const { t } = useI18n();
   const palette =
     tone === 'error'
       ? 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100'
@@ -93,7 +97,7 @@ export function InlineAlert({ tone = 'error', title, children, onRetry, retryLab
             className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-white/70 px-3 font-semibold underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 dark:bg-white/10"
           >
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            {retryLabel}
+            {retryLabel || t('print.checkoutPage.retry')}
           </button>
         )}
       </div>

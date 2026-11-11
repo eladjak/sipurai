@@ -1,3 +1,5 @@
+import hebrewPrint from '@/components/i18n/locales/he/print';
+
 /**
  * Israeli address validation. Every message says what to do, in plain Hebrew,
  * with an example, because it is shown next to the field.
@@ -29,28 +31,28 @@ export const emptyAddress = () => ({
  * @param {'ship'|'pickup'} method
  * @returns {Record<string,string>} field -> message (empty object when valid)
  */
-export function validateAddress(a, method = 'ship') {
+export function validateAddress(a, method = 'ship', t = (key) => hebrewPrint.print.validation[key.split('.').pop()]) {
   const errors = {};
   const v = (k) => String(a?.[k] ?? '').trim();
   if (method !== 'ship') return errors;
 
   if (v('fullName').length < 2 || !/\S+\s+\S+/.test(v('fullName'))) {
-    errors.fullName = 'נא למלא שם פרטי ושם משפחה, למשל: דנה לוי';
+    errors.fullName = String(t('print.validation.name'));
   }
   if (!v('phone')) {
-    errors.phone = 'נא למלא טלפון נייד כדי ששליח יוכל להתקשר, למשל: 050-1234567';
+    errors.phone = String(t('print.validation.phoneRequired'));
   } else if (!isValidPhone(v('phone'))) {
-    errors.phone = 'הטלפון צריך להיות נייד ישראלי, למשל: 050-1234567';
+    errors.phone = String(t('print.validation.phoneInvalid'));
   }
-  if (!v('city')) errors.city = 'נא לבחור עיר מהרשימה או להקליד אותה, למשל: חיפה';
-  if (!v('street')) errors.street = 'נא למלא שם רחוב, למשל: הנרקיסים';
+  if (!v('city')) errors.city = String(t('print.validation.city'));
+  if (!v('street')) errors.street = String(t('print.validation.street'));
   if (!v('houseNumber')) {
-    errors.houseNumber = 'נא למלא מספר בית, למשל: 12';
+    errors.houseNumber = String(t('print.validation.houseRequired'));
   } else if (!/^\d{1,4}\s?[א-תa-zA-Z]?$/.test(v('houseNumber'))) {
-    errors.houseNumber = 'מספר הבית צריך להיות מספר, למשל: 12 או 12א';
+    errors.houseNumber = String(t('print.validation.houseInvalid'));
   }
   if (v('zip') && !/^\d{7}$/.test(v('zip'))) {
-    errors.zip = 'מיקוד הוא 7 ספרות, למשל: 1234567. אפשר גם להשאיר ריק.';
+    errors.zip = String(t('print.validation.zip'));
   }
   return errors;
 }

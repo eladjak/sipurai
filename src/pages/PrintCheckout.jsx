@@ -1,3 +1,4 @@
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,6 +54,11 @@ export function PrintCheckoutView({
   persist = true,
   quoteDebounceMs = 250,
 }) {
+  const { t: translate } = useI18n();
+  /** @type {(key: string, values?: any) => string} */
+  const t = translate;
+  /** @returns {any} */
+  const errorText = (error) => error?.code === 'network' ? t('print.checkoutPage.network') : error?.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : error?.code === 'forbidden' ? t('print.checkoutPage.forbidden') : t('print.checkoutPage.generic');
   const saved = useMemo(() => (persist ? readJson(draftKey(bookId)) : null), [persist, bookId]);
   const [config, setConfig] = useState({ status: 'loading', data: null, error: null });
   const [step, setStep] = useState(initialStep);
@@ -82,7 +88,7 @@ export function PrintCheckoutView({
   const maxQty = config.data?.maxQty || 10;
   const pickupOn = !!config.data?.pickup?.enabled;
   const effectiveMethod = method === 'pickup' && !pickupOn && config.status === 'ready' ? 'ship' : method;
-  const errors = useMemo(() => validateAddress(address, effectiveMethod), [address, effectiveMethod]);
+  const errors = useMemo(() => validateAddress(address, effectiveMethod, t), [address, effectiveMethod, t]);
 
   // Autosave the form draft (never anything about payment).
   useEffect(() => {
@@ -166,7 +172,7 @@ export function PrintCheckoutView({
       });
       if (!res || !res.checkoutUrl) {
         const e = new Error('no checkout url');
-        e.message_he = 'לא הצלחנו לפתוח את עמוד התשלום. ההזמנה לא חויבה. נסו שוב.';
+        e.message_he = t('print.checkoutPage.generic');
         throw e;
       }
       redirect(res.checkoutUrl); // stays in the "redirecting" state on purpose
@@ -185,16 +191,16 @@ export function PrintCheckoutView({
   let reason = '';
   if (step === 3) {
     if (creating) reason = '';
-    else if (q.status === 'loading' && !q.quote) reason = 'מחשבים את המחיר, עוד רגע…';
-    else if (q.status === 'error') reason = 'עדיין אין לנו מחיר להזמנה. לחצו על "נסו שוב" למעלה.';
+    else if (q.status === 'loading' && !q.quote) reason = t('print.checkoutPage.waitingPrice');
+    else if (q.status === 'error') reason = t('print.checkoutPage.noPrice');
   }
   const nextDisabled = config.status !== 'ready' || (step === 3 && (q.status !== 'ready' || !q.quote)) || creating;
 
   // ---- top-level states ----
   if (config.status === 'loading') {
     return (
-      <PageShell title="הזמנת ספר מודפס" backTo={`/BookView?id=${bookId}`} backLabel="חזרה לספר">
-        <div className="space-y-4" aria-busy="true" role="status" aria-label="טוענים">
+      <PageShell title={t('print.checkoutPage.pageTitle')} backTo={`/BookView?id=${bookId}`} backLabel={t('print.checkoutPage.backBook')}>
+        <div className="space-y-4" aria-busy="true" role="status" aria-label={t('print.checkoutPage.loading')}>
           <Skeleton className="h-16 w-full rounded-3xl" />
           <Skeleton className="h-40 w-full rounded-3xl" />
           <Skeleton className="h-24 w-full rounded-3xl" />
@@ -204,27 +210,27 @@ export function PrintCheckoutView({
   }
   if (config.status === 'error') {
     return (
-      <PageShell title="הזמנת ספר מודפס" backTo={`/BookView?id=${bookId}`} backLabel="חזרה לספר">
-        <InlineAlert title="לא הצלחנו לטעון את ההזמנה" onRetry={loadConfig}>
-          {config.error?.message_he || 'משהו השתבש. נסו שוב בעוד רגע.'}
+      <PageShell title={t('print.checkoutPage.pageTitle')} backTo={`/BookView?id=${bookId}`} backLabel={t('print.checkoutPage.backBook')}>
+        <InlineAlert title={t('print.checkoutPage.loadError')} onRetry={loadConfig}>
+          {errorText(config.error)}
         </InlineAlert>
       </PageShell>
     );
   }
   if (config.data?.enabled === false) {
     return (
-      <PageShell title="הזמנת ספר מודפס" backTo={`/BookView?id=${bookId}`} backLabel="חזרה לספר">
-        <InlineAlert tone="info" title="ההזמנה של ספר מודפס עדיין לא זמינה">
-          אנחנו מכינים אותה. הספר הדיגיטלי שלכם ממשיך לעבוד כרגיל.
+      <PageShell title={t('print.checkoutPage.pageTitle')} backTo={`/BookView?id=${bookId}`} backLabel={t('print.checkoutPage.backBook')}>
+        <InlineAlert tone="info" title={t('print.checkoutPage.unavailable')}>
+          {t('print.checkoutPage.unavailableHint')}
         </InlineAlert>
       </PageShell>
     );
   }
 
-  const stepTitles = { 1: 'כמה עותקים, ואיך לקבל?', 2: effectiveMethod === 'ship' ? 'לאן לשלוח?' : 'איסוף עצמי', 3: 'בדיקה אחרונה לפני התשלום' };
+  const stepTitles = { 1: t('print.checkoutPage.step1'), 2: effectiveMethod === 'ship' ? t('print.checkoutPage.step2') : t('print.checkoutCopy.pickup'), 3: t('print.checkoutPage.step3') };
 
   return (
-    <PageShell title={stepTitles[step]} backTo={step === 1 ? `/BookView?id=${bookId}` : undefined} backLabel="חזרה לספר" headingRef={headingRef}>
+    <PageShell title={stepTitles[step]} backTo={step === 1 ? `/BookView?id=${bookId}` : undefined} backLabel={t('print.checkoutPage.backBook')} headingRef={headingRef}>
       <div className="mb-5">
         <Stepper current={step} />
       </div>
@@ -236,7 +242,7 @@ export function PrintCheckoutView({
               <Card>
                 <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
                   <BookOpen className="h-5 w-5 text-purple-600" aria-hidden="true" />
-                  כמה עותקים להדפיס?
+                  {t('print.checkoutPage.howMany')}
                 </h2>
                 <QtyStepper value={qty} onChange={setQty} max={maxQty} />
               </Card>
@@ -246,18 +252,18 @@ export function PrintCheckoutView({
               <p className="px-1 text-sm text-slate-600 dark:text-slate-300">
                 {q.quote ? (
                   <>
-                    מחיר משוער להזמנה:{' '}
+                    {t('print.checkoutPage.estimated')}{' '}
                     <strong className="text-slate-900 dark:text-white" dir="ltr">
                       {formatIls(q.quote.totalAgorot)}
                     </strong>{' '}
-                    סופי.
+                    {t('print.checkoutPage.final')}
                   </>
                 ) : q.status === 'error' ? (
-                  'המחיר יוצג בשלב הסיכום.'
+                  t('print.checkoutPage.priceLater')
                 ) : (
-                  'מחשבים מחיר…'
+                  t('print.checkoutPage.calculating')
                 )}{' '}
-                בשלב האחרון תראו את הפירוט המלא לפני שמשלמים.
+                {t('print.checkoutPage.fullDetails')}
               </p>
             </div>
           )}
@@ -267,14 +273,14 @@ export function PrintCheckoutView({
               {effectiveMethod === 'ship' ? (
                 <>
                   <p className="mb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                    מלאו את הכתובת שאליה נשלח את הספר. הפרטים נשמרים במכשיר הזה, כך שאם תצאו באמצע לא תצטרכו להתחיל מחדש.
+                    {t('print.checkoutPage.addressHint')}
                   </p>
                   <AddressForm values={address} onChange={setAddress} errors={errors} shown={shown} idPrefix="addr" />
                 </>
               ) : (
                 <div className="space-y-2 text-base leading-relaxed text-slate-700 dark:text-slate-200">
-                  <p>באיסוף עצמי אין צורך בכתובת ואין עלות משלוח.</p>
-                  <p>אחרי התשלום תראו בעמוד "ההזמנות שלי" מתי הספר מוכן לאיסוף.</p>
+                  <p>{t('print.checkoutPage.pickupHint1')}</p>
+                  <p>{t('print.checkoutPage.pickupHint2')}</p>
                 </div>
               )}
             </Card>
@@ -282,11 +288,11 @@ export function PrintCheckoutView({
 
           {step === 3 && (
             <div className="space-y-4">
-              {q.status === 'error' && <InlineAlert title="לא הצלחנו לחשב מחיר" onRetry={q.retry}>{q.error?.message_he}</InlineAlert>}
+              {q.status === 'error' && <InlineAlert title={t('print.checkoutPage.quoteError')} onRetry={q.retry}>{errorText(q.error)}</InlineAlert>}
               {(q.quote || q.status === 'loading') && (
-              <Card aria-label="פירוט המחיר">
+              <Card aria-label={t('print.checkoutPage.priceDetails')}>
                 <h2 className="mb-2 text-base font-bold text-slate-900 dark:text-white">
-                  {qty === 1 ? 'עותק אחד' : `${qty} עותקים`} של הספר
+                  {qty === 1 ? t('print.checkoutPage.oneBook') : t('print.checkoutPage.manyBooks', { qty })}
                 </h2>
                 <PriceLines quote={q.quote} loading={q.status === 'loading'} />
               </Card>
@@ -294,13 +300,13 @@ export function PrintCheckoutView({
               <Card>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-                    <p className="font-bold text-slate-900 dark:text-white">{effectiveMethod === 'ship' ? 'משלוח סיפוראי' : config.data?.pickup?.label_he || 'איסוף עצמי'}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{effectiveMethod === 'ship' ? t('print.checkoutCopy.delivery') : t('print.checkoutCopy.pickup')}</p>
                     {effectiveMethod === 'ship' && (
                       <p data-testid="summary-address">
                         {address.fullName}
                         <br />
                         {address.street} {address.houseNumber}
-                        {address.apartment ? `, דירה ${address.apartment}` : ''}, {address.city}
+                        {address.apartment ? `, ${t('print.checkoutPage.apartment', { apartment: address.apartment })}` : ''}, {address.city}
                         <br />
                         <span dir="ltr">{address.phone}</span>
                       </p>
@@ -312,7 +318,7 @@ export function PrintCheckoutView({
                     className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-purple-700 hover:bg-purple-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 dark:text-purple-300"
                   >
                     <Pencil className="h-4 w-4" aria-hidden="true" />
-                    עריכה
+                    {t('print.checkoutPage.edit')}
                   </button>
                 </div>
               </Card>
@@ -321,13 +327,16 @@ export function PrintCheckoutView({
               </Card>
               {createError && (
                 <div id="create-error">
-                <InlineAlert title="לא הצלחנו להעביר אתכם לתשלום" onRetry={submit} retryLabel="נסו שוב">
-                  {createError.message_he || 'משהו השתבש. לא חויבתם. נסו שוב בעוד רגע.'}
+                <InlineAlert title={t('print.checkoutPage.createError')} onRetry={submit} retryLabel={t('print.checkoutPage.retry')}>
+                  {/** @type {any} */ (<>
+                    {(createError.code === 'unauthorized' || createError.code === 'network') && <p>{errorText(createError)}</p>}
+                    <p>{/** @type {any} */ (t('print.checkoutPage.createUncertain'))}</p>
+                  </>)}
                 </InlineAlert>
                 </div>
               )}
               <p className="px-1 text-center text-xs text-slate-500 dark:text-slate-400">
-                שינוי הכתובת או הכמות לא מפסיד כלום. אפשר לחזור לכל שלב.
+                {t('print.checkoutPage.changeHint')}
               </p>
             </div>
           )}
@@ -336,24 +345,24 @@ export function PrintCheckoutView({
 
       <ActionBar reason={reason}>
         {step > 1 && (
-          <SecondaryButton type="button" onClick={() => setStep((s) => s - 1)} disabled={creating} aria-label="חזרה לשלב הקודם">
+          <SecondaryButton type="button" onClick={() => setStep((s) => s - 1)} disabled={creating} aria-label={t('print.checkoutPage.backStep')}>
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
-            חזרה
+            {t('print.checkoutPage.back')}
           </SecondaryButton>
         )}
         {step < 3 ? (
           <PrimaryButton type="button" className="flex-1" onClick={goNext} disabled={nextDisabled}>
-            המשך
+            {t('print.checkoutPage.continue')}
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </PrimaryButton>
         ) : (
           <PrimaryButton type="button" className="flex-1" onClick={submit} disabled={nextDisabled} loading={creating} data-testid="pay-button">
             {creating ? (
-              'מעבירים לתשלום…'
+              t('print.checkoutPage.redirecting')
             ) : (
               <>
                 <Lock className="h-5 w-5" aria-hidden="true" />
-                המשך לתשלום
+                {t('print.checkoutPage.pay')}
               </>
             )}
           </PrimaryButton>
