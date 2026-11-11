@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NewStory from '../NewStory';
 import StartStates from '../StartStates';
 import translations from '@/components/i18n/locales/en/newStory';
@@ -11,8 +11,10 @@ vi.mock('react-router-dom', async () => ({ ...(await vi.importActual('react-rout
 vi.mock('@/lib/bookQuota', () => ({ newBookKey: () => 'key', reserveBookSlot: vi.fn(() => new Promise(() => {})), clearActiveBookKey: vi.fn() }));
 vi.mock('@/lib/bookGeneration', () => ({ generateBookIncremental: vi.fn() }));
 import { reserveBookSlot } from '@/lib/bookQuota';
+import { generateBookIncremental } from '@/lib/bookGeneration';
 describe('new story', () => {
  it('keeps topic and selection when going back through three steps', () => { render(<NewStory />); fireEvent.click(screen.getByText('Maya')); fireEvent.click(screen.getByText('Continue')); fireEvent.change(screen.getByLabelText('What is the story about?'), {target:{value:'A moon journey'}}); fireEvent.click(screen.getByText('Continue')); fireEvent.click(screen.getByText('Back')); expect(screen.getByDisplayValue('A moon journey')).toBeTruthy(); });
  it('shows no invented quota and guards a double start', () => { render(<NewStory />); fireEvent.click(screen.getByText('Maya')); fireEvent.click(screen.getByText('Continue')); fireEvent.change(screen.getByLabelText('What is the story about?'), {target:{value:'Moon'}}); fireEvent.click(screen.getByText('Continue')); expect(screen.getByText('Your plan or gift allowance applies.')).toBeTruthy(); const button=screen.getByText('Start the story'); fireEvent.click(button); fireEvent.click(button); expect(reserveBookSlot).toHaveBeenCalledTimes(1); });
- it.each(['queued','slow','disconnected','failed','success'])('shows the %s state', state => { render(<StartStates state={state} t={t} />); expect(screen.getByRole('status')).toBeTruthy(); });
+ it.each([['queued','Waiting its turn'],['slow','This is taking longer than usual'],['disconnected','Connection lost'],['failed','We could not finish the story'],['success','Your story is ready to read']])('shows the %s state', (state, title) => { render(<StartStates state={state} t={t} />); expect(screen.getByRole('status').textContent).toContain(title); });
+ it('reuses the reservation key and resumes a saved book after failure', async () => { vi.mocked(reserveBookSlot).mockReset().mockResolvedValue({ok:true}); vi.mocked(generateBookIncremental).mockReset().mockImplementationOnce(async ({onEvent}) => { onEvent({type:'book-created',bookId:'book-1'}); throw new Error('failed'); }).mockResolvedValueOnce({bookId:'book-1',status:'complete'}); render(<NewStory />); fireEvent.click(screen.getByText('Maya')); fireEvent.click(screen.getByText('Continue')); fireEvent.change(screen.getByLabelText('What is the story about?'), {target:{value:'Moon'}}); fireEvent.click(screen.getByText('Continue')); fireEvent.click(screen.getByText('Start the story')); await screen.findByText('We could not finish the story'); expect(screen.getByRole('status').textContent).not.toContain('not charged'); fireEvent.click(screen.getByText('Try again')); await screen.findByText('Your story is ready to read'); expect(reserveBookSlot.mock.calls.map(call => call[0])).toEqual(['key','key']); expect(generateBookIncremental.mock.calls[1][0].bookId).toBe('book-1'); });
 });
