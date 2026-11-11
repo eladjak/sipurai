@@ -1,15 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { targetFor, missingFor, isolateBrowser } from './guard.js';
-import { mkdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 const target = targetFor();
 test.use({ viewport: { width: 375, height: 812 }, locale: 'he-IL', serviceWorkers: 'block' });
 for (const role of ['admin', 'parent']) {
-  test(`${role} sees the appropriate print-order access`, async ({ page }) => {
-    const missing = missingFor(role);
+  test.describe(`${role} print access`, () => {
+    const missing = target.local ? ['local print access fixtures are not configured'] : missingFor(role);
     test.skip(target.readOnly || missing.length > 0, target.readOnly ? 'Production is restricted to parent sign-in, look and sign-out' : `Signed-in smoke unavailable: ${missing.join(', ')}`);
+  test(`${role} sees the appropriate print-order access`, async ({ page }, testInfo) => {
     await clerkSetup();
     await isolateBrowser(page, target);
     await page.goto(target.baseURL);
@@ -26,9 +25,8 @@ for (const role of ['admin', 'parent']) {
       await expect(forbidden).toHaveCount(0);
       await expect(page.getByTestId('admin-empty').or(page.getByTestId('admin-list'))).toBeVisible();
     }
-    const dir = resolve(process.cwd(), '../shots');
-    await mkdir(dir, { recursive: true });
-    await page.screenshot({ path: resolve(dir, `${role}-admin-access.png`), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath(`${role}-admin-access.png`), fullPage: true });
     await clerk.signOut({ page });
+  });
   });
 }

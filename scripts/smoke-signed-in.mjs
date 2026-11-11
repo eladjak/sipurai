@@ -11,7 +11,6 @@ const dir = mkdtempSync(join(resolve(process.cwd(), '..'), 'smoke-'));
 const output = join(dir, 'result.json');
 try {
   const env = { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: output };
-  delete env.E2E_CLERK_USER_EMAIL;
   const result = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', '--project=signed-in', '--no-deps', '--reporter=json', 'e2e/signed-in/main-flow.spec.js', 'e2e/signed-in/admin.spec.js'], { env, stdio: 'ignore', timeout: 180000 });
   let counts = { passed: 0, failed: 0, skipped: 0 };
   try {
@@ -28,6 +27,7 @@ try {
   const valid = counts.passed + counts.failed + counts.skipped > 0;
   const ok = result.status === 0 && valid && counts.failed === 0;
   const readOnlyComplete = target.readOnly && counts.passed === 1 && counts.skipped === 2;
-  console.log(`SMOKE ${ok ? (counts.skipped && !readOnlyComplete ? 'INCOMPLETE' : 'PASS') : 'FAIL'}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped${counts.skipped ? ` (${target.readOnly ? 'production read-only restriction or missing credentials' : target.local ? 'local mode lacks an offline Clerk session double' : 'test credentials missing'})` : ''}`);
+  console.log(`SMOKE ${ok ? (counts.skipped && !readOnlyComplete ? 'INCOMPLETE' : 'PASS') : 'FAIL'}: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped${counts.skipped ? ` (${target.readOnly ? 'production read-only restriction or missing credentials' : target.local ? 'local credentials missing or local admin fixtures unavailable' : 'test credentials missing'})` : ''}`);
+  if (!ok) console.log('Diagnostics: run Playwright directly for failure details; its output can contain sensitive data.');
   process.exitCode = ok && (target.local || counts.skipped === 0 || readOnlyComplete) ? 0 : 1;
 } finally { rmSync(dir, { recursive: true, force: true }); }

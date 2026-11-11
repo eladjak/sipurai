@@ -21,3 +21,43 @@ it('never echoes credentials when the runner rejects a target', async () => {
   expect(result.stdout + result.stderr).not.toContain(marker);
   expect(result.stdout).toMatch(/SMOKE FAIL/);
 });
+
+it('permits only read requests to the explicitly configured test Supabase host', async () => {
+  const { isolateBrowser } = await import('../../e2e/signed-in/guard.js');
+  let handler;
+  await isolateBrowser({ route: async (_, fn) => { handler = fn; } }, targetFor({ SMOKE_BASE_URL: 'https://test.example', SMOKE_SUPABASE_HOST: 'testproject.supabase.co' }));
+  async function action(url, method) {
+    let result;
+    await handler({ request: () => ({ url: () => url, method: () => method }), continue: () => { result = 'allow'; }, abort: () => { result = 'block'; } });
+    return result;
+  }
+  expect(await action('https://testproject.supabase.co/rest/v1/books', 'GET')).toBe('allow');
+  expect(await action('https://testproject.supabase.co/rest/v1/books', 'POST')).toBe('block');
+  expect(await action('https://other.supabase.co/rest/v1/books', 'GET')).toBe('block');
+});
+
+it('rejects the production Supabase project and accepts the isolated preview hostname', () => {
+  expect(() => targetFor({ SMOKE_BASE_URL: 'https://test.example', SMOKE_SUPABASE_HOST: 'furviizyohryyqubosut.supabase.co' })).toThrow(/production/i);
+  expect(targetFor({ SMOKE_BASE_URL: 'https://preview.sipurai.ai', SMOKE_SUPABASE_HOST: 'testproject.supabase.co' }).readOnly).toBe(false);
+});
+
+it('uses the existing CI parent credentials for local runs', async () => {
+  const { missingFor } = await import('../../e2e/signed-in/guard.js');
+  expect(missingFor('parent', { E2E_CLERK_USER_EMAIL: 'parent@example.test', CLERK_SECRET_KEY: 'test' })).toEqual([]);
+});
+
+it('serves local synthetic books and blocks local service writes', async () => {
+  const { isolateBrowser } = await import('../../e2e/signed-in/guard.js');
+  let handler;
+  await isolateBrowser({ route: async (_, fn) => { handler = fn; } }, targetFor({}));
+  async function run(url, method) {
+    let result;
+    await handler({ request: () => ({ url: () => url, method: () => method, headers: () => ({}) }), fulfill: (value) => { result = value; }, continue: () => { result = 'allow'; }, abort: () => { result = 'block'; } });
+    return result;
+  }
+  expect((await run('https://placeholder.supabase.co/rest/v1/books', 'GET')).json[0].title).toBe('ספר בדיקה');
+  expect((await run('https://placeholder.supabase.co/rest/v1/pages', 'GET')).json).toHaveLength(3);
+  expect(await run('https://placeholder.supabase.co/rest/v1/books', 'POST')).toBe('block');
+  expect(await run('http://localhost:4173/api/story', 'GET')).toBe('block');
+  expect((await run('http://localhost:4173/api/privacy/consent', 'GET')).json.hasConsent).toBe(true);
+});
