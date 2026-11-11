@@ -117,7 +117,7 @@ const AuthenticatedApp = () => {
   return <LegacyAuthenticatedApp />;
 };
 
-const LegacyAuthenticatedApp = () => {
+export const LegacyAuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
   const location = useLocation();
 
