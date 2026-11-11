@@ -27,6 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { generateScenePlan } from "@/lib/sceneGenerator";
 import { GenerateImage } from "@/integrations/Core";
+import heStudio from "@/components/i18n/locales/he/studio";
+import enStudio from "@/components/i18n/locales/en/studio";
 import { captureError } from "@/lib/errorTracking";
 
 /**
@@ -51,8 +53,15 @@ export default function ScenePlanStep({
   onConfirm,
   isGenerating,
 }) {
-  const isHebrew = isRTL;
-  const isYiddish = book?.language === "yiddish";
+  const studioT = (studioKey) => {
+    const name = studioKey.split(".").at(-1);
+    const key = `book.scenePlan.${name}`;
+    const legacy = t?.(key);
+    if (legacy && legacy !== key) return legacy;
+    if (isRTL) return heStudio.studio.scenePlan[name];
+    if (book?.language === "yiddish") return heStudio.studio.scenePlanYiddish[name];
+    return enStudio.studio.scenePlan[name];
+  };
 
   // Local copy of scenes (editable). Once user clicks "Generate book",
   // we pass these scenes up so BookCreation can use scene-level prompts.
@@ -62,94 +71,26 @@ export default function ScenePlanStep({
   const [previewIndex, setPreviewIndex] = useState(null); // index currently generating preview
   const [previewUrls, setPreviewUrls] = useState({}); // sceneId -> url
 
-  // Translation helpers with safe inline fallback (book-translations.js doesn't
-  // have these keys yet; book-translations falls back to the key string)
-  const L = (key, fallback) => {
-    const v = t?.(key);
-    return v && v !== key ? v : fallback;
-  };
-
   const labels = {
-    title: L(
-      "book.scenePlan.title",
-      isHebrew ? "תכנון סצנות הסיפור" : isYiddish ? "פלאַנירן די סצענעס" : "Plan Your Scenes"
-    ),
-    subtitle: L(
-      "book.scenePlan.subtitle",
-      isHebrew
-        ? "ה-AI יבנה לך מתווה סצנה-אחר-סצנה. תוכל לערוך כל סצנה לפני שיוצרים את הספר."
-        : isYiddish
-        ? "די AI וועט בויען א סצענע-נאך-סצענע אַוטליין. דו קענסט רעדאַקטירן יעדער סצענע."
-        : "AI will build a scene-by-scene outline. Edit any scene before we generate the book."
-    ),
-    generate: L(
-      "book.scenePlan.generate",
-      isHebrew ? "צור מתווה סצנות" : isYiddish ? "מאַך אַ סצענע-פּלאַן" : "Generate Scene Plan"
-    ),
-    regenerate: L(
-      "book.scenePlan.regenerate",
-      isHebrew ? "צור מחדש" : isYiddish ? "מאַך פֿון דאָס נײַ" : "Regenerate plan"
-    ),
-    sceneLabel: L(
-      "book.scenePlan.scene",
-      isHebrew ? "סצנה" : isYiddish ? "סצענע" : "Scene"
-    ),
-    titleField: L(
-      "book.scenePlan.titleField",
-      isHebrew ? "כותרת" : isYiddish ? "טיטל" : "Title"
-    ),
-    descriptionField: L(
-      "book.scenePlan.descriptionField",
-      isHebrew ? "תיאור" : isYiddish ? "באַשרײַבונג" : "Description"
-    ),
-    moodField: L(
-      "book.scenePlan.moodField",
-      isHebrew ? "מצב רוח" : isYiddish ? "שטימונג" : "Mood"
-    ),
-    settingField: L(
-      "book.scenePlan.settingField",
-      isHebrew ? "תפאורה" : isYiddish ? "באַשטעלונג" : "Setting"
-    ),
-    charactersField: L(
-      "book.scenePlan.charactersField",
-      isHebrew ? "דמויות" : isYiddish ? "פֿיגורן" : "Characters"
-    ),
-    imagePromptField: L(
-      "book.scenePlan.imagePromptField",
-      isHebrew ? "פרומפט לאיור" : isYiddish ? "אילוסטראציע-פּראָמפּט" : "Illustration prompt"
-    ),
-    previewBtn: L(
-      "book.scenePlan.previewBtn",
-      isHebrew ? "תצוגה מקדימה" : isYiddish ? "פאָרשוי" : "Preview image"
-    ),
-    previewGenerating: L(
-      "book.scenePlan.previewGenerating",
-      isHebrew ? "יוצר תמונה..." : isYiddish ? "מאַכן בילד..." : "Generating image..."
-    ),
-    back: L(
-      "book.scenePlan.back",
-      isHebrew ? "חזרה" : isYiddish ? "צוריק" : "Back"
-    ),
-    confirm: L(
-      "book.scenePlan.confirm",
-      isHebrew ? "אישור והמשך ליצירת הספר" : isYiddish ? "באַשטעטיק און פאָרזעצן" : "Confirm & continue"
-    ),
-    empty: L(
-      "book.scenePlan.empty",
-      isHebrew
-        ? 'עדיין לא נוצר מתווה. לחץ על "צור מתווה סצנות" כדי להתחיל.'
-        : isYiddish
-        ? "נאָך נישט קיין פּלאַן. דריקט אויף 'מאַך אַ פּלאַן'."
-        : 'No plan yet. Click "Generate Scene Plan" to begin.'
-    ),
-    errorTitle: L(
-      "book.scenePlan.errorTitle",
-      isHebrew ? "כשל ביצירת המתווה" : isYiddish ? "פּלאַן-דורכפֿאַל" : "Couldn't generate plan"
-    ),
-    previewError: L(
-      "book.scenePlan.previewError",
-      isHebrew ? "כשל ביצירת תצוגה מקדימה" : isYiddish ? "פאָרשוי דורכפֿאַל" : "Preview failed"
-    ),
+    title: studioT("studio.scenePlan.title"),
+    subtitle: studioT("studio.scenePlan.subtitle"),
+    generate: studioT("studio.scenePlan.generate"),
+    regenerate: studioT("studio.scenePlan.regenerate"),
+    sceneLabel: studioT("studio.scenePlan.scene"),
+    titleField: studioT("studio.scenePlan.titleField"),
+    descriptionField: studioT("studio.scenePlan.descriptionField"),
+    moodField: studioT("studio.scenePlan.moodField"),
+    settingField: studioT("studio.scenePlan.settingField"),
+    charactersField: studioT("studio.scenePlan.charactersField"),
+    imagePromptField: studioT("studio.scenePlan.imagePromptField"),
+    previewBtn: studioT("studio.scenePlan.previewBtn"),
+    previewGenerating: studioT("studio.scenePlan.previewGenerating"),
+    back: studioT("studio.scenePlan.back"),
+    confirm: studioT("studio.scenePlan.confirm"),
+    empty: studioT("studio.scenePlan.empty"),
+    errorTitle: studioT("studio.scenePlan.errorTitle"),
+    previewError: studioT("studio.scenePlan.previewError"),
+    unknownError: studioT("studio.scenePlan.unknownError"),
   };
 
   // Build the storyIdea string from the book's draft fields.
@@ -205,11 +146,11 @@ export default function ScenePlanStep({
         err instanceof Error ? err : new Error(String(err?.message || err)),
         { context: "ScenePlanStep.handleGenerate" }
       );
-      setError(`${labels.errorTitle}: ${err?.message?.slice(0, 200) || "unknown"}`);
+      setError(`${labels.errorTitle}: ${err?.message?.slice(0, 200) || labels.unknownError}`);
     } finally {
       setPlanning(false);
     }
-  }, [book, buildStoryIdea, buildCharacters, labels.errorTitle]);
+  }, [book, buildStoryIdea, buildCharacters, labels.errorTitle, labels.unknownError]);
 
   const updateScene = useCallback((index, patch) => {
     setScenes((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -249,7 +190,7 @@ export default function ScenePlanStep({
       {/* Header */}
       <div className={`flex items-center gap-2 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
         <Button variant="ghost" onClick={onBack} disabled={isGenerating || planning}>
-          <ArrowLeft className={`h-4 w-4 ${isRTL ? "ml-2 rotate-180" : "mr-2"}`} />
+          <ArrowLeft className={`h-4 w-4 me-2 ${isRTL ? "rotate-180" : ""}`} />
           {labels.back}
         </Button>
       </div>

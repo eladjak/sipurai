@@ -31,7 +31,7 @@ export default function PageTextEditor({
     <Card>
       <CardHeader>
         <CardTitle className={`flex items-center text-lg ${isRTL ? "flex-row-reverse" : ""}`}>
-          <Edit className={`h-5 w-5 text-purple-500 ${isRTL ? "ml-2" : "mr-2"}`} />
+          <Edit className={`h-5 w-5 text-purple-500 me-2`} />
           {t("book.editPageText")}
         </CardTitle>
       </CardHeader>
@@ -65,9 +65,9 @@ export default function PageTextEditor({
                 disabled={isGenerating}
               >
                 {isGenerating ? (
-                  <RotateCw className={`h-4 w-4 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+                  <RotateCw className={`h-4 w-4 animate-spin me-2`} />
                 ) : (
-                  <Music className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                  <Music className={`h-4 w-4 me-2`} />
                 )}
                 {t("book.makeRhyme")}
               </Button>

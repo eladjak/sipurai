@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`studio text in english > renders the empty scene plan 1`] = `"BackPlan Your ScenesAI will build a scene-by-scene outline. Edit any scene before we generate the book.Generate Scene PlanNo plan yet. Click "Generate Scene Plan" to begin."`;
+
+exports[`studio text in english > renders the page editor 1`] = `"No image availablePrevious PagePage 1 of 1Next PageEdit Page TextSave TextEdit Page ImagePage LayoutBack to LibraryView Full Book"`;
+
+exports[`studio text in hebrew > renders the empty scene plan 1`] = `"חזרהתכנון סצנות הסיפורה-AI יבנה לך מתווה סצנה-אחר-סצנה. תוכל לערוך כל סצנה לפני שיוצרים את הספר.צור מתווה סצנותעדיין לא נוצר מתווה. לחץ על "צור מתווה סצנות" כדי להתחיל."`;
+
+exports[`studio text in hebrew > renders the page editor 1`] = `"אין תמונה זמינהעמוד קודםעמוד 1 מתוך 1עמוד הבאערוך טקסט עמודשמור טקסטהוסף ניקודעריכת תמונת עמודפריסת עמודחזרה לספרייהצפה בספר המלא"`;

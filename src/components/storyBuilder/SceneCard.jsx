@@ -16,23 +16,9 @@ import {
   ChevronUp,
   Trash2
 } from "lucide-react";
+import heStudio from "@/components/i18n/locales/he/studio";
+import enStudio from "@/components/i18n/locales/en/studio";
 import { useI18n } from "@/components/i18n/i18nProvider";
-
-/**
- * Safe translation lookup. Our i18n provider returns the *key* itself when
- * a translation is missing, which would defeat `t(key) || fallback`. This
- * helper treats a value that still contains a "." as a missing translation
- * and returns the provided fallback instead.
- */
-function tx(t, key, fallback) {
-  const v = t(key);
-  if (!v || v === key || (typeof v === "string" && v === key)) return fallback;
-  // Heuristic: missing keys come back as the dotted path
-  if (typeof v === "string" && v.includes(".") && v.startsWith(key.split(".")[0] + ".")) {
-    return fallback;
-  }
-  return v;
-}
 
 /**
  * Maps the canonical scene structure roles to a label key + gradient.
@@ -40,44 +26,26 @@ function tx(t, key, fallback) {
  */
 const ROLE_BADGES = {
   beginning: {
-    en: "Beginning",
-    he: "פתיחה",
-    yi: "אָנהייב",
     gradient: "from-emerald-400 to-teal-500",
     ring: "ring-emerald-200"
   },
   rising: {
-    en: "Build-up",
-    he: "התפתחות",
-    yi: "אויפֿקום",
     gradient: "from-blue-400 to-indigo-500",
     ring: "ring-blue-200"
   },
   conflict: {
-    en: "Conflict",
-    he: "קונפליקט",
-    yi: "קאָנפֿליקט",
     gradient: "from-amber-400 to-orange-500",
     ring: "ring-amber-200"
   },
   climax: {
-    en: "Climax",
-    he: "שיא",
-    yi: "שפּיץ",
     gradient: "from-rose-400 to-red-500",
     ring: "ring-rose-200"
   },
   resolution: {
-    en: "Resolution",
-    he: "פתרון",
-    yi: "באַשיידונג",
     gradient: "from-purple-400 to-fuchsia-500",
     ring: "ring-purple-200"
   },
   end: {
-    en: "Ending",
-    he: "סיום",
-    yi: "סוף",
     gradient: "from-violet-400 to-purple-500",
     ring: "ring-violet-200"
   }
@@ -85,14 +53,12 @@ const ROLE_BADGES = {
 
 function getRoleMeta(role, language) {
   const meta = ROLE_BADGES[role] || {
-    en: "Scene",
-    he: "סצנה",
-    yi: "סצענע",
     gradient: "from-slate-400 to-gray-500",
     ring: "ring-slate-200"
   };
-  const label =
-    language === "hebrew" ? meta.he : language === "yiddish" ? meta.yi : meta.en;
+  const labels = language === "yiddish" ? heStudio.studio.sceneCard.yiddishRoles :
+    language === "hebrew" ? heStudio.studio.sceneCard.roles : enStudio.studio.sceneCard.roles;
+  const label = labels[role] || labels.scene;
   return { ...meta, label };
 }
 
@@ -104,14 +70,14 @@ function getRoleMeta(role, language) {
  */
 function CharacterChip({ characterId, allCharacters, language, onRemove }) {
   const char = allCharacters.find((c) => c.id === characterId);
-  const isHebrew = language === "hebrew" || language === "yiddish";
+  const labels = (language === "hebrew" || language === "yiddish" ? heStudio : enStudio).studio.sceneCard;
 
   if (!char) {
     return (
       <Badge
         variant="outline"
         className="gap-1 opacity-50 line-through"
-        aria-label={isHebrew ? "דמות לא נמצאה" : "Character missing"}
+        aria-label={labels.missing}
       >
         ?
       </Badge>
@@ -142,7 +108,7 @@ function CharacterChip({ characterId, allCharacters, language, onRemove }) {
         <button
           type="button"
           onClick={onRemove}
-          aria-label={isHebrew ? `הסר את ${char.name}` : `Remove ${char.name}`}
+          aria-label={labels.remove.replace("{name}", char.name)}
           className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
         >
           <Trash2 className="h-3 w-3" aria-hidden="true" />
@@ -177,8 +143,7 @@ export default function SceneCard({
   sceneNumber
 }) {
   const { t } = useI18n();
-  const isHebrew = language === "hebrew";
-  const isYiddish = language === "yiddish";
+  const cardLabels = (language === "hebrew" ? heStudio : enStudio).studio.sceneCard;
   const [expanded, setExpanded] = useState(true);
   const [showPromptEditor, setShowPromptEditor] = useState(false);
 
@@ -199,48 +164,19 @@ export default function SceneCard({
     });
   };
 
-  // Translations with safe fallbacks (i18n keys may not be wired yet).
-  // Uses tx() so a missing key resolves to the inline fallback rather than
-  // the dotted key path.
   const labels = {
-    sceneNumber: tx(t, "storyBuilder.scene.scenePrefix", isHebrew ? "סצנה" : isYiddish ? "סצענע" : "Scene"),
-    title: tx(t, "storyBuilder.scene.title", isHebrew ? "כותרת הסצנה" : "Scene title"),
-    description: tx(
-      t,
-      "storyBuilder.scene.description",
-      isHebrew ? "מה קורה בסצנה?" : "What happens in this scene?"
-    ),
-    descPlaceholder: tx(
-      t,
-      "storyBuilder.scene.descPlaceholder",
-      isHebrew
-        ? "תאר במשפט-שניים מה קורה כאן..."
-        : "Describe in a sentence or two what happens here..."
-    ),
-    characters: tx(t, "storyBuilder.scene.characters", isHebrew ? "דמויות בסצנה" : "Characters in scene"),
-    addChar: tx(t, "storyBuilder.scene.addChar", isHebrew ? "הוסף דמות" : "Add character"),
-    noChars: tx(
-      t,
-      "storyBuilder.scene.noChars",
-      isHebrew
-        ? "עדיין לא בחרת דמויות לסצנה זו"
-        : "No characters in this scene yet"
-    ),
-    illustration: tx(t, "storyBuilder.scene.illustration", isHebrew ? "פרומפט לאיור" : "Illustration prompt"),
-    illustrationHint: tx(
-      t,
-      "storyBuilder.scene.illustrationHint",
-      isHebrew
-        ? "התיאור החזותי שיישלח למחולל התמונות"
-        : "Visual description sent to the image generator"
-    ),
-    editPrompt: tx(t, "storyBuilder.scene.editPrompt", isHebrew ? "ערוך פרומפט" : "Edit prompt"),
-    regenerate: tx(t, "storyBuilder.scene.regenerate", isHebrew ? "צור מחדש" : "Regenerate"),
-    titlePlaceholder: tx(
-      t,
-      "storyBuilder.scene.titlePlaceholder",
-      isHebrew ? "כותרת קצרה לסצנה..." : "Short title for the scene..."
-    )
+    sceneNumber: t("storyBuilder.scene.scenePrefix"),
+    title: t("storyBuilder.scene.title"),
+    description: t("storyBuilder.scene.description"),
+    descPlaceholder: t("storyBuilder.scene.descPlaceholder"),
+    characters: t("storyBuilder.scene.characters"),
+    addChar: t("storyBuilder.scene.addChar"),
+    noChars: t("storyBuilder.scene.noChars"),
+    illustration: t("storyBuilder.scene.illustration"),
+    illustrationHint: t("storyBuilder.scene.illustrationHint"),
+    editPrompt: t("storyBuilder.scene.editPrompt"),
+    regenerate: t("storyBuilder.scene.regenerate"),
+    titlePlaceholder: t("storyBuilder.scene.titlePlaceholder")
   };
 
   return (
@@ -271,15 +207,7 @@ export default function SceneCard({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            aria-label={
-              expanded
-                ? isHebrew
-                  ? "הסתר"
-                  : "Collapse"
-                : isHebrew
-                ? "הצג"
-                : "Expand"
-            }
+            aria-label={expanded ? cardLabels.collapse : cardLabels.expand}
             aria-expanded={expanded}
             className="p-1 rounded-lg hover:bg-white/20 transition-colors"
           >
@@ -426,11 +354,7 @@ export default function SceneCard({
                       aria-expanded={showPromptEditor}
                       className="text-xs h-7 px-2"
                     >
-                      {showPromptEditor
-                        ? isHebrew
-                          ? "סגור"
-                          : "Hide"
-                        : labels.editPrompt}
+                      {showPromptEditor ? cardLabels.hide : labels.editPrompt}
                     </Button>
                   </div>
 

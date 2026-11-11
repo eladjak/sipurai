@@ -55,7 +55,7 @@ export default function DraftView({
       <div className="mb-8">
         <div className={`flex items-center gap-2 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Button variant="ghost" onClick={onNavigateBack}>
-            <ArrowLeft className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+            <ArrowLeft className={`h-4 w-4 me-2`} />
             {t("book.backToLibrary")}
           </Button>
         </div>
@@ -90,7 +90,7 @@ export default function DraftView({
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className={`flex items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Lightbulb className={`h-5 w-5 text-amber-500 ${isRTL ? "ml-2" : "mr-2"}`} />
+            <Lightbulb className={`h-5 w-5 text-amber-500 me-2`} />
             {t("book.characterSettings")}
           </CardTitle>
           <CardDescription>{t("book.characterSettingsDesc")}</CardDescription>
@@ -204,7 +204,7 @@ export default function DraftView({
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className={`flex items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Music className={`h-5 w-5 text-purple-500 ${isRTL ? "ml-2" : "mr-2"}`} />
+            <Music className={`h-5 w-5 text-purple-500 me-2`} />
             {t("book.rhymingOptions")}
           </CardTitle>
         </CardHeader>
@@ -240,12 +240,12 @@ export default function DraftView({
         >
           {isGenerating ? (
             <>
-              <RotateCw className={`h-5 w-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+              <RotateCw className={`h-5 w-5 animate-spin me-2`} />
               {t("book.generating")}
             </>
           ) : (
             <>
-              <Sparkles className={`h-5 w-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+              <Sparkles className={`h-5 w-5 me-2`} />
               {t("book.generateMyBook")}
             </>
           )}

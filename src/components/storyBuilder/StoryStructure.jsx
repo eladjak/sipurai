@@ -21,25 +21,22 @@ import { useI18n } from "@/components/i18n/i18nProvider";
 import SceneCard from "./SceneCard";
 
 /**
- * Safe translation lookup. Our i18n provider returns the key itself when a
- * translation is missing. This helper treats the dotted-key echo as missing
- * and falls back to the inline default.
- */
-function tx(t, key, fallback) {
-  const v = t(key);
-  if (!v || v === key) return fallback;
-  if (typeof v === "string" && v.includes(".") && v.startsWith(key.split(".")[0] + ".")) {
-    return fallback;
-  }
-  return v;
-}
-
-/**
  * Canonical 4-scene structure (beginning / conflict / resolution / end).
  * 6-scene mode adds rising + climax. Used both as the AI's contract
  * (return EXACTLY this many roles in this order) and as the local fallback
  * when AI generation fails.
  */
+const FULL_LANGUAGE_INSTRUCTIONS = {
+  hebrew: "יש ליצור את כל התוכן בעברית בלבד. ",
+  yiddish: "שרייב דעם גאנצן אינהאלט אויף יידיש. ",
+  english: "Create all content in English only. "
+};
+const SCENE_LANGUAGE_INSTRUCTIONS = {
+  hebrew: "יש ליצור את התוכן בעברית בלבד. ",
+  yiddish: "שרייב דעם אינהאלט אויף יידיש. ",
+  english: "Create the content in English only. "
+};
+
 const STRUCTURE_4 = ["beginning", "conflict", "resolution", "end"];
 const STRUCTURE_6 = [
   "beginning",
@@ -126,8 +123,6 @@ export default function StoryStructure({
   defaultSceneCount = 4
 }) {
   const { t } = useI18n();
-  const isHebrew = language === "hebrew";
-  const isYiddish = language === "yiddish";
 
   const [sceneCount, setSceneCount] = useState(defaultSceneCount);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -138,32 +133,19 @@ export default function StoryStructure({
 
   const structure = sceneCount === 6 ? STRUCTURE_6 : STRUCTURE_4;
 
-  // Translations with safe fallbacks (i18n keys may not be wired yet).
-  // Uses tx() so a missing key resolves to the inline fallback.
   const labels = {
-    title: tx(t, "storyBuilder.structure.title", isHebrew ? "מבנה הסיפור" : "Story Structure"),
-    subtitle: tx(
-      t,
-      "storyBuilder.structure.subtitle",
-      isHebrew
-        ? "בנה את שלד הסיפור — סצנה אחרי סצנה. תוכל לערוך כל סצנה."
-        : "Build the story spine — scene by scene. Edit any scene below."
-    ),
-    generate: tx(t, "storyBuilder.structure.generate", isHebrew ? "צור מבנה אוטומטית" : "Generate structure"),
-    regenerate: tx(t, "storyBuilder.structure.regenerate", isHebrew ? "צור מחדש" : "Regenerate all"),
-    countLabel: tx(t, "storyBuilder.structure.countLabel", isHebrew ? "כמה סצנות?" : "How many scenes?"),
-    fourLabel: tx(t, "storyBuilder.structure.four", isHebrew ? "4 — קלאסי" : "4 — Classic"),
-    sixLabel: tx(t, "storyBuilder.structure.six", isHebrew ? "6 — מעמיק" : "6 — Detailed"),
-    empty: tx(
-      t,
-      "storyBuilder.structure.empty",
-      isHebrew
-        ? "עדיין לא נוצר מבנה. לחץ על \"צור מבנה אוטומטית\" כדי להתחיל."
-        : "No structure yet. Click \"Generate structure\" to begin."
-    ),
-    addScene: tx(t, "storyBuilder.structure.addScene", isHebrew ? "הוסף סצנה" : "Add scene"),
-    errorTitle: tx(t, "storyBuilder.structure.errorTitle", isHebrew ? "ייצור המבנה נכשל" : "Couldn't generate structure"),
-    errorRetry: tx(t, "storyBuilder.structure.errorRetry", isHebrew ? "נסה שוב" : "Try again")
+    title: t("storyBuilder.structure.title"),
+    subtitle: t("storyBuilder.structure.subtitle"),
+    generate: t("storyBuilder.structure.generate"),
+    regenerate: t("storyBuilder.structure.regenerate"),
+    countLabel: t("storyBuilder.structure.countLabel"),
+    fourLabel: t("storyBuilder.structure.four"),
+    sixLabel: t("storyBuilder.structure.six"),
+    empty: t("storyBuilder.structure.empty"),
+    addScene: t("storyBuilder.structure.addScene"),
+    errorTitle: t("storyBuilder.structure.errorTitle"),
+    unknownError: t("studio.unknownError"),
+    errorRetry: t("storyBuilder.structure.errorRetry")
   };
 
   /**
@@ -174,12 +156,7 @@ export default function StoryStructure({
   const buildPrompt = useCallback(
     (roles) => {
       const safetyPrefix = buildSafetyPromptPrefix(ageRange);
-      const langInstruction =
-        language === "hebrew"
-          ? "יש ליצור את כל התוכן בעברית בלבד. "
-          : language === "yiddish"
-          ? "שרייב דעם גאנצן אינהאלט אויף יידיש. "
-          : "Create all content in English only. ";
+      const langInstruction = FULL_LANGUAGE_INSTRUCTIONS[language] || FULL_LANGUAGE_INSTRUCTIONS.english;
 
       const topicText =
         topic === "custom" && customIdea ? customIdea : topic || "an adventure";
@@ -228,25 +205,13 @@ Return the scenes as a JSON object with key "scenes" (array of ${roles.length} s
   const generateScenes = useCallback(async () => {
     if (!topic && !customIdea) {
       setError(
-        tx(
-          t,
-          "storyBuilder.structure.errorNoTopic",
-          isHebrew
-            ? "בחר נושא לפני יצירת המבנה."
-            : "Pick a topic before generating the structure."
-        )
+        t("storyBuilder.structure.errorNoTopic")
       );
       return;
     }
     if (selectedCharacters.length === 0) {
       setError(
-        tx(
-          t,
-          "storyBuilder.structure.errorNoChars",
-          isHebrew
-            ? "בחר לפחות דמות אחת לפני יצירת המבנה."
-            : "Pick at least one character first."
-        )
+        t("storyBuilder.structure.errorNoChars")
       );
       return;
     }
@@ -312,7 +277,7 @@ Return the scenes as a JSON object with key "scenes" (array of ${roles.length} s
         { context: "StoryStructure.generateScenes" }
       );
       setError(
-        `${labels.errorTitle}: ${err?.message?.slice(0, 200) || "unknown"}`
+        `${labels.errorTitle}: ${err?.message?.slice(0, 200) || labels.unknownError}`
       );
       // Even on failure, seed empty fallback scenes so the UI is editable
       if (!scenes || scenes.length === 0) {
@@ -331,7 +296,7 @@ Return the scenes as a JSON object with key "scenes" (array of ${roles.length} s
     allCharIds,
     scenes,
     labels.errorTitle,
-    isHebrew,
+    labels.unknownError,
     t
   ]);
 
@@ -344,12 +309,7 @@ Return the scenes as a JSON object with key "scenes" (array of ${roles.length} s
       setRegeneratingIndex(index);
       try {
         const safetyPrefix = buildSafetyPromptPrefix(ageRange);
-        const langInstruction =
-          language === "hebrew"
-            ? "יש ליצור את התוכן בעברית בלבד. "
-            : language === "yiddish"
-            ? "שרייב דעם אינהאלט אויף יידיש. "
-            : "Create the content in English only. ";
+        const langInstruction = SCENE_LANGUAGE_INSTRUCTIONS[language] || SCENE_LANGUAGE_INSTRUCTIONS.english;
 
         const topicText =
           topic === "custom" && customIdea
@@ -401,7 +361,7 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
           { context: "StoryStructure.regenerateOne", index }
         );
         setError(
-          `${labels.errorTitle}: ${err?.message?.slice(0, 200) || "unknown"}`
+          `${labels.errorTitle}: ${err?.message?.slice(0, 200) || labels.unknownError}`
         );
       } finally {
         setRegeneratingIndex(null);
@@ -417,7 +377,8 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
       ageRange,
       onScenesChange,
       allCharIds,
-      labels.errorTitle
+      labels.errorTitle,
+      labels.unknownError
     ]
   );
 

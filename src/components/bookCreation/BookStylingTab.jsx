@@ -52,7 +52,7 @@ export default function BookStylingTab({
       <Card>
         <CardHeader>
           <CardTitle className={`flex items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Music className={`h-5 w-5 text-purple-500 ${isRTL ? "ml-2" : "mr-2"}`} />
+            <Music className={`h-5 w-5 text-purple-500 me-2`} />
             {t("book.rhymingOptions")}
           </CardTitle>
           <CardDescription>{t("book.rhymingDesc")}</CardDescription>
@@ -84,9 +84,9 @@ export default function BookStylingTab({
             disabled={!useRhyming || isGenerating}
           >
             {isGenerating ? (
-              <RotateCw className={`h-4 w-4 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+              <RotateCw className={`h-4 w-4 animate-spin me-2`} />
             ) : (
-              <Wand2 className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+              <Wand2 className={`h-4 w-4 me-2`} />
             )}
             {t("book.applyRhyming")}
           </Button>
