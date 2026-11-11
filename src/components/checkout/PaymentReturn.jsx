@@ -12,7 +12,9 @@ const STOP = ['submitted', 'in_production', 'shipped', 'ready_for_pickup', 'canc
  * is handed to printing, with friendly wording for every in-between state.
  */
 export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onStatusChange }) {
-  const { t } = useI18n();
+  const { t: translate } = useI18n();
+  /** @type {(key: string, values?: any) => string} */
+  const t = translate;
   const [order, setOrder] = useState(null);
   const [slow, setSlow] = useState(false);
   const [softError, setSoftError] = useState(false);
@@ -67,7 +69,7 @@ export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onS
   if (status === 'failed_needs_attention') {
     return (
       <InlineAlert tone="warn" title={t('print.checkoutCopy.returnFailed')} className="mb-5">
-        {t('print.checkoutCopy.returnFailedHint')}
+        {/** @type {any} */ (t('print.checkoutCopy.returnFailedHint'))}
       </InlineAlert>
     );
   }

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 /** Page frame shared by the checkout, my-orders and admin screens (Hebrew, RTL, mobile first). */
-export function PageShell({ title, subtitle, backTo, backLabel, children, wide = false, headingRef }) {
+export function PageShell({ title, subtitle, backTo, backLabel = '', children, wide = false, headingRef }) {
   const { language, direction, t } = useI18n();
   const lang = { hebrew: 'he', english: 'en', yiddish: 'yi' }[language] || 'he';
   return (
@@ -76,7 +76,7 @@ export function SecondaryButton({ className, children, ...props }) {
 }
 
 /** Error / notice block. Announced to screen readers, always says what to do next. */
-export function InlineAlert({ tone = 'error', title, children, onRetry, retryLabel, className }) {
+export function InlineAlert({ tone = 'error', title, children, onRetry, retryLabel = '', className }) {
   const { t } = useI18n();
   const palette =
     tone === 'error'

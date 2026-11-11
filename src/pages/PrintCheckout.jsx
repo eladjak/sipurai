@@ -54,7 +54,10 @@ export function PrintCheckoutView({
   persist = true,
   quoteDebounceMs = 250,
 }) {
-  const { t } = useI18n();
+  const { t: translate } = useI18n();
+  /** @type {(key: string, values?: any) => string} */
+  const t = translate;
+  /** @returns {any} */
   const errorText = (error) => error?.code === 'network' ? t('print.checkoutPage.network') : t('print.checkoutPage.generic');
   const saved = useMemo(() => (persist ? readJson(draftKey(bookId)) : null), [persist, bookId]);
   const [config, setConfig] = useState({ status: 'loading', data: null, error: null });
@@ -169,6 +172,7 @@ export function PrintCheckoutView({
       });
       if (!res || !res.checkoutUrl) {
         const e = new Error('no checkout url');
+        e.message_he = t('print.checkoutPage.generic');
         throw e;
       }
       redirect(res.checkoutUrl); // stays in the "redirecting" state on purpose
