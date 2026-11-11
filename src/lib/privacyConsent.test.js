@@ -1,3 +1,4 @@
+import { processors } from './processor-inventory';
 import { describe, it, expect, vi } from 'vitest';
 import { isGateExempt, waitForAuthHeaders, fetchConsentStatus, acceptConsent, deleteMyAccount, CURRENT_POLICY_VERSION } from './privacyConsent';
 import { policyContent, buildPolicyContent, buildGateCopy } from '@/data/privacyPolicyContent';
@@ -65,7 +66,7 @@ describe('API calls', () => {
 describe('policy text', () => {
   it('lists the integrated processors in both languages', () => {
     for (const lang of ['he', 'en']) {
-      for (const name of ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity', 'Google Fonts']) {
+      for (const name of processors) {
         expect(policyContent[lang].sections[3].body, `${lang}: ${name}`).toContain(name);
       }
     }

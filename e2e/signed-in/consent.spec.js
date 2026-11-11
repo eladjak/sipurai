@@ -1,3 +1,4 @@
+import { CURRENT_POLICY_VERSION as POLICY } from '../../api/_lib/policyVersion.js';
 import { test, expect } from '@playwright/test';
 import { clerk } from '@clerk/testing/playwright';
 import { hasCredentials, SKIP_REASON } from './credentials.js';
@@ -13,7 +14,6 @@ test.skip(!hasCredentials, SKIP_REASON);
 // correctly shows its fail-closed error screen. Block it so the stand-in really is in front.
 test.use({ locale: 'he-IL', serviceWorkers: 'block' });
 
-const POLICY = '2026-11-10';
 
 test('first visit asks for consent, accepting is saved, the app opens, the next visit does not ask again', async ({ page }) => {
   let accepted = false;

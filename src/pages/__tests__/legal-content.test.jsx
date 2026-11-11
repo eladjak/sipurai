@@ -1,8 +1,8 @@
+import { processors } from '@/lib/processor-inventory';
 import { describe, it, expect } from 'vitest';
 import { policyContent, gateCopy, POLICY_VERSION } from '@/data/privacyPolicyContent';
 
 const text = (value) => JSON.stringify(value);
-const processors = ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity', 'Google Fonts'];
 
 describe('legal content', () => {
   it('names each code-integrated processor in the actual policy list in both languages', () => {
