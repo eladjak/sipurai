@@ -53,3 +53,36 @@ it('explains when a customer must sign in again', async () => {
   wrap(<MyOrdersView api={{ getMyOrders: async () => { throw { code: 'unauthorized' }; } }} />);
   expect(await screen.findByText('Please sign in again.')).toBeInTheDocument();
 });
+
+it.each([
+  ['awaiting_payment', 'Awaiting payment'], ['paid', 'Paid, preparing to print'],
+  ['submitting', 'Sending to print'], ['submitted', 'Sent to print'],
+  ['in_production', 'Printing'], ['shipped', 'Shipped'],
+  ['ready_for_pickup', 'Ready for pickup'], ['cancelled', 'Cancelled'],
+  ['failed_needs_attention', 'Needs our attention'], ['unrecognized', 'Being handled'],
+])('renders the %s status in English', async (status, label) => {
+  const { StatusBadge } = await import('../OrderCard');
+  wrap(<StatusBadge status={status} />);
+  expect(screen.getByText(label)).toBeInTheDocument();
+});
+
+it('shows the admin action refusal and cancellation confirmation', async () => {
+  const { fireEvent } = await import('@testing-library/react');
+  wrap(<AdminPrintOrdersView api={{ adminList: async () => ({ orders: [{ ...order, status: 'paid' }], alerts: [] }), adminAction: async () => { throw { code: 'forbidden' }; } }} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Cancel order' }));
+  expect(screen.getByText('Cancel this order?')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }));
+  expect(await screen.findByText('You do not have permission to do this.')).toBeInTheDocument();
+});
+
+it('renders the admin empty state and alerts', async () => {
+  wrap(<AdminPrintOrdersView api={{ adminList: async () => ({ orders: [], alerts: ['Example alert'] }) }} />);
+  expect(await screen.findByText('No orders with this status')).toBeInTheDocument();
+  expect(screen.getByText('Example alert')).toBeInTheDocument();
+  expect(screen.getByText('Needs attention: one paid order has not been sent to print')).toBeInTheDocument();
+});
+
+it('renders the admin forbidden state', async () => {
+  wrap(<AdminPrintOrdersView api={{ adminList: async () => { throw { code: 'forbidden' }; } }} />);
+  expect(await screen.findByText('This account does not have administrator access')).toBeInTheDocument();
+});

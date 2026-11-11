@@ -50,3 +50,14 @@ it('explains uncertain payment status in English when checkout cannot open', asy
   fireEvent.click(screen.getByTestId('pay-button'));
   expect(await screen.findByText('We could not confirm the payment status. Check your orders before trying again.')).toBeInTheDocument();
 });
+
+it.each([
+  ['paid', 'Payment received, thank you!', 'We are sending your book to print. This takes a few moments; you can close this page.'],
+  ['submitted', 'Payment received, thank you!', 'Your book has been sent to print. You can track your order below.'],
+  ['cancelled', 'Order cancelled', 'If this was unexpected, you can order again from the book page.'],
+  ['failed_needs_attention', 'Payment received; your book needs our attention', 'There was a problem sending the book to print. Your order is saved and we are taking care of it.'],
+])('renders payment return %s in English', async (status, title, hint) => {
+  wrap(<PaymentReturn api={{ getOrder: async () => ({ status }) }} orderId="1" />);
+  expect(await screen.findByText(title)).toBeInTheDocument();
+  expect(screen.getByText(hint)).toBeInTheDocument();
+});
