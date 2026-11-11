@@ -13,19 +13,29 @@ export function orderDate(iso, language) {
 }
 
 export function translatedStatus(t, status) {
-  const labels = {
-    awaiting_payment: { label: t('print.orderStatuses.awaiting_payment.label'), hint: t('print.orderStatuses.awaiting_payment.hint') },
-    paid: { label: t('print.orderStatuses.paid.label'), hint: t('print.orderStatuses.paid.hint') },
-    submitting: { label: t('print.orderStatuses.submitting.label'), hint: t('print.orderStatuses.submitting.hint') },
-    submitted: { label: t('print.orderStatuses.submitted.label'), hint: t('print.orderStatuses.submitted.hint') },
-    in_production: { label: t('print.orderStatuses.in_production.label'), hint: t('print.orderStatuses.in_production.hint') },
-    shipped: { label: t('print.orderStatuses.shipped.label'), hint: t('print.orderStatuses.shipped.hint') },
-    ready_for_pickup: { label: t('print.orderStatuses.ready_for_pickup.label'), hint: t('print.orderStatuses.ready_for_pickup.hint') },
-    cancelled: { label: t('print.orderStatuses.cancelled.label'), hint: t('print.orderStatuses.cancelled.hint') },
-    failed_needs_attention: { label: t('print.orderStatuses.failed_needs_attention.label'), hint: t('print.orderStatuses.failed_needs_attention.hint') },
-    unknown: { label: t('print.orderStatuses.unknown.label') },
+  const meta = statusMeta(status);
+  const translations = {
+    'print.orderStatuses.awaiting_payment.label': t('print.orderStatuses.awaiting_payment.label'),
+    'print.orderStatuses.awaiting_payment.hint': t('print.orderStatuses.awaiting_payment.hint'),
+    'print.orderStatuses.paid.label': t('print.orderStatuses.paid.label'),
+    'print.orderStatuses.paid.hint': t('print.orderStatuses.paid.hint'),
+    'print.orderStatuses.submitting.label': t('print.orderStatuses.submitting.label'),
+    'print.orderStatuses.submitting.hint': t('print.orderStatuses.submitting.hint'),
+    'print.orderStatuses.submitted.label': t('print.orderStatuses.submitted.label'),
+    'print.orderStatuses.submitted.hint': t('print.orderStatuses.submitted.hint'),
+    'print.orderStatuses.in_production.label': t('print.orderStatuses.in_production.label'),
+    'print.orderStatuses.in_production.hint': t('print.orderStatuses.in_production.hint'),
+    'print.orderStatuses.shipped.label': t('print.orderStatuses.shipped.label'),
+    'print.orderStatuses.shipped.hint': t('print.orderStatuses.shipped.hint'),
+    'print.orderStatuses.ready_for_pickup.label': t('print.orderStatuses.ready_for_pickup.label'),
+    'print.orderStatuses.ready_for_pickup.hint': t('print.orderStatuses.ready_for_pickup.hint'),
+    'print.orderStatuses.cancelled.label': t('print.orderStatuses.cancelled.label'),
+    'print.orderStatuses.cancelled.hint': t('print.orderStatuses.cancelled.hint'),
+    'print.orderStatuses.failed_needs_attention.label': t('print.orderStatuses.failed_needs_attention.label'),
+    'print.orderStatuses.failed_needs_attention.hint': t('print.orderStatuses.failed_needs_attention.hint'),
+    'print.orderStatuses.unknown.label': t('print.orderStatuses.unknown.label'),
   };
-  return labels[status] || labels.unknown;
+  return { label: translations[meta.labelKey], hint: translations[meta.hintKey] || '' };
 }
 
 export function StatusBadge({ status }) {

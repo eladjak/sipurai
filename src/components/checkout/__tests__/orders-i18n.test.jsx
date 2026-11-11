@@ -30,3 +30,26 @@ it('renders admin orders and actions in English', async () => {
   expect(await screen.findByText('Copies')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Cancel order' })).toBeInTheDocument();
 });
+
+it('renders a separated note label and the translated cancellation question', async () => {
+  const { fireEvent } = await import('@testing-library/react');
+  wrap(<AdminPrintOrdersView api={{ adminList: async () => ({ orders: [{ ...order, status: 'paid' }], alerts: [] }) }} />);
+  const note = await screen.findByLabelText('Action note (optional, saved in history)');
+  expect(note).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel order' }));
+  expect(screen.getByText('Cancel this order?')).toBeInTheDocument();
+});
+
+it('uses the configured status label key when rendering a badge', async () => {
+  const { STATUS_META } = await import('../statusMeta');
+  const { StatusBadge } = await import('../OrderCard');
+  const original = STATUS_META.shipped.labelKey;
+  STATUS_META.shipped.labelKey = STATUS_META.paid.labelKey;
+  try { wrap(<StatusBadge status="shipped" />); expect(screen.getByText('Paid, preparing to print')).toBeInTheDocument(); }
+  finally { STATUS_META.shipped.labelKey = original; }
+});
+
+it('explains when a customer must sign in again', async () => {
+  wrap(<MyOrdersView api={{ getMyOrders: async () => { throw { code: 'unauthorized' }; } }} />);
+  expect(await screen.findByText('Please sign in again.')).toBeInTheDocument();
+});

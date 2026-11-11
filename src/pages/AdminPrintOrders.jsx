@@ -54,7 +54,7 @@ function AdminOrderCard({ order, api, onChanged }) {
       setNote('');
       onChanged();
     } catch (e) {
-      setResult({ ok: false, text: String(t('print.adminOrders.actionError')) });
+      setResult({ ok: false, text: String(language === 'hebrew' && e.message_he ? e.message_he : (e.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : e.code === 'forbidden' ? t('print.checkoutPage.forbidden') : t('print.adminOrders.actionError'))) });
     } finally {
       setBusy(null);
     }
@@ -112,7 +112,7 @@ function AdminOrderCard({ order, api, onChanged }) {
 
       <div className="mt-4">
         <label htmlFor={noteId} className="mb-1 block text-sm font-bold">
-          {String(t('print.adminOrders.note'))}<span className="text-xs font-normal text-slate-500">{String(t('print.adminOrders.noteHint'))}</span>
+          {String(t('print.adminOrders.note'))}{' '}<span className="text-xs font-normal text-slate-500">{String(t('print.adminOrders.noteHint'))}</span>
         </label>
         <Textarea id={noteId} value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={300} placeholder={String(t('print.adminOrders.notePlaceholder'))} className="rounded-2xl text-base" />
       </div>
@@ -163,7 +163,7 @@ function AdminOrderCard({ order, api, onChanged }) {
 }
 
 export function AdminPrintOrdersView({ api = printOrderApi }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [status, setStatus] = useState('');
   const [state, setState] = useState({ phase: 'loading', orders: [], alerts: [], error: null });
 
@@ -250,7 +250,7 @@ export function AdminPrintOrdersView({ api = printOrderApi }) {
 
           {state.phase === 'error' && (
             <InlineAlert title={String(t('print.adminOrders.error'))} onRetry={load}>
-              {/** @type {any} */ (t('print.checkoutPage.generic'))}
+              {/** @type {any} */ (language === 'hebrew' && state.error?.message_he ? state.error.message_he : (state.error?.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : t('print.checkoutPage.generic')))}
             </InlineAlert>
           )}
 

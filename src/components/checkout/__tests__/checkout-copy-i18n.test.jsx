@@ -36,3 +36,17 @@ it('renders the order entry button in English', async () => {
   expect(screen.getByRole('link', { name: 'Order a printed book' })).toBeInTheDocument();
   vi.unstubAllEnvs();
 });
+
+it('explains uncertain payment status in English when checkout cannot open', async () => {
+  const { fireEvent, waitFor } = await import('@testing-library/react');
+  const { PrintCheckoutView } = await import('@/pages/PrintCheckout');
+  const api = {
+    getConfig: async () => ({ enabled: true, pickup: { enabled: false }, maxQty: 5 }),
+    getQuote: async () => ({ qty: 1, method: 'ship', lines: [], totalAgorot: 100 }),
+    createOrder: async () => ({}),
+  };
+  wrap(<PrintCheckoutView bookId="b" api={api} persist={false} initialStep={3} initialAddress={{ fullName: 'Dana Levy', phone: '0501234567', city: 'Haifa', street: 'Main', houseNumber: '12' }} quoteDebounceMs={0} redirect={() => {}} />);
+  await waitFor(() => expect(screen.getByTestId('pay-button')).not.toBeDisabled());
+  fireEvent.click(screen.getByTestId('pay-button'));
+  expect(await screen.findByText('We could not confirm the payment status. Check your orders before trying again.')).toBeInTheDocument();
+});

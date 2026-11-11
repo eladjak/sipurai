@@ -220,8 +220,7 @@ describe('creating the order', () => {
       return b;
     });
     fireEvent.click(btn);
-    await screen.findByText('אין חיבור לאינטרנט כרגע. בדקו את החיבור ונסו שוב.');
-    expect(screen.getByRole('alert').textContent).toMatch(/לא חויבתם|לא הצלחנו/);
+    await screen.findByText('לא הצלחנו לוודא את מצב התשלום. בדקו את ההזמנות לפני שתנסו שוב.');
     fireEvent.click(screen.getByTestId('pay-button'));
     await waitFor(() => expect(createOrder).toHaveBeenCalledTimes(2));
     expect(createOrder.mock.calls[1][0].idempotencyKey).toBe(createOrder.mock.calls[0][0].idempotencyKey);
@@ -303,4 +302,11 @@ describe('admin', () => {
     fireEvent.click(screen.getByText('כן, לבטל'));
     await waitFor(() => expect(api.adminAction).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'cancel' })));
   });
+});
+
+it('explains uncertain payment status after a missing checkout URL', async () => {
+  checkout(mkApi({ createOrder: vi.fn(async () => ({})) }), { initialStep: 3, initialAddress: FILLED });
+  await waitFor(() => expect(screen.getByTestId('pay-button')).not.toBeDisabled());
+  fireEvent.click(screen.getByTestId('pay-button'));
+  expect(await screen.findByText('לא הצלחנו לוודא את מצב התשלום. בדקו את ההזמנות לפני שתנסו שוב.')).toBeInTheDocument();
 });

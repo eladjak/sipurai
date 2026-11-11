@@ -58,7 +58,7 @@ export function PrintCheckoutView({
   /** @type {(key: string, values?: any) => string} */
   const t = translate;
   /** @returns {any} */
-  const errorText = (error) => error?.code === 'network' ? t('print.checkoutPage.network') : t('print.checkoutPage.generic');
+  const errorText = (error) => error?.code === 'network' ? t('print.checkoutPage.network') : error?.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : error?.code === 'forbidden' ? t('print.checkoutPage.forbidden') : t('print.checkoutPage.generic');
   const saved = useMemo(() => (persist ? readJson(draftKey(bookId)) : null), [persist, bookId]);
   const [config, setConfig] = useState({ status: 'loading', data: null, error: null });
   const [step, setStep] = useState(initialStep);
@@ -328,7 +328,7 @@ export function PrintCheckoutView({
               {createError && (
                 <div id="create-error">
                 <InlineAlert title={t('print.checkoutPage.createError')} onRetry={submit} retryLabel={t('print.checkoutPage.retry')}>
-                  {errorText(createError)}
+                  {/** @type {any} */ (t('print.checkoutPage.createUncertain'))}
                 </InlineAlert>
                 </div>
               )}

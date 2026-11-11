@@ -46,7 +46,7 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
 
       {state.status === 'error' && (
         <InlineAlert title={String(t('print.orders.error'))} onRetry={() => load()}>
-          {/** @type {any} */ (state.error?.code === 'network' ? t('print.checkoutPage.network') : t('print.checkoutPage.generic'))}
+          {/** @type {any} */ (state.error?.code === 'network' ? t('print.checkoutPage.network') : state.error?.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : state.error?.code === 'forbidden' ? t('print.checkoutPage.forbidden') : t('print.checkoutPage.generic'))}
         </InlineAlert>
       )}
 
