@@ -6,6 +6,7 @@ export function EmptyState({
   quietAction,
   headingLevel = 2,
 }) {
+  /** @type {import('react').ElementType} */
   const Heading = `h${headingLevel}`;
   return (
     <section className="flex flex-col items-center gap-4 p-6 text-center text-sp-ink-900">
