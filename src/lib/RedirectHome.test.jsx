@@ -178,3 +178,31 @@ describe('new shell routing behavior', () => {
     expect(await screen.findByTestId('shell')).toHaveTextContent('BookView');
   });
 });
+
+vi.mock('@/components/ClerkLocaleProvider', () => ({ default: ({children}) => children }));
+vi.mock('@/lib/NavigationTracker', () => ({ default: () => null }));
+vi.mock('@/lib/errorTracking', () => ({ initErrorTracking: vi.fn() }));
+vi.mock('@/utils/storageCleanup', () => ({ cleanupStorage: vi.fn() }));
+
+describe('switch-off App integration', () => {
+  it.each([null, {id:'fixture'}])('keeps public pages and auth routes open for %s', async user => {
+    legacyAuth.user = user;
+    vi.stubEnv('VITE_NEW_SHELL', 'false');
+    try {
+      const { default: App } = await import('../App.jsx?legacy-app-test');
+      for (const [path, page, marker] of [
+        ['/welcome','LandingPage','page'], ['/blog','Blog','page'], ['/blog/story','BlogPost','page'],
+        ['/privacy','PrivacyPolicy','page'], ['/terms','TermsOfService','page'], ['/pricing','Pricing','page'],
+        ['/contact','Contact','page'], ['/accessibility','Accessibility','page'], ['/BookView?id=1','BookView','page'],
+        ['/sign-in','/sign-in','where'], ['/sign-up','SignUp','page'],
+      ]) {
+        window.history.pushState({}, '', path);
+        const view = render(<App />);
+        expect(await screen.findByTestId(marker)).toHaveTextContent(page);
+        view.unmount();
+      }
+    } finally {
+      vi.stubEnv('VITE_NEW_SHELL', 'true');
+    }
+  });
+});
