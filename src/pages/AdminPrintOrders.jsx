@@ -81,7 +81,7 @@ function AdminOrderCard({ order, api, onChanged }) {
         <div>
           <dt className="text-slate-500">{String(t('print.orderDetails.total'))}</dt>
           <dd className="font-semibold tabular-nums" dir="ltr" style={{ textAlign: 'right' }}>
-            {formatIls(order.totalAgorot)}
+            {language === 'english' ? new Intl.NumberFormat('en-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: Number.isInteger(Number(order.totalAgorot) / 100) ? 0 : 2, maximumFractionDigits: 2 }).format((Number(order.totalAgorot) || 0) / 100) : formatIls(order.totalAgorot)}
           </dd>
         </div>
         <div>

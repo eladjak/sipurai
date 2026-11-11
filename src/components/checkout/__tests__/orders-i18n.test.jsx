@@ -86,3 +86,11 @@ it('renders the admin forbidden state', async () => {
   wrap(<AdminPrintOrdersView api={{ adminList: async () => { throw { code: 'forbidden' }; } }} />);
   expect(await screen.findByText('This account does not have administrator access')).toBeInTheDocument();
 });
+
+it('formats an English admin amount using English currency conventions', async () => {
+  wrap(<AdminPrintOrdersView api={{ adminList: async () => ({ orders: [order], alerts: [] }) }} />);
+  const card = await screen.findByTestId('admin-order');
+  const amount = card.querySelector('dd[dir="ltr"]');
+  const expected = new Intl.NumberFormat('en-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(1);
+  expect(amount.textContent).toBe(expected);
+});
