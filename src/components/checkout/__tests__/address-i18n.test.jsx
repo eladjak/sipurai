@@ -40,3 +40,14 @@ it('shows the empty orders page in English', async () => {
   render(<I18nContext.Provider value={{ t, language: 'english', direction: 'ltr' }}><MemoryRouter><MyOrdersView api={{ getMyOrders: async () => ({ orders: [] }) }} /></MemoryRouter></I18nContext.Provider>);
   expect(await screen.findByText('You haven’t ordered a printed book yet')).toBeInTheDocument();
 });
+
+it('shows quantity controls in English', async () => {
+  const { QtyStepper } = await import('../QtyStepper');
+  const t = (key, values = {}) => {
+    const value = key.split('.').reduce((v, part) => v?.[part], LANGUAGES.english.translations);
+    return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, k) => values[k] ?? '') : value;
+  };
+  render(<I18nContext.Provider value={{ t, language: 'english', direction: 'ltr' }}><QtyStepper value={1} onChange={() => {}} /></I18nContext.Provider>);
+  expect(screen.getByRole('button', { name: 'Add a copy' })).toBeInTheDocument();
+  expect(screen.getByText(/One copy/)).toBeInTheDocument();
+});

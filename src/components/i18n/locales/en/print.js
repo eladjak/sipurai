@@ -1,5 +1,13 @@
 export default {
   "print": {
+    "quantity": {
+      "label": "Number of copies",
+      "remove": "Remove a copy",
+      "add": "Add a copy",
+      "maximum": "The maximum per order is {max} copies. To order more, place another order.",
+      "one": "One copy. You can add more copies, for example for grandparents.",
+      "many": "{value} copies. You can order up to {max} at a time."
+},
     "address": {
       "optional": "Optional",
       "name": "Recipient’s full name",
