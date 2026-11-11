@@ -74,8 +74,13 @@ const AnimatedPage = ({ children }) => {
   );
 };
 
+const Help = () => {
+  const { t } = useI18n();
+  return <EmptyState title={t('shell.help')} action={<Link className="inline-flex min-h-12 items-center rounded-sp-sm px-4 text-sp-violet-700 hover:underline focus-visible:outline focus-visible:outline-2" to="/help/contact">{t('common.contact')}</Link>} quietAction={<Link className="inline-flex min-h-12 items-center rounded-sp-sm px-4 text-sp-violet-700 hover:underline focus-visible:outline focus-visible:outline-2" to="/help/accessibility">{t('common.accessibilityStatement')}</Link>} />;
+};
+
 // This branch is reachable only in builds with the phase-one switch enabled.
-const NewShellRoutes = () => {
+export const NewShellRoutes = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const location = useLocation();
   const { t } = useI18n();
@@ -87,7 +92,6 @@ const NewShellRoutes = () => {
     if (!user) return <Navigate replace to={`/sign-in?redirect_url=${encodeURIComponent(location.pathname + location.search + location.hash)}`} />;
     return shell(Page);
   };
-  const Help = () => <EmptyState title={t('shell.help')} action={<Link className="inline-flex min-h-12 items-center rounded-sp-sm px-4 text-sp-violet-700 hover:underline focus-visible:outline focus-visible:outline-2" to="/help/contact">{t('common.contact')}</Link>} quietAction={<Link className="inline-flex min-h-12 items-center rounded-sp-sm px-4 text-sp-violet-700 hover:underline focus-visible:outline focus-visible:outline-2" to="/help/accessibility">{t('common.accessibilityStatement')}</Link>} />;
   return <Suspense fallback={<div role="status" aria-label={t('common.loading')} />}><PrivacyGate enabled={!!user && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
     {Object.keys(redirects).map(from => <Route caseSensitive key={from} path={from} element={<Navigate replace to={resolveRedirect(from, location.search, location.hash)} />} />)}
     <Route path="/" element={user ? shell(MainPage) : <LandingPage />} />
@@ -100,7 +104,8 @@ const NewShellRoutes = () => {
     <Route path="/shelf" element={protectedPage(Pages.Library)} /><Route path="/heroes" element={protectedPage(Pages.Characters)} />
     <Route path="/parents" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(Pages.BookWizard)} />
     <Route path="/help" element={protectedPage(Help)} />
-    {['BookView', 'CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
+    <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
+    {['CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
     <Route path="/BlogPost" element={<BlogPost />} />
     {PrintCheckout && <Route path="/book/:id/order" element={protectedPage(PrintCheckout)} />}
     {MyOrders && <Route path="/orders" element={protectedPage(MyOrders)} />}

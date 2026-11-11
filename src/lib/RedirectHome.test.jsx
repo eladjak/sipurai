@@ -40,6 +40,7 @@ describe("legacy /Dashboard redirect", () => {
   });
 });
 
+vi.hoisted(() => { vi.stubEnv('VITE_NEW_SHELL', 'true'); });
 const legacyAuth = vi.hoisted(() => ({ user: null, navigateToLogin: vi.fn() }));
 vi.mock('@/lib/AuthContext', () => ({ useAuth: () => ({ ...legacyAuth, isLoadingAuth: false, isLoadingPublicSettings: false }), AuthProvider: ({children}) => children, FallbackAuthProvider: ({children}) => children }));
 vi.mock('@/components/privacy/PrivacyGate', () => ({ default: ({children}) => children }));
@@ -103,5 +104,77 @@ describe('legacy explicit route fixture', () => {
     legacyAuth.user = { id: 'fixture' };
     render(<MemoryRouter initialEntries={['/not-a-route']}><LegacyAuthenticatedApp /></MemoryRouter>);
     expect(screen.getByTestId('page')).toHaveTextContent('NotFound');
+  });
+});
+
+vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({ t: key => key }), I18nProvider: ({children}) => children }));
+vi.mock('@/pages/SignIn', () => ({ default: () => <Where /> }));
+vi.mock('@/pages/SignUp', () => ({ default: () => <div data-testid="page">SignUp</div> }));
+vi.mock('@/shell/AppShell', () => ({ default: ({children}) => <div data-testid="shell">{children}</div> }));
+vi.mock('@/screens/notfound/NotFound', () => ({ default: () => <div data-testid="page">NotFound</div> }));
+vi.mock('@/pages/UiGallery', () => ({ default: () => <div data-testid="page">Gallery</div> }));
+import { NewShellRoutes } from '../App';
+
+describe('new shell routing behavior', () => {
+  const publicAddresses = [
+    ['/', 'LandingPage'], ['/welcome','LandingPage'], ['/LandingPage','LandingPage'],
+    ['/blog','Blog'], ['/blog/story','BlogPost'], ['/Blog','Blog'], ['/BlogPost','BlogPost'],
+    ['/privacy','PrivacyPolicy'], ['/PrivacyPolicy','PrivacyPolicy'], ['/terms','TermsOfService'],
+    ['/TermsOfService','TermsOfService'], ['/pricing','Pricing'], ['/Pricing','Pricing'],
+    ['/contact','Contact'], ['/Contact','Contact'], ['/accessibility','Accessibility'],
+    ['/Accessibility','Accessibility'], ['/BookView?id=1','BookView'], ['/Home','LandingPage'], ['/Dashboard','LandingPage'],
+  ];
+  it.each(publicAddresses)('guest can open %s', async (path, page) => {
+    legacyAuth.user = null;
+    render(<MemoryRouter initialEntries={[path]}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('page')).toHaveTextContent(page);
+  });
+  it.each(publicAddresses)('signed-in reader can open public address %s', async (path, page) => {
+    legacyAuth.user = {id:'fixture'};
+    render(<MemoryRouter initialEntries={[path]}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('page')).toHaveTextContent(path === '/Home' || path === '/Dashboard' || path === '/LandingPage' || path === '/' ? 'Home' : page);
+  });
+  it.each([['/sign-in','where'], ['/sign-up','page']])('guest can open %s', async (path, marker) => {
+    legacyAuth.user = null;
+    render(<MemoryRouter initialEntries={[path]}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId(marker)).toBeInTheDocument();
+  });
+  it.each(['/shelf','/heroes','/parents','/new','/help','/CharacterEditor','/CommunityPost','/BookCreation','/Feedback','/Leaderboard','/Community'])('guest request %s receives no protected page data', async path => {
+    legacyAuth.user = null;
+    render(<MemoryRouter initialEntries={[path]}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('where')).toHaveTextContent(`/sign-in?redirect_url=${encodeURIComponent(path)}`);
+    expect(screen.queryByTestId('page')).toBeNull();
+  });
+  it.each([['/BookWizard','/new'], ['/Library?tab=drafts#x','/shelf?tab=drafts#x']])('redirects %s through the router', async (path, target) => {
+    legacyAuth.user = null;
+    render(<MemoryRouter initialEntries={[path]}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('where')).toHaveTextContent(`/sign-in?redirect_url=${encodeURIComponent(target)}`);
+  });
+  it('shows the guest 404', async () => {
+    legacyAuth.user = null;
+    render(<MemoryRouter initialEntries={['/missing']}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('page')).toHaveTextContent('NotFound');
+  });
+  it('shows the gallery when enabled in development', async () => {
+    legacyAuth.user = null;
+    render(<MemoryRouter initialEntries={['/__ui']}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('page')).toHaveTextContent('Gallery');
+  });
+  it('hides the gallery in a production build without its flag', async () => {
+    legacyAuth.user = null;
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_UI_GALLERY', '0');
+    try {
+      const { NewShellRoutes: ProductionRoutes } = await import('../App.jsx?production-gallery-test');
+      render(<MemoryRouter initialEntries={['/__ui']}><ProductionRoutes /></MemoryRouter>);
+      expect(await screen.findByTestId('page')).toHaveTextContent('NotFound');
+    } finally {
+      vi.stubEnv('DEV', true);
+    }
+  });
+  it('wraps the shared book for a signed-in reader', async () => {
+    legacyAuth.user = {id:'fixture'};
+    render(<MemoryRouter initialEntries={['/BookView?id=1']}><NewShellRoutes /></MemoryRouter>);
+    expect(await screen.findByTestId('shell')).toHaveTextContent('BookView');
   });
 });

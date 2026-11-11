@@ -8,5 +8,4 @@ export const redirects = {
   '/Pricing': '/pricing', '/Blog': '/blog', '/PrivacyPolicy': '/privacy',
   '/TermsOfService': '/terms', '/Home': '/', '/Dashboard': '/', '/LandingPage': '/',
 };
-export const protectedPaths = ['/shelf', '/heroes', '/parents', '/new', '/help', '/BookView', '/CharacterEditor', '/CommunityPost', '/BookCreation', '/Feedback', '/Leaderboard', '/Community'];
 export const resolveRedirect = (path, search = '', hash = '') => redirects[path] + search + hash;
