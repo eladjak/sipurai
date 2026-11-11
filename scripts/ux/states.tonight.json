@@ -1,0 +1,42 @@
+[
+  {
+    "name": "he-normal",
+    "path": "/?lang=he&state=normal",
+    "waitFor": "main"
+  },
+  {
+    "name": "he-empty",
+    "path": "/?lang=he&state=empty",
+    "waitFor": "main"
+  },
+  {
+    "name": "he-loading",
+    "path": "/?lang=he&state=loading",
+    "waitFor": "main"
+  },
+  {
+    "name": "he-error",
+    "path": "/?lang=he&state=error",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-normal",
+    "path": "/?lang=en&state=normal",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-empty",
+    "path": "/?lang=en&state=empty",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-loading",
+    "path": "/?lang=en&state=loading",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-error",
+    "path": "/?lang=en&state=error",
+    "waitFor": "main"
+  }
+]

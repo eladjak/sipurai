@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { I18nContext, LANGUAGES } from '@/components/i18n/i18nProvider';
 import app from '@/App.jsx?raw';
@@ -14,7 +14,7 @@ const show = async () => {
   const t = (key, vars = {}) => { let result = key.split('.').reduce((v, part) => v?.[part], messages) || key; Object.entries(vars).forEach(([k, v]) => { result = result.replace(`{${k}}`, v); }); return result; };
   return render(<I18nContext.Provider value={{ t, language: 'english' }}><MemoryRouter><Tonight /></MemoryRouter></I18nContext.Provider>);
 };
-afterEach(() => { cleanup(); localStorage.clear(); data.books = []; });
+afterEach(() => { cleanup(); localStorage.clear(); data.books = []; data.loading = false; data.error = false; data.offline = false; data.retry.mockClear(); });
 describe('tonight', () => {
   it('chooses the latest readable book and uses its saved page only when present', async () => {
     data.books = [{ id:'old', title:'Old', status:'complete', created_date:'2025-01-01' }, { id:'new', title:'New', status:'complete', created_date:'2026-01-01' }];
@@ -24,5 +24,7 @@ describe('tonight', () => {
   });
   it('shows a first story action when there are no books', async () => { await show(); expect(screen.getByRole('link', { name: /create.*first story/i }).getAttribute('href')).toBe('/new'); });
   it('does not invent a gift count', async () => { data.books = [{ id:'a', title:'A', status:'complete' }]; await show(); expect(document.body.textContent).not.toMatch(/\d+.*gift/i); });
+  it('offers retry on errors and tells the reader when offline', async () => { data.error = true; await show(); fireEvent.click(screen.getByRole('button', { name: /try again/i })); expect(data.retry).toHaveBeenCalledOnce(); cleanup(); data.error = false; data.offline = true; await show(); expect(screen.getByText(/you are offline/i)).toBeTruthy(); });
+  it('links to the shelf when books exist but are not yet readable', async () => { data.books = [{ id:'draft', status:'generating' }]; await show(); expect(screen.getByRole('link', { name: /open the shelf/i }).getAttribute('href')).toBe('/shelf'); });
   it('keeps the old home in the switch-off routes and loads tonight only in new shell', () => { expect(app).toMatch(/user \? shell\(Tonight\) : <LandingPage/); expect(app).toMatch(/<MainPage \/>/); expect(app).toMatch(/VITE_NEW_SHELL === 'true' \? lazy\(\(\) => import\('@\/screens\/tonight\/Tonight'\)\) : null/); });
 });
