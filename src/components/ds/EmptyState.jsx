@@ -6,7 +6,8 @@ export function EmptyState({
   quietAction,
   headingLevel = 2,
 }) {
-  const Heading = `h${headingLevel}`;
+  /** @type {import('react').ElementType} */
+  const Heading = /** @type {any} */ (`h${headingLevel}`);
   return (
     <section className="flex flex-col items-center gap-4 p-6 text-center text-sp-ink-900">
       {illustration && <div aria-hidden="true">{illustration}</div>}
