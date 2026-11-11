@@ -120,6 +120,94 @@ export default {
       "houseInvalid": "Enter a house number, for example 12 or 12A.",
       "zip": "The postal code has 7 digits, for example 1234567. You can also leave it blank."
     },
+    "orderStatuses": {
+  "awaiting_payment": {
+    "label": "Awaiting payment",
+    "hint": "Your order is saved. Printing starts after payment is confirmed."
+  },
+  "paid": {
+    "label": "Paid, preparing to print",
+    "hint": "Payment received. We are preparing your book for printing."
+  },
+  "submitting": {
+    "label": "Sending to print",
+    "hint": "Your book is on its way to the printer."
+  },
+  "submitted": {
+    "label": "Sent to print",
+    "hint": "The printer has received your book."
+  },
+  "in_production": {
+    "label": "Printing",
+    "hint": "Your book is being printed and prepared."
+  },
+  "shipped": {
+    "label": "Shipped",
+    "hint": "Your book is on its way."
+  },
+  "ready_for_pickup": {
+    "label": "Ready for pickup",
+    "hint": "Your book is ready for pickup."
+  },
+  "cancelled": {
+    "label": "Cancelled",
+    "hint": "Your order was cancelled."
+  },
+  "failed_needs_attention": {
+    "label": "Needs our attention",
+    "hint": "There was a problem sending your book to print. Your order is saved and we are taking care of it."
+  },
+  "unknown": {
+    "label": "Being handled"
+  }
+},
+    "orderDetails": {
+  "myBook": "My book",
+  "untitled": "Untitled book",
+  "copies": "Copies",
+  "total": "Total",
+  "method": "Delivery method",
+  "pickup": "Pickup",
+  "delivery": "Sipurai delivery",
+  "ordered": "Ordered on",
+  "tracking": "Track delivery",
+  "orderedPaid": "Ordered / paid",
+  "unpaid": "Not yet paid",
+  "apartment": "apartment {apartment}"
+},
+    "adminOrders": {
+  "title": "Print orders administration",
+  "subtitle": "All printed book orders and the actions available for each one.",
+  "back": "Back",
+  "forbidden": "This account does not have administrator access",
+  "forbiddenHint": "This page is for the system administrator. If you need access, sign in with the administrator account.",
+  "alertOne": "Needs attention: one paid order has not been sent to print",
+  "alertMany": "Need attention: {count} paid orders have not been sent to print",
+  "alertFallback": "A paid order has not been sent to print",
+  "filter": "Filter by status",
+  "all": "All orders",
+  "refresh": "Refresh",
+  "loading": "Loading orders",
+  "error": "Could not load orders",
+  "empty": "No orders with this status",
+  "emptyHint": "Try selecting “All orders” in the filter.",
+  "retry_submit": "Retry sending to print",
+  "mark_ready_for_pickup": "Mark ready for pickup",
+  "mark_shipped": "Mark shipped",
+  "cancel": "Cancel order",
+  "success": "Action completed.",
+  "actionError": "The action failed. Please try again.",
+  "lastError": "Last system message: ",
+  "note": "Action note",
+  "noteHint": "(optional, saved in history)",
+  "notePlaceholder": "For example: called the customer and confirmed the address",
+  "working": "Working…",
+  "cancelLabel": "Confirm order cancellation",
+  "cancelQuestion": "Cancel this order?",
+  "cancelHint": "If already paid, the refund must be handled separately and is not made here.",
+  "cancelYes": "Yes, cancel",
+  "cancelNo": "No, keep it"
+},
     "orders": {
       "title": "My orders",
       "subtitle": "Your printed books and their current status.",

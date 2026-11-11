@@ -11,7 +11,7 @@ import { PaymentReturn } from '@/components/checkout/PaymentReturn';
 import { EmptyOrdersArt } from '@/components/checkout/Illustrations';
 
 export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollMs, maxPollMs }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const [state, setState] = useState({ status: 'loading', orders: [], error: null });
 
   const load = useCallback(async (silent = false) => {
@@ -46,7 +46,7 @@ export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollM
 
       {state.status === 'error' && (
         <InlineAlert title={String(t('print.orders.error'))} onRetry={() => load()}>
-          {(language !== 'english' && state.error?.message_he) || String(t('print.orders.retry'))}
+          {/** @type {any} */ (state.error?.code === 'network' ? t('print.checkoutPage.network') : t('print.checkoutPage.generic'))}
         </InlineAlert>
       )}
 

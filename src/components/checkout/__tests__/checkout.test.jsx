@@ -241,7 +241,7 @@ describe('my orders', () => {
 
     const bad = mkApi({ getMyOrders: vi.fn().mockRejectedValueOnce(new PrintOrderApiError({ message_he: 'אין חיבור' })).mockResolvedValue({ orders: [] }) });
     wrap(<MyOrdersView api={bad} />);
-    await screen.findByText('אין חיבור');
+    await screen.findByText('משהו השתבש. נסו שוב בעוד רגע.');
     fireEvent.click(screen.getByText('נסו שוב'));
     await screen.findByTestId('orders-empty');
   });
