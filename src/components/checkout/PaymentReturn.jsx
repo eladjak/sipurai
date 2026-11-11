@@ -1,8 +1,9 @@
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SuccessBookArt, WaitingPrinterArt } from './Illustrations';
 import { InlineAlert } from './ui';
-import { PAID_OR_LATER, statusMeta } from './statusMeta';
+import { PAID_OR_LATER } from './statusMeta';
 
 const STOP = ['submitted', 'in_production', 'shipped', 'ready_for_pickup', 'cancelled', 'failed_needs_attention'];
 
@@ -11,6 +12,7 @@ const STOP = ['submitted', 'in_production', 'shipped', 'ready_for_pickup', 'canc
  * is handed to printing, with friendly wording for every in-between state.
  */
 export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onStatusChange }) {
+  const { t } = useI18n();
   const [order, setOrder] = useState(null);
   const [slow, setSlow] = useState(false);
   const [softError, setSoftError] = useState(false);
@@ -64,15 +66,15 @@ export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onS
 
   if (status === 'failed_needs_attention') {
     return (
-      <InlineAlert tone="warn" title="התשלום התקבל, והספר ממתין לנו" className="mb-5">
-        {statusMeta(status).hint}
+      <InlineAlert tone="warn" title={t('print.checkoutCopy.returnFailed')} className="mb-5">
+        {t('print.checkoutCopy.returnFailedHint')}
       </InlineAlert>
     );
   }
   if (status === 'cancelled') {
     return (
-      <InlineAlert tone="info" title="ההזמנה בוטלה" className="mb-5">
-        אם זה לא מה שציפיתם, אפשר להזמין שוב מעמוד הספר.
+      <InlineAlert tone="info" title={t('print.checkoutCopy.cancelled')} className="mb-5">
+        {t('print.checkoutCopy.cancelledHint')}
       </InlineAlert>
     );
   }
@@ -91,9 +93,9 @@ export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onS
         <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, delay: 0.05 }} className="mx-auto w-fit">
           <SuccessBookArt />
         </motion.div>
-        <h2 className="mt-2 text-2xl font-extrabold text-emerald-900 dark:text-emerald-100">התשלום התקבל, תודה!</h2>
+        <h2 className="mt-2 text-2xl font-extrabold text-emerald-900 dark:text-emerald-100">{t('print.checkoutCopy.success')}</h2>
         <p className="mt-1 text-base leading-relaxed text-emerald-900/80 dark:text-emerald-100/80">
-          {STOP.includes(status) ? 'הספר שלך הועבר להדפסה. אפשר לעקוב אחרי ההזמנה כאן למטה.' : 'אנחנו מעבירים את הספר להדפסה. זה לוקח כמה רגעים, ואפשר גם לסגור את העמוד.'}
+          {STOP.includes(status) ? t('print.checkoutCopy.sent') : t('print.checkoutCopy.sending')}
         </p>
       </motion.div>
     );
@@ -104,13 +106,13 @@ export function PaymentReturn({ api, orderId, pollMs = 3000, maxMs = 120000, onS
       <div className="mx-auto w-fit">
         <WaitingPrinterArt />
       </div>
-      <h2 className="mt-2 text-xl font-extrabold text-slate-900 dark:text-white">מאמתים את התשלום…</h2>
+      <h2 className="mt-2 text-xl font-extrabold text-slate-900 dark:text-white">{t('print.checkoutCopy.checking')}</h2>
       <p className="mt-1 text-base leading-relaxed text-slate-600 dark:text-slate-300">
         {slow
-          ? 'האישור לוקח קצת יותר זמן מהרגיל. אין צורך לשלם שוב. אפשר לסגור את העמוד, והסטטוס יתעדכן ברשימה למטה.'
+          ? t('print.checkoutCopy.slow')
           : softError
-            ? 'יש הפרעה קטנה בחיבור, ואנחנו ממשיכים לנסות.'
-            : 'זה לוקח בדרך כלל כמה שניות. אין צורך לרענן.'}
+            ? t('print.checkoutCopy.connection')
+            : t('print.checkoutCopy.waiting')}
       </p>
     </div>
   );

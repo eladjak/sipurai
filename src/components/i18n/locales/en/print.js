@@ -1,5 +1,43 @@
 export default {
   "print": {
+    "checkoutCopy": {
+  "stepCopies": "Copies and delivery",
+  "stepAddress": "Address",
+  "stepPayment": "Review and payment",
+  "stepsLabel": "Order steps",
+  "stepProgress": "Step {current} of {total}",
+  "steps": [
+    "Copies and delivery",
+    "Address",
+    "Review and payment"
+  ],
+  "completed": "Completed",
+  "current": "Current step",
+  "deliveryTitle": "How would you like to receive the book?",
+  "delivery": "Home delivery",
+  "deliveryHint": "The book will be delivered to the address you enter in the next step.",
+  "pickup": "Pickup",
+  "pickupHint": "No delivery charge. You can see here when the book is ready for pickup.",
+  "calculating": "Calculating the price",
+  "free": "Free",
+  "total": "Total to pay",
+  "finalPrice": "Final price, no extras",
+  "printNote": "Printing starts after payment is confirmed.",
+  "paymentNote": "Payment takes place on a secure page, then you will return here.",
+  "book": "Printed book",
+  "bookMany": "Printed book × {qty}",
+  "returnFailed": "Payment received; your book needs our attention",
+  "returnFailedHint": "There was a problem sending the book to print. Your order is saved and we are taking care of it.",
+  "cancelled": "Order cancelled",
+  "cancelledHint": "If this was unexpected, you can order again from the book page.",
+  "success": "Payment received, thank you!",
+  "sent": "Your book has been sent to print. You can track your order below.",
+  "sending": "We are sending your book to print. This takes a few moments; you can close this page.",
+  "checking": "Checking your payment…",
+  "slow": "Confirmation is taking longer than usual. There is no need to pay again. You can close this page; the status below will update.",
+  "connection": "There is a temporary connection problem. We are still trying.",
+  "waiting": "This usually takes a few seconds. There is no need to refresh."
+},
     "quantity": {
       "label": "Number of copies",
       "remove": "Remove a copy",

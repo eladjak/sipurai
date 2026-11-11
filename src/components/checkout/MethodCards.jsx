@@ -1,17 +1,19 @@
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { Truck, Store, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /** Ship / pickup choice. Native radios underneath, so keyboard and screen readers just work. */
 export function MethodCards({ value, onChange, pickup }) {
+  const { t, language } = useI18n();
   const options = [
-    { id: 'ship', title: 'משלוח סיפוראי', text: 'הספר מגיע עד הבית, לכתובת שתמלאו בשלב הבא.', Icon: Truck },
+    { id: 'ship', title: t('print.checkoutCopy.delivery'), text: t('print.checkoutCopy.deliveryHint'), Icon: Truck },
   ];
   if (pickup?.enabled) {
-    options.push({ id: 'pickup', title: pickup.label_he || 'איסוף עצמי', text: 'בלי עלות משלוח. תראו כאן כשהספר מוכן לאיסוף.', Icon: Store });
+    options.push({ id: 'pickup', title: language !== 'english' && pickup.label_he || t('print.checkoutCopy.pickup'), text: t('print.checkoutCopy.pickupHint'), Icon: Store });
   }
   return (
     <fieldset>
-      <legend className="mb-2 text-base font-bold text-slate-900 dark:text-white">איך תרצו לקבל את הספר?</legend>
+      <legend className="mb-2 text-base font-bold text-slate-900 dark:text-white">{t('print.checkoutCopy.deliveryTitle')}</legend>
       <div className="grid gap-3">
         {options.map(({ id, title, text, Icon }) => (
           <label key={id} className="block cursor-pointer">

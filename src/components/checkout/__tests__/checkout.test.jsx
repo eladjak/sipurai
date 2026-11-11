@@ -15,7 +15,10 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const t = (key) => key.split('.').reduce((value, part) => value?.[part], LANGUAGES.hebrew.translations);
+const t = (key, values = {}) => {
+  const value = key.split('.').reduce((item, part) => item?.[part], LANGUAGES.hebrew.translations);
+  return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '') : value;
+};
 const wrap = (ui) => render(<I18nContext.Provider value={{ t, language: 'hebrew', direction: 'rtl' }}><MemoryRouter>{ui}</MemoryRouter></I18nContext.Provider>);
 
 const quote = {
