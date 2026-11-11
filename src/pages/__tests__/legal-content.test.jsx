@@ -1,15 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { policyContent, gateCopy, POLICY_VERSION } from '@/data/privacyPolicyContent';
 
-const brands = /BookPod|בוקפוד|Morning|חשבונית ירוקה|Creem|Clerk|Supabase|Vercel|Google|OpenAI|Gemini|Sentry|Umami|Sanity/i;
 const text = (value) => JSON.stringify(value);
+const processors = ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity', 'Google Fonts'];
 
 describe('legal content', () => {
-  it('removes brands from policy and gate, with a working control', () => {
-    expect(text({ ...policyContent.he, injected: 'BookPod' })).toMatch(brands);
+  it('names each code-integrated processor in the actual policy list in both languages', () => {
     for (const lang of ['he', 'en']) {
-      expect(text(policyContent[lang])).not.toMatch(brands);
-      expect(text(gateCopy[lang])).not.toMatch(brands);
+      const list = policyContent[lang].sections[3].body;
+      for (const name of processors) expect(list, `${lang} processor list: ${name}`).toContain(name);
     }
   });
   it('does not promise an unavailable personalized home sample', () => {
@@ -20,16 +19,12 @@ describe('legal content', () => {
     expect(text(policyContent.he)).not.toContain('בעיקר בארצות הברית');
     expect(text(policyContent.en)).not.toContain('mainly in the United States');
   });
-  it('directs parents to categories and the full list in consent help', () => {
-    expect(gateCopy.he.rows.find((row) => row.icon === 'users').help).toContain('סוגי השירותים');
-    expect(gateCopy.en.rows.find((row) => row.icon === 'users').help).toContain('categories');
+  it('points consent help to the named list', () => {
+    expect(gateCopy.he.rows.find((row) => row.icon === 'users').help).toContain('רשימה המלאה במדיניות');
+    expect(gateCopy.en.rows.find((row) => row.icon === 'users').help).toContain('full list in the policy');
   });
-  it('offers the full processor list in both languages', () => {
-    expect(text(policyContent.he)).toContain('ונשלח את הרשימה המלאה');
-    expect(text(policyContent.en)).toContain('we will send the full list');
-  });
-  it('keeps the policy version', () => {
-    expect(POLICY_VERSION).toBe('2026-11-10');
+  it('bumps the policy version for material changes', () => {
+    expect(POLICY_VERSION).toBe('2026-11-11');
   });
 });
 
@@ -60,14 +55,15 @@ it('shows binding Hebrew terms and a note for English and Yiddish only', () => {
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import ConsentScreen from '@/components/privacy/ConsentScreen';
 
-it('renders brand-free policy and consent copy in each supported language', () => {
+it('renders the named processor list and consent summary in each supported language', () => {
   for (const language of ['hebrew', 'english', 'yiddish']) {
     const value = { language, isRTL: language !== 'english', t: (key) => key };
     const policy = render(<MemoryRouter><I18nContext.Provider value={value}><PrivacyPolicy /></I18nContext.Provider></MemoryRouter>);
-    expect(policy.container.textContent).not.toMatch(brands);
+    for (const name of processors) expect(policy.container.textContent).toContain(name);
     cleanup();
     const consent = render(<MemoryRouter><ConsentScreen lang={language === 'english' ? 'en' : 'he'} isRTL={language !== 'english'} status="idle" errorText="" onAccept={() => {}} onDecline={() => {}} /></MemoryRouter>);
-    expect(consent.container.textContent).not.toMatch(brands);
+    expect(consent.container.textContent).toContain('Google');
+    expect(consent.container.textContent).toContain('OpenAI');
     cleanup();
   }
 });

@@ -12,7 +12,7 @@ import { CURRENT_POLICY_VERSION } from '../../api/_lib/policyVersion.js';
 
 export const POLICY_VERSION = CURRENT_POLICY_VERSION;
 export const CONTACT_EMAIL = 'support@sipurai.ai';
-export const LAST_UPDATED = { he: '10 בנובמבר 2026', en: 'November 10, 2026' };
+export const LAST_UPDATED = { he: '11 בנובמבר 2026', en: 'November 11, 2026' };
 
 const buildPolicyContent = (deleteEnabled) => ({
   he: {
@@ -63,35 +63,33 @@ const buildPolicyContent = (deleteEnabled) => ({
       },
       {
         heading: '4. מי עוד מטפל במידע',
-        body: `אנחנו עובדים עם חברות חיצוניות. הנה סוגי השירותים ומה כל אחד מקבל. חלק מהספקים פועלים מחוץ לישראל.
+        body: `אנחנו עובדים עם חברות חיצוניות. הנה כולן, ומה כל אחת מקבלת. חלק מהספקים פועלים מחוץ לישראל.
 
-רוצים לדעת בדיוק אילו חברות? כתבו ל־${CONTACT_EMAIL} ונשלח את הרשימה המלאה.
+**Clerk** (clerk.com): ההתחברות. מקבלת את המייל, השם ומזהה החשבון.
 
-**שירות התחברות**: ההתחברות. השירות מקבל את המייל, השם ומזהה החשבון.
+**Supabase** (supabase.com): בסיס הנתונים ואחסון הקבצים, בשרתים באיחוד האירופי. כאן נשמרים הספרים, הדמויות והתמונות.
 
-**שירות אחסון ונתונים**: בסיס הנתונים ואחסון הקבצים, בשרתים באיחוד האירופי. כאן נשמרים הספרים, הדמויות והתמונות.
+**Vercel** (vercel.com): אירוח האתר והשרת שלנו. כל בקשה עוברת דרכו.
 
-**שירות אירוח**: אירוח האתר והשרת שלנו. כל בקשה עוברת דרכו.
+**Google, שירותי Gemini:** יצירת סיפורים, איורים וקול. מקבלת את בקשת היצירה: נושא, שמות הדמויות ותיאורן, טווח הגיל והשפה, ולפעמים את תמונת העטיפה כדי לשמור על דמות עקבית. אם העליתם תמונה ליצירת דמות, היא מגיעה אליה, רק לשניות שלוקח לצייר.
 
-**ספק בינה מלאכותית:** יצירת סיפורים, איורים וקול. הספק מקבל את בקשת היצירה: נושא, שמות הדמויות ותיאורן, טווח הגיל והשפה, ולפעמים את תמונת העטיפה כדי לשמור על דמות עקבית. אם העליתם תמונה ליצירת דמות, היא מגיעה אליו, רק לשניות שלוקח לצייר.
+**OpenAI:** יצירת איורים והקראה בקול, לפי המודל שנבחר. מקבלת את הטקסט להקראה או את בקשת האיור, ולפעמים את תמונת העטיפה. אם העליתם תמונה ליצירת דמות והמודל שנבחר הוא של OpenAI, היא מגיעה אליה, רק לשניות שלוקח לצייר.
 
-**ספק בינה מלאכותית נוסף:** יצירת איורים והקראה בקול, לפי המודל שנבחר. הספק מקבל את הטקסט להקראה או את בקשת האיור, ולפעמים את תמונת העטיפה. אם העליתם תמונה ליצירת דמות ונבחר המודל של הספק הזה, היא מגיעה אליו, רק לשניות שלוקח לצייר.
+**Creem** (creem.io): תשלום על מנוי. אצלם נשמרים פרטי כרטיס האשראי.
 
-**ספק סליקה**: תשלום על מנוי. אצלם נשמרים פרטי כרטיס האשראי.
+**Morning, חשבונית ירוקה:** תשלום והוצאת חשבונית על הזמנת ספר מודפס, אם הזמנתם.
 
-**שירות חשבוניות:** תשלום והוצאת חשבונית על הזמנת ספר מודפס, אם הזמנתם.
+**ספק ההדפסה BookPod:** רק כשמזמינים ספר מודפס. מקבל את קובצי הספר ואת כתובת המשלוח. (הזמנת ספרים מודפסים עדיין לא נפתחה לכולם.)
 
-**ספק הדפסה:** רק כשמזמינים ספר מודפס. מקבל את קובצי הספר ואת כתובת המשלוח. (הזמנת ספרים מודפסים עדיין לא נפתחה לכולם.)
+**Sentry** (sentry.io): דיווחי תקלות, בלי שם ומייל.
 
-**שירות דיווח תקלות**: דיווחי תקלות, בלי שם ומייל.
+**Umami** (analytics.sipurai.ai): ספירת ביקורים בלי עוגיות. השירות רץ על הדומיין שלנו.
 
-**שירות מדידת ביקורים** (analytics.sipurai.ai): ספירת ביקורים בלי עוגיות. השירות רץ על הדומיין שלנו.
+**Sanity** (sanity.io): תוכן הבלוג. כשפותחים את הבלוג הדפדפן פונה אליהם.
 
-**שירות תוכן לבלוג**: תוכן הבלוג. כשפותחים את הבלוג הדפדפן פונה אליהם.
+**Google Fonts:** הגופנים של האתר נטענים מגוגל, ולכן כתובת ה-IP שלכם מגיעה אליהם.
 
-**שירות גופנים:** הגופנים של האתר נטענים משירות גופנים, ולכן כתובת ה-IP שלכם מגיעה אליהם.
-
-**צ'אט השאלות באתר** (פתוח גם למי שלא נרשם): ההודעות שכותבים בו נשלחות לספק בינה מלאכותית כדי שיענו. אל תכתבו בו פרטים על הילדים.
+**צ'אט השאלות באתר** (פתוח גם למי שלא נרשם): ההודעות שכותבים בו נשלחות ל-Google כדי שיענו. אל תכתבו בו פרטים על הילדים.
 
 בינה מלאכותית לא לומדת מהספרים שלכם אצלנו, כי אנחנו לא מאמנים מודל. מה שהספקים החיצוניים עושים בבקשות נקבע בתנאים שלהם, ואנחנו לא שולטים בכך.`,
       },
@@ -110,7 +108,7 @@ const buildPolicyContent = (deleteEnabled) => ({
         id: 'photos',
         body: `תמונה שמעלים כדי ליצור דמות משמשת פעם אחת לציור, ואחר כך היא לא נשמרת אצלנו. נשמר רק הציור.
 
-**איך זה עובד:** הדפדפן מקטין את התמונה ומעביר אותה לשרת שלנו, והשרת מעביר אותה לשירות הציור (ספק בינה מלאכותית, לפי המודל שנבחר). הציור שחוזר הוא מה שנשמר. התמונה עצמה לא נכתבת אצלנו לאחסון ולא נכנסת לבסיס הנתונים.
+**איך זה עובד:** הדפדפן מקטין את התמונה ומעביר אותה לשרת שלנו, והשרת מעביר אותה לשירות הציור (Google או OpenAI, לפי המודל שנבחר). הציור שחוזר הוא מה שנשמר. התמונה עצמה לא נכתבת אצלנו לאחסון ולא נכנסת לבסיס הנתונים.
 
 **מה אנחנו לא שולטים בו:** כמה זמן שירות הציור שומר בקשה אצלו נקבע בתנאים שלו. לכן כתבנו בסעיף 4 מי מקבל את התמונה.
 
@@ -161,7 +159,7 @@ const buildPolicyContent = (deleteEnabled) => ({
       },
       {
         heading: '11. עוגיות',
-        body: `אין לנו עוגיות מעקב ואין פרסומות. ספירת הביקורים נעשית בלי עוגיות. שירות ההתחברות שומר עוגיית התחברות הכרחית כדי שתישארו מחוברים.`,
+        body: `אין לנו עוגיות מעקב ואין פרסומות. ספירת הביקורים נעשית בלי עוגיות. שירות ההתחברות (Clerk) שומר עוגיית התחברות הכרחית כדי שתישארו מחוברים.`,
       },
       {
         heading: '12. כשהמדיניות משתנה',
@@ -221,35 +219,33 @@ We do not sell or rent information, we do not share it for advertising, and we d
       },
       {
         heading: '4. Who else handles it',
-        body: `We work with outside companies. Here are the categories of services and what each receives. Some providers operate outside Israel.
+        body: `We work with outside companies. Here is every one of them and what each receives. Some providers operate outside Israel.
 
-Want the exact companies? Write to ${CONTACT_EMAIL} and we will send the full list.
+**Clerk** (clerk.com): sign-in. Receives your email, name and account ID.
 
-**sign-in service**: sign-in. Receives your email, name and account ID.
+**Supabase** (supabase.com): the database and file storage, on servers in the European Union. Your books, characters and images are kept here.
 
-**storage and database service**: the database and file storage, on servers in the European Union. Your books, characters and images are kept here.
+**Vercel** (vercel.com): hosts our website and server. Every request passes through it.
 
-**hosting service**: hosts our website and server. Every request passes through it.
+**Google, Gemini services:** creates stories, illustrations and voice. Receives the creation request: topic, character names and descriptions, age range and language, and sometimes the cover image to keep a character consistent. If you uploaded a photo to create a character, it reaches them, only for the seconds it takes to draw.
 
-**AI provider:** creates stories, illustrations and voice. Receives the creation request: topic, character names and descriptions, age range and language, and sometimes the cover image to keep a character consistent. If you uploaded a photo to create a character, it reaches them, only for the seconds it takes to draw.
+**OpenAI:** creates illustrations and read-aloud voice, depending on the model chosen. Receives the text to read or the illustration request, and sometimes the cover image. If you uploaded a photo to create a character and the chosen model is OpenAI's, it reaches them, only for the seconds it takes to draw.
 
-**another AI provider:** creates illustrations and read-aloud voice, depending on the model chosen. Receives the text to read or the illustration request, and sometimes the cover image. If you uploaded a photo to create a character and the chosen model is from this provider, it reaches them, only for the seconds it takes to draw.
+**Creem** (creem.io): payment for subscriptions. Your card details are kept by them.
 
-**payment provider**: payment for subscriptions. Your card details are kept by them.
+**Morning (Green Invoice):** payment and invoice for a printed-book order, if you place one.
 
-**invoicing service:** payment and invoice for a printed-book order, if you place one.
+**Print vendor BookPod:** only when you order a printed book. Receives the book files and the delivery address. (Printed-book ordering is not yet open to everyone.)
 
-**printing provider:** only when you order a printed book. Receives the book files and the delivery address. (Printed-book ordering is not yet open to everyone.)
+**Sentry** (sentry.io): error reports, without name and email.
 
-**error-reporting service**: error reports, without name and email.
+**Umami** (analytics.sipurai.ai): visit counting without cookies. It runs on our own domain.
 
-**visit counting service** (analytics.sipurai.ai): visit counting without cookies. It runs on our own domain.
+**Sanity** (sanity.io): blog content. When you open the blog your browser contacts them.
 
-**blog content service**: blog content. When you open the blog your browser contacts them.
+**Google Fonts:** the site fonts load from Google, so your IP address reaches them.
 
-**font service:** the site fonts load from a font service, so your IP address reaches them.
-
-**The FAQ chat on the site** (open to people who have not signed up): the messages typed into it are sent to an AI provider so that it can answer. Please do not write details about your children in it.
+**The FAQ chat on the site** (open to people who have not signed up): the messages typed into it are sent to Google so that it can answer. Please do not write details about your children in it.
 
 Artificial intelligence does not learn from your books on our side, because we do not train a model. What the outside providers do with requests is set by their own terms, and we do not control that.`,
       },
@@ -268,7 +264,7 @@ Artificial intelligence does not learn from your books on our side, because we d
         id: 'photos',
         body: `A photo uploaded to create a character is used once to draw, and then we do not keep it. Only the drawing is kept.
 
-**How it works:** the browser makes the photo smaller and sends it to our server, and our server passes it to the drawing service (an AI provider, depending on the model chosen). The drawing that comes back is what is kept. The photo itself is never written to our storage or database.
+**How it works:** the browser makes the photo smaller and sends it to our server, and our server passes it to the drawing service (Google or OpenAI, depending on the model chosen). The drawing that comes back is what is kept. The photo itself is never written to our storage or database.
 
 **What we do not control:** how long the drawing service holds a request is set by its own terms. That is why section 4 says who receives the photo.
 
@@ -319,7 +315,7 @@ No system is 100 percent secure. If we discover an incident that affected your i
       },
       {
         heading: '11. Cookies',
-        body: `We have no tracking cookies and no ads. Visit counting is done without cookies. The sign-in service keeps a necessary sign-in cookie so that you stay signed in.`,
+        body: `We have no tracking cookies and no ads. Visit counting is done without cookies. The sign-in service (Clerk) keeps a necessary sign-in cookie so that you stay signed in.`,
       },
       {
         heading: '12. When the policy changes',
@@ -343,9 +339,9 @@ const buildGateCopy = (deleteEnabled) => ({
     lead: 'סיפוראי שומרת מידע על הילדים שלכם כדי ליצור להם ספרים. הנה בקצרה מה קורה איתו, ואתם מחליטים אם להמשיך.',
     rows: [
       { icon: 'database', title: 'מה אנחנו שומרים', text: 'עליכם: מייל ושם. על הילד: שם, גיל ותיאור הדמות. ואת הספרים והאיורים שיצרתם.' },
-      { icon: 'camera', title: 'תמונות שמעלים', text: 'תמונה שתעלו כדי ליצור דמות משמשת פעם אחת לציור ולא נשמרת אצלנו. נשמר רק הציור. לשניות שלוקח לצייר היא עוברת לספק בינה מלאכותית.' },
+      { icon: 'camera', title: 'תמונות שמעלים', text: 'תמונה שתעלו כדי ליצור דמות משמשת פעם אחת לציור ולא נשמרת אצלנו. נשמר רק הציור. לשניות שלוקח לצייר היא עוברת ל-Google או ל-OpenAI.' },
       { icon: 'sparkles', title: 'למה', text: 'רק כדי ליצור את הספר, לשמור אותו בספרייה שלכם ולהדפיס אותו אם תזמינו. לא מוכרים מידע, לא משתפים אותו לפרסום ולא מפרסמים לילדים.' },
-      { icon: 'users', title: 'מי עוד מטפל בו', text: 'ספקי בינה מלאכותית מקבלים את בקשת היצירה כדי לכתוב ולצייר. שירות התחברות מנהל את ההתחברות, שירות אחסון שומר את הקבצים, שירות אירוח מארח את האתר וספק סליקה מטפל בתשלום.', help: 'חברה חיצונית היא חברה אחרת שהאפליקציה משתמשת בה כדי לעבוד, למשל כדי להתחבר או ליצור תמונה. במדיניות מופיעים סוגי השירותים ומה הם מקבלים. אפשר לפנות אלינו ולבקש את רשימת החברות המלאה.' },
+      { icon: 'users', title: 'מי עוד מטפל בו', text: 'Google ו-OpenAI מקבלות את בקשת היצירה כדי לכתוב ולצייר. Clerk מנהלת את ההתחברות, Supabase שומרת את הקבצים, Vercel מארחת את האתר, ו-Creem מטפלת בתשלום.', help: 'חברה חיצונית היא חברה אחרת שהאפליקציה משתמשת בה כדי לעבוד, למשל כדי להתחבר או ליצור תמונה. ברשימה המלאה במדיניות מופיעה כל אחת ומה היא מקבלת.' },
       { icon: 'trash', title: 'אפשר למחוק הכל', text: deleteEnabled ? 'בכל רגע, בהגדרות. הכל נמחק, כולל התמונות והציורים.' : 'בכל רגע אפשר לבקש במייל שנמחק הכל, כולל התמונות והציורים. הכתובת: support@sipurai.ai' },
       { icon: 'heart', title: 'אתם ההורים מחליטים', text: 'החשבון הוא שלכם. הילדים לא נרשמים בעצמם, ואתם בוחרים איזה מידע עליהם להכניס. אפשר גם שם בדוי.' },
     ],
@@ -373,9 +369,9 @@ const buildGateCopy = (deleteEnabled) => ({
     lead: "Sipurai keeps information about your children so it can create books for them. Here is a short summary of what happens with it, and you decide whether to continue.",
     rows: [
       { icon: 'database', title: 'What we keep', text: 'About you: email and name. About your child: name, age and character description. Plus the books and illustrations you create.' },
-      { icon: 'camera', title: 'Photos you upload', text: 'A photo you upload to create a character is used once to draw and is not kept by us. Only the drawing is kept. For the few seconds it takes to draw, it passes to an AI provider.' },
+      { icon: 'camera', title: 'Photos you upload', text: 'A photo you upload to create a character is used once to draw and is not kept by us. Only the drawing is kept. For the few seconds it takes to draw, it passes to Google or OpenAI.' },
       { icon: 'sparkles', title: 'Why', text: 'Only to create the book, keep it in your library and print it if you order. We do not sell information, share it for advertising, or advertise to children.' },
-      { icon: 'users', title: 'Who else handles it', text: 'AI providers receive the creation request to write and draw. A sign-in service handles sign-in, a storage service stores the files, a hosting service hosts the site, and a payment provider handles payment.', help: 'An outside company is another company the app uses to work, for example to sign in or to create an image. The policy describes the categories and what they receive. Contact us to request the full list of companies.' },
+      { icon: 'users', title: 'Who else handles it', text: 'Google and OpenAI receive the creation request to write and draw. Clerk handles sign-in, Supabase stores the files, Vercel hosts the site, and Creem handles payment.', help: 'An outside company is another company the app uses to work, for example to sign in or to create an image. The full list in the policy shows each one and what it receives.' },
       { icon: 'trash', title: 'You can delete everything', text: deleteEnabled ? 'At any time, in Settings. Everything is deleted, including images and drawings.' : 'At any time you can ask by email to support@sipurai.ai and we will delete everything, including images and drawings.' },
       { icon: 'heart', title: 'You, the parent, decide', text: 'The account is yours. Children do not sign up themselves, and you choose what to enter about them. A made-up name is fine.' },
     ],
