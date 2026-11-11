@@ -248,21 +248,21 @@ export default function Library() {
       >
         <div className={`flex flex-col sm:flex-row gap-3 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
           <div className="relative flex-1">
-            <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-purple-400 h-4 w-4`} />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-purple-400 h-4 w-4" />
             <Input
               placeholder={t("library.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label={t("library.search")}
-              className={`${isRTL ? 'pr-10' : 'pl-10'} rounded-2xl border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500/20 dark:bg-gray-800 dark:text-white h-11`}
+              className="ps-10 rounded-2xl border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500/20 dark:bg-gray-800 dark:text-white h-11"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="icon"
-                className={`absolute ${isRTL ? 'left-1' : 'right-1'} top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 hover:text-purple-600`}
+                className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 hover:text-purple-600"
                 onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
+                aria-label={t("libraryLegacy.clearSearch")}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -357,14 +357,14 @@ export default function Library() {
             <TabsTrigger
               value="grid"
               className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md p-2"
-              aria-label="Grid view"
+              aria-label={t("libraryLegacy.gridView")}
             >
               <LayoutGrid className="h-4 w-4" />
             </TabsTrigger>
             <TabsTrigger
               value="list"
               className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md p-2"
-              aria-label="List view"
+              aria-label={t("libraryLegacy.listView")}
             >
               <List className="h-4 w-4" />
             </TabsTrigger>
@@ -373,7 +373,7 @@ export default function Library() {
 
         <TabsContent value="grid" className="mt-0">
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5" aria-busy="true" aria-label={t("common.loading") || "Loading books..."}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5" aria-busy="true" aria-label={t("common.loading")}>
               {Array(8).fill(0).map((_, index) => (
                 <Card key={index} className="overflow-hidden border-0 shadow-md rounded-2xl" aria-hidden="true">
                   <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-800">

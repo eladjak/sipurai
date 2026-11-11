@@ -494,7 +494,7 @@ export default function CharacterEditor() {
                                             : <Wand2 className="h-4 w-4" />
                                         }
                                         {isGeneratingImage
-                                            ? t("characterEditor.generating") || "Generating..."
+                                            ? t("characterEditor.generating")
                                             : t("characterEditor.generateImage")
                                         }
                                     </Button>

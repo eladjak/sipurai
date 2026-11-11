@@ -108,10 +108,10 @@ function BookCard({ book, viewType = "grid", onDuplicate }) {
                   <div className="rounded-full bg-white/60 dark:bg-gray-800/60 p-4 mb-3 shadow-inner">
                     <BookOpen className="h-12 w-12 text-purple-500 dark:text-purple-400" />
                   </div>
-                  <p className="font-medium text-purple-700 dark:text-purple-300 text-sm">{book.title || "Untitled Book"}</p>
+                  <p className="font-medium text-purple-700 dark:text-purple-300 text-sm">{book.title || t("libraryLegacy.untitledBook")}</p>
                 </div>
               )}
-              <Badge className={`absolute top-2 ${isRTL ? 'left-2' : 'right-2'} shadow-md ${statusStyles[book.status]}`}>
+              <Badge className={`absolute top-2 end-2 shadow-md ${statusStyles[book.status]}`}>
                 <span className="flex items-center gap-1">
                   {statusIcons[book.status]}
                   {statusLabels[book.status]}
