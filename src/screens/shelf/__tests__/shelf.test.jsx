@@ -51,3 +51,16 @@ describe('switch-off App integration', () => {
     } finally { vi.unstubAllEnvs(); }
   });
 });
+
+
+describe('sheet presentation', () => {
+  it('groups the cover, title, hero and status in the sheet heading', () => {
+    show([{ id: '5', title: 'Adventure', child_name: 'Noa', status: 'partial', cover_image: '/cover.jpg' }]);
+    fireEvent.click(screen.getByRole('button', { name: /Adventure/ }));
+    const heading = screen.getByRole('heading', { name: /Adventure/ });
+    expect(heading.querySelector('img')).toBeTruthy();
+    expect(heading).toHaveTextContent('Noa');
+    expect(heading).toHaveTextContent('shelf.partial');
+    cleanup();
+  });
+});
