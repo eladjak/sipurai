@@ -4,7 +4,7 @@ export default {
     footerOperator: 'Sipurai is operated by Elad Yakobovich, exempt dealer no. 021983085.',
     footerLink: 'Cancel subscription',
     title: 'Cancel subscription',
-    lead: 'Cancel your subscription online here, without explaining why. It takes under a minute.',
+    lead: 'Send us a cancellation notice here, without explaining why. If one-click cancellation is available for your account, the button appears below. Otherwise send an email; it takes a minute.',
     whatTitle: 'What happens after you cancel',
     what1: 'The subscription ends within 3 business days of the moment you notify us.',
     what2: 'You will not be charged after the cancellation date.',

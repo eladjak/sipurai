@@ -28,7 +28,8 @@ export function verifiedEmail(payload) {
   if (typeof e !== 'string') return null;
   const v = e.trim();
   if (!v || v.length > 254 || !v.includes('@')) return null;
-  if (payload.email_verified === false) return null;
+  // Only an email the token explicitly marks as verified counts (Codex review round 2).
+  if (payload.email_verified !== true) return null;
   return v;
 }
 
@@ -117,6 +118,8 @@ export async function cancelSubscription({ userId, email, store, env = {}, fetch
   }
   if (!res.ok) {
     console.error('[subscription/cancel] creem answered', res.status);
+    // A 5xx may come after the cancellation was processed: say "uncertain", not "nothing was cancelled".
+    if (res.status >= 500) return err(502, 'provider_uncertain', SUB_MESSAGES.uncertain);
     return err(502, 'provider_failed', SUB_MESSAGES.providerFailed);
   }
   return { http: 200, body: { ok: true, cancelledAt: new Date().toISOString() } };

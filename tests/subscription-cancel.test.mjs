@@ -11,7 +11,7 @@ const mkRes = () => {
   r.end = () => r;
   return r;
 };
-const asUser = (sub, email, extra = {}) => async () => ({ ok: true, payload: { sub, ...(email ? { email } : {}), ...extra } });
+const asUser = (sub, email, extra = {}) => async () => ({ ok: true, payload: { sub, ...(email ? { email, email_verified: true } : {}), ...extra } });
 const EMAIL = { user_A: 'a@example.com', user_B: 'b@example.com' };
 const noUser = async () => ({ ok: false });
 const env = { CREEM_API_KEY: 'ck_test_fake' };
@@ -53,10 +53,17 @@ test('another user cannot cancel someone else\'s subscription: no provider call'
   assert.equal(called, false);
 });
 
-test('provider failure is shown as a Hebrew error and is not reported as success', async () => {
-  const res = await run({ auth: asUser('user_A', EMAIL.user_A), env, store: storeFor({ [EMAIL.user_A]: sub }), fetchImpl: async () => ({ ok: false, status: 500 }) });
+test('provider 4xx refusal is shown as a Hebrew error and is not reported as success', async () => {
+  const res = await run({ auth: asUser('user_A', EMAIL.user_A), env, store: storeFor({ [EMAIL.user_A]: sub }), fetchImpl: async () => ({ ok: false, status: 422 }) });
   assert.equal(res.code, 502);
   assert.match(res.body.error.message_he, /לא בוטל כלום/);
+});
+
+test('provider 5xx is UNCERTAIN, never "nothing was cancelled" (Codex round 2)', async () => {
+  const res = await run({ auth: asUser('user_A', EMAIL.user_A), env, store: storeFor({ [EMAIL.user_A]: sub }), fetchImpl: async () => ({ ok: false, status: 503 }) });
+  assert.equal(res.code, 502);
+  assert.equal(res.body.error.code, 'provider_uncertain');
+  assert.doesNotMatch(res.body.error.message_he, /לא בוטל כלום/);
 });
 
 test('no API key configured: refuses without calling anyone', async () => {
@@ -96,7 +103,8 @@ test('token without an email: GET says not online, POST is 409 cannot_cancel_onl
 test('an explicitly unverified token email counts as absent', async () => {
   assert.equal(verifiedEmail({ email: 'a@example.com', email_verified: false }), null);
   assert.equal(verifiedEmail({ email: 'a@example.com', email_verified: true }), 'a@example.com');
-  assert.equal(verifiedEmail({ email: 'a@example.com' }), 'a@example.com');
+  // No email_verified claim at all = not proven verified = absent.
+  assert.equal(verifiedEmail({ email: 'a@example.com' }), null);
   assert.equal(verifiedEmail({ email: 'nope' }), null);
   assert.equal(verifiedEmail({ email: 42 }), null);
   const res = await run({ auth: asUser('user_A', EMAIL.user_A, { email_verified: false }), env, store: storeFor({ [EMAIL.user_A]: sub }) });

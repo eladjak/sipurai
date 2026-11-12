@@ -14,7 +14,7 @@ export default {
     delConfirm: 'Delete forever',
     delBusy: 'Deleting…',
     delDone: 'The book was deleted.',
-    delFilesLeft: 'The book was deleted. Some of the drawing files have not been removed yet and will be removed shortly. You do not need to do anything.',
+    delFilesLeft: 'The book was deleted, but some of its drawing files were not removed yet. Write to support@sipurai.ai and we will remove them.',
     delFailed: 'Deletion did not finish. You can press it again. If it keeps happening, write to support@sipurai.ai.',
     delOpenOrder: 'This book has an open print order, so it cannot be deleted right now. You can delete it after the order arrives.',
     cancel: 'Cancel, keep it',
