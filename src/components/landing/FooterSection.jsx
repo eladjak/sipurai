@@ -42,13 +42,21 @@ const FooterSection = () => {
               support@sipurai.ai
             </a>
             {/* Consumer Protection Law s.14T(e)(2): cancellation routes next to the dedicated link, on the home page. */}
-            <p className="mt-3 text-xs leading-relaxed text-gray-400 max-w-xs">
-              {t('cancelSubscription.footerRoutes')}{' '}
-              <Link to="/cancel-subscription" className="text-purple-300 underline underline-offset-2 hover:text-purple-200">
+            <div className="mt-4 max-w-xs rounded-xl border border-purple-400/60 bg-gray-800/60 p-4">
+              <Link
+                to="/cancel-subscription"
+                className="inline-flex min-h-[44px] items-center rounded-lg bg-white px-4 text-base font-bold text-gray-900 hover:bg-purple-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-300"
+              >
                 {t('cancelSubscription.footerLink')}
               </Link>
-            </p>
-            <p className="mt-2 text-xs text-gray-500 max-w-xs">{t('cancelSubscription.footerOperator')}</p>
+              <p className="mt-3 text-sm leading-relaxed text-gray-200">
+                {t('cancelSubscription.footerRoutes')}{' '}
+                <a href="mailto:support@sipurai.ai" className="text-purple-200 underline underline-offset-2"><bdi dir="ltr">support@sipurai.ai</bdi></a>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-200">{t('cancelSubscription.footerPostal')}</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-200">{t('cancelSubscription.footerNotice')}</p>
+            </div>
+            <p className="mt-3 text-xs text-gray-400 max-w-xs">{t('cancelSubscription.footerOperator')}</p>
           </div>
 
           {/* Links */}

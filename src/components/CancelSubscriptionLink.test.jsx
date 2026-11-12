@@ -18,6 +18,9 @@ describe('cancel link', () => {
     for (const l of links) expect(l.getAttribute('href')).toBe('/cancel-subscription');
     // Consumer Protection Law s.14T(e)(2): routes stated next to the dedicated link; s.14C: who the seller is
     expect(container.textContent).toContain('cancelSubscription.footerRoutes');
+    expect(container.textContent).toContain('cancelSubscription.footerPostal');
+    expect(container.textContent).toContain('support@sipurai.ai');
+    expect(container.textContent).toContain('cancelSubscription.footerNotice');
     expect(container.textContent).toContain('cancelSubscription.footerOperator');
   });
 });
