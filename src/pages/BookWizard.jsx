@@ -2,9 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
-import { Follow } from "@/entities/Follow";
-import { supabase } from "@/lib/supabaseClient";
-import { notifyUserByEmail } from "@/lib/profiles";
+import { notifyMyFollowers } from "@/lib/profiles";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
@@ -891,30 +889,14 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
    */
   const announceNewBook = (bookId, bookTitle) => {
     if (!currentUserData?.id) return;
-    Follow.filter({ following_id: currentUserData.id })
-      .then(async (followers) => {
-        if (!followers.length) return;
-        const authorName = currentUserData.full_name || 'Someone you follow';
-        const followerIds = followers.map((f) => f.follower_id).filter(Boolean);
-        if (!followerIds.length) return;
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('clerk_id,email')
-          .in('clerk_id', followerIds);
-        const emails = (profiles || []).map((p) => p.email).filter(Boolean);
-        await Promise.allSettled(
-          emails.map((email) =>
-            notifyUserByEmail({
-              targetEmail: email,
-              type: 'new_book',
-              title: 'new_book',
-              message: JSON.stringify({ authorName, bookTitle }),
-              link: `/BookView?id=${bookId}`,
-            })
-          )
-        );
-      })
-      .catch(() => {});
+    const authorName = currentUserData.full_name || 'Someone you follow';
+    // Server-side fan-out by id: the browser never sees follower emails.
+    notifyMyFollowers({
+      type: 'new_book',
+      title: 'new_book',
+      message: JSON.stringify({ authorName, bookTitle }),
+      link: `/BookView?id=${bookId}`,
+    }).catch(() => {});
   };
 
   // Cleanup celebration timer on unmount
