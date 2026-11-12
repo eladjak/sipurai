@@ -16,7 +16,7 @@ export function getVisitorCountry() {
       headers: { Accept: 'application/json' },
       signal: ctrl?.signal,
     })
-      .then((r) => (r.ok ? r.json() : {}))
+      .then((r) => /** @type {Promise<{ country?: string }>|{ country?: string }} */ (r.ok ? r.json() : {}))
       .then((d) => String(d?.country || '').toUpperCase())
       .catch(() => '')
       .finally(() => { if (timer) clearTimeout(timer); inflight = null; });

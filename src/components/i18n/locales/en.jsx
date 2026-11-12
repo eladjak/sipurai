@@ -785,6 +785,10 @@ export default {
     },
     billing: {
       title: "Billing & Subscription",
+      ilsSoonNote: "Shekel billing is opening soon. Until then you can keep using the free plan.",
+      billedAsReceipt: "Billed as on your receipt",
+      loadingPrice: "Loading price",
+      ilsSoonButton: "Shekel billing coming soon",
       desc: "View your current plan, usage, and billing history.",
       comingSoon: "Billing management is coming soon.",
       upgradePlan: "Upgrade Plan",

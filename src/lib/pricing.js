@@ -23,6 +23,10 @@ export function browserTimeZone() {
 
 // The server-reported country (when known) decides; language and time zone are only the
 // fallback for an unknown country (not loaded yet, failed, or no geo header).
+/**
+ * @param {{ country?: string|null, language?: string, timeZone?: string }} [input]
+ * @returns {'ILS'|'USD'}
+ */
 export function resolveCurrency({ country, language, timeZone } = {}) {
   const c = String(country || '').toUpperCase();
   if (c) return c === 'IL' ? 'ILS' : 'USD';

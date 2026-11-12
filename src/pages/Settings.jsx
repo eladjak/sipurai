@@ -102,7 +102,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
   const priceText = (planId) => {
     if (pricePending) return '…';
     const p = formatPrice(planId, currency);
-    return planId === 'free' ? p : `${p} ${isRTL ? 'לחודש' : '/mo'}`;
+    return planId === 'free' ? p : `${p} / ${t('landing.pricing.period')}`;
   };
   const [upgrading, setUpgrading] = useState(null); // planId being upgraded
   const [confirmPlan, setConfirmPlan] = useState(null); // plan awaiting confirmation
@@ -153,9 +153,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
 
       {!pricePending && !checkoutOpen && currentPlan === 'free' && (
         <p className="text-sm text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3" role="note">
-          {isRTL
-            ? 'התשלום בשקלים נפתח בקרוב. עד אז אפשר ליהנות מהתוכנית החינמית.'
-            : 'Shekel billing is opening soon. Until then you can keep using the free plan.'}
+          {t('settings.billing.ilsSoonNote')}
         </p>
       )}
 
@@ -190,7 +188,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                 </CardTitle>
                 <div className={`text-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent ${isRTL ? 'text-right' : 'text-left'}`}>
                   {isCurrent && isPaid
-                    ? (isRTL ? 'החיוב לפי הקבלה שקיבלתם' : 'Billed as on your receipt')
+                    ? t('settings.billing.billedAsReceipt')
                     : priceText(planDef.id)}
                 </div>
               </CardHeader>
@@ -214,9 +212,9 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                     disabled={!!upgrading || !checkoutOpen}
                   >
                     {isLoadingThis || pricePending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-label={isRTL ? 'טוען מחיר' : 'Loading price'} />
+                      <Loader2 className="h-4 w-4 animate-spin" aria-label={t('settings.billing.loadingPrice')} />
                     ) : !checkoutOpen ? (
-                      isRTL ? 'בקרוב: תשלום בשקלים' : 'Shekel billing coming soon'
+                      t('settings.billing.ilsSoonButton')
                     ) : (
                       t('settings.billing.upgradeNow')
                     )}

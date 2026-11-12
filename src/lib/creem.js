@@ -118,6 +118,7 @@ export async function openCheckout(planId, userEmail) {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       console.error('[creem] Checkout error:', err);
+      /** @type {Error & { code?: string, status?: number }} */
       const error = new Error(err.error || 'Failed to create checkout');
       error.code = err.error;
       error.status = response.status;
