@@ -149,7 +149,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
         </div>
       </SettingCard>
 
-      {!checkoutOpen && currentPlan === 'free' && (
+      {!pricePending && !checkoutOpen && currentPlan === 'free' && (
         <p className="text-sm text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3" role="note">
           {isRTL
             ? 'התשלום בשקלים נפתח בקרוב. עד אז אפשר ליהנות מהתוכנית החינמית.'
@@ -211,8 +211,8 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                     onClick={() => handleUpgrade(planDef.id)}
                     disabled={!!upgrading || !checkoutOpen}
                   >
-                    {isLoadingThis ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {isLoadingThis || pricePending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-label={isRTL ? 'טוען מחיר' : 'Loading price'} />
                     ) : !checkoutOpen ? (
                       isRTL ? 'בקרוב: תשלום בשקלים' : 'Shekel billing coming soon'
                     ) : (

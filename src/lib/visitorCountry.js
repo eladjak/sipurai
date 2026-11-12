@@ -1,7 +1,7 @@
 /**
  * Visitor country, as seen by the server (Vercel geo header), via GET /api/payments/checkout.
- * Asked once per page load (no storage, so a visitor who travels or changes network is not
- * stuck with an old answer). Gives up after 4 seconds. Returns '' when unknown or on failure,
+ * Asked again on every screen that needs it (only simultaneous requests share one answer), so a
+ * visitor who travels or changes network is not stuck with an old answer. Gives up after 4 seconds. Returns '' when unknown or on failure,
  * so callers fall back to the language/timezone heuristic in pricing.js.
  */
 const TIMEOUT_MS = 4000;
@@ -19,7 +19,7 @@ export function getVisitorCountry() {
       .then((r) => (r.ok ? r.json() : {}))
       .then((d) => String(d?.country || '').toUpperCase())
       .catch(() => '')
-      .finally(() => { if (timer) clearTimeout(timer); });
+      .finally(() => { if (timer) clearTimeout(timer); inflight = null; });
   }
   return inflight;
 }
