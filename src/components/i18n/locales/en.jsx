@@ -1708,7 +1708,7 @@ export default {
       sectionSubtitle: "Start with 5 free books a month \u2014 upgrade when you're hooked",
       heading: "Simple plans, big value",
       subheading: "Start free, upgrade as the kids create more.",
-      guaranteeNote: "The subscription has no end date, is billed monthly, and you can cancel any time, via the \"Cancel subscription\" link at the bottom of the page, by email or by post. A distance sale carries a 14-day cancellation right. For users in Israel prices are in shekels and shekel billing opens soon. For users abroad prices and billing are in US dollars through Creem. Seller: Elad Yakobovich, exempt dealer no. 021983085. Full details in the Terms of Use.",
+      guaranteeNote: "The subscription has no end date, is billed monthly, and you can cancel any time, via the \"Cancel subscription\" link at the bottom of the page, by email or by post. A distance sale carries a 14-day cancellation right. Seller: Elad Yakobovich, exempt dealer no. 021983085. Full details in the Terms of Use.",
       period: "month",
       firstBookNote: "First book with ALL styles \u2014 free!",
       taxNoteIls: "Prices are in Israeli shekels and all-inclusive. The business is an exempt dealer, so no VAT applies.",

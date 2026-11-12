@@ -12,14 +12,16 @@ import { resolveCurrency, browserTimeZone, formatPrice, isIlsCheckoutOpen } from
 const PricingSection = () => {
   const { t, isRTL, language } = useI18n();
   const country = useVisitorCountry();
-  const currency = resolveCurrency({ country, language, timeZone: browserTimeZone() });
-  const paidPaused = currency === 'ILS' && !isIlsCheckoutOpen();
+  const pricePending = country === null; // still asking the server which country we are in
+  const currency = resolveCurrency({ country: country || '', language, timeZone: browserTimeZone() });
+  const paidPaused = pricePending || (currency === 'ILS' && !isIlsCheckoutOpen());
+  const priceFor = (id) => (pricePending ? '…' : formatPrice(id, currency));
 
   const plans = [
     {
       name: t('landing.pricing.free.name'),
       id: 'free',
-      price: formatPrice('free', currency),
+      price: priceFor('free'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.free.f1'),
@@ -34,7 +36,7 @@ const PricingSection = () => {
     {
       name: t('landing.pricing.lite.name'),
       id: 'lite',
-      price: formatPrice('lite', currency),
+      price: priceFor('lite'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.lite.f1'),
@@ -49,7 +51,7 @@ const PricingSection = () => {
     {
       name: t('landing.pricing.premium.name'),
       id: 'premium',
-      price: formatPrice('premium', currency),
+      price: priceFor('premium'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.premium.f1'),
@@ -65,7 +67,7 @@ const PricingSection = () => {
     {
       name: t('landing.pricing.family.name'),
       id: 'family',
-      price: formatPrice('family', currency),
+      price: priceFor('family'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.family.f1'),
@@ -163,7 +165,7 @@ const PricingSection = () => {
                     </span>
                   </div>
 
-                  {paidPaused && plan.id !== 'free' && (
+                  {!pricePending && paidPaused && plan.id !== 'free' && (
                     <p className="text-xs text-amber-700 dark:text-amber-300 -mt-3 mb-4" role="note">
                       {t('landing.pricing.ilsSoon')}
                     </p>
@@ -207,7 +209,7 @@ const PricingSection = () => {
         </div>
 
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-8 max-w-2xl mx-auto">
-          {currency === 'ILS' ? t('landing.pricing.taxNoteIls') : t('landing.pricing.taxNoteUsd')}
+          {pricePending ? '\u00a0' : (currency === 'ILS' ? t('landing.pricing.taxNoteIls') : t('landing.pricing.taxNoteUsd'))}
         </p>
       </div>
     </section>

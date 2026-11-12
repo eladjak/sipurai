@@ -69,4 +69,13 @@ describe('PricingSection currency', () => {
     expect(text).toContain('14.90 ₪');
     expect(text).not.toContain('$');
   });
+
+  it('while the country is still loading, no price and no paid link is shown', () => {
+    mockCountry = null;
+    const text = renderWithTz('english', 'Europe/London');
+    expect(text).not.toContain('$');
+    expect(text).not.toContain('₪');
+    expect(text).toContain('…');
+    expect(hrefs().every((h) => h === '/sign-up?plan=free')).toBe(true);
+  });
 });

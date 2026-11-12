@@ -96,9 +96,11 @@ function SettingCard({ title, icon, children, isRTL, className = "" }) {
 function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
   const { t, language } = useI18n();
   const country = useVisitorCountry();
-  const currency = resolveCurrency({ country, language, timeZone: browserTimeZone() });
-  const checkoutOpen = canCheckout(currency);
+  const pricePending = country === null; // still asking the server which country we are in
+  const currency = resolveCurrency({ country: country || '', language, timeZone: browserTimeZone() });
+  const checkoutOpen = !pricePending && canCheckout(currency);
   const priceText = (planId) => {
+    if (pricePending) return '…';
     const p = formatPrice(planId, currency);
     return planId === 'free' ? p : `${p} ${isRTL ? 'לחודש' : '/mo'}`;
   };

@@ -54,6 +54,18 @@ export function buildSystemPrompt(country) {
 }
 
 
+// Israeli (or unknown-country) visitors must never be shown a dollar price (Consumer
+// Protection Law s.17D). The prompt asks the model for shekels only; this check enforces it
+// on the answer itself, because a user can ask for dollars or paste them into the chat.
+const DOLLAR_RE = /\$|US\s?D|דולר|dollar/i;
+export const IL_SAFE_PRICE_ANSWER = 'בישראל המחירים לחודש הם: לייט 14.90 ₪, פרימיום 29 ₪, משפחתי 39 ₪. זה המחיר הכולל. ההרשמה לתוכניות בתשלום בישראל תיפתח בקרוב, ובינתיים אפשר להתחיל בתוכנית החינמית.';
+export function guardAnswer(content, country) {
+  const c = String(country || '').toUpperCase();
+  const israelOrUnknown = !c || c === 'IL';
+  if (israelOrUnknown && DOLLAR_RE.test(String(content || ''))) return IL_SAFE_PRICE_ANSWER;
+  return content;
+}
+
 export default async function handler(req, res) {
   // CORS for sipurai.ai
   const allowedOrigins = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
@@ -110,7 +122,7 @@ export default async function handler(req, res) {
 
     const data = await r.json();
     const content = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "סליחה, לא הבנתי. נסה לנסח שאלה אחרת.";
-    return res.status(200).json({ content });
+    return res.status(200).json({ content: guardAnswer(content, req.headers?.['x-vercel-ip-country']) });
   } catch (err) {
     console.error('[chat-faq] error:', err.message);
     return res.status(500).json({ error: 'Internal error', content: "סליחה, נסה שוב בעוד רגע." });

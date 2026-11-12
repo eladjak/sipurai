@@ -42,6 +42,7 @@ export default function Home() {
   // After landing-page → /sign-up?plan=X → Home, auto-open Creem checkout for paid tiers.
   // Wave-7: ties pricing CTA selection through to checkout.
   useEffect(() => {
+    let live = true; // ignore a late country answer after the user has left this page
     const plan = searchParams.get("plan");
     if (!plan || plan === "free") return;
     if (!["lite", "premium", "family"].includes(plan)) return;
@@ -50,6 +51,7 @@ export default function Home() {
     setSearchParams(searchParams, { replace: true });
     // Israeli visitors cannot pay yet (no shekel provider): just land on the app.
     getVisitorCountry().then((country) => {
+      if (!live) return;
       if (!canCheckout(resolveCurrency({ country, language: currentLanguage, timeZone: browserTimeZone() }))) return;
       return openCheckout(plan, currentUserHook.email);
     }).catch((err) => {
@@ -60,6 +62,7 @@ export default function Home() {
       }
       navigate("/Settings?tab=billing");
     });
+    return () => { live = false; };
   }, [searchParams, currentUserHook?.email, setSearchParams, navigate, currentLanguage, isRTL, toast]);
 
   const [showOnboarding, setShowOnboarding] = useState(
