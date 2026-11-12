@@ -22,10 +22,16 @@ export const LAST_UPDATED = { he: '12 בנובמבר 2026', en: 'November 12, 20
 /**
  * Who is legally responsible for the data ("בעל השליטה במאגר", Privacy Protection Law s.11(2a)),
  * and the trader details a distance sale must show (Consumer Protection Law s.14C).
- * MUST BE FILLED BY THE OWNER BEFORE MERGE: legal name (person or company), business or company
- * number, postal address. Until then the policy names the brand and the email only.
+ * Filled 12.11.2026 from the owner's decision (11:35) and his Green Invoice business profile:
+ * the business is the owner himself, an exempt dealer (עוסק פטור).
  */
-export const CONTROLLER = { legalNameHe: '', legalNameEn: '', businessId: '', address: '' };
+export const CONTROLLER = {
+  legalNameHe: "אלעד יעקובוביץ' (עוסק פטור)",
+  legalNameEn: 'Elad Yakobovich (exempt dealer)',
+  businessId: '021983085',
+  address: 'רחוב לח"י 13 דירה 3, מגדל העמק 2304364',
+  addressEn: '13 Lehi St., Apt. 3, Migdal HaEmek 2304364, Israel',
+};
 export const CONTROLLER_DETAILS_MISSING = !CONTROLLER.legalNameHe || !CONTROLLER.businessId || !CONTROLLER.address;
 
 const controllerLine = (lang) => {
@@ -33,7 +39,8 @@ const controllerLine = (lang) => {
   const parts = [lang === 'he' ? 'סיפוראי' : 'Sipurai'];
   if (name) parts.push(name);
   if (CONTROLLER.businessId) parts.push(lang === 'he' ? `מספר עוסק ${CONTROLLER.businessId}` : `business no. ${CONTROLLER.businessId}`);
-  if (CONTROLLER.address) parts.push(CONTROLLER.address);
+  const address = lang === 'he' ? CONTROLLER.address : CONTROLLER.addressEn || CONTROLLER.address;
+  if (address) parts.push(address);
   return parts.join(', ');
 };
 
