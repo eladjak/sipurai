@@ -35,6 +35,7 @@ describe('PricingSection currency', () => {
   });
 
   it('English visitor in London sees dollars and no shekel sign', () => {
+    mockCountry = 'GB';
     const text = renderWithTz('english', 'Europe/London');
     expect(text).toContain('$3.90');
     expect(text).toContain('$7.90');
@@ -51,6 +52,7 @@ describe('PricingSection currency', () => {
   });
 
   it('USD mode: paid cards still link to paid sign-up', () => {
+    mockCountry = 'GB';
     renderWithTz('english', 'Europe/London');
     expect(hrefs()).toEqual(expect.arrayContaining(['/sign-up?plan=lite', '/sign-up?plan=premium', '/sign-up?plan=family']));
   });
@@ -70,12 +72,18 @@ describe('PricingSection currency', () => {
     expect(text).not.toContain('$');
   });
 
-  it('while the country is still loading, no price and no paid link is shown', () => {
+  it('while the country is still loading, no price is shown and the chosen plan is kept', () => {
     mockCountry = null;
     const text = renderWithTz('english', 'Europe/London');
     expect(text).not.toContain('$');
     expect(text).not.toContain('₪');
     expect(text).toContain('…');
-    expect(hrefs().every((h) => h === '/sign-up?plan=free')).toBe(true);
+    expect(hrefs()).toContain('/sign-up?plan=premium');
+  });
+  it('lookup failed (country unknown): an English visitor in London sees shekels, never dollars', () => {
+    mockCountry = '';
+    const text = renderWithTz('english', 'Europe/London');
+    expect(text).toContain('14.90 ₪');
+    expect(text).not.toContain('$');
   });
 });

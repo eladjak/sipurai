@@ -12,8 +12,6 @@ export const PRICE_POINTS = {
   ILS: { free: 0, lite: 14.9, premium: 29, family: 39 },
 };
 
-const ILS_TIME_ZONES = ['Asia/Jerusalem', 'Asia/Tel_Aviv'];
-const ILS_LANGUAGES = ['hebrew', 'yiddish'];
 
 export function browserTimeZone() {
   try {
@@ -28,9 +26,11 @@ export function browserTimeZone() {
 export function resolveCurrency({ country, language, timeZone } = {}) {
   const c = String(country || '').toUpperCase();
   if (c) return c === 'IL' ? 'ILS' : 'USD';
-  if (ILS_LANGUAGES.includes(language)) return 'ILS';
-  if (ILS_TIME_ZONES.includes(timeZone)) return 'ILS';
-  return 'USD';
+  // Country unknown (lookup failed, timed out, or no geo header): fail closed to shekels, so an
+  // Israeli is never shown a dollar price. The server refuses checkout for unknown country too.
+  // language/timeZone are kept in the signature for callers but no longer decide.
+  void language; void timeZone;
+  return 'ILS';
 }
 
 function amountText(amount) {

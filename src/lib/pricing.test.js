@@ -6,17 +6,17 @@ describe('resolveCurrency', () => {
   it('yiddish -> ILS', () => expect(resolveCurrency({ language: 'yiddish', timeZone: 'America/New_York' })).toBe('ILS'));
   it('english + Asia/Jerusalem -> ILS', () => expect(resolveCurrency({ language: 'english', timeZone: 'Asia/Jerusalem' })).toBe('ILS'));
   it('english + Asia/Tel_Aviv -> ILS', () => expect(resolveCurrency({ language: 'english', timeZone: 'Asia/Tel_Aviv' })).toBe('ILS'));
-  it('english + Europe/London -> USD', () => expect(resolveCurrency({ language: 'english', timeZone: 'Europe/London' })).toBe('USD'));
-  it('no input -> USD', () => expect(resolveCurrency()).toBe('USD'));
+  it('unknown country fails closed to ILS even for English in London', () => expect(resolveCurrency({ language: 'english', timeZone: 'Europe/London' })).toBe('ILS'));
+  it('no input -> ILS (fail closed)', () => expect(resolveCurrency()).toBe('ILS'));
 });
 
 describe('resolveCurrency with a server-reported country', () => {
   it('IL beats an English UI in London', () => expect(resolveCurrency({ country: 'IL', language: 'english', timeZone: 'Europe/London' })).toBe('ILS'));
   it('GB beats a Hebrew UI', () => expect(resolveCurrency({ country: 'GB', language: 'hebrew', timeZone: 'Asia/Jerusalem' })).toBe('USD'));
   it('lowercase country is accepted', () => expect(resolveCurrency({ country: 'il', language: 'english' })).toBe('ILS'));
-  it('empty country falls back to the heuristic', () => {
+  it('empty country fails closed to ILS whatever the language', () => {
     expect(resolveCurrency({ country: '', language: 'hebrew' })).toBe('ILS');
-    expect(resolveCurrency({ country: '', language: 'english', timeZone: 'Europe/London' })).toBe('USD');
+    expect(resolveCurrency({ country: '', language: 'english', timeZone: 'Europe/London' })).toBe('ILS');
   });
 });
 

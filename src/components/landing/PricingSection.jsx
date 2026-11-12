@@ -14,7 +14,9 @@ const PricingSection = () => {
   const country = useVisitorCountry();
   const pricePending = country === null; // still asking the server which country we are in
   const currency = resolveCurrency({ country: country || '', language, timeZone: browserTimeZone() });
-  const paidPaused = pricePending || (currency === 'ILS' && !isIlsCheckoutOpen());
+  // While loading, paid links stay as chosen: Home asks the server for the country before any
+  // checkout, so an Israeli who clicks early still never reaches a dollar checkout.
+  const paidPaused = !pricePending && currency === 'ILS' && !isIlsCheckoutOpen();
   const priceFor = (id) => (pricePending ? '…' : formatPrice(id, currency));
 
   const plans = [

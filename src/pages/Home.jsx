@@ -45,7 +45,7 @@ export default function Home() {
   // Home itself (e.g. removing ?plan from the URL) must not cancel the pending decision.
   const mountedRef = useRef(true);
   const handledPlanRef = useRef(null);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   useEffect(() => {
     const plan = searchParams.get("plan");
     if (!plan || plan === "free") return;

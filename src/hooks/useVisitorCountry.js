@@ -9,8 +9,12 @@ export default function useVisitorCountry() {
   const [country, setCountry] = useState(null);
   useEffect(() => {
     let live = true;
-    getVisitorCountry().then((c) => { if (live) setCountry(c); });
-    return () => { live = false; };
+    const ask = () => getVisitorCountry().then((c) => { if (live) setCountry(c); });
+    ask();
+    // Ask again when the visitor comes back to the tab (travel, new network).
+    const onVisible = () => { if (document.visibilityState === 'visible') ask(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { live = false; document.removeEventListener('visibilitychange', onVisible); };
   }, []);
   return country;
 }
