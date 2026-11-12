@@ -9,6 +9,11 @@
  */
 
 import { supabase } from './supabaseClient';
+import { toAppImageUrl } from './imageUrl';
+
+// Columns that hold image URLs. A row written before the bucket went private may still carry the old
+// public URL; on every read it is mapped to the /api/img proxy form.
+const IMAGE_COLUMNS = ['cover_image', 'image_url', 'primary_image_url', 'avatar_url'];
 
 /**
  * Parse Base44-style sort string into Supabase order params.
@@ -53,8 +58,15 @@ export function createSupabaseEntity(tableName, { columnMap = {} } = {}) {
 
   /** Convert DB row to app-side field names */
   function toApp(row) {
-    if (!row || Object.keys(reverseMap).length === 0) return row;
-    const result = { ...row };
+    if (!row) return row;
+    let result = row;
+    for (const col of IMAGE_COLUMNS) {
+      if (typeof result[col] === 'string' && toAppImageUrl(result[col]) !== result[col]) {
+        result = { ...result, [col]: toAppImageUrl(result[col]) };
+      }
+    }
+    if (Object.keys(reverseMap).length === 0) return result;
+    result = { ...result };
     for (const [dbCol, appKey] of Object.entries(reverseMap)) {
       if (dbCol in result) {
         result[appKey] = result[dbCol];

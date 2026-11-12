@@ -5,6 +5,7 @@ import { setUser as setSentryUser } from '@/lib/errorTracking';
 import { identifyUser } from '@/lib/analytics';
 import { setClerkTokenGetter } from '@/lib/supabaseClient';
 import { setApiTokenGetter } from '@/lib/apiAuth';
+import { toAppImageUrl } from './imageUrl';
 import { ensureProfile } from '@/lib/profiles';
 
 const AuthContext = createContext();
@@ -56,7 +57,7 @@ const ClerkAuthProvider = ({ children }) => {
       email,
       full_name: clerkUser.fullName,
       display_name: clerkUser.unsafeMetadata?.display_name || clerkUser.firstName,
-      avatar_url: clerkUser.unsafeMetadata?.avatar_url || clerkUser.imageUrl,
+      avatar_url: toAppImageUrl(clerkUser.unsafeMetadata?.avatar_url || clerkUser.imageUrl),
     });
   }, [isSignedIn, clerkUser]);
 
@@ -87,10 +88,11 @@ const ClerkAuthProvider = ({ children }) => {
       full_name: clerkUser.fullName,
       name: clerkUser.fullName,
       display_name: meta.display_name || clerkUser.firstName || clerkUser.fullName,
-      avatar_url: meta.avatar_url || clerkUser.imageUrl,
       role: meta.role || 'user',
       language: meta.language,
       ...meta,
+      // after the spread: meta.avatar_url may hold an old public bucket URL
+      avatar_url: toAppImageUrl(meta.avatar_url || clerkUser.imageUrl),
     };
   }, [clerkUser]);
 

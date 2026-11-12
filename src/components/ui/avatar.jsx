@@ -1,5 +1,6 @@
 
 import * as React from "react";
+import { toAppImageUrl } from "@/lib/imageUrl";
 import { cn } from "@/lib/utils";
 
 const Avatar = React.forwardRef(({ className, ...props }, ref) => (
@@ -17,7 +18,7 @@ Avatar.displayName = "Avatar";
 const AvatarImage = React.forwardRef(({ className, src, alt = "", ...props }, ref) => (
   <img
     ref={ref}
-    src={src}
+    src={toAppImageUrl(src)}
     alt={alt}
     className={cn("aspect-square h-full w-full", className)}
     {...props}
