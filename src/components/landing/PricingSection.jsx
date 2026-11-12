@@ -6,14 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/components/i18n/i18nProvider';
+import { resolveCurrency, browserTimeZone, formatPrice, isIlsCheckoutOpen } from '@/lib/pricing';
 
 const PricingSection = () => {
-  const { t, isRTL } = useI18n();
+  const { t, isRTL, language } = useI18n();
+  const currency = resolveCurrency({ language, timeZone: browserTimeZone() });
+  const paidPaused = currency === 'ILS' && !isIlsCheckoutOpen();
 
   const plans = [
     {
       name: t('landing.pricing.free.name'),
-      price: t('landing.pricing.free.price'),
+      id: 'free',
+      price: formatPrice('free', currency),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.free.f1'),
@@ -27,7 +31,8 @@ const PricingSection = () => {
     },
     {
       name: t('landing.pricing.lite.name'),
-      price: t('landing.pricing.lite.price'),
+      id: 'lite',
+      price: formatPrice('lite', currency),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.lite.f1'),
@@ -41,7 +46,8 @@ const PricingSection = () => {
     },
     {
       name: t('landing.pricing.premium.name'),
-      price: t('landing.pricing.premium.price'),
+      id: 'premium',
+      price: formatPrice('premium', currency),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.premium.f1'),
@@ -56,7 +62,8 @@ const PricingSection = () => {
     },
     {
       name: t('landing.pricing.family.name'),
-      price: t('landing.pricing.family.price'),
+      id: 'family',
+      price: formatPrice('family', currency),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.family.f1'),
@@ -154,6 +161,12 @@ const PricingSection = () => {
                     </span>
                   </div>
 
+                  {paidPaused && plan.id !== 'free' && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300 -mt-3 mb-4" role="note">
+                      {t('landing.pricing.ilsSoon')}
+                    </p>
+                  )}
+
                   {/* Features */}
                   <ul className="space-y-2.5 mb-6">
                     {plan.features.map((feature, fIndex) => (
@@ -190,6 +203,10 @@ const PricingSection = () => {
             </motion.div>
           ))}
         </div>
+
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-8 max-w-2xl mx-auto">
+          {currency === 'ILS' ? t('landing.pricing.taxNoteIls') : t('landing.pricing.taxNoteUsd')}
+        </p>
       </div>
     </section>
   );

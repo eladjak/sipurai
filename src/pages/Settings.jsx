@@ -55,6 +55,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
 import AccountDataControls from '../components/settings/AccountDataControls';
 import { PLANS, openCheckout } from '@/lib/creem';
+import { resolveCurrency, browserTimeZone, formatPrice, canCheckout } from '@/lib/pricing';
 import useSubscription from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -92,7 +93,13 @@ function SettingCard({ title, icon, children, isRTL, className = "" }) {
 }
 
 function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const currency = resolveCurrency({ language, timeZone: browserTimeZone() });
+  const checkoutOpen = canCheckout(currency);
+  const priceText = (planId) => {
+    const p = formatPrice(planId, currency);
+    return planId === 'free' ? p : `${p} ${isRTL ? 'לחודש' : '/mo'}`;
+  };
   const [upgrading, setUpgrading] = useState(null); // planId being upgraded
   const [confirmPlan, setConfirmPlan] = useState(null); // plan awaiting confirmation
   const lang = isRTL ? 'he' : 'en';
@@ -133,11 +140,19 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
           </Badge>
           {currentPlan !== 'free' && (
             <span className="text-sm text-gray-500">
-              {PLANS[currentPlan]?.priceDisplay?.[lang] || PLANS[currentPlan]?.priceDisplay?.en}
+              {priceText(currentPlan)}
             </span>
           )}
         </div>
       </SettingCard>
+
+      {!checkoutOpen && (
+        <p className="text-sm text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3" role="note">
+          {isRTL
+            ? 'התשלום בשקלים נפתח בקרוב. עד אז אפשר ליהנות מהתוכנית החינמית.'
+            : 'Shekel billing is opening soon. Until then you can keep using the free plan.'}
+        </p>
+      )}
 
       {/* Plan cards */}
       <div className="grid md:grid-cols-4 gap-4">
@@ -169,7 +184,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                   )}
                 </CardTitle>
                 <div className={`text-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {planDef.priceDisplay?.[lang] || planDef.priceDisplay?.en}
+                  {priceText(planDef.id)}
                 </div>
               </CardHeader>
               <CardContent className="px-5 pb-5">
@@ -189,10 +204,12 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                   <Button
                     className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0 shadow-md"
                     onClick={() => handleUpgrade(planDef.id)}
-                    disabled={!!upgrading}
+                    disabled={!!upgrading || !checkoutOpen}
                   >
                     {isLoadingThis ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : !checkoutOpen ? (
+                      isRTL ? 'בקרוב: תשלום בשקלים' : 'Shekel billing coming soon'
                     ) : (
                       t('settings.billing.upgradeNow')
                     )}
@@ -218,8 +235,8 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
             <AlertDialogDescription className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
               <span className="block">
                 {isRTL
-                  ? `את/ה עומד/ת לשדרג לתוכנית ${PLANS[confirmPlan]?.name?.he || ''} (${PLANS[confirmPlan]?.priceDisplay?.he || ''}).`
-                  : `You are about to upgrade to the ${PLANS[confirmPlan]?.name?.en || ''} plan (${PLANS[confirmPlan]?.priceDisplay?.en || ''}).`}
+                  ? `את/ה עומד/ת לשדרג לתוכנית ${PLANS[confirmPlan]?.name?.he || ''} (${confirmPlan ? priceText(confirmPlan) : ''}).`
+                  : `You are about to upgrade to the ${PLANS[confirmPlan]?.name?.en || ''} plan (${confirmPlan ? priceText(confirmPlan) : ''}).`}
               </span>
               <span className="block">
                 {isRTL

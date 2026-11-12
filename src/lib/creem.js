@@ -4,18 +4,15 @@
  * Calls our own serverless endpoint (/api/payments/checkout) which
  * proxies to Creem and keeps the API key server-side.
  *
- * Prices in USD (Creem doesn't support NIS), displayed with NIS equivalent.
- * NIS conversion rate ~3.7 (updated periodically).
+ * Creem charges in USD only. Price text shown to visitors comes from
+ * src/lib/pricing.js (shekels for Israelis, dollars for everyone else).
  */
-
-const USD_TO_NIS = 3.65;
 
 export const PLANS = {
   free: {
     id: 'free',
     name: { en: 'Free', he: 'חינמי' },
     priceUsd: 0,
-    priceDisplay: { en: 'Free', he: 'חינם' },
     features: {
       en: [
         '5 books per month',
@@ -36,10 +33,6 @@ export const PLANS = {
     creemProductId: import.meta.env.VITE_CREEM_PRODUCT_LITE,
     name: { en: 'Lite', he: 'לייט' },
     priceUsd: 3.90,
-    priceDisplay: {
-      en: '$3.90/mo',
-      he: `~${Math.round(3.90 * USD_TO_NIS)}₪ לחודש ($3.90)`,
-    },
     features: {
       en: [
         '15 books per month',
@@ -60,10 +53,6 @@ export const PLANS = {
     creemProductId: import.meta.env.VITE_CREEM_PRODUCT_PREMIUM,
     name: { en: 'Premium', he: 'פרימיום' },
     priceUsd: 7.90,
-    priceDisplay: {
-      en: '$7.90/mo',
-      he: `~${Math.round(7.90 * USD_TO_NIS)}₪ לחודש ($7.90)`,
-    },
     popular: true,
     features: {
       en: [
@@ -85,10 +74,6 @@ export const PLANS = {
     creemProductId: import.meta.env.VITE_CREEM_PRODUCT_FAMILY,
     name: { en: 'Family', he: 'משפחתי' },
     priceUsd: 9.90,
-    priceDisplay: {
-      en: '$9.90/mo',
-      he: `~${Math.round(9.90 * USD_TO_NIS)}₪ לחודש ($9.90)`,
-    },
     features: {
       en: [
         'Up to 5 child profiles',
