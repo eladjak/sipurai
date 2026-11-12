@@ -46,6 +46,7 @@ import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { trackPageView } from '@/lib/analytics';
 import { initErrorTracking } from '@/lib/errorTracking';
 
+const CancelSubscription = lazy(() => import('@/pages/CancelSubscription'));
 const NewAppShell = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/shell/AppShell')) : null;
 const NewNotFound = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/notfound/NotFound')) : null;
 const UiGallery = (import.meta.env.DEV || import.meta.env.VITE_UI_GALLERY === '1') && import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/pages/UiGallery')) : null;
@@ -108,6 +109,7 @@ export const NewShellRoutes = () => {
     <Route path="/blog" element={<Blog />} /><Route path="/blog/:slug" element={<BlogPost />} />
     <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} />
     <Route path="/pricing" element={<Pages.Pricing />} />
+    <Route path="/cancel-subscription" element={<CancelSubscription />} />
     <Route path="/help/contact" element={<Pages.Contact />} /><Route path="/help/accessibility" element={<Accessibility />} />
     <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
     <Route path="/parents" element={protectedPage(ParentsHub)} /><Route path="/new" element={protectedPage(NewStory)} />
@@ -225,6 +227,7 @@ export const LegacyAuthenticatedApp = () => {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/cancel-subscription" element={<CancelSubscription />} />
           {/* All registered pages (auto-generated) — public pages render WITHOUT
               the authenticated LayoutWrapper sidebar. Per Wave-6 audit grok-4. */}
           {Object.entries(Pages).map(([path, Page]) => (

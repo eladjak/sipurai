@@ -399,7 +399,7 @@ export default function Library() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
                 >
-                  <BookCard book={book} viewType="grid" onDuplicate={duplicateBook} />
+                  <BookCard book={book} viewType="grid" onDuplicate={duplicateBook} onChanged={loadBooks} />
                 </motion.div>
               ))}
             </motion.div>
@@ -455,7 +455,7 @@ export default function Library() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
                 >
-                  <BookCard book={book} viewType="list" onDuplicate={duplicateBook} />
+                  <BookCard book={book} viewType="list" onDuplicate={duplicateBook} onChanged={loadBooks} />
                 </motion.div>
               ))}
             </motion.div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from "@/components/i18n/i18nProvider";
+import { BookControlButton } from "@/components/bookControls/BookControls";
 import {
   Card,
   CardContent,
@@ -43,6 +44,9 @@ export default function ShareOptions({ book, bookId }) {
     description: "",
     tags: ["story", "children"]
   });
+  // Tracks sharing done or undone on this screen, on top of what the book row said when it loaded.
+  const [sharedHere, setSharedHere] = useState(null);
+  const isShared = sharedHere ?? !!book?.is_public;
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   
@@ -112,6 +116,7 @@ export default function ShareOptions({ book, bookId }) {
         className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
       });
       
+      setSharedHere(true);
       // Reset form
       setCommunityPost({
         title: book?.title || "",
@@ -249,7 +254,7 @@ export default function ShareOptions({ book, bookId }) {
             </div>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col items-stretch">
           <Button 
             onClick={handleCommunityShare}
             disabled={isLoading || !communityPost.title || !communityPost.description}
@@ -266,6 +271,14 @@ export default function ShareOptions({ book, bookId }) {
               </>
             )}
           </Button>
+          {isShared && bookId && (
+            <BookControlButton
+              kind="unshare"
+              book={{ ...book, id: bookId }}
+              onChanged={() => setSharedHere(false)}
+              className="mt-3"
+            />
+          )}
         </CardFooter>
       </Card>
       

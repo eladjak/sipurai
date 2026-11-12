@@ -8,7 +8,7 @@ const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () =
 const headers = async () => ({ Authorization: 'Bearer t' });
 
 describe('isGateExempt', () => {
-  it.each(['/privacy', '/terms', '/accessibility', '/contact', '/pricing', '/welcome', '/blog', '/blog/some-post', '/sign-in', '/sign-up/verify', '/Privacy'])(
+  it.each(['/privacy', '/terms', '/accessibility', '/contact', '/pricing', '/welcome', '/blog', '/blog/some-post', '/sign-in', '/sign-up/verify', '/Privacy', '/cancel-subscription'])(
     '%s is open to everyone', (p) => expect(isGateExempt(p)).toBe(true));
   it.each(['/', '/Home', '/Library', '/BookView', '/Settings', '/CreativeStoryStudio', '/orders'])(
     '%s is the app and is gated', (p) => expect(isGateExempt(p)).toBe(false));
