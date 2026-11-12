@@ -18,8 +18,15 @@ const KINDS = {
   delete: { Icon: Trash2, action: deleteBook, tone: 'red' },
 };
 
-const ERROR_BY_CODE = { open_order: 'bookControls.delOpenOrder', network: 'bookControls.offline' };
-
+/**
+ * @param {object} p
+ * @param {string} p.kind
+ * @param {any} p.book
+ * @param {(kind?: string) => void} [p.onChanged]
+ * @param {(id: any) => Promise<any>} [p.onAction]
+ * @param {boolean} [p.initialOpen]
+ * @param {string} [p.initialError]
+ */
 function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, initialError = '' }) {
   const { t } = useI18n();
   const { toast } = useToast();
@@ -38,11 +45,13 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
       setBusy(false);
       // The book is gone, but the server could not remove some drawing files yet: say so plainly.
       const filesLeft = kind === 'delete' && result?.warning === 'files_left';
-      toast({ description: t(filesLeft ? 'bookControls.delFilesLeft' : kind === 'delete' ? 'bookControls.delDone' : 'bookControls.stopShareDone') });
+      toast({ description: filesLeft ? t('bookControls.delFilesLeft') : kind === 'delete' ? t('bookControls.delDone') : t('bookControls.stopShareDone') });
       onChanged?.(kind);
     } catch (err) {
-      const key = ERROR_BY_CODE[err?.code];
-      setError(key ? t(key) : t(kind === 'delete' ? 'bookControls.delFailed' : 'bookControls.stopShareFailed'));
+      const code = err?.code;
+      setError(code === 'open_order' ? t('bookControls.delOpenOrder')
+        : code === 'network' ? t('bookControls.offline')
+        : kind === 'delete' ? t('bookControls.delFailed') : t('bookControls.stopShareFailed'));
       setBusy(false);
     }
   };
@@ -50,13 +59,24 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
   return { open, setOpen, onOpenChange, busy, error, confirm };
 }
 
+/**
+ * @param {object} p
+ * @param {string} p.kind
+ * @param {any} p.book
+ * @param {(kind?: string) => void} [p.onChanged]
+ * @param {(id: any) => Promise<any>} [p.onAction]
+ * @param {string} [p.className]
+ * @param {boolean} [p.initialOpen]
+ * @param {string} [p.initialError]
+ * @param {boolean} [p.compact]
+ */
 export function BookControlButton({ kind, book, onChanged, onAction, className = '', initialOpen, initialError, compact = false }) {
   const { t, isRTL } = useI18n();
   const { Icon, tone } = KINDS[kind];
   const s = useConfirm({ kind, book, onChanged, onAction, initialOpen, initialError });
   const title = book?.title || t('bookControls.untitled');
   const isDelete = kind === 'delete';
-  const label = t(isDelete ? 'bookControls.del' : 'bookControls.stopShare');
+  const label = (isDelete ? t('bookControls.del') : t('bookControls.stopShare'));
   const palette = tone === 'red'
     ? 'border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-red-500'
     : 'border-amber-300 text-amber-800 hover:bg-amber-50 focus-visible:ring-amber-500';
@@ -78,10 +98,10 @@ export function BookControlButton({ kind, book, onChanged, onAction, className =
           <AlertDialogHeader className={isRTL ? 'sm:text-right' : ''}>
             <AlertDialogTitle className={`flex items-start gap-2 break-words ${isDelete ? 'text-red-700' : 'text-amber-800'}`}>
               <AlertTriangle className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
-              <span className="min-w-0">{t(isDelete ? 'bookControls.delTitle' : 'bookControls.stopShareTitle', { title })}</span>
+              <span className="min-w-0">{isDelete ? t('bookControls.delTitle', { title }) : t('bookControls.stopShareTitle', { title })}</span>
             </AlertDialogTitle>
             <AlertDialogDescription className="text-start text-[15px] leading-relaxed text-gray-700">
-              {t(isDelete ? 'bookControls.delBody' : 'bookControls.stopShareBody')}
+              {(isDelete ? t('bookControls.delBody') : t('bookControls.stopShareBody'))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div role="alert" aria-live="assertive">
@@ -102,8 +122,8 @@ export function BookControlButton({ kind, book, onChanged, onAction, className =
               className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-bold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${isDelete ? 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500' : 'bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500'}`}
             >
               {s.busy
-                ? (<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t(isDelete ? 'bookControls.delBusy' : 'bookControls.stopShareBusy')}</>)
-                : t(isDelete ? 'bookControls.delConfirm' : 'bookControls.stopShareConfirm')}
+                ? (<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{(isDelete ? t('bookControls.delBusy') : t('bookControls.stopShareBusy'))}</>)
+                : (isDelete ? t('bookControls.delConfirm') : t('bookControls.stopShareConfirm'))}
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -113,6 +133,13 @@ export function BookControlButton({ kind, book, onChanged, onAction, className =
 }
 
 /** Both controls for one owned book. "Stop sharing" appears only while the book is shared. */
+/**
+ * @param {object} p
+ * @param {any} p.book
+ * @param {(kind?: string) => void} [p.onChanged]
+ * @param {string} [p.className]
+ * @param {boolean} [p.compact]
+ */
 export default function BookControls({ book, onChanged, className = '', compact = false }) {
   if (!book?.id) return null;
   return (

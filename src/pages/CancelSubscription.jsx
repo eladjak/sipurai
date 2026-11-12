@@ -17,10 +17,11 @@ const btn = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl p
  * The email route is always visible, so nobody is stuck when the online route is unavailable.
  * `initial` lets the screen be tested and photographed without a server.
  */
+/** @param {{ initial?: { status?: string, plan?: string, confirmOpen?: boolean, error?: string } }} props */
 export default function CancelSubscription({ initial = {} }) {
   const { t, isRTL } = useI18n();
   const { user, isLoadingAuth } = useAuth();
-  const [status, setStatus] = useState(initial.status || (user || isLoadingAuth ? 'loading' : 'signedOut'));
+  const [status, setStatus] = useState(/** @type {string} */ (initial.status || (user || isLoadingAuth ? 'loading' : 'signedOut')));
   const [plan, setPlan] = useState(initial.plan || '');
   const [confirmOpen, setConfirmOpen] = useState(!!initial.confirmOpen);
   const [busy, setBusy] = useState(false);
@@ -82,8 +83,14 @@ export default function CancelSubscription({ initial = {} }) {
         <section aria-labelledby="cs-what" className={card}>
           <h2 id="cs-what" className="flex items-center gap-2 text-lg font-bold"><Clock className="h-5 w-5 text-purple-700" aria-hidden="true" />{t('cancelSubscription.whatTitle')}</h2>
           <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-gray-800">
-            {['what1', 'what2', 'what2b', 'what2c', 'what3'].map((k) => (
-              <li key={k} className="flex items-start gap-2"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />{t(`cancelSubscription.${k}`)}</li>
+            {[
+              ['what1', t('cancelSubscription.what1')],
+              ['what2', t('cancelSubscription.what2')],
+              ['what2b', t('cancelSubscription.what2b')],
+              ['what2c', t('cancelSubscription.what2c')],
+              ['what3', t('cancelSubscription.what3')],
+            ].map(([k, text]) => (
+              <li key={k} className="flex items-start gap-2"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />{text}</li>
             ))}
           </ul>
         </section>
@@ -145,7 +152,11 @@ export default function CancelSubscription({ initial = {} }) {
           <h2 id="cs-mail" className="flex items-center gap-2 text-lg font-bold"><Mail className="h-5 w-5 text-purple-700" aria-hidden="true" />{t('cancelSubscription.mailTitle')}</h2>
           <p className="mt-3 text-[15px] text-gray-800">{t('cancelSubscription.mailLead')}</p>
           <ul className="mt-2 list-disc space-y-1 ps-5 text-[15px] text-gray-800">
-            {['mail1', 'mail2', 'mail3'].map((k) => <li key={k}>{t(`cancelSubscription.${k}`)}</li>)}
+            {[
+              ['mail1', t('cancelSubscription.mail1')],
+              ['mail2', t('cancelSubscription.mail2')],
+              ['mail3', t('cancelSubscription.mail3')],
+            ].map(([k, text]) => <li key={k}>{text}</li>)}
           </ul>
           <a href={mailto} className={`${btn} mt-4 w-full border-2 border-purple-300 bg-purple-50 text-purple-900 hover:bg-purple-100 focus-visible:ring-purple-500 sm:w-auto`}>
             <Mail className="h-5 w-5" aria-hidden="true" />{t('cancelSubscription.mailButton')}

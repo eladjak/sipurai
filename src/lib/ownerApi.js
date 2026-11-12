@@ -14,6 +14,12 @@ export class OwnerApiError extends Error {
   }
 }
 
+/**
+ * @param {string} method
+ * @param {string} url
+ * @param {any} [body]
+ * @param {{ fetchImpl?: typeof fetch, getHeaders?: any }} [opts]
+ */
 async function call(method, url, body, { fetchImpl = globalThis.fetch, getHeaders } = {}) {
   const headers = await waitForAuthHeaders({ getHeaders });
   if (!headers.Authorization) throw new OwnerApiError('not signed in', { status: 401, code: 'unauthorized' });

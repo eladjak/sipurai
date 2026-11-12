@@ -34,9 +34,11 @@ export const CONTROLLER = {
 };
 export const CONTROLLER_DETAILS_MISSING = !CONTROLLER.legalNameHe || !CONTROLLER.businessId || !CONTROLLER.address;
 
+const BRAND_NAME = { he: 'סיפוראי', en: 'Sipurai' };
+
 const controllerLine = (lang) => {
   const name = lang === 'he' ? CONTROLLER.legalNameHe : CONTROLLER.legalNameEn || CONTROLLER.legalNameHe;
-  const parts = [lang === 'he' ? 'סיפוראי' : 'Sipurai'];
+  const parts = [BRAND_NAME[lang === 'he' ? 'he' : 'en']];
   if (name) parts.push(name);
   if (CONTROLLER.businessId) parts.push(lang === 'he' ? `מספר עוסק ${CONTROLLER.businessId}` : `business no. ${CONTROLLER.businessId}`);
   const address = lang === 'he' ? CONTROLLER.address : CONTROLLER.addressEn || CONTROLLER.address;
