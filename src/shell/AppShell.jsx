@@ -6,6 +6,7 @@ import "@/styles/sp-fonts.css";
 import SideRail from "./SideRail";
 import TabBar from "./TabBar";
 import TopBar from "./TopBar";
+import CancelSubscriptionLink from "@/components/CancelSubscriptionLink";
 
 export default function AppShell({ children }) {
   const { user } = useCurrentUser();
@@ -55,6 +56,9 @@ export default function AppShell({ children }) {
           >
             {children}
           </main>
+          <footer className="px-4 pb-4 pt-2 text-center text-sp-sm text-sp-ink-600">
+            <CancelSubscriptionLink />
+          </footer>
         </div>
       </div>
       <TabBar />

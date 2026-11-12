@@ -26,8 +26,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/components/i18n/i18nProvider";
+import BookControls from "@/components/bookControls/BookControls";
 
-function BookCard({ book, viewType = "grid", onDuplicate }) {
+function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
   const { t, isRTL } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -196,6 +197,7 @@ function BookCard({ book, viewType = "grid", onDuplicate }) {
                 </Button>
               )}
             </div>
+            {book.id && onChanged && <BookControls book={book} onChanged={onChanged} compact className="mt-2 w-full" />}
           </CardFooter>
         </Card>
       </motion.div>
@@ -325,6 +327,7 @@ function BookCard({ book, viewType = "grid", onDuplicate }) {
                 </Button>
               )}
             </div>
+            {book.id && onChanged && <BookControls book={book} onChanged={onChanged} compact className="mt-3 sm:max-w-sm" />}
           </div>
         </div>
       </Card>

@@ -90,6 +90,7 @@ export function isGateExempt(pathname = '/') {
     p === '/accessibility' ||
     p === '/contact' ||
     p === '/pricing' ||
+    p === '/cancel-subscription' ||
     p === '/welcome' ||
     p.startsWith('/blog') ||
     p.startsWith('/sign-in') ||
