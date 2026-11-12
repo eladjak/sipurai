@@ -32,6 +32,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Shekel billing is not open yet: block Israeli visitors before touching Creem.
+  const country = String(req.headers?.['x-vercel-ip-country'] || '').toUpperCase();
+  if (country === 'IL' && process.env.BILLING_ILS_ENABLED !== 'true') {
+    return res.status(409).json({
+      error: 'il_billing_not_open',
+      message: 'Shekel billing for Israel is not open yet',
+    });
+  }
+
   const apiKey = process.env.CREEM_API_KEY;
   if (!apiKey) {
     console.error('[checkout] CREEM_API_KEY is not set');
