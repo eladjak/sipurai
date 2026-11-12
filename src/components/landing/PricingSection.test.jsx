@@ -7,6 +7,8 @@ let mockLang = 'hebrew';
 vi.mock('@/components/i18n/i18nProvider', () => ({
   useI18n: () => ({ t: (k) => k, isRTL: mockLang === 'hebrew', language: mockLang }),
 }));
+let mockCountry = '';
+vi.mock('@/hooks/useVisitorCountry', () => ({ default: () => mockCountry }));
 import PricingSection from './PricingSection';
 
 let lastContainer;
@@ -20,6 +22,8 @@ const hrefs = () => [...lastContainer.querySelectorAll('a')].map((a) => a.getAtt
 
 describe('PricingSection currency', () => {
   beforeEach(() => vi.restoreAllMocks());
+
+  beforeEach(() => { mockCountry = ''; });
 
   it('Hebrew visitor sees shekels and no dollar sign', () => {
     const text = renderWithTz('hebrew', 'Asia/Jerusalem');
@@ -49,5 +53,20 @@ describe('PricingSection currency', () => {
   it('USD mode: paid cards still link to paid sign-up', () => {
     renderWithTz('english', 'Europe/London');
     expect(hrefs()).toEqual(expect.arrayContaining(['/sign-up?plan=lite', '/sign-up?plan=premium', '/sign-up?plan=family']));
+  });
+
+  it('Hebrew UI but the server says GB: dollars, paid links stay paid', () => {
+    mockCountry = 'GB';
+    const text = renderWithTz('hebrew', 'Europe/London');
+    expect(text).toContain('$3.90');
+    expect(text).not.toContain('₪');
+    expect(hrefs()).toContain('/sign-up?plan=lite');
+  });
+
+  it('English UI in London but the server says IL: shekels', () => {
+    mockCountry = 'IL';
+    const text = renderWithTz('english', 'Europe/London');
+    expect(text).toContain('14.90 ₪');
+    expect(text).not.toContain('$');
   });
 });

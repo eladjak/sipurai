@@ -10,7 +10,7 @@
 
 import { getModel } from './_lib/modelRegistry.js';
 
-const SYSTEM_PROMPT = `אתה צ'אטבוט ידידותי באתר סיפוראי — sipurai.ai — פלטפורמת AI בעברית ליצירת ספרי ילדים מותאמים אישית.
+const PROMPT_HEAD = `אתה צ'אטבוט ידידותי באתר סיפוראי — sipurai.ai — פלטפורמת AI בעברית ליצירת ספרי ילדים מותאמים אישית.
 
 תשובות בעברית, חמות ואישיות, קצרות (2-4 משפטים). אם מישהו רוצה ניסיון — שלח אותו ל"התחילו בחינם".
 
@@ -27,18 +27,32 @@ const SYSTEM_PROMPT = `אתה צ'אטבוט ידידותי באתר סיפורא
 - פרימיום: ספרים ללא הגבלה, תמיכה מועדפת ⭐
 - משפחתי: עד 5 פרופילי ילדים, כל תכונות הפרימיום
 
-מחירים (חשוב לדייק, לא לעגל ולא להמיר):
-- בישראל המחירים בשקלים, לחודש: לייט 14.90 ₪, פרימיום 29 ₪, משפחתי 39 ₪. זה המחיר הכולל (העסק הוא עוסק פטור, אין מע״מ). ההרשמה לתוכניות בתשלום בישראל תיפתח בקרוב; בינתיים אפשר להתחיל בתוכנית החינמית.
-- מחוץ לישראל המחירים בדולרים, לחודש: לייט $3.90, פרימיום $7.90, משפחתי $9.90. מס מקומי, אם חל, מתווסף ומוצג בדף התשלום לפני האישור.
-- לא להמיר בין מטבעות ולא לתת סכומים מקורבים.
-
-חוקים חשובים:
+`;
+const PROMPT_TAIL = `חוקים חשובים:
 - כל ספר נשאר אצלך לתמיד
 - בלי פרסומות (גם בחינם)
 - המידע נשמר באופן מאובטח ב-Supabase
 - אם שואלים משהו שלא יודעים — הפנה ל-support@sipurai.ai
 
 מטרה: לעזור לילדים ישראלים לקבל ספרים בעברית מותאמים — הילד הוא הגיבור.`;
+
+const PRICES_IL = `מחירים (חשוב לדייק, לא לעגל ולא להמיר):
+- בישראל המחירים בשקלים, לחודש: לייט 14.90 ₪, פרימיום 29 ₪, משפחתי 39 ₪. זה המחיר הכולל (העסק הוא עוסק פטור, אין מע״מ). ההרשמה לתוכניות בתשלום בישראל תיפתח בקרוב; בינתיים אפשר להתחיל בתוכנית החינמית.
+- לעולם לא לציין מחירים במטבע אחר ולא להמיר בין מטבעות.
+
+`;
+const PRICES_ABROAD = `מחירים (חשוב לדייק, לא לעגל ולא להמיר):
+- המחירים בדולרים, לחודש: לייט $3.90, פרימיום $7.90, משפחתי $9.90. מס מקומי, אם חל, מתווסף ומוצג בדף התשלום לפני האישור.
+- לעולם לא לציין מחירים במטבע אחר ולא להמיר בין מטבעות.
+
+`;
+
+/** Only the price set that applies to the visitor's country goes into the prompt. Unknown country -> Israel set. */
+export function buildSystemPrompt(country) {
+  const c = String(country || '').trim().toUpperCase();
+  return PROMPT_HEAD + (c && c !== 'IL' ? PRICES_ABROAD : PRICES_IL) + PROMPT_TAIL;
+}
+
 
 export default async function handler(req, res) {
   // CORS for sipurai.ai
@@ -69,7 +83,7 @@ export default async function handler(req, res) {
     }
     const recent = messages.slice(-10);
     const conversationText = recent.map(m => `${m.role === 'user' ? 'משתמש' : 'אסיסטנט'}: ${m.content}`).join('\n');
-    const fullPrompt = `${SYSTEM_PROMPT}\n\nשיחה עד כה:\n${conversationText}\n\nאסיסטנט:`;
+    const fullPrompt = `${buildSystemPrompt(req.headers?.['x-vercel-ip-country'])}\n\nשיחה עד כה:\n${conversationText}\n\nאסיסטנט:`;
 
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getModel('text')}:generateContent`, {
       method: 'POST',

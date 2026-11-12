@@ -10,7 +10,7 @@
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || 'https://sipurai.ai',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -26,6 +26,13 @@ export default async function handler(req, res) {
   // Set CORS on all responses
   for (const [key, value] of Object.entries(CORS_HEADERS)) {
     res.setHeader(key, value);
+  }
+
+  if (req.method === 'GET') {
+    // Which country the visitor is in, per Vercel's geo header. Used only to pick the currency shown.
+    const geo = String(req.headers?.['x-vercel-ip-country'] || '').trim().toUpperCase();
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ country: geo });
   }
 
   if (req.method !== 'POST') {

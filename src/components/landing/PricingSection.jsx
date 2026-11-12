@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/components/i18n/i18nProvider';
+import useVisitorCountry from '@/hooks/useVisitorCountry';
 import { resolveCurrency, browserTimeZone, formatPrice, isIlsCheckoutOpen } from '@/lib/pricing';
 
 const PricingSection = () => {
   const { t, isRTL, language } = useI18n();
-  const currency = resolveCurrency({ language, timeZone: browserTimeZone() });
+  const country = useVisitorCountry();
+  const currency = resolveCurrency({ country, language, timeZone: browserTimeZone() });
   const paidPaused = currency === 'ILS' && !isIlsCheckoutOpen();
 
   const plans = [

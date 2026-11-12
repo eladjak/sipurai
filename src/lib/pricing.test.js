@@ -10,6 +10,16 @@ describe('resolveCurrency', () => {
   it('no input -> USD', () => expect(resolveCurrency()).toBe('USD'));
 });
 
+describe('resolveCurrency with a server-reported country', () => {
+  it('IL beats an English UI in London', () => expect(resolveCurrency({ country: 'IL', language: 'english', timeZone: 'Europe/London' })).toBe('ILS'));
+  it('GB beats a Hebrew UI', () => expect(resolveCurrency({ country: 'GB', language: 'hebrew', timeZone: 'Asia/Jerusalem' })).toBe('USD'));
+  it('lowercase country is accepted', () => expect(resolveCurrency({ country: 'il', language: 'english' })).toBe('ILS'));
+  it('empty country falls back to the heuristic', () => {
+    expect(resolveCurrency({ country: '', language: 'hebrew' })).toBe('ILS');
+    expect(resolveCurrency({ country: '', language: 'english', timeZone: 'Europe/London' })).toBe('USD');
+  });
+});
+
 describe('formatPrice', () => {
   it('ILS strings', () => {
     expect(formatPrice('free', 'ILS')).toBe('0 ₪');

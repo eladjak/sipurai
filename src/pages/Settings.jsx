@@ -55,6 +55,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
 import AccountDataControls from '../components/settings/AccountDataControls';
 import { PLANS, openCheckout, isBillingClosedError, BILLING_CLOSED_MESSAGE } from '@/lib/creem';
+import useVisitorCountry from '@/hooks/useVisitorCountry';
 import { resolveCurrency, browserTimeZone, formatPrice, canCheckout } from '@/lib/pricing';
 import useSubscription from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
@@ -94,7 +95,8 @@ function SettingCard({ title, icon, children, isRTL, className = "" }) {
 
 function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
   const { t, language } = useI18n();
-  const currency = resolveCurrency({ language, timeZone: browserTimeZone() });
+  const country = useVisitorCountry();
+  const currency = resolveCurrency({ country, language, timeZone: browserTimeZone() });
   const checkoutOpen = canCheckout(currency);
   const priceText = (planId) => {
     const p = formatPrice(planId, currency);
@@ -183,7 +185,9 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                   )}
                 </CardTitle>
                 <div className={`text-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {priceText(planDef.id)}
+                  {isCurrent && isPaid
+                    ? (isRTL ? 'החיוב לפי הקבלה שקיבלתם' : 'Billed as on your receipt')
+                    : priceText(planDef.id)}
                 </div>
               </CardHeader>
               <CardContent className="px-5 pb-5">

@@ -26,4 +26,8 @@ describe('pricing copy never promises approximate shekels', () => {
     expect(text).toContain('14.90 ₪');
     expect(text).toContain('39 ₪');
   });
+
+  it('terms keep existing subscribers billed as on their receipt', () => {
+    expect(read('src/data/termsContent.js')).toContain('מנוי שהצטרף לפני המעבר לשקלים ממשיך להיות מחויב כפי שהופיע בקבלה שלו, עד שיבטל.');
+  });
 });

@@ -82,3 +82,17 @@ test('US visitor proceeds to Creem', async () => {
     assert.equal(calls, 1);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('GET returns the visitor country, uppercased, no-store', async () => {
+  const res = mkRes();
+  await handler({ method: 'GET', headers: { 'x-vercel-ip-country': 'gb' } }, res);
+  assert.equal(res.code, 200);
+  assert.deepEqual(res.body, { country: 'GB' });
+  assert.equal(res.headers['Cache-Control'], 'no-store');
+});
+
+test('GET with no geo header returns an empty country', async () => {
+  const res = mkRes();
+  await handler({ method: 'GET', headers: {} }, res);
+  assert.deepEqual(res.body, { country: '' });
+});

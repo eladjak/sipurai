@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { getVisitorCountry } from "@/lib/visitorCountry";
 import { openCheckout, isBillingClosedError, BILLING_CLOSED_MESSAGE } from "@/lib/creem";
 import { resolveCurrency, browserTimeZone, canCheckout } from "@/lib/pricing";
 import { useToast } from "@/components/ui/use-toast";
@@ -48,8 +49,10 @@ export default function Home() {
     searchParams.delete("plan");
     setSearchParams(searchParams, { replace: true });
     // Israeli visitors cannot pay yet (no shekel provider): just land on the app.
-    if (!canCheckout(resolveCurrency({ language: currentLanguage, timeZone: browserTimeZone() }))) return;
-    openCheckout(plan, currentUserHook.email).catch((err) => {
+    getVisitorCountry().then((country) => {
+      if (!canCheckout(resolveCurrency({ country, language: currentLanguage, timeZone: browserTimeZone() }))) return;
+      return openCheckout(plan, currentUserHook.email);
+    }).catch((err) => {
       if (import.meta.env.DEV) console.warn("[Home] auto-checkout failed:", err);
       if (isBillingClosedError(err)) {
         toast({ title: BILLING_CLOSED_MESSAGE[isRTL ? "he" : "en"], variant: "destructive" });

@@ -23,7 +23,11 @@ export function browserTimeZone() {
   }
 }
 
-export function resolveCurrency({ language, timeZone } = {}) {
+// The server-reported country (when known) decides; language and time zone are only the
+// fallback for an unknown country (not loaded yet, failed, or no geo header).
+export function resolveCurrency({ country, language, timeZone } = {}) {
+  const c = String(country || '').toUpperCase();
+  if (c) return c === 'IL' ? 'ILS' : 'USD';
   if (ILS_LANGUAGES.includes(language)) return 'ILS';
   if (ILS_TIME_ZONES.includes(timeZone)) return 'ILS';
   return 'USD';
