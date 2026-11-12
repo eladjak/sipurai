@@ -46,7 +46,7 @@ test('guarded actions without confirm -> 428 with the right class, order untouch
   for (const [action, cls] of [['cancel', 'delete'], ['retry_submit', 'money'], ['mark_shipped', 'send'], ['mark_ready_for_pickup', 'send']]) {
     const r = await call(act, agentReq('POST', { body: { id, action } }), d);
     assert.equal(r.status, 428, action);
-    assert.deepEqual(r.body, { error: 'agent_confirm_required', class: cls });
+    assert.deepEqual(r.body, { error: 'agent_confirm_required', class: cls, reason: 'missing' });
   }
   assert.equal(d.store._orders.get(id).status, 'awaiting_payment');
   assert.equal(d.store._agentAudit.length, 0);
@@ -56,6 +56,28 @@ test('short confirm -> still 428', async () => {
   const d = deps();
   const id = await orderId(d);
   assert.equal((await call(act, agentReq('POST', { confirm: 'yes ok', body: { id, action: 'cancel' } }), d)).status, 428);
+});
+
+test('Step 0: invisible-only or oversized confirm -> 428 with reason, order untouched', async () => {
+  const d = deps();
+  const id = await orderId(d);
+  for (const [label, confirm, reason] of [['10 emoji', '😀'.repeat(10), 'too_short'], ['20 zero-width spaces', '\u200B'.repeat(20), 'too_short'],
+    ['20 combining marks', '\u0301'.repeat(20), 'too_short'], ['601 chars', 'א'.repeat(601), 'too_long']]) {
+    const r = await call(act, agentReq('POST', { confirm, body: { id, action: 'cancel' } }), d);
+    assert.equal(r.status, 428, label);
+    assert.deepEqual(r.body, { error: 'agent_confirm_required', class: 'delete', reason }, label);
+  }
+  assert.equal(d.store._orders.get(id).status, 'awaiting_payment');
+  assert.equal(d.store._agentAudit.length, 0);
+});
+
+test('Step 0: a normal Hebrew sentence of 25 letters is accepted and stored whole', async () => {
+  const d = deps();
+  const id = await orderId(d);
+  const text = 'אלעד אישר בוואטסאפ ביטול';
+  const r = await call(act, agentReq('POST', { confirm: text, body: { id, action: 'cancel' } }), d);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(d.store._agentAudit[0].confirm_text, text);
 });
 
 test('cancel with a Hebrew confirm statement: executed, audit row carries the text, event actor is Zoey (סוכנת)', async () => {

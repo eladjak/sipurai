@@ -42,15 +42,32 @@ export function verifyAgentKey(req, env) {
   return { present: true, ok };
 }
 
-export function readAgentConfirm(req) {
+export const CONFIRM_MAX_CHARS = 600;
+
+/** Characters that count for nothing: whitespace, control, format (zero-width, joiners, BOM), combining marks, variation selectors. */
+const INVISIBLE = /[\s\p{Cf}\p{Cc}\p{M}\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu;
+export const visibleLength = (text) => [...String(text).replace(INVISIBLE, '')].length;
+
+/**
+ * -> {text, reason:null} | {text:null, reason:'missing'|'too_short'|'too_long'}.
+ * Counted in code points after removing invisible characters; a text over 600 code points is refused, never truncated.
+ */
+export function checkAgentConfirm(req) {
   const raw = req?.headers?.['x-agent-confirm'];
-  if (!raw || typeof raw !== 'string') return null;
+  if (!raw || typeof raw !== 'string') return { text: null, reason: 'missing' };
+  let text;
   try {
-    const text = decodeURIComponent(raw).trim();
-    return text.length >= CONFIRM_MIN_CHARS ? text : null;
+    text = decodeURIComponent(raw).trim();
   } catch {
-    return null;
+    return { text: null, reason: 'missing' };
   }
+  if ([...text].length > CONFIRM_MAX_CHARS) return { text: null, reason: 'too_long' };
+  if (visibleLength(text) < CONFIRM_MIN_CHARS) return { text: null, reason: 'too_short' };
+  return { text, reason: null };
+}
+
+export function readAgentConfirm(req) {
+  return checkAgentConfirm(req).text;
 }
 
 const hits = new Map();

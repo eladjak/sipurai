@@ -6,7 +6,7 @@
  * -> admin allowlist (403, fail closed) -> logic.
  */
 import { requireClerkAuth } from '../verifyClerk.js';
-import { ACTION_CLASS, ZOEY_NAME, readAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
+import { ACTION_CLASS, ZOEY_NAME, checkAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
@@ -218,8 +218,9 @@ export function endpoint(name) {
         const body = bodyOf(req);
         const cls = ACTION_CLASS[body?.action];
         if (cls) {
-          const confirm = readAgentConfirm(req);
-          if (!confirm) return send(res, 428, { error: 'agent_confirm_required', class: cls });
+          const chk = checkAgentConfirm(req);
+          const confirm = chk.text;
+          if (!confirm) return send(res, 428, { error: 'agent_confirm_required', class: cls, reason: chk.reason });
           if (writeRateLimited()) return send(res, 429, { error: 'rate_limited', class: 'rate_limit' });
           // Fail closed: no audit row, no action.
           try {
