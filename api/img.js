@@ -46,7 +46,9 @@ export default async function handler(req, res, overrides = {}) {
   const token = tokenFromRequest(req);
   if (token) {
     try {
-      const v = await (overrides.verify || verifyClerkToken)(token);
+      // Read-only route: accept a Clerk token up to 12h past exp (idle tabs keep a stale
+      // __session cookie). Signature, issuer and azp are still checked.
+      const v = await (overrides.verify || verifyClerkToken)(token, { expiryGraceSec: 12 * 3600 });
       if (v?.ok && v.payload?.sub) userId = v.payload.sub;
     } catch { /* bad token = anonymous */ }
   }

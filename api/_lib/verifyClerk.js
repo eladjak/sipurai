@@ -181,9 +181,12 @@ function verifySignature(jwk, signingInput, signature) {
 /**
  * Verify a Clerk session JWT.
  * @param {string} token raw JWT (no "Bearer " prefix)
+ * @param {{expiryGraceSec?: number}} [opts] expiryGraceSec: extra seconds a token may be past exp.
+ *   Only for READ-ONLY image access (/api/img), where an <img> sends Clerk's short-lived
+ *   __session cookie that an idle tab has not refreshed yet. Capped at 12 hours. Never use for writes.
  * @returns {Promise<{ok:true,payload:object}|{ok:false,reason:string}>}
  */
-export async function verifyClerkToken(token) {
+export async function verifyClerkToken(token, opts = {}) {
   if (!token || typeof token !== 'string') return { ok: false, reason: 'missing token' };
 
   const decoded = decodeJwt(token);
@@ -229,7 +232,8 @@ export async function verifyClerkToken(token) {
   const now = Math.floor(Date.now() / 1000);
   const skew = 30;
   if (typeof payload.exp !== 'number') return { ok: false, reason: 'no exp claim' };
-  if (payload.exp + skew < now) return { ok: false, reason: 'token expired' };
+  const grace = Math.min(Math.max(Number(opts.expiryGraceSec) || 0, 0), 12 * 3600);
+  if (payload.exp + skew + grace < now) return { ok: false, reason: 'token expired' };
   if (typeof payload.nbf === 'number' && payload.nbf - skew > now) {
     return { ok: false, reason: 'token not yet valid' };
   }
