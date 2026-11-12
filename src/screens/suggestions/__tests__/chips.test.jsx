@@ -28,10 +28,12 @@ vi.mock('react-router-dom', () => ({useParams: () => ({id:'1'}),useNavigate: () 
 vi.mock('@/hooks/useTTS', () => ({useTTS: () => ({stop:vi.fn()})}));
 vi.mock('@/components/bookReader/TTSControls', () => ({getStoredTTSEngine: () => 'fixture'}));
 vi.mock('@/screens/reader/useNightReader', () => ({useNightReader: () => ({book:{status:'complete',title:'Moon'},pages:[{text_content:'A page'}],index:0,setIndex:vi.fn(),state:'complete'})}));
-it('hands a reader suggestion to the new-story flow without starting', async () => {
- localStorage.clear(); sessionStorage.clear(); readerNavigation.mockClear();
+it('keeps the last page inside the reader with no suggestion or outgoing link', async () => {
+ localStorage.clear(); readerNavigation.mockClear();
  const {default: NightReader} = await import('@/screens/reader/NightReader');
- render(<NightReader/>); fireEvent.click(screen.getByRole('button',{name:/suggestions.sequel/}));
- expect(sessionStorage.getItem('sipurai_suggestion')).toContain('suggestions.sequel');
- expect(readerNavigation).toHaveBeenCalledWith('/new');
+ const {container} = render(<NightReader/>);
+ expect(screen.queryByRole('button',{name:/suggestions.sequel/})).toBeNull();
+ expect(screen.queryByRole('switch')).toBeNull();
+ expect(container.querySelector('a[href]')).toBeNull();
+ expect(readerNavigation).not.toHaveBeenCalled();
 });

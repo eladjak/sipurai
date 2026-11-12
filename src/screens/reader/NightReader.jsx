@@ -7,7 +7,6 @@ import { useNightReader } from './useNightReader';
 import ReaderPage from './ReaderPage';
 import ReaderControls from './ReaderControls';
 import AdultExit from './AdultExit';
-import SuggestionChips from '@/screens/suggestions/SuggestionChips';
 import '@/styles/sp-tokens.css';
 import '@/styles/sp-fonts.css';
 
@@ -35,6 +34,6 @@ export default function NightReader() {
     <style dangerouslySetInnerHTML={{ __html: readerStyles }} />
     <header className="reader-top"><h1 className="reader-title">{book?.title || t('nightReader.title')}</h1><AdultExit t={t} onExit={() => {tts.stop(); navigate('/shelf');}} /></header>
     {status && <div className={pages.length ? 'reader-status' : 'reader-empty'} role="status"><h2>{({loading: t('nightReader.loading'), building: t('nightReader.building'), paused: t('nightReader.paused'), failed: t('nightReader.failed')})[status]}</h2>{!pages.length && <p>{t('nightReader.askAdult')}</p>}</div>}
-    {pages.length > 0 && <><ReaderPage page={pages[index]} t={t} word={tts.currentWordIndex}/><ReaderControls index={index} count={pages.length} go={go} t={t} tts={tts} text={pages[index]?.text_content} rtl={isRTL}/>{index === pages.length - 1 && state === 'complete' && <SuggestionChips t={t} night data={{books: book ? [book] : []}} onChoose={idea => { try { sessionStorage.setItem('sipurai_suggestion', idea); } catch { return; } tts.stop(); navigate('/new'); }}/>}</>}
+    {pages.length > 0 && <><ReaderPage page={pages[index]} t={t} word={tts.currentWordIndex}/><ReaderControls index={index} count={pages.length} go={go} t={t} tts={tts} text={pages[index]?.text_content} rtl={isRTL}/></>}
   </main>;
 }

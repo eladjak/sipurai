@@ -1,10 +1,11 @@
 // Suggestions use only supplied data; no calls to models or services.
 export function suggestions({ heroes = [], books = [], now = new Date(), t }) {
   const items = [];
-  const add = (id, key, vars = {}) => { const text = t(`suggestions.${key}`, vars); items.push({ id, text, action: text, costLabel: t('newStory.cost') }); };
+  const labels = { newHero: vars => t('suggestions.newHero', vars), sequel: vars => t('suggestions.sequel', vars), bedtime: vars => t('suggestions.bedtime', vars), oldTopic: vars => t('suggestions.oldTopic', vars), birthday: vars => t('suggestions.birthday', vars) };
+  const add = (id, key, vars = {}) => { const text = labels[key](vars); items.push({ id, text, action: text, costLabel: t('newStory.cost') }); };
   const unused = heroes.find(hero => !books.some(book => (book.selectedCharacters || book.selected_characters || []).some(character => character.id === hero.id)));
   if (unused?.name) add('new-hero', 'newHero', { name: unused.name });
-  const finished = books.filter(book => ['complete', 'completed', 'published'].includes(book.status) && book.title).sort((a,b) => String(b.created_date || '').localeCompare(String(a.created_date || '')))[0];
+  const finished = books.filter(book => book.status === 'complete' && book.title).sort((a,b) => String(b.created_date || '').localeCompare(String(a.created_date || '')))[0];
   if (finished) add('sequel', 'sequel', { title: finished.title });
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Jerusalem', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', hourCycle:'h23' }).formatToParts(now);
   const part = name => Number(parts.find(p => p.type === name)?.value);
