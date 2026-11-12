@@ -1,0 +1,1 @@
+export default { suggestions: { title:'עוד סיפור?', label:'הצעות', hint:'בחירה בהצעה תמלא את הרעיון. אפשר לערוך אותו לפני שמתחילים.', newHero:'סיפור ראשון עם {name}', sequel:'סיפור המשך ל{title}', bedtime:'סיפור קצר ורגוע לפני השינה', oldTopic:'לחזור לסיפור על {title}', birthday:'סיפור ליום ההולדת של {name}' } };
