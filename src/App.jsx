@@ -13,6 +13,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Link } from 'react-router-dom';
 import { redirects, resolveRedirect } from './lib/routes';
 import { isNewShell } from '@/lib/flags';
+const NightReader = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/reader/NightReader')) : null;
 const Heroes = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/Heroes')) : null;
 const HeroEditor = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/HeroEditor')) : null;
 const Tonight = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/tonight/Tonight')) : null;
@@ -108,6 +109,7 @@ export const NewShellRoutes = () => {
     <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
     <Route path="/parents" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(Pages.BookWizard)} />
     <Route path="/help" element={protectedPage(Help)} />
+    <Route path="/book/:id/read" element={protectedPage(NightReader)} />
     <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
     {['CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
     <Route path="/BlogPost" element={<BlogPost />} />
