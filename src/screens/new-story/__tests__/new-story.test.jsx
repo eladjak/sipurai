@@ -30,7 +30,7 @@ describe('reservation refusals', () => {
   vi.mocked(reserveBookSlot).mockReset().mockRejectedValue(new QuotaError({code, message_he:'Limit reached', resetsLabel:'Tomorrow', canUpgrade:true}));
   beginStory();
   expect(await screen.findByText('Limit reached')).toBeTruthy();
-  expect(screen.getByText('Tomorrow')).toBeTruthy();
+  expect(screen.getByText('Resets on')).toBeTruthy(); expect(screen.getByText('Tomorrow')).toBeTruthy();
   expect(screen.getByRole('link', {name:/view plans/i}).getAttribute('href')).toBe('/pricing');
   expect(screen.queryByText(/allowance may have been used/i)).toBeNull();
   expect(screen.queryByText('Try again')).toBeNull();
