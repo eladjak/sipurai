@@ -16,6 +16,18 @@ describe('heroes', () => {
   it('lists only the current user’s heroes from the fixture', async () => { show('/heroes'); expect(await screen.findByText('Noa')).toBeInTheDocument(); expect(screen.queryByText('Other')).not.toBeInTheDocument(); expect(api.list).toHaveBeenCalledWith('-created_date'); });
   it('shows success only after the entity save resolves', async () => { let resolve; api.update.mockReturnValue(new Promise(r => { resolve = r; })); show('/heroes/h1'); fireEvent.change(await screen.findByLabelText('heroes.name'), { target: { value:'Noya' } }); fireEvent.click(screen.getByText('heroes.save')); expect(api.update).toHaveBeenCalledOnce(); expect(screen.queryByText('heroes.saved')).not.toBeInTheDocument(); resolve({ ...fixture, name:'Noya' }); expect(await screen.findByText('heroes.saved')).toBeInTheDocument(); });
   it('offers a retry after a failed save', async () => { api.update.mockRejectedValueOnce(Error('offline')).mockResolvedValueOnce(fixture); show('/heroes/h1'); fireEvent.click(await screen.findByText('heroes.save')); expect(await screen.findByText('heroes.saveError')).toBeInTheDocument(); fireEvent.click(screen.getByText('heroes.save')); expect(await screen.findByText('heroes.saved')).toBeInTheDocument(); expect(api.update).toHaveBeenCalledTimes(2); });
+  it('shows what is needed before saving', () => { show('/heroes/new'); expect(screen.getByText('heroes.requiredHint')).toBeInTheDocument(); });
+  it('identifies required fields and marks the missing ones after save', () => {
+    show('/heroes/new');
+    const name = screen.getByLabelText('heroes.name');
+    const personality = screen.getByLabelText('heroes.personality');
+    const appearance = screen.getByLabelText('heroes.appearance');
+    for (const field of [name, personality, appearance]) expect(field).toHaveAttribute('aria-required', 'true');
+    fireEvent.click(screen.getByText('heroes.save'));
+    for (const field of [name, personality, appearance]) expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('heroes.required');
+    expect(api.create).not.toHaveBeenCalled();
+  });
   it('creates a hero through the existing entity', async () => { api.create.mockResolvedValue(fixture); show('/heroes/new'); fireEvent.change(screen.getByLabelText('heroes.name'), { target:{ value:'Noa' } }); fireEvent.change(screen.getByLabelText('heroes.personality'), { target:{ value:'kind' } }); fireEvent.change(screen.getByLabelText('heroes.appearance'), { target:{ value:'curly hair' } }); fireEvent.click(screen.getByText('heroes.save')); await waitFor(() => expect(api.create).toHaveBeenCalledWith(expect.objectContaining({name:'Noa', personality:'kind', appearance:'curly hair'}))); });
   it('offers one action when the list is empty', async () => { api.list.mockResolvedValue([]); show('/heroes'); expect(await screen.findByText('heroes.empty')).toBeInTheDocument(); expect(screen.getAllByText('heroes.new')).toHaveLength(1); });
   it('shows an existing look without introducing a photo upload', async () => { api.get.mockResolvedValue({ ...fixture, primary_image_url:'https://example.invalid/hero.png' }); show('/heroes/h1'); expect(await screen.findByAltText('Noa')).toBeInTheDocument(); expect(document.querySelector('input[type=file]')).toBeNull(); });
