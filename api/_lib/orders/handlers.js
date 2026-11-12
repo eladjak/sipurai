@@ -6,6 +6,7 @@
  * -> admin allowlist (403, fail closed) -> logic.
  */
 import { requireClerkAuth } from '../verifyClerk.js';
+import { ACTION_CLASS, ZOEY_NAME, readAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
@@ -199,12 +200,34 @@ export function endpoint(name) {
       if (!isEnabled(env)) return fail(res, 404, 'disabled', 'השירות אינו פעיל');
 
       const deps = overrides?.store ? { env, ...overrides } : { ...(await defaultDeps(env)), ...overrides, env };
-      const auth = await deps.auth(req);
-      const userId = auth?.ok ? auth.payload?.sub : null;
-      if (!userId) return fail(res, 401, 'unauthorized', 'נדרשת התחברות');
-
-      if (def.admin && !adminIds(env).includes(userId)) {
-        return fail(res, 403, 'forbidden', 'אין הרשאה');
+      // Zoey (סוכנת): an agent key is accepted ONLY on the admin endpoints, as an alternative to a Clerk admin.
+      const agent = def.admin ? verifyAgentKey(req, env) : { present: false };
+      if (agent.present && !agent.ok) return fail(res, 401, 'unauthorized', 'נדרשת התחברות');
+      let userId;
+      if (agent.present) {
+        userId = ZOEY_NAME;
+      } else {
+        const auth = await deps.auth(req);
+        userId = auth?.ok ? auth.payload?.sub : null;
+        if (!userId) return fail(res, 401, 'unauthorized', 'נדרשת התחברות');
+        if (def.admin && !adminIds(env).includes(userId)) {
+          return fail(res, 403, 'forbidden', 'אין הרשאה');
+        }
+      }
+      if (agent.present && def.method !== 'GET') {
+        const body = bodyOf(req);
+        const cls = ACTION_CLASS[body?.action];
+        if (cls) {
+          const confirm = readAgentConfirm(req);
+          if (!confirm) return send(res, 428, { error: 'agent_confirm_required', class: cls });
+          if (writeRateLimited()) return send(res, 429, { error: 'rate_limited', class: 'rate_limit' });
+          // Fail closed: no audit row, no action.
+          try {
+            await deps.store.addAgentAudit({ actor: ZOEY_NAME, action: `orders.${body.action}`, guard_class: cls, target: String(body.id || ''), confirm_text: confirm });
+          } catch {
+            return send(res, 503, { error: 'agent_audit_unavailable' });
+          }
+        }
       }
       // Privacy gate: ordering a printed book handles a delivery address, so it needs the parent's consent too.
       // No consent store, no order: there is no "skip" path (the tests inject a store that says yes).

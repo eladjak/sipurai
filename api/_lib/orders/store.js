@@ -17,6 +17,7 @@
  *   listEvents(orderId)              -> event[]
  *   listAlerts(limit)                -> event[]       (type starts with "alert")
  *   listStuck({paidBefore})          -> row[]
+ *   addAgentAudit(entry)             -> void          (Zoey agent audit; table agent_audit)
  */
 import crypto from 'node:crypto';
 
@@ -36,6 +37,7 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
   const bookMap = new Map(books.map((b) => [b.id, b]));
   const orders = new Map();
   const events = [];
+  const agentAudit = [];
   let eventSeq = 0;
   const clone = (v) => (v === undefined ? v : structuredClone(v));
   const ts = () => now().toISOString();
@@ -50,6 +52,7 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
   return {
     _orders: orders, // test visibility only
     _events: events,
+    _agentAudit: agentAudit,
     async getBook(id) {
       return clone(bookMap.get(id)) || null;
     },
@@ -116,6 +119,9 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
       assertPaymentRefUnique(id, patch.payment_ref);
       Object.assign(o, clone(patch), { updated_at: ts() });
       return clone(o);
+    },
+    async addAgentAudit(entry) {
+      agentAudit.push({ ...clone(entry), created_at: ts() });
     },
     async addEvent(orderId, type, data = {}) {
       events.push({ id: ++eventSeq, order_id: orderId, type, data: clone(data), created_at: ts() });
@@ -208,6 +214,9 @@ export function createSupabaseStore(db) {
     },
     async update(id, patch) {
       return must(await db.from('print_orders').update(stamp(patch)).eq('id', id).select('*').maybeSingle());
+    },
+    async addAgentAudit(entry) {
+      must(await db.from('agent_audit').insert(entry));
     },
     async addEvent(orderId, type, data = {}) {
       must(await db.from('print_order_events').insert({ order_id: orderId, type, data }));
