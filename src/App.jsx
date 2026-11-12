@@ -13,6 +13,8 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Link } from 'react-router-dom';
 import { redirects, resolveRedirect } from './lib/routes';
 import { isNewShell } from '@/lib/flags';
+const Heroes = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/Heroes')) : null;
+const HeroEditor = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/HeroEditor')) : null;
 const Shelf = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/shelf/Shelf')) : null;
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { EmptyState } from '@/components/ds/EmptyState';
@@ -102,7 +104,7 @@ export const NewShellRoutes = () => {
     <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} />
     <Route path="/pricing" element={<Pages.Pricing />} />
     <Route path="/help/contact" element={<Pages.Contact />} /><Route path="/help/accessibility" element={<Accessibility />} />
-    <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Pages.Characters)} />
+    <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
     <Route path="/parents" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(Pages.BookWizard)} />
     <Route path="/help" element={protectedPage(Help)} />
     <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
