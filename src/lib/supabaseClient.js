@@ -6,6 +6,7 @@
  * identify the authenticated user via auth.jwt().
  */
 
+import { imageProxyUrl } from './imageUrl.js';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -62,7 +63,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 const STORAGE_BUCKET = 'sipurai-images';
 
 /**
- * Upload a File to Supabase Storage and return its public URL.
+ * Upload a File to Supabase Storage and return its same-origin proxy URL (/api/img?p=...).
  *
  * @param {File} file - The file to upload
  * @param {string} [folder='uploads'] - Subfolder inside the bucket
@@ -84,9 +85,6 @@ export async function uploadFileToSupabase(file, folder = 'uploads') {
     throw new Error(`Supabase upload failed: ${error.message}`);
   }
 
-  const { data: urlData } = supabase.storage
-    .from(STORAGE_BUCKET)
-    .getPublicUrl(data.path);
-
-  return { file_url: urlData.publicUrl };
+  // The bucket is private: images are read through the /api/img proxy, not a public URL.
+  return { file_url: imageProxyUrl(data.path) };
 }
