@@ -15,6 +15,7 @@ import { redirects, resolveRedirect } from './lib/routes';
 import { isNewShell } from '@/lib/flags';
 const Heroes = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/Heroes')) : null;
 const HeroEditor = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/HeroEditor')) : null;
+const Tonight = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/tonight/Tonight')) : null;
 const Shelf = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/shelf/Shelf')) : null;
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { EmptyState } from '@/components/ds/EmptyState';
@@ -97,7 +98,7 @@ export const NewShellRoutes = () => {
   };
   return <Suspense fallback={<div role="status" aria-label={t('common.loading')} />}><PrivacyGate enabled={!!user && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
     {Object.keys(redirects).map(from => <Route caseSensitive key={from} path={from} element={<Navigate replace to={resolveRedirect(from, location.search, location.hash)} />} />)}
-    <Route path="/" element={user ? shell(MainPage) : <LandingPage />} />
+    <Route path="/" element={user ? shell(Tonight) : <LandingPage />} />
     <Route path="/welcome" element={<LandingPage />} />
     <Route path="/sign-in/*" element={<SignIn />} /><Route path="/sign-up/*" element={<SignUp />} />
     <Route path="/blog" element={<Blog />} /><Route path="/blog/:slug" element={<BlogPost />} />

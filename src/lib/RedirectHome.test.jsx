@@ -110,6 +110,7 @@ describe('legacy explicit route fixture', () => {
 vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({ t: key => key }), I18nProvider: ({children}) => children }));
 vi.mock('@/pages/SignIn', () => ({ default: () => <Where /> }));
 vi.mock('@/pages/SignUp', () => ({ default: () => <div data-testid="page">SignUp</div> }));
+vi.mock('@/screens/tonight/Tonight', () => ({ default: () => <div data-testid="page">Tonight</div> }));
 vi.mock('@/shell/AppShell', () => ({ default: ({children}) => <div data-testid="shell">{children}</div> }));
 vi.mock('@/screens/notfound/NotFound', () => ({ default: () => <div data-testid="page">NotFound</div> }));
 vi.mock('@/pages/UiGallery', () => ({ default: () => <div data-testid="page">Gallery</div> }));
@@ -132,7 +133,7 @@ describe('new shell routing behavior', () => {
   it.each(publicAddresses)('signed-in reader can open public address %s', async (path, page) => {
     legacyAuth.user = {id:'fixture'};
     render(<MemoryRouter initialEntries={[path]}><NewShellRoutes /></MemoryRouter>);
-    expect(await screen.findByTestId('page')).toHaveTextContent(path === '/Home' || path === '/Dashboard' || path === '/LandingPage' || path === '/' ? 'Home' : page);
+    expect(await screen.findByTestId('page')).toHaveTextContent(path === '/Home' || path === '/Dashboard' || path === '/LandingPage' || path === '/' ? 'Tonight' : page);
   });
   it.each([['/sign-in','where'], ['/sign-up','page']])('guest can open %s', async (path, marker) => {
     legacyAuth.user = null;
