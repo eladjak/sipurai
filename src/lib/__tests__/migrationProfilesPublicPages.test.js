@@ -37,4 +37,15 @@ describe('profiles + public_pages migration (static)', () => {
     }
     expect((s.match(/SECURITY DEFINER\s+SET search_path/g) || []).length).toBe(2);
   });
+  it('notify_my_followers accepts only new_book, caps lengths 200/500/300 and requires a /BookView?id= link', () => {
+    const body = sql().match(/FUNCTION public\.notify_my_followers[\s\S]*?\$\$;/)[0];
+    expect(body).toMatch(/p_type IS DISTINCT FROM 'new_book' THEN RAISE EXCEPTION/);
+    expect(body).toMatch(/char_length\(coalesce\(p_title, ''\)\)\s*>\s*200 THEN RAISE/);
+    expect(body).toMatch(/char_length\(coalesce\(p_message, ''\)\)\s*>\s*500 THEN RAISE/);
+    expect(body).toMatch(/char_length\(coalesce\(p_link, ''\)\)\s*>\s*300 THEN RAISE/);
+    expect(body).toMatch(/left\(coalesce\(p_link, ''\), 13\) <> '\/BookView\?id=' THEN RAISE/);
+    // the checks must run before the insert
+    expect(body.indexOf("p_type IS DISTINCT FROM 'new_book'")).toBeLessThan(body.indexOf('INSERT INTO public.notifications'));
+    expect('/BookView?id='.length).toBe(13);
+  });
 });

@@ -37,8 +37,9 @@ export function createSupabaseImageStore(db) {
       return data || null;
     },
     /**
-     * Rows that reference this exact object: [{ table, created_by, is_public }].
-     * is_public is the BOOK's flag (for a page, looked up through book_id).
+     * Rows that reference this exact object: [{ table, is_public, book_created_by }].
+     * is_public and book_created_by are the BOOK's (for a page, looked up through book_id).
+     * Characters carry no book, so they are never public.
      */
     async referencingRows(path) {
       const out = [];
@@ -46,23 +47,28 @@ export function createSupabaseImageStore(db) {
       for (const [table, cols] of Object.entries(COLS)) {
         for (const col of cols) {
           for (const pat of patterns) {
-            const sel = table === 'books' ? `created_by,is_public,${col}`
+            const sel = table === 'books' ? `id,created_by,is_public,${col}`
               : table === 'pages' ? `created_by,book_id,${col}` : `created_by,${col}`;
             const { data, error } = await db.from(table).select(sel).like(col, pat).limit(50);
             if (error) throw new Error(`${table} lookup: ${error.message}`);
             for (const r of data || []) {
               if (pathFromStoredUrl(r[col]) !== path) continue;
-              out.push({ table, created_by: r.created_by || null, book_id: r.book_id, is_public: table === 'books' ? r.is_public === true : false });
+              out.push({ table, book_id: r.book_id, is_public: table === 'books' ? r.is_public === true : false, book_created_by: table === 'books' ? (r.created_by || null) : null });
             }
           }
         }
       }
       const bookIds = [...new Set(out.filter((r) => r.table === 'pages' && r.book_id).map((r) => r.book_id))];
       if (bookIds.length) {
-        const { data, error } = await db.from('books').select('id,is_public').in('id', bookIds);
+        const { data, error } = await db.from('books').select('id,is_public,created_by').in('id', bookIds);
         if (error) throw new Error(`books lookup: ${error.message}`);
-        const pub = new Set((data || []).filter((b) => b.is_public === true).map((b) => b.id));
-        for (const r of out) if (r.table === 'pages') r.is_public = pub.has(r.book_id);
+        const byId = new Map((data || []).map((b) => [b.id, b]));
+        for (const r of out) {
+          if (r.table !== 'pages') continue;
+          const b = byId.get(r.book_id);
+          r.is_public = b?.is_public === true;
+          r.book_created_by = b?.created_by || null;
+        }
       }
       return out;
     },

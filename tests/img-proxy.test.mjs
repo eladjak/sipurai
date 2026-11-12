@@ -11,15 +11,31 @@ const mkRes = () => {
   return r;
 };
 const PUB = 'https://x.supabase.co/storage/v1/object/public/sipurai-images/';
-const verify = async (t) => (t === 'tok_A' ? { ok: true, payload: { sub: 'user_A' } }
-  : t === 'tok_B' ? { ok: true, payload: { sub: 'user_B' } } : { ok: false, reason: 'bad' });
+const graceSeen = [];
+const verify = async (t, opts = {}) => {
+  graceSeen.push([t, opts.expiryGraceSec || 0]);
+  if (t === 'tok_A') return { ok: true, payload: { sub: 'user_A' } };
+  if (t === 'tok_B') return { ok: true, payload: { sub: 'user_B' } };
+  // expired token of user_A: only valid when the caller grants a grace window
+  if (t === 'tok_A_expired') return (opts.expiryGraceSec || 0) > 0 ? { ok: true, payload: { sub: 'user_A' } } : { ok: false, reason: 'token expired' };
+  return { ok: false, reason: 'bad' };
+};
 
 /** In-memory world with the same interface as createSupabaseImageStore. */
 function world() {
-  const owners = { 'generated/a-own.png': 'user_A', 'generated/legacy.png': null, 'generated/pub.png': 'user_A' };
+  const owners = {
+    'generated/a-own.png': 'user_A', 'generated/legacy.png': null, 'generated/pub.png': 'user_A',
+    'generated/b-secret.png': 'user_B', 'generated/legacy-pub.png': null, 'generated/legacy-null.png': null,
+  };
   const rows = {
-    'generated/legacy.png': [{ table: 'pages', created_by: 'user_A', is_public: false }],
-    'generated/pub.png': [{ table: 'books', created_by: 'user_A', is_public: true }],
+    'generated/legacy.png': [{ table: 'pages', is_public: false, book_created_by: 'user_A' }],
+    'generated/pub.png': [{ table: 'books', is_public: true, book_created_by: 'user_A' }],
+    // attacker A planted B's path on A's own public book / page
+    'generated/b-secret.png': [{ table: 'books', is_public: true, book_created_by: 'user_A' }, { table: 'pages', is_public: true, book_created_by: 'user_A' }],
+    // owner-less object that a public book references
+    'generated/legacy-pub.png': [{ table: 'books', is_public: true, book_created_by: 'user_A' }],
+    // null === null must not count as a match
+    'generated/legacy-null.png': [{ table: 'books', is_public: true, book_created_by: null }],
   };
   const calls = [];
   return {
@@ -67,15 +83,41 @@ test('anonymous on a private image gets 404', async () => {
 test('anonymous on an image of a public book gets 200 with public cache', async () => {
   const { res } = await get('generated/pub.png');
   assert.equal(res.code, 200);
-  assert.equal(res.headers['Cache-Control'], 'public, max-age=86400');
+  assert.equal(res.headers['Cache-Control'], 'private, max-age=600');
 });
 
-test('legacy owner-less object is served to the user whose own row references it, not to others', async () => {
-  const a = await get('generated/legacy.png', { token: 'tok_A' });
-  assert.equal(a.res.code, 200);
-  assert.equal(a.res.headers['Cache-Control'], 'private, max-age=3600');
-  const b = await get('generated/legacy.png', { token: 'tok_B' });
-  assert.equal(b.res.code, 404);
+test('owner-less (legacy) object is never served: not to a row creator, not to anonymous, not via a public book', async () => {
+  for (const p of ['generated/legacy.png', 'generated/legacy-pub.png', 'generated/legacy-null.png']) {
+    for (const o of [{ token: 'tok_A' }, { token: 'tok_B' }, {}]) {
+      const { res, store } = await get(p, o);
+      assert.equal(res.code, 404, p);
+      assert.ok(!store.calls.some((c) => c[0] === 'download'));
+    }
+  }
+});
+
+test('planted reference: another owner\'s path on the attacker\'s own public book returns 404 (anonymous, attacker, victim-less)', async () => {
+  for (const o of [{}, { token: 'tok_A' }]) {
+    const { res, store } = await get('generated/b-secret.png', o);
+    assert.equal(res.code, 404);
+    assert.equal(res.body, null);
+    assert.ok(!store.calls.some((c) => c[0] === 'download'));
+  }
+  // the real owner still gets it
+  assert.equal((await get('generated/b-secret.png', { token: 'tok_B' })).res.code, 200);
+});
+
+test('Bearer token past exp is anonymous (no grace); cookie gets a 1 hour grace only', async () => {
+  graceSeen.length = 0;
+  const bearer = await get('generated/a-own.png', { token: 'tok_A_expired' });
+  assert.equal(bearer.res.code, 404);
+  assert.deepEqual(graceSeen[0], ['tok_A_expired', 0]);
+  const pub = await get('generated/pub.png', { token: 'tok_A_expired' });
+  assert.equal(pub.res.headers['Cache-Control'], 'private, max-age=600'); // served as public book, not as owner
+  graceSeen.length = 0;
+  const cookie = await get('generated/a-own.png', { cookie: '__session=tok_A_expired' });
+  assert.equal(cookie.res.code, 200);
+  assert.deepEqual(graceSeen[0], ['tok_A_expired', 3600]);
 });
 
 test('path traversal and odd paths are rejected before any lookup', async () => {
@@ -95,7 +137,7 @@ test('bad token is treated as anonymous: private 404, public image still 200', a
 
 test('missing object behind a valid grant is 404, database failure is 503, wrong method 405', async () => {
   const s = world();
-  s.referencingRows = async () => [{ table: 'pages', created_by: 'user_A', is_public: false }];
+  s.referencingRows = async () => [{ table: 'pages', is_public: false, book_created_by: 'user_A' }];
   assert.equal((await get('generated/none.png', { token: 'tok_A', store: s })).res.code, 404);
   const broken = world();
   broken.objectOwner = async () => { throw new Error('db down'); };

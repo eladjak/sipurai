@@ -2,7 +2,7 @@
 // POST /api/subscription/cancel  -> cancels it at Creem. Who is decided only by the verified Clerk token.
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
 import { serviceClient } from '../_lib/consent.js';
-import { SUB_MESSAGES, cancelSubscription, createSupabaseSubscriptionStore, subscriptionStatus } from '../_lib/subscriptionCancel.js';
+import { SUB_MESSAGES, cancelSubscription, createSupabaseSubscriptionStore, subscriptionStatus, verifiedEmail } from '../_lib/subscriptionCancel.js';
 
 const ORIGINS = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
 
@@ -22,6 +22,8 @@ export default async function handler(req, res, overrides = {}) {
   const userId = auth?.ok ? auth.payload?.sub : null;
   if (!userId) return res.status(401).json({ error: { code: 'unauthorized', message_he: 'נדרשת התחברות' } });
 
+  const email = verifiedEmail(auth.payload); // from the verified token, never from the database or the body
+
   let store = overrides.store;
   if (!store) {
     try {
@@ -32,7 +34,7 @@ export default async function handler(req, res, overrides = {}) {
     }
   }
   const r = req.method === 'GET'
-    ? await subscriptionStatus({ userId, store })
-    : await cancelSubscription({ userId, store, env, fetchImpl: overrides.fetchImpl });
+    ? await subscriptionStatus({ userId, email, store })
+    : await cancelSubscription({ userId, email, store, env, fetchImpl: overrides.fetchImpl });
   return res.status(r.http).json(r.body);
 }

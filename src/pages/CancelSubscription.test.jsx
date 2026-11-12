@@ -50,6 +50,38 @@ describe('cancel subscription page', () => {
     expect(screen.getByRole('link', { name: /cancelSubscription.mailButton/, hidden: true })).toBeTruthy(); // hidden only because the dialog is open
   });
 
+  it('account whose token has no verified email: shows the email route prominently, no cancel button', async () => {
+    auth.user = { id: 'user_A' };
+    fetchSubscription.mockResolvedValue({ active: false, online: false });
+    show();
+    expect(await screen.findByText('cancelSubscription.emailOnlyTitle')).toBeTruthy();
+    expect(screen.queryByText('cancelSubscription.noSub')).toBeNull(); // not "no subscription": we cannot tell
+    expect(screen.queryByRole('button', { name: /cancelSubscription.button/ })).toBeNull();
+    expect(screen.getByRole('link', { name: /cancelSubscription.mailButton/ })).toBeTruthy();
+  });
+
+  it('server says cannot_cancel_online at cancel time: dialog closes and the email route is shown', async () => {
+    auth.user = { id: 'user_A' };
+    fetchSubscription.mockResolvedValue({ active: true, plan: 'premium' });
+    cancelMySubscription.mockRejectedValue(Object.assign(new Error('x'), { code: 'cannot_cancel_online' }));
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: /cancelSubscription.button/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'cancelSubscription.confirmYes' }));
+    expect(await screen.findByText('cancelSubscription.emailOnlyTitle')).toBeTruthy();
+    expect(screen.queryByText('cancelSubscription.doneTitle')).toBeNull();
+  });
+
+  it('uncertain provider outcome says so (not "nothing was cancelled") and shows no success', async () => {
+    auth.user = { id: 'user_A' };
+    fetchSubscription.mockResolvedValue({ active: true, plan: 'premium' });
+    cancelMySubscription.mockRejectedValue(Object.assign(new Error('x'), { code: 'provider_uncertain' }));
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: /cancelSubscription.button/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'cancelSubscription.confirmYes' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('cancelSubscription.errorUncertain');
+    expect(screen.queryByText('cancelSubscription.doneTitle')).toBeNull();
+  });
+
   it('signed in without a subscription says so; a failed check offers retry', async () => {
     auth.user = { id: 'user_A' };
     fetchSubscription.mockResolvedValueOnce({ active: false });

@@ -13,7 +13,7 @@ const btn = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl p
 
 /**
  * /cancel-subscription: public page (required link on the home page, Israeli Consumer Protection Law s.14T).
- * States: signed out · checking · active subscription · none found · check failed · confirming · cancelling · done · cancel failed.
+ * States: signed out · checking · active subscription · none found · email-only (this account cannot cancel online) · check failed · confirming · cancelling · done · cancel failed · result uncertain.
  * The email route is always visible, so nobody is stuck when the online route is unavailable.
  * `initial` lets the screen be tested and photographed without a server.
  */
@@ -31,7 +31,7 @@ export default function CancelSubscription({ initial = {} }) {
     try {
       const s = await fetchSubscription();
       setPlan(s?.plan || '');
-      setStatus(s?.active ? 'active' : 'none');
+      setStatus(s?.online === false ? 'emailOnly' : s?.active ? 'active' : 'none');
     } catch {
       setStatus('statusError');
     }
@@ -52,7 +52,14 @@ export default function CancelSubscription({ initial = {} }) {
       setConfirmOpen(false);
       setStatus('done');
     } catch (err) {
-      setError(err?.code === 'network' ? t('cancelSubscription.errorOffline') : t('cancelSubscription.errorGeneric'));
+      if (err?.code === 'cannot_cancel_online') {
+        setConfirmOpen(false);
+        setStatus('emailOnly');
+      } else if (err?.code === 'provider_uncertain') {
+        setError(t('cancelSubscription.errorUncertain'));
+      } else {
+        setError(err?.code === 'network' ? t('cancelSubscription.errorOffline') : t('cancelSubscription.errorGeneric'));
+      }
     } finally {
       setBusy(false);
     }
@@ -111,6 +118,14 @@ export default function CancelSubscription({ initial = {} }) {
             <p role="status" className="mt-3 rounded-xl bg-gray-50 p-3 text-[15px] text-gray-800">{t('cancelSubscription.noSub')}</p>
           )}
 
+          {status === 'emailOnly' && (
+            <div role="status" className="mt-3 space-y-2 rounded-xl border-2 border-purple-300 bg-purple-50 p-4 text-purple-950">
+              <p className="flex items-start gap-2 font-bold"><Mail className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />{t('cancelSubscription.emailOnlyTitle')}</p>
+              <p className="text-[15px] leading-relaxed">{t('cancelSubscription.emailOnlyBody')}</p>
+              <a href="#cs-mail" className="inline-flex min-h-11 items-center text-[15px] font-bold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">{t('cancelSubscription.emailOnlyJump')}</a>
+            </div>
+          )}
+
           {status === 'statusError' && (
             <div role="alert" className="mt-3 space-y-3">
               <p className="flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{t('cancelSubscription.statusError')}</p>
@@ -126,7 +141,7 @@ export default function CancelSubscription({ initial = {} }) {
           )}
         </section>
 
-        <section aria-labelledby="cs-mail" className={card}>
+        <section aria-labelledby="cs-mail" className={`${card} ${status === 'emailOnly' ? 'border-2 border-purple-400 ring-4 ring-purple-100' : ''}`}>
           <h2 id="cs-mail" className="flex items-center gap-2 text-lg font-bold"><Mail className="h-5 w-5 text-purple-700" aria-hidden="true" />{t('cancelSubscription.mailTitle')}</h2>
           <p className="mt-3 text-[15px] text-gray-800">{t('cancelSubscription.mailLead')}</p>
           <ul className="mt-2 list-disc space-y-1 ps-5 text-[15px] text-gray-800">

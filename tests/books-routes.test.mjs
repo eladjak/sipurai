@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import unshareHandler from '../api/books/unshare.js';
 import deleteHandler from '../api/books/delete.js';
-import { deleteBook, unshareBook, storagePathFromUrl } from '../api/_lib/bookControls.js';
+import { deleteBook, unshareBook, storagePathFromUrl, DeleteRefused } from '../api/_lib/bookControls.js';
 
 const mkRes = () => {
   const r = { code: 200, body: null, headers: {} };
@@ -43,12 +43,13 @@ function world({ orders = [] } = {}) {
       { name: 'generated/shared.png', owner: 'user_A' },
     ],
     orders: [...orders],
+    characters: [{ created_by: 'user_A', primary_image_url: PROXY('generated/a-p1.png') }], // A's character reuses a page image
+    profiles: [{ clerk_id: 'user_A', avatar_url: PUB('generated/a-cover.png') }], // and A's avatar reuses the cover
   };
   const removed = [];
   const store = {
+    rpcCalls: [], failAt: null,
     async findBook(id) { return db.books.find((b) => b.id === id) || null; },
-    async openOrders(id, uid) { return db.orders.filter((o) => o.book_id === id && o.user_id === uid && ['paid', 'in_production'].includes(o.status)).length; },
-    async pageImages(id) { return db.pages.filter((p) => p.book_id === id).map((p) => p.image_url); },
     async setPrivate(id) { db.books.find((b) => b.id === id).is_public = false; },
     async removePosts(id) {
       const ids = db.community.filter((c) => c.book_id === id).map((c) => c.id);
@@ -56,12 +57,31 @@ function world({ orders = [] } = {}) {
       db.community = db.community.filter((c) => !ids.includes(c.id));
       return ids.length;
     },
-    async removeBookRows(id) { db.pages = db.pages.filter((p) => p.book_id !== id); db.books = db.books.filter((b) => b.id !== id); },
-    async stillReferenced(path) {
-      const base = path.split('/').pop();
-      return db.books.some((b) => b.cover_image?.includes(base) || b.cover_image?.includes(encodeURIComponent(path))) || db.pages.some((p) => p.image_url?.includes(base));
+    // Emulates public.sipurai_delete_book: lock+ownership, open-order refusal, all deletes in one go
+    // (rolled back as a whole when failAt is hit), and the owned-and-unreferenced path list.
+    async deleteBookAtomic(id, uid) {
+      store.rpcCalls.push([id, uid]);
+      const book = db.books.find((b) => b.id === id);
+      if (!book || book.created_by !== uid) throw new DeleteRefused('not_found');
+      if (db.orders.some((o) => o.book_id === id && o.user_id === uid && ['paid', 'submitting', 'submitted', 'in_production', 'failed_needs_attention'].includes(o.status))) throw new DeleteRefused('open_order');
+      const snapshot = JSON.parse(JSON.stringify({ pages: db.pages, books: db.books, community: db.community, comments: db.comments }));
+      try {
+        const paths = [...new Set([book.cover_image, ...db.pages.filter((p) => p.book_id === id).map((p) => p.image_url)].map(storagePathFromUrl).filter(Boolean))];
+        const cids = db.community.filter((c) => c.book_id === id).map((c) => c.id);
+        db.comments = db.comments.filter((m) => !cids.includes(m.community_id));
+        db.community = db.community.filter((c) => c.book_id !== id);
+        if (store.failAt === 'pages') throw new Error('pages delete failed');
+        db.pages = db.pages.filter((p) => p.book_id !== id);
+        if (store.failAt === 'book') throw new Error('foreign key violation');
+        db.books = db.books.filter((b) => b.id !== id);
+        const used = (path) => db.books.some((b) => storagePathFromUrl(b.cover_image) === path) || db.pages.some((p) => storagePathFromUrl(p.image_url) === path)
+          || db.characters.some((c) => storagePathFromUrl(c.primary_image_url) === path) || db.profiles.some((p) => storagePathFromUrl(p.avatar_url) === path);
+        return paths.filter((p) => db.objects.some((o) => o.name === p && o.owner === uid) && !used(p));
+      } catch (e) {
+        Object.assign(db, snapshot); // transaction rollback
+        throw e;
+      }
     },
-    async ownedFiles(uid) { return new Set(db.objects.filter((o) => o.owner === uid).map((o) => o.name)); },
     async removeFiles(paths) { for (const p of paths) { removed.push(p); db.objects = db.objects.filter((o) => o.name !== p); } },
   };
   return { db, store, removed };
@@ -116,11 +136,13 @@ test('methods: GET is refused, OPTIONS answers', async () => {
   assert.equal((await call(deleteHandler, { auth: asUser('user_A'), body: {}, store: w.store, method: 'OPTIONS' })).code, 204);
 });
 
-test('delete: owner allowed - rows gone, own unshared files removed, a planted link to B\'s file and a file still used elsewhere are kept', async () => {
+test('delete: owner allowed - rows gone, own unreferenced files removed, planted link, shared file, character and avatar images are kept', async () => {
   const w = world();
+  w.db.characters.length = 0; w.db.profiles.length = 0; // first without character/avatar references
   const r = await call(deleteHandler, { auth: asUser('user_A'), body: { bookId: 'b1' }, store: w.store });
   assert.equal(r.code, 200, JSON.stringify(r.body));
   assert.deepEqual(w.removed.sort(), ['generated/a-cover.png', 'generated/a-p1.png']);
+  assert.equal(r.body.filesDeleted, 2);
   assert.ok(w.db.objects.some((o) => o.name === 'generated/b-cover.png'), 'B\'s file must survive a planted link');
   assert.ok(w.db.objects.some((o) => o.name === 'generated/shared.png'), 'file still used by A\'s other book must survive');
   assert.ok(w.db.objects.some((o) => o.name === 'generated/legacy-nobody.png'), 'ownerless file is not provably A\'s');
@@ -129,6 +151,15 @@ test('delete: owner allowed - rows gone, own unshared files removed, a planted l
   assert.deepEqual(w.db.community.map((c) => c.id), ['c2']);
   assert.deepEqual(w.db.comments.map((c) => c.id), ['m2']);
   assert.ok(w.db.books.some((b) => b.id === 'b2') && w.db.books.some((b) => b.id === 'b3'), 'other books untouched');
+});
+
+test('delete: files still used by a character or the avatar are kept', async () => {
+  const w = world(); // characters/profiles reference a-p1 and a-cover
+  const r = await call(deleteHandler, { auth: asUser('user_A'), body: { bookId: 'b1' }, store: w.store });
+  assert.equal(r.code, 200);
+  assert.deepEqual(w.removed, []);
+  assert.ok(w.db.objects.some((o) => o.name === 'generated/a-p1.png') && w.db.objects.some((o) => o.name === 'generated/a-cover.png'));
+  assert.ok(!w.db.books.some((b) => b.id === 'b1'));
 });
 
 test('delete: another user is refused; nothing deleted anywhere', async () => {
@@ -155,23 +186,51 @@ test('delete: an open print order blocks it and nothing changes', async () => {
   assert.equal(w.removed.length, 0);
 });
 
-test('delete: a database failure before the rows are gone leaves the book (error in Hebrew, retry safe)', async () => {
-  const w = world();
-  w.store.removeBookRows = async () => { throw new Error('boom'); };
-  const r = await deleteBook({ userId: 'user_A', bookId: 'b1', store: w.store });
-  assert.equal(r.http, 500);
-  assert.match(r.body.error.message_he, /אפשר ללחוץ שוב/);
-  assert.ok(w.db.books.some((b) => b.id === 'b1'));
-  assert.equal(w.removed.length, 0);
+test('delete: a database failure at ANY step rolls everything back (book, pages, posts, comments all still there), error in Hebrew', async () => {
+  for (const failAt of ['pages', 'book']) {
+    const w = world();
+    w.store.failAt = failAt;
+    const before = JSON.stringify([w.db.books, w.db.pages, w.db.community, w.db.comments]);
+    const r = await deleteBook({ userId: 'user_A', bookId: 'b1', store: w.store });
+    assert.equal(r.http, 500, failAt);
+    assert.match(r.body.error.message_he, /אפשר ללחוץ שוב/);
+    assert.equal(JSON.stringify([w.db.books, w.db.pages, w.db.community, w.db.comments]), before, `nothing partially deleted at ${failAt}`);
+    assert.equal(w.removed.length, 0);
+  }
 });
 
-test('delete: a storage failure after the rows are gone reports success with a warning (the book is gone)', async () => {
+test('delete: the database part is a single call and the files are removed only after it succeeded', async () => {
   const w = world();
+  w.db.characters.length = 0; w.db.profiles.length = 0;
+  const order = [];
+  const rpc = w.store.deleteBookAtomic; const rm = w.store.removeFiles;
+  w.store.deleteBookAtomic = async (...a) => { order.push('rpc'); return rpc(...a); };
+  w.store.removeFiles = async (p) => { order.push('files'); return rm(p); };
+  await deleteBook({ userId: 'user_A', bookId: 'b1', store: w.store });
+  assert.deepEqual(order, ['rpc', 'files']);
+  assert.equal(w.store.rpcCalls.length, 1);
+  assert.deepEqual(w.store.rpcCalls[0], ['b1', 'user_A']);
+});
+
+test('delete: the database refusal for another owner / missing book is a 404 even if the pre-check passed', async () => {
+  const w = world();
+  w.store.deleteBookAtomic = async () => { throw new DeleteRefused('not_found'); };
+  assert.equal((await deleteBook({ userId: 'user_A', bookId: 'b1', store: w.store })).http, 404);
+});
+
+test('delete: a storage failure after the rows are gone reports success with a warning, and logs the paths', async () => {
+  const w = world();
+  w.db.characters.length = 0; w.db.profiles.length = 0;
   w.store.removeFiles = async () => { throw new Error('storage down'); };
-  const r = await deleteBook({ userId: 'user_A', bookId: 'b1', store: w.store });
+  const logged = [];
+  const orig = console.error; console.error = (...a) => logged.push(a.join(' '));
+  let r;
+  try { r = await deleteBook({ userId: 'user_A', bookId: 'b1', store: w.store }); } finally { console.error = orig; }
   assert.equal(r.http, 200);
   assert.equal(r.body.warning, 'files_left');
+  assert.equal(r.body.filesLeft, 2);
   assert.ok(!w.db.books.some((b) => b.id === 'b1'));
+  assert.ok(logged.some((l) => l.includes('generated/a-cover.png') && l.includes('generated/a-p1.png')), 'paths logged for manual cleanup');
 });
 
 test('unshare: failure is reported, not swallowed', async () => {

@@ -33,10 +33,12 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
     setBusy(true);
     setError('');
     try {
-      await run(book.id);
+      const result = await run(book.id);
       setOpen(false);
       setBusy(false);
-      toast({ description: t(kind === 'delete' ? 'bookControls.delDone' : 'bookControls.stopShareDone') });
+      // The book is gone, but the server could not remove some drawing files yet: say so plainly.
+      const filesLeft = kind === 'delete' && result?.warning === 'files_left';
+      toast({ description: t(filesLeft ? 'bookControls.delFilesLeft' : kind === 'delete' ? 'bookControls.delDone' : 'bookControls.stopShareDone') });
       onChanged?.(kind);
     } catch (err) {
       const key = ERROR_BY_CODE[err?.code];

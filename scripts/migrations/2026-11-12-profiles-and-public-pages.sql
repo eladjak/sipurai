@@ -67,6 +67,13 @@ DECLARE
 BEGIN
   IF v_caller IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
 
+  -- Bounded input: the only event the app announces is a new book, with a link to a book page.
+  IF p_type IS DISTINCT FROM 'new_book' THEN RAISE EXCEPTION 'notify_my_followers: type not allowed'; END IF;
+  IF char_length(coalesce(p_title, ''))   > 200 THEN RAISE EXCEPTION 'notify_my_followers: title too long'; END IF;
+  IF char_length(coalesce(p_message, '')) > 500 THEN RAISE EXCEPTION 'notify_my_followers: message too long'; END IF;
+  IF char_length(coalesce(p_link, ''))    > 300 THEN RAISE EXCEPTION 'notify_my_followers: link too long'; END IF;
+  IF left(coalesce(p_link, ''), 13) <> '/BookView?id=' THEN RAISE EXCEPTION 'notify_my_followers: link not allowed'; END IF;
+
   INSERT INTO public.notifications
     (created_by, actor_id, recipient_id, type, title, message, link, read, created_date)
   SELECT v_caller, v_caller, f.follower_id, p_type, coalesce(p_title,''),

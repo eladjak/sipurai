@@ -38,6 +38,16 @@ describe('BookControls', () => {
     expect(toast).toHaveBeenCalled();
   });
 
+  it('delete: when some drawing files are left, the parent is told the book is deleted and files will follow', async () => {
+    deleteBook.mockResolvedValue({ ok: true, warning: 'files_left', filesLeft: 2 });
+    const onChanged = vi.fn();
+    render(<BookControls book={book} onChanged={onChanged} />);
+    fireEvent.click(screen.getByRole('button', { name: /bookControls.del$/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'bookControls.delConfirm' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith('delete'));
+    expect(toast).toHaveBeenCalledWith({ description: 'bookControls.delFilesLeft' });
+  });
+
   it('delete: cancelling leaves everything alone', () => {
     render(<BookControls book={book} onChanged={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /bookControls.del$/ }));
