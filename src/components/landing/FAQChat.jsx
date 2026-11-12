@@ -169,6 +169,15 @@ const FAQChat = () => {
               <Send className="size-4" />
             </button>
           </form>
+          {/* Privacy Protection Law s.11: say who answers and where the text goes, before anything is typed. */}
+          <p className="px-5 pb-3 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+            {isRTL
+              ? 'עונה כאן מערכת אוטומטית. מה שתכתבו נשלח ל-Google כדי לנסח תשובה. אל תכתבו פרטים על ילדים או פרטים אישיים. '
+              : 'An automated system answers here. What you type is sent to Google to write a reply. Do not type details about children or personal details. '}
+            <a href="/privacy" className="underline underline-offset-2 text-purple-700 dark:text-purple-300">
+              {isRTL ? 'מדיניות הפרטיות' : 'Privacy policy'}
+            </a>
+          </p>
         </motion.div>
       </div>
     </section>

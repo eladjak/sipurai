@@ -288,6 +288,8 @@ export default function CommunityPage() {
   };
 
   const handleShareBook = async (bookData) => {
+    // Informed consent at the moment of publishing (Privacy Protection Law s.1-3).
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(t('sharing.publicAck'))) return;
     let controls = {};
     try {
       controls = JSON.parse(localStorage.getItem("parentalControls") || "{}");

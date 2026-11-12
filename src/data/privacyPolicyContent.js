@@ -91,7 +91,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 **במכשיר שלכם:** טיוטה של ספר שהתחלתם נשמרת בדפדפן במכשיר הזה עד שתסיימו או תמחקו אותה. היא נשארת גם אחרי התנתקות, ולכן במחשב משותף מי שמשתמש באותו דפדפן עלול לראות אותה.
 
 **מה נשמר אוטומטית:**
-• ספירת ביקורים בדפים. אחרי שהתחברתם, הספירה מסומנת במספר החשבון הפנימי שלכם, בלי שם ובלי מייל.
+• ספירת ביקורים בדפים, כדי להבין ולשפר את השירות. אחרי שהתחברתם, הספירה מקושרת למספר החשבון הפנימי שלכם. היא לא כוללת שם או מייל, אבל אנחנו יכולים לקשר את המספר הזה לחשבון.
 • דיווחי תקלות טכניות, בלי שם, בלי מייל ובלי פרטי הילדים. יומני השרת עלולים לכלול קטע קצר מבקשת יצירה שנכשלה, ולכן אל תכתבו בבקשות פרטים כמו כתובת או טלפון.`,
       },
       {
@@ -140,7 +140,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 
 **צ'אט השאלות באתר** (פתוח גם למי שלא נרשם): ההודעות שכותבים בו נשלחות ל-Google כדי שיענו. אל תכתבו בו פרטים על הילדים.
 
-אנחנו לא מאמנים מודל בינה מלאכותית על הספרים שלכם. מה הספקים עושים בבקשות שהם מקבלים, וכמה זמן הם שומרים אותן, נקבע בתנאים שלהם, ואנחנו לא שולטים בזה.`,
+אנחנו לא מאמנים מודל בינה מלאכותית על הספרים שלכם. מה הספקים עושים בבקשות שהם מקבלים, וכמה זמן הם שומרים אותן, נקבע בתנאים שלהם, ואנחנו לא יכולים לשנות אותם. אנחנו שולחים לספקים רק את מה שדרוש כדי ליצור את התוכן.`,
       },
       {
         heading: '5. ילדים',
@@ -151,7 +151,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 • אנחנו לא פונים לילדים בהודעות ובפרסומות.
 • **ספר ששיתפתם בקהילה גלוי לכל מי שנכנס לשם:** הכותרת, הטקסט, האיורים, והשמות שמופיעים בסיפור. מי שרואה אותו יכול גם לשמור עותק. לפני שמשתפים, בדקו שאתם מסכימים לכך. אפשר להפסיק את השיתוף בכל זמן בכפתור "הפסקת השיתוף" שליד הספר. אחרי שמפסיקים, הספר יורד מהקהילה מיד, אבל איור שמישהו כבר פתח עשוי להישאר שמור בדפדפן שלו עד יום אחד, ועותק שמישהו שמר נשאר אצלו.
 • ספרים שלא שיתפתם נראים באפליקציה רק לכם, ולמי שהזמנתם לערוך איתכם. על הציורים עצמם ראו סעיף 6.
-• אם אתם חושבים שילד פתח חשבון, או שמידע על ילד נשמר בלי הסכמת הורה, כתבו לנו ל-${CONTACT_EMAIL} ונמחק.`,
+• אם אתם חושבים שילד פתח חשבון, או שמידע על ילד נשמר בלי הסכמת הורה, כתבו לנו ל-${CONTACT_EMAIL} ונמחק את המידע מהמערכות שלנו.`,
       },
       {
         heading: '6. תמונות וציורים',
@@ -178,7 +178,7 @@ const buildPolicyContent = (deleteEnabled) => ({
         heading: '8. איך מוחקים הכל',
         id: 'delete',
         body: !deleteEnabled
-          ? `כרגע מחיקה אוטומטית של החשבון עדיין לא פתוחה. כדי למחוק, כתבו ל-${CONTACT_EMAIL} ואנחנו נמחק את החשבון, את המידע על הילדים, הדמויות, הספרים, הציורים וההגדרות. נענה תוך 30 יום.
+          ? `כרגע מחיקה אוטומטית של החשבון עדיין לא פתוחה. כדי למחוק, כתבו ל-${CONTACT_EMAIL} ואנחנו נמחק מהמערכות הפעילות שלנו את החשבון, את המידע על הילדים, הדמויות, הספרים, הציורים וההגדרות, חוץ ממה שמפורט למטה. נאשר לכם את המחיקה תוך 30 יום.
 
 **מה נשאר:** אם הזמנתם ספר מודפס, הרשומה הכספית של ההזמנה נשמרת כי החוק מחייב אותנו לשמור אותה, בלי כתובת המשלוח.
 
@@ -205,7 +205,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 
 אפשר לחזור בכם מההסכמה בכל זמן. אחרי זה לא ניצור בשבילכם ספרים, ואפשר למחוק את החשבון כמו בסעיף 8.
 
-את הבקשות שלחו ל-${CONTACT_EMAIL}. נענה תוך 30 יום.
+את הבקשות שלחו ל-${CONTACT_EMAIL}. בקשה לעיון נאפשר תוך 30 יום, ואם נצטרך לסרב, נודיע לכם תוך 21 יום ונסביר למה (תקנות הגנת הפרטיות, תנאים לעיון במידע). אם נתקן או נמחק מידע שלא היה נכון, נודיע על כך גם למי שקיבל אותו מאיתנו.
 
 אם אתם חושבים שלא טיפלנו נכון במידע, אפשר גם לפנות לרשות להגנת הפרטיות במשרד המשפטים.`,
       },
@@ -282,7 +282,7 @@ The service is currently meant for parents in Israel. The Hebrew version of this
 **On your device:** a draft of a book you started is saved in the browser on that device until you finish or delete it. It stays after you sign out, so on a shared computer someone using the same browser may see it.
 
 **What is kept automatically:**
-• Page visit counts. After you sign in, the count is tagged with your internal account number, without name or email.
+• Page visit counts, to understand and improve the service. After you sign in, the count is linked to your internal account number. It holds no name or email, but we can link that number to your account.
 • Technical error reports, without name, email or your children's details. Server logs may include a short piece of a creation request that failed, so please do not type details such as an address or phone number into requests.`,
       },
       {
@@ -331,7 +331,7 @@ We do not sell or rent information, we do not share it for advertising, we do no
 
 **The FAQ chat on the site** (open to people who have not signed up): the messages typed into it are sent to Google so that it can answer. Please do not write details about your children in it.
 
-We do not train an artificial intelligence model on your books. What the providers do with the requests they receive, and how long they keep them, is set by their own terms, and we do not control that.`,
+We do not train an artificial intelligence model on your books. What the providers do with the requests they receive, and how long they keep them, is set by their own terms, and we cannot change them. We send providers only what is needed to create the content.`,
       },
       {
         heading: '5. Children',
@@ -342,7 +342,7 @@ We do not train an artificial intelligence model on your books. What the provide
 • We do not send messages or ads to children.
 • **A book you share to the community is visible to everyone who visits it:** the title, the text, the illustrations, and the names in the story. Anyone who sees it can also save a copy. Before sharing, make sure you are comfortable with that. You can stop sharing at any time with the "Stop sharing" button next to the book. The book leaves the community at once, but an illustration someone already opened may stay cached in their browser for up to one day, and a copy someone saved stays with them.
 • Books you did not share are visible in the app only to you, and to anyone you invited to edit them with you. For the drawings themselves, see section 6.
-• If you think a child opened an account, or information about a child is kept without a parent's consent, write to ${CONTACT_EMAIL} and we will delete it.`,
+• If you think a child opened an account, or information about a child is kept without a parent's consent, write to ${CONTACT_EMAIL} and we will delete it from our systems.`,
       },
       {
         heading: '6. Photos and drawings',
@@ -369,7 +369,7 @@ Error reports, visit counts and server logs are kept by the providers under thei
         heading: '8. How to delete everything',
         id: 'delete',
         body: !deleteEnabled
-          ? `Automatic account deletion is not open yet. To delete, write to ${CONTACT_EMAIL} and we will delete the account, your children's details, characters, books, drawings and settings. We will answer within 30 days.
+          ? `Automatic account deletion is not open yet. To delete, write to ${CONTACT_EMAIL} and we will delete from our active systems the account, your children's details, characters, books, drawings and settings, except what is listed below. We will confirm the deletion within 30 days.
 
 **What stays:** if you ordered a printed book, the financial record of the order is kept because the law requires us to keep it, without the delivery address.
 
@@ -396,7 +396,7 @@ You can also write to ${CONTACT_EMAIL} and we will delete it for you.`,
 
 You can withdraw your consent at any time. After that we will not create books for you, and you can delete the account as in section 8.
 
-Send requests to ${CONTACT_EMAIL}. We will answer within 30 days.
+Send requests to ${CONTACT_EMAIL}. We will give access within 30 days; if we must refuse, we will tell you within 21 days and explain why. If we correct or delete information that was wrong, we will also tell whoever received it from us.
 
 If you think we did not handle your information properly, you can also contact the Privacy Protection Authority at the Israeli Ministry of Justice.`,
       },
@@ -461,7 +461,7 @@ const buildGateCopy = (deleteEnabled) => ({
     fullPolicy: 'לקריאת המדיניות המלאה',
     terms: 'תנאי השימוש',
     guardian: 'אני ההורה או האפוטרופוס, בן או בת 18 ומעלה',
-    privacyItem: 'קראתי את מדיניות הפרטיות, ואני מסכים או מסכימה שסיפוראי תשמור את מה שאכניס על הילדים שלי ותעביר אותו לספקים שבמדיניות, גם מחוץ לישראל, כדי ליצור את הספרים',
+    privacyItem: 'קראתי את מדיניות הפרטיות, ואני מסכים או מסכימה שסיפוראי תשמור את פרטי החשבון שלי ואת מה שאכניס על הילדים שלי, ותעביר אותם לספקים שבמדיניות, גם מחוץ לישראל (בעיקר לארצות הברית ולאיחוד האירופי, שבהן ההגנה על מידע עשויה להיות שונה מבישראל), כדי ליצור את הספרים ולתפעל את השירות',
     termsItem: 'קראתי ואני מסכים או מסכימה לתנאי השימוש',
     accept: 'אישור והמשך',
     saving: 'שומרים את האישור…',
@@ -501,7 +501,7 @@ const buildGateCopy = (deleteEnabled) => ({
     fullPolicy: 'Read the full policy',
     terms: 'Terms of Service',
     guardian: 'I am the parent or guardian, aged 18 or over',
-    privacyItem: 'I have read the privacy policy, and I agree that Sipurai keeps what I enter about my children and passes it to the providers listed in the policy, also outside Israel, to create the books',
+    privacyItem: 'I have read the privacy policy, and I agree that Sipurai keeps my account details and what I enter about my children, and passes them to the providers listed in the policy, also outside Israel (mainly the United States and the European Union, where data protection may differ from Israel), to create the books and run the service',
     termsItem: 'I have read and agree to the terms of service',
     accept: 'Accept and continue',
     saving: 'Saving your approval…',

@@ -46,6 +46,7 @@ export default function ShareOptions({ book, bookId }) {
   });
   // Tracks sharing done or undone on this screen, on top of what the book row said when it loaded.
   const [sharedHere, setSharedHere] = useState(null);
+  const [publicAck, setPublicAck] = useState(false);
   const isShared = sharedHere ?? !!book?.is_public;
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
@@ -255,9 +256,21 @@ export default function ShareOptions({ book, bookId }) {
           </div>
         </CardContent>
         <CardFooter className="flex-col items-stretch">
+          {/* Privacy Protection Law s.1-3: informed consent at the moment of publishing a child's book. */}
+          {!isShared && (
+            <label className="mb-3 flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              <input
+                type="checkbox"
+                className="mt-1 size-5 shrink-0 accent-purple-700"
+                checked={publicAck}
+                onChange={(e) => setPublicAck(e.target.checked)}
+              />
+              <span>{t("sharing.publicAck")}</span>
+            </label>
+          )}
           <Button 
             onClick={handleCommunityShare}
-            disabled={isLoading || !communityPost.title || !communityPost.description}
+            disabled={isLoading || !communityPost.title || !communityPost.description || (!isShared && !publicAck)}
             className="w-full"
           >
             {isLoading ? (
