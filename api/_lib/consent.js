@@ -9,13 +9,18 @@
  *
  * The store is injectable so tests run the same policy against an in-memory fake.
  */
-import { CURRENT_POLICY_VERSION, CONSENT_ITEMS } from './policyVersion.js';
+import {
+  CURRENT_POLICY_VERSION,
+  CONSENT_ITEMS,
+  PREVIOUS_POLICY_VERSION,
+  PREVIOUS_VERSION_ACCEPTED_UNTIL,
+} from './policyVersion.js';
 
 export const CONSENT_MESSAGES = {
   required:
-    'כדי להמשיך צריך קודם לאשר את מדיניות הפרטיות. פתחו את האפליקציה ואשרו במסך ההסכמה, ואז נסו שוב.',
+    'מדיניות הפרטיות התעדכנה. רעננו את הדף כדי לאשר את הגרסה החדשה, ואז נמשיך מאותה נקודה.',
   unavailable: 'לא הצלחנו לבדוק את אישור הפרטיות כרגע. נסו שוב בעוד רגע.',
-  badBody: 'כדי להמשיך צריך לסמן את שתי התיבות.',
+  badBody: 'כדי להמשיך צריך לסמן את שלוש התיבות.',
   staleVersion: 'המדיניות התעדכנה בינתיים. רעננו את הדף ואשרו את הגרסה החדשה.',
   deleting: 'החשבון הזה נמצא בתהליך מחיקה, ולכן אי אפשר לאשר או להמשיך.',
 };
@@ -34,6 +39,12 @@ export function createMemoryConsentStore() {
     },
     async has({ userId, policyVersion }) {
       return rows.some((r) => r.user_id === userId && r.policy_version === policyVersion);
+    },
+    async hasAny({ userId, policyVersions }) {
+      return rows.some((r) => r.user_id === userId && policyVersions.includes(r.policy_version));
+    },
+    async hasOlder({ userId, currentVersion }) {
+      return rows.some((r) => r.user_id === userId && r.policy_version !== currentVersion);
     },
     async save({ userId, policyVersion, items, locale, userAgent }) {
       if (!rows.some((r) => r.user_id === userId && r.policy_version === policyVersion)) {
@@ -60,6 +71,26 @@ export function createSupabaseConsentStore(db) {
         .select('id')
         .eq('user_id', userId)
         .eq('policy_version', policyVersion)
+        .limit(1);
+      if (error) throw new Error(`consent read: ${error.message}`);
+      return Array.isArray(data) && data.length > 0;
+    },
+    async hasAny({ userId, policyVersions }) {
+      const { data, error } = await db
+        .from('privacy_consents')
+        .select('id')
+        .eq('user_id', userId)
+        .in('policy_version', policyVersions)
+        .limit(1);
+      if (error) throw new Error(`consent read: ${error.message}`);
+      return Array.isArray(data) && data.length > 0;
+    },
+    async hasOlder({ userId, currentVersion }) {
+      const { data, error } = await db
+        .from('privacy_consents')
+        .select('id')
+        .eq('user_id', userId)
+        .neq('policy_version', currentVersion)
         .limit(1);
       if (error) throw new Error(`consent read: ${error.message}`);
       return Array.isArray(data) && data.length > 0;
@@ -99,6 +130,26 @@ export async function hasConsent({ store, userId, policyVersion = CURRENT_POLICY
   return store.has({ userId, policyVersion });
 }
 
+/** True while the previous policy version still opens the AI routes. `now` is injectable for tests. */
+export function previousVersionStillAccepted(now = new Date()) {
+  return new Date(now).getTime() <= new Date(PREVIOUS_VERSION_ACCEPTED_UNTIL).getTime();
+}
+
+/**
+ * Gate check for the AI routes: the current version, or the previous one during the grace period.
+ * (The browser gate still asks for the current version; this only keeps a story from being cut off.)
+ */
+export async function hasConsentForAi({ store, userId, now = new Date() }) {
+  if (await hasConsent({ store, userId })) return true;
+  if (!previousVersionStillAccepted(now)) return false;
+  return store.hasAny({ userId, policyVersions: [PREVIOUS_POLICY_VERSION] });
+}
+
+/** Has accepted an older version but not the current one: the screen says "the policy was updated". */
+export async function isReturningParent({ store, userId }) {
+  return store.hasOlder({ userId, currentVersion: CURRENT_POLICY_VERSION });
+}
+
 /** Validates what the browser sent. Returns {ok:true, items} or {ok:false, code, message_he}. */
 export function validateAcceptance(body = {}) {
   if (String(body.policyVersion || '') !== CURRENT_POLICY_VERSION) {
@@ -136,7 +187,7 @@ export async function recordConsent({ store, userId, body, userAgent }) {
 export async function requireConsent(req, res, userId, overrides = {}) {
   try {
     const store = overrides.consentStore || (await defaultConsentStore(overrides.env || process.env));
-    if (await hasConsent({ store, userId })) return false;
+    if (await hasConsentForAi({ store, userId, now: overrides.now ? new Date(overrides.now) : new Date() })) return false;
     res.status(403).json({ error: CONSENT_MESSAGES.required, code: 'consent_required', policyVersion: CURRENT_POLICY_VERSION });
     return true;
   } catch (e) {

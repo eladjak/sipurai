@@ -1,5 +1,5 @@
 // Test inventory: extend the signatures when a new processor is introduced.
-export const processors = ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity', 'Google Fonts'];
+export const processors = ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity', 'Google Fonts', 'jsDelivr', 'Cloudflare'];
 
 const known = [
   { name: 'Clerk', sdk: /^@clerk\//, hosts: ['clerk.com'] },
@@ -14,6 +14,8 @@ const known = [
   { name: 'Segment', sdk: /^@segment\//, hosts: ['segment.com', 'segment.io'] },
   { name: 'Vercel', sdk: /^@vercel\/(analytics|speed-insights)$/, hosts: ['vercel-insights.com'] },
   { name: 'Creem', sdk: /^creem$/, hosts: ['creem.io'] },
+  { name: 'jsDelivr', hosts: ['cdn.jsdelivr.net', 'jsdelivr.net'] },
+  { name: 'Cloudflare', hosts: ['challenges.cloudflare.com'] },
 ];
 
 export function missingProcessors(pkg, html, policy) {

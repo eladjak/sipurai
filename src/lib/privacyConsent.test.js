@@ -37,11 +37,11 @@ describe('API calls', () => {
     expect(init.headers.Authorization).toBe('Bearer t');
     expect(init.body).toBeUndefined();
   });
-  it('accept posts the current version, both items, and the locale', async () => {
+  it('accept posts the current version, all three items, and the locale', async () => {
     const fetchImpl = vi.fn(async () => ok({ ok: true }));
     await acceptConsent({ locale: 'he' }, { fetchImpl, getHeaders: headers });
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
-    expect(body).toEqual({ policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, policy_and_terms: true }, locale: 'he' });
+    expect(body).toEqual({ policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, privacy_children_abroad: true, terms: true }, locale: 'he' });
   });
   it('delete posts the confirmation word and no user id', async () => {
     const fetchImpl = vi.fn(async () => ok({ ok: true }));
@@ -104,8 +104,8 @@ describe('policy wording stays TRUE (round 2)', () => {
   });
 
   it('is honest that drawing files sit in public storage', () => {
-    expect(all('he')).toContain('אחסון ציבורי');
-    expect(all('en')).toContain('public storage');
+    expect(all('he')).toContain('אחסון שאפשר לפתוח בלי סיסמה');
+    expect(all('en')).toContain('opened without a password');
   });
 
   it('deletion wording follows the switch: no button promised while the button is off', () => {

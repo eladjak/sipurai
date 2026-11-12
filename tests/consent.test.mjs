@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMemoryConsentStore, requireConsent, recordConsent, hasConsent, validateAcceptance } from '../api/_lib/consent.js';
-import { CURRENT_POLICY_VERSION } from '../api/_lib/policyVersion.js';
+import { createMemoryConsentStore, requireConsent, recordConsent, hasConsent, validateAcceptance, previousVersionStillAccepted } from '../api/_lib/consent.js';
+import { CURRENT_POLICY_VERSION, PREVIOUS_POLICY_VERSION, PREVIOUS_VERSION_ACCEPTED_UNTIL, CONSENT_ITEMS } from '../api/_lib/policyVersion.js';
 import consentHandler from '../api/privacy/consent.js';
 import generateHandler from '../api/ai/generate.js';
 import ttsHandler from '../api/ai/tts.js';
@@ -16,7 +16,7 @@ const mkRes = () => {
 };
 const asUser = (sub) => async () => ({ ok: true, payload: { sub } });
 const noUser = async () => ({ ok: false, reason: 'no bearer token' });
-const goodBody = { policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, policy_and_terms: true }, locale: 'he' };
+const goodBody = { policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, privacy_children_abroad: true, terms: true }, locale: 'he' };
 const accept = (store, userId) => recordConsent({ store, userId, body: goodBody, userAgent: 'test-agent' });
 
 test('no consent record -> 403 with a clear code, before anything else runs', async () => {
@@ -39,7 +39,7 @@ test('after the parent accepts, the same user passes and another user still does
   assert.equal(b.code, 403);
 });
 
-test('bumping the policy version asks everyone again', async () => {
+test('a version that is neither current nor the graced previous one asks again', async () => {
   const store = createMemoryConsentStore();
   await store.save({ userId: 'user_A', policyVersion: '2025-01-01', items: {}, locale: 'he', userAgent: null });
   const res = mkRes();
@@ -55,10 +55,13 @@ test('a store that cannot answer fails CLOSED (503), never open', async () => {
   assert.equal(res.body.code, 'consent_unavailable');
 });
 
-test('acceptance needs the exact current version and BOTH boxes', () => {
+test('acceptance needs the exact current version and ALL THREE boxes', () => {
   assert.equal(validateAcceptance({ ...goodBody, policyVersion: 'old' }).code, 'stale_version');
   assert.equal(validateAcceptance({ ...goodBody, items: { guardian_18: true } }).code, 'items_missing');
-  assert.equal(validateAcceptance({ ...goodBody, items: { guardian_18: true, policy_and_terms: 'yes' } }).code, 'items_missing');
+  assert.equal(validateAcceptance({ ...goodBody, items: { guardian_18: true, privacy_children_abroad: true } }).code, 'items_missing');
+  assert.equal(validateAcceptance({ ...goodBody, items: { guardian_18: true, privacy_children_abroad: true, terms: 'yes' } }).code, 'items_missing');
+  assert.equal(validateAcceptance({ ...goodBody, items: { guardian_18: true, policy_and_terms: true } }).code, 'items_missing');
+  assert.deepEqual(CONSENT_ITEMS, ['guardian_18', 'privacy_children_abroad', 'terms']);
   assert.equal(validateAcceptance({ policyVersion: CURRENT_POLICY_VERSION }).code, 'items_missing');
   const ok = validateAcceptance({ ...goodBody, locale: 'xx' });
   assert.equal(ok.ok, true);
@@ -71,7 +74,7 @@ test('stored record carries version, items, locale and a truncated user agent', 
   assert.equal(r.http, 200);
   const row = store._rows[0];
   assert.equal(row.policy_version, CURRENT_POLICY_VERSION);
-  assert.deepEqual(row.items, { guardian_18: true, policy_and_terms: true });
+  assert.deepEqual(row.items, { guardian_18: true, privacy_children_abroad: true, terms: true });
   assert.equal(row.locale, 'he');
   assert.equal(row.user_agent.length, 300);
   // accepting twice stays one row
@@ -211,4 +214,71 @@ test('GATE: print-order create without any consent store is refused (503), there
   await endpoint('create')({ method: 'POST', headers: {}, query: {}, body: {} }, res, { env: { PRINT_ORDER_ENABLED: 'true' }, store: {}, auth: asUser('user_A') });
   assert.equal(res.code, 503);
   assert.equal(res.body.error?.code, 'consent_unavailable');
+});
+
+/* ---------- grace for the previous policy version ---------- */
+const before = new Date('2026-12-01T10:00:00+02:00');
+const after = new Date('2026-12-16T00:00:01+02:00');
+const savePrev = (store, userId) => store.save({ userId, policyVersion: PREVIOUS_POLICY_VERSION, items: {}, locale: 'he', userAgent: null });
+
+test('GRACE: a parent on the previous version keeps the AI routes before the date', async () => {
+  const store = createMemoryConsentStore();
+  await savePrev(store, 'user_A');
+  const res = mkRes();
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: store, now: before }), false);
+  assert.equal(res.code, 200);
+  // ...but the browser question "did you accept the CURRENT version" is still no
+  assert.equal(await hasConsent({ store, userId: 'user_A' }), false);
+});
+
+test('GRACE: after the date the previous version is refused with the new refresh message', async () => {
+  const store = createMemoryConsentStore();
+  await savePrev(store, 'user_A');
+  const res = mkRes();
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: store, now: after }), true);
+  assert.equal(res.code, 403);
+  assert.equal(res.body.code, 'consent_required');
+  assert.match(res.body.error, /רעננו את הדף/);
+  assert.equal(previousVersionStillAccepted(new Date(PREVIOUS_VERSION_ACCEPTED_UNTIL)), true);
+});
+
+test('GRACE: only the previous version is graced, not older ones, and nobody without a record', async () => {
+  const store = createMemoryConsentStore();
+  await store.save({ userId: 'user_A', policyVersion: '2026-11-09', items: {}, locale: 'he', userAgent: null });
+  const res = mkRes();
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: store, now: before }), true);
+  assert.equal(res.code, 403);
+  const none = mkRes();
+  assert.equal(await requireConsent({}, none, 'user_Z', { consentStore: store, now: before }), true);
+});
+
+test('GRACE: acceptance is recorded for the CURRENT version only, never the previous one', async () => {
+  const store = createMemoryConsentStore();
+  const r = await recordConsent({ store, userId: 'user_A', body: { ...goodBody, policyVersion: PREVIOUS_POLICY_VERSION }, userAgent: 'x' });
+  assert.equal(r.http, 400);
+  assert.equal(r.body.error.code, 'stale_version');
+  assert.equal(store._rows.length, 0);
+});
+
+test('GRACE: a store failure during the grace check still fails closed (503)', async () => {
+  const broken = { has: async () => false, hasAny: async () => { throw new Error('db down'); } };
+  const res = mkRes();
+  assert.equal(await requireConsent({}, res, 'user_A', { consentStore: broken, now: before }), true);
+  assert.equal(res.code, 503);
+});
+
+test('RETURNING: GET says returning:true for a parent with only an older version, false for new and for accepted', async () => {
+  const store = createMemoryConsentStore();
+  await savePrev(store, 'user_old');
+  const get = async (u) => {
+    const r = mkRes();
+    await consentHandler({ method: 'GET', headers: {} }, r, { auth: asUser(u), consentStore: store });
+    return r.body;
+  };
+  assert.deepEqual(await get('user_old'), { hasConsent: false, returning: true, policyVersion: CURRENT_POLICY_VERSION });
+  assert.equal((await get('user_new')).returning, false);
+  await accept(store, 'user_old');
+  const done = await get('user_old');
+  assert.equal(done.hasConsent, true);
+  assert.equal(done.returning, false);
 });

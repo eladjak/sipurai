@@ -16,7 +16,7 @@ const mkRes = () => {
 test('the server log never contains the story prompt (it can hold a child\'s name)', async () => {
   const SECRET = 'דנה-בת-חמש-מרחוב-הרצל-17';
   const consentStore = createMemoryConsentStore();
-  await recordConsent({ store: consentStore, userId: 'user_A', body: { policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, policy_and_terms: true }, locale: 'he' }, userAgent: 'x' });
+  await recordConsent({ store: consentStore, userId: 'user_A', body: { policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, privacy_children_abroad: true, terms: true }, locale: 'he' }, userAgent: 'x' });
   const lines = [];
   const orig = console.log;
   console.log = (...a) => { lines.push(a.map(String).join(' ')); };

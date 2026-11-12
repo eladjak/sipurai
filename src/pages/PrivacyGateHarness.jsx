@@ -1,5 +1,6 @@
 // Dev-only screenshot harness for the privacy gate (VITE_PRIVACY_HARNESS=1). Not part of a normal build.
 // /__privacy-gate?state=empty|missing|filled|saving|error|loading|loaderror|success|delete|delete-error&lang=he|en
+// add &returning=1 to see the "policy was updated" variant of the consent screen
 import { useSearchParams } from 'react-router-dom';
 import ConsentScreen, { GateLoadError, GateLoading, GateSuccess } from '@/components/privacy/ConsentScreen';
 import DeleteAccountCard from '@/components/settings/DeleteAccountCard';
@@ -42,7 +43,11 @@ export default function PrivacyGateHarness() {
       lang={lang}
       isRTL={isRTL}
       status={state === 'saving' ? 'saving' : state === 'error' ? 'error' : 'idle'}
-      initialChecks={{ guardian: state === 'filled' || state === 'saving' || state === 'error', agree: state === 'filled' || state === 'saving' || state === 'error' }}
+      returning={params.get('returning') === '1'}
+      initialChecks={(() => {
+        const on = state === 'filled' || state === 'saving' || state === 'error';
+        return { guardian: on, privacy: on, terms: on };
+      })()}
       initialShowMissing={state === 'missing'}
       onAccept={noop}
       onDecline={noop}

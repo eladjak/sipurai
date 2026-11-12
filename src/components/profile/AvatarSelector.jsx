@@ -16,7 +16,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { GenerateImage } from "@/integrations/Core";
-import { createAvatarFromPhoto, photoNote } from "@/lib/photoToCharacter";
+import { createAvatarFromPhoto, photoNote, photoConsent } from "@/lib/photoToCharacter";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
 export default function AvatarSelector({
@@ -34,6 +35,8 @@ export default function AvatarSelector({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
+  // Just-in-time consent for the photo: asked every time the dialog opens, never stored.
+  const [photoOk, setPhotoOk] = useState(false);
   const fileInputRef = useRef(null);
 
   // For avatar generation examples
@@ -56,12 +59,14 @@ export default function AvatarSelector({
   }, [currentAvatar]);
 
   const triggerFileInput = () => {
+    if (!photoOk) return;
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
   const handleFileUpload = async (file) => {
+    if (!photoOk) return;
     setError("");
     setIsUploading(true);
 
@@ -104,13 +109,15 @@ export default function AvatarSelector({
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    
+    if (!photoOk) return;
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileSelect = (e) => {
+    if (!photoOk) return;
     if (e.target.files && e.target.files[0]) {
       handleFileUpload(e.target.files[0]);
     }
@@ -167,7 +174,7 @@ export default function AvatarSelector({
             }`}
             onDragOver={(e) => {
               e.preventDefault();
-              setIsDragging(true);
+              if (photoOk) setIsDragging(true);
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
@@ -177,13 +184,29 @@ export default function AvatarSelector({
               <p className="mx-auto mb-2 max-w-md rounded-xl bg-purple-50 px-3 py-2 text-sm leading-relaxed text-purple-900" data-testid="photo-note">
                 {isRTL ? photoNote.he : photoNote.en}
               </p>
-              <p className="mt-2">{t("avatar.upload.drag")}</p>
+              <label
+                htmlFor="avatar-photo-consent"
+                className={`mx-auto mt-3 flex min-h-[44px] max-w-md cursor-pointer items-start gap-3 rounded-xl border-2 p-3 text-start text-sm leading-relaxed ${
+                  photoOk ? 'border-purple-300 bg-purple-50/60' : 'border-gray-200'
+                }`}
+              >
+                <Checkbox
+                  id="avatar-photo-consent"
+                  checked={photoOk}
+                  onCheckedChange={(v) => setPhotoOk(v === true)}
+                  className="mt-0.5 h-6 w-6 shrink-0"
+                />
+                <span data-testid="photo-consent-text">{photoConsent?.[isRTL ? 'he' : 'en']}</span>
+              </label>
+              <p className={`mt-2 ${photoOk ? '' : 'text-gray-400'}`}>{t("avatar.upload.drag")}</p>
               <p className="text-sm text-gray-500 mt-1">{t("avatar.upload.or")}</p>
               
               <input
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
+                data-testid="photo-file-input"
+                disabled={!photoOk}
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileSelect}
               />
@@ -192,7 +215,7 @@ export default function AvatarSelector({
                 variant="outline" 
                 className="mt-2"
                 onClick={triggerFileInput}
-                disabled={isUploading}
+                disabled={isUploading || !photoOk}
               >
                 {isUploading ? (
                   <>

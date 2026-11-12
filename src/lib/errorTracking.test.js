@@ -48,4 +48,23 @@ describe('scrubEvent (Sentry beforeSend PII filter)', () => {
     expect(() => scrubEvent({})).not.toThrow();
     expect(() => scrubEvent({ breadcrumbs: [] })).not.toThrow();
   });
+
+  it('drops child data passed as captureError context (bookData, storyIdea), keeps technical labels', () => {
+    const out = scrubEvent({
+      extra: {
+        context: 'BookWizard.createBook',
+        page: 3,
+        bookData: { child_name: 'נועה', child_age: 5, family_members: 'אמא ואבא' },
+        storyIdea: 'נועה הולכת לגן ברחוב הרצל',
+        componentStack: 'at X',
+      },
+    });
+    expect(out.extra).toEqual({ context: 'BookWizard.createBook', page: 3, componentStack: 'at X' });
+    expect(JSON.stringify(out)).not.toContain('נועה');
+  });
+
+  it('drops an allowlisted key when it holds an object instead of a label', () => {
+    const out = scrubEvent({ extra: { context: { child_name: 'Dana' } } });
+    expect(out.extra).toEqual({});
+  });
 });
