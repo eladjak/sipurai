@@ -87,6 +87,9 @@ const CREEM_TIMEOUT_MS = 15000;
 
 export async function cancelSubscription({ userId, email, store, env = {}, fetchImpl = globalThis.fetch }) {
   if (!userId) return err(401, 'unauthorized', 'נדרשת התחברות');
+  // Server-side switch (Codex round 3): online cancel stays OFF until subscriptions are bound to the Clerk
+  // account id and outcomes are reconciled with Creem. Until then every notice goes by email/post.
+  if (env.SUBSCRIPTION_CANCEL_ONLINE !== 'true') return err(409, 'cannot_cancel_online', SUB_MESSAGES.notConfigured);
   if (!env.CREEM_API_KEY) return err(503, 'not_configured', SUB_MESSAGES.notConfigured);
   if (!email) return err(409, 'cannot_cancel_online', SUB_MESSAGES.notConfigured);
   let s;

@@ -14,7 +14,7 @@ const mkRes = () => {
 const asUser = (sub, email, extra = {}) => async () => ({ ok: true, payload: { sub, ...(email ? { email, email_verified: true } : {}), ...extra } });
 const EMAIL = { user_A: 'a@example.com', user_B: 'b@example.com' };
 const noUser = async () => ({ ok: false });
-const env = { CREEM_API_KEY: 'ck_test_fake' };
+const env = { CREEM_API_KEY: 'ck_test_fake', SUBSCRIPTION_CANCEL_ONLINE: 'true' };
 // keyed by the VERIFIED email, like the real store
 const storeFor = (map) => ({ async activeSubscription(email) { return map[email] || null; } });
 const run = (over, method = 'POST') => { const res = mkRes(); return handler({ method, headers: {}, body: {} }, res, over).then(() => res); };
@@ -68,7 +68,7 @@ test('provider 5xx is UNCERTAIN, never "nothing was cancelled" (Codex round 2)',
 
 test('no API key configured: refuses without calling anyone', async () => {
   let called = false;
-  const res = await run({ auth: asUser('user_A', EMAIL.user_A), env: {}, store: storeFor({ [EMAIL.user_A]: sub }), fetchImpl: async () => { called = true; return { ok: true }; } });
+  const res = await run({ auth: asUser('user_A', EMAIL.user_A), env: { SUBSCRIPTION_CANCEL_ONLINE: 'true' }, store: storeFor({ [EMAIL.user_A]: sub }), fetchImpl: async () => { called = true; return { ok: true }; } });
   assert.equal(res.code, 503);
   assert.equal(called, false);
 });
@@ -152,5 +152,12 @@ test('missing creem_subscription_id column: status still works, cancel is 409 ca
   const p = await run({ auth: asUser('user_A', 'a@example.com'), env, store, fetchImpl: async () => { called = true; return { ok: true }; } });
   assert.equal(p.code, 409);
   assert.equal(p.body.error.code, 'cannot_cancel_online');
+  assert.equal(called, false);
+});
+
+test('online cancel is OFF unless SUBSCRIPTION_CANCEL_ONLINE=true: 409, no provider call', async () => {
+  let called = false;
+  const res = await run({ auth: asUser('user_A', EMAIL.user_A), env: { CREEM_API_KEY: 'ck_test_fake' }, store: storeFor({ [EMAIL.user_A]: sub }), fetchImpl: async () => { called = true; return { ok: true }; } });
+  assert.equal(res.code, 409);
   assert.equal(called, false);
 });
