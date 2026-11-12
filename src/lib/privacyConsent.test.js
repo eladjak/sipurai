@@ -103,9 +103,13 @@ describe('policy wording stays TRUE (round 2)', () => {
     }
   });
 
-  it('is honest that drawing files sit in public storage', () => {
-    expect(all('he')).toContain('אחסון שאפשר לפתוח בלי סיסמה');
-    expect(all('en')).toContain('opened without a password');
+  it('says drawings are in closed storage (bucket made private 12.11.2026) and no longer promises the opposite', () => {
+    expect(all('he')).toContain('נשמרים באחסון סגור');
+    expect(all('en')).toContain('closed storage');
+    expect(all('he')).not.toContain('אחסון שאפשר לפתוח בלי סיסמה');
+    expect(all('he')).not.toContain('אין כפתור לביטול שיתוף');
+    expect(all('he')).toContain('הפסקת השיתוף');
+    expect(all('he')).toContain('מחיקת הספר');
   });
 
   it('deletion wording follows the switch: no button promised while the button is off', () => {

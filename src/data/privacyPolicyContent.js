@@ -102,7 +102,9 @@ const buildPolicyContent = (deleteEnabled) => ({
 • למנוע שימוש לרעה ולתקן תקלות
 • לעמוד בדרישות החוק, למשל שמירת רשומות תשלום
 
-אנחנו לא מוכרים מידע, לא משכירים אותו, לא משתפים אותו לצורכי פרסום, לא בונים פרופיל של הילד ולא מציגים פרסומות לילדים.`,
+אנחנו לא מוכרים מידע, לא משכירים אותו, לא משתפים אותו לצורכי פרסום, לא בונים פרופיל של הילד ולא מציגים פרסומות לילדים.
+
+**הודעות פרסומת:** אנחנו לא שולחים פרסומות במייל. אם נתחיל, נשלח רק למי שביקש זאת במפורש ובנפרד מההרשמה, כל הודעה תסומן "פרסומת", ואפשר יהיה להסיר את עצמכם בכל זמן (סעיף 30א לחוק התקשורת).`,
       },
       {
         heading: '4. מי עוד מקבל את המידע, ולאן הוא עובר',
@@ -147,7 +149,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 • ילדים יכולים לקרוא ולהאזין לספרים במכשיר שלכם כשאתם מחוברים. מה שקורה בחשבון באחריותכם.
 • ההורה מחליט איזה מידע על הילד להכניס. אפשר ליצור ספר עם שם בדוי או בלי שם אמיתי.
 • אנחנו לא פונים לילדים בהודעות ובפרסומות.
-• **ספר ששיתפתם בקהילה גלוי לכל מי שנכנס לשם:** הכותרת, הטקסט, האיורים ותיאורי האיורים, והשמות שמופיעים בסיפור. מי שרואה אותו יכול גם לשמור עותק. לפני שמשתפים, בדקו שאתם מסכימים לכך. כרגע אין כפתור לביטול שיתוף. כדי להסיר ספר משותף, כתבו ל-${CONTACT_EMAIL} ונסיר אותו.
+• **ספר ששיתפתם בקהילה גלוי לכל מי שנכנס לשם:** הכותרת, הטקסט, האיורים, והשמות שמופיעים בסיפור. מי שרואה אותו יכול גם לשמור עותק. לפני שמשתפים, בדקו שאתם מסכימים לכך. אפשר להפסיק את השיתוף בכל זמן בכפתור "הפסקת השיתוף" שליד הספר. אחרי שמפסיקים, הספר יורד מהקהילה מיד, אבל איור שמישהו כבר פתח עשוי להישאר שמור בדפדפן שלו עד יום אחד, ועותק שמישהו שמר נשאר אצלו.
 • ספרים שלא שיתפתם נראים באפליקציה רק לכם, ולמי שהזמנתם לערוך איתכם. על הציורים עצמם ראו סעיף 6.
 • אם אתם חושבים שילד פתח חשבון, או שמידע על ילד נשמר בלי הסכמת הורה, כתבו לנו ל-${CONTACT_EMAIL} ונמחק.`,
       },
@@ -160,13 +162,13 @@ const buildPolicyContent = (deleteEnabled) => ({
 
 **מה אנחנו לא שולטים בו:** כמה זמן שירות הציור שומר בקשה אצלו נקבע בתנאים שלו. לכן כתבנו בסעיף 4 מי מקבל את התמונה.
 
-**מי יכול לראות ציורים:** כל הציורים, כלומר איורי הספרים, העטיפות ודמויות הפרופיל, נשמרים באחסון שאפשר לפתוח בלי סיסמה, למי שיש את הכתובת המדויקת של הקובץ. הכתובות ארוכות ואקראיות ואנחנו לא מפרסמים אותן, אבל מי שקיבל קישור לציור יכול לפתוח אותו, גם אם הספר לא שותף.`,
+**מי יכול לראות ציורים:** הציורים, כלומר איורי הספרים, העטיפות ודמויות הפרופיל, נשמרים באחסון סגור. רק מי שיצר אותם, כשהוא מחובר לחשבון, יכול לפתוח אותם. ציורים של ספר ששיתפתם בקהילה גלויים לכולם כל עוד הספר משותף.`,
       },
       {
         heading: '7. כמה זמן אנחנו שומרים',
         body: `המידע נשמר כל עוד החשבון קיים. אין לנו כרגע מחיקה אוטומטית של חשבונות שלא בשימוש.
 
-**דמות שמחקתם** נעלמת מהספרייה, אבל קובץ הציור שלה נשאר באחסון עד מחיקת החשבון. **ספר בודד** אי אפשר כרגע למחוק בכפתור. כתבו לנו ונמחק אותו.
+**דמות שמחקתם** נעלמת מהספרייה, אבל קובץ הציור שלה נשאר באחסון עד מחיקת החשבון. **ספר בודד** אפשר למחוק בכפתור "מחיקת הספר" שליד הספר. המחיקה מוחקת את הספר, את הדפים, את השיתוף בקהילה ואת קובצי הציורים שלו. אי אפשר לשחזר ספר שנמחק.
 
 רשומות כספיות של הזמנות נשמרות לתקופה שהחוק מחייב, גם אחרי מחיקת החשבון.
 
@@ -291,7 +293,9 @@ The service is currently meant for parents in Israel. The Hebrew version of this
 • To prevent abuse and fix problems
 • To meet legal requirements, such as keeping payment records
 
-We do not sell or rent information, we do not share it for advertising, we do not build a profile of your child, and we do not show ads to children.`,
+We do not sell or rent information, we do not share it for advertising, we do not build a profile of your child, and we do not show ads to children.
+
+**Advertising messages:** we do not send advertising by email. If we start, we will send only to people who asked for it explicitly and separately from signing up, every message will be marked as advertising, and you can unsubscribe at any time (Israeli Communications Law, section 30A).`,
       },
       {
         heading: '4. Who else receives it, and where it goes',
@@ -336,7 +340,7 @@ We do not train an artificial intelligence model on your books. What the provide
 • Children can read and listen to books on your device while you are signed in. What happens in the account is your responsibility.
 • The parent decides what information about the child to enter. You can create a book with a made-up name or no real name.
 • We do not send messages or ads to children.
-• **A book you share to the community is visible to everyone who visits it:** the title, the text, the illustrations and their descriptions, and the names in the story. Anyone who sees it can also save a copy. Before sharing, make sure you are comfortable with that. There is currently no button to stop sharing. To remove a shared book, write to ${CONTACT_EMAIL} and we will remove it.
+• **A book you share to the community is visible to everyone who visits it:** the title, the text, the illustrations, and the names in the story. Anyone who sees it can also save a copy. Before sharing, make sure you are comfortable with that. You can stop sharing at any time with the "Stop sharing" button next to the book. The book leaves the community at once, but an illustration someone already opened may stay cached in their browser for up to one day, and a copy someone saved stays with them.
 • Books you did not share are visible in the app only to you, and to anyone you invited to edit them with you. For the drawings themselves, see section 6.
 • If you think a child opened an account, or information about a child is kept without a parent's consent, write to ${CONTACT_EMAIL} and we will delete it.`,
       },
@@ -349,13 +353,13 @@ We do not train an artificial intelligence model on your books. What the provide
 
 **What we do not control:** how long the drawing service holds a request is set by its own terms. That is why section 4 says who receives the photo.
 
-**Who can see drawings:** all drawings, meaning book illustrations, covers and profile characters, are kept in storage that can be opened without a password by anyone who has the exact address of the file. The addresses are long and random and we do not publish them, but anyone who received a link to a drawing can open it, even if the book was not shared.`,
+**Who can see drawings:** drawings, meaning book illustrations, covers and profile characters, are kept in closed storage. Only the person who created them, while signed in, can open them. Drawings of a book you shared to the community are visible to everyone while the book is shared.`,
       },
       {
         heading: '7. How long we keep it',
         body: `Information is kept as long as the account exists. We currently have no automatic deletion of unused accounts.
 
-**A character you delete** disappears from the library, but its drawing file stays in storage until the account is deleted. **A single book** cannot be deleted with a button yet. Write to us and we will delete it.
+**A character you delete** disappears from the library, but its drawing file stays in storage until the account is deleted. **A single book** can be deleted with the "Delete book" button next to it. This deletes the book, its pages, its community post and its drawing files. A deleted book cannot be restored.
 
 Financial records of orders are kept for as long as the law requires, also after the account is deleted.
 
@@ -442,13 +446,13 @@ const buildGateCopy = (deleteEnabled) => ({
     whatChanged: [
       'כתבנו במפורש שאין חובה למסור מידע, ומי אחראי עליו.',
       'פירטנו לאן המידע עובר: בסיס הנתונים באיחוד האירופי, ורוב הספקים בארצות הברית.',
-      'הבהרנו שמי שיש לו קישור לציור יכול לפתוח אותו, ושספר משותף גלוי לכולם כולל השמות.',
+      'הציורים נשמרים עכשיו באחסון סגור, ורק אתם רואים אותם. ספר משותף גלוי לכולם, כולל השמות, ואפשר להפסיק לשתף או למחוק ספר בכפתור.',
       'פירטנו מה לא נמחק בלחיצה, למשל רשומות תשלום ומה שנשאר אצל ספקים.',
       'תמונה מעלים רק לציור דמות פרופיל, ועכשיו מאשרים את זה בנפרד לפני ההעלאה.',
     ],
     rows: [
       { icon: 'database', title: 'מה אנחנו שומרים', text: 'עליכם: מייל ושם. על הילד: רק מה שתקלידו, כמו שם, גיל ותיאור הדמות. ואת הספרים והאיורים שיצרתם. אין חובה למסור מידע, ואפשר שם בדוי.' },
-      { icon: 'camera', title: 'תמונות וציורים', text: 'תמונה אפשר להעלות רק כדי לצייר דמות לתמונת הפרופיל. היא עוברת ל-Google או ל-OpenAI לצורך הציור ולא נשמרת אצלנו. הציורים נשמרים בקישור שמי שיש לו אותו יכול לפתוח.' },
+      { icon: 'camera', title: 'תמונות וציורים', text: 'תמונה אפשר להעלות רק כדי לצייר דמות לתמונת הפרופיל. היא עוברת ל-Google או ל-OpenAI לצורך הציור ולא נשמרת אצלנו. הציורים נשמרים באחסון סגור ורק אתם רואים אותם, חוץ מספר ששיתפתם.' },
       { icon: 'sparkles', title: 'למה', text: 'כדי ליצור את הספר, לשמור אותו בספרייה שלכם ולהדפיס אותו אם תזמינו. וגם להתחברות, לתשלום, לאבטחה ולתיקון תקלות. לא מוכרים מידע, לא משתפים אותו לפרסום ולא מפרסמים לילדים.' },
       { icon: 'users', title: 'מי עוד מטפל בו, ובאיזו מדינה', text: 'Google ו-OpenAI כותבות ומציירות. Clerk מנהלת את ההתחברות, Supabase שומרת את הקבצים (באיחוד האירופי), Vercel מארחת את האתר, ו-Creem מטפלת בתשלום. רוב הספקים בארצות הברית.', help: 'חברה חיצונית היא חברה אחרת שהאפליקציה משתמשת בה כדי לעבוד, למשל כדי להתחבר או ליצור תמונה. ברשימה המלאה במדיניות מופיעה כל אחת ומה היא מקבלת.' },
       { icon: 'trash', title: 'אפשר למחוק', text: deleteEnabled ? 'בכל רגע, בהגדרות. נמחקים החשבון, פרטי הילדים, הספרים והציורים. רשומות תשלום נשמרות כמו שהחוק מחייב.' : 'בכל רגע אפשר לבקש במייל שנמחק את החשבון, פרטי הילדים, הספרים והציורים. רשומות תשלום נשמרות כמו שהחוק מחייב. הכתובת: support@sipurai.ai' },
@@ -482,13 +486,13 @@ const buildGateCopy = (deleteEnabled) => ({
     whatChanged: [
       'We say plainly that giving information is not required, and who is responsible for it.',
       'We list where information goes: the database is in the European Union, and most providers are in the United States.',
-      'We explain that anyone with a link to a drawing can open it, and that a shared book is visible to everyone, names included.',
+      'Drawings are now kept in closed storage that only you can open. A shared book is visible to everyone, names included, and you can stop sharing or delete a book with a button.',
       'We list what a click does not delete, such as payment records and what stays with providers.',
       'A photo can be uploaded only to draw a profile character, and you now approve that separately before the upload.',
     ],
     rows: [
       { icon: 'database', title: 'What we keep', text: 'About you: email and name. About your child: only what you type, such as name, age and character description. Plus the books and illustrations you create. Giving information is not required, and a made-up name is fine.' },
-      { icon: 'camera', title: 'Photos and drawings', text: 'A photo can be uploaded only to draw a character for your profile picture. It passes to Google or OpenAI to be drawn and is not kept by us. Drawings are kept at a link that anyone who has it can open.' },
+      { icon: 'camera', title: 'Photos and drawings', text: 'A photo can be uploaded only to draw a character for your profile picture. It passes to Google or OpenAI to be drawn and is not kept by us. Drawings are kept in closed storage that only you can open, except for a book you shared.' },
       { icon: 'sparkles', title: 'Why', text: 'To create the book, keep it in your library and print it if you order. Also for sign-in, payment, security and fixing problems. We do not sell information, share it for advertising, or advertise to children.' },
       { icon: 'users', title: 'Who else handles it, and where', text: 'Google and OpenAI write and draw. Clerk handles sign-in, Supabase stores the files (in the European Union), Vercel hosts the site, and Creem handles payment. Most providers are in the United States.', help: 'An outside company is another company the app uses to work, for example to sign in or to create an image. The full list in the policy shows each one and what it receives.' },
       { icon: 'trash', title: 'You can delete', text: deleteEnabled ? 'At any time, in Settings. The account, your children\'s details, books and drawings are deleted. Payment records are kept as the law requires.' : 'At any time you can ask by email to support@sipurai.ai and we will delete the account, your children\'s details, books and drawings. Payment records are kept as the law requires.' },

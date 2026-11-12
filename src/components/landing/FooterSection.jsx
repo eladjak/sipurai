@@ -41,6 +41,14 @@ const FooterSection = () => {
               <Mail className="h-4 w-4" />
               support@sipurai.ai
             </a>
+            {/* Consumer Protection Law s.14T(e)(2): cancellation routes next to the dedicated link, on the home page. */}
+            <p className="mt-3 text-xs leading-relaxed text-gray-400 max-w-xs">
+              {t('cancelSubscription.footerRoutes')}{' '}
+              <Link to="/cancel-subscription" className="text-purple-300 underline underline-offset-2 hover:text-purple-200">
+                {t('cancelSubscription.footerLink')}
+              </Link>
+            </p>
+            <p className="mt-2 text-xs text-gray-500 max-w-xs">{t('cancelSubscription.footerOperator')}</p>
           </div>
 
           {/* Links */}

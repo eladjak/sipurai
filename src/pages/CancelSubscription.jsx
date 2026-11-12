@@ -75,7 +75,7 @@ export default function CancelSubscription({ initial = {} }) {
         <section aria-labelledby="cs-what" className={card}>
           <h2 id="cs-what" className="flex items-center gap-2 text-lg font-bold"><Clock className="h-5 w-5 text-purple-700" aria-hidden="true" />{t('cancelSubscription.whatTitle')}</h2>
           <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-gray-800">
-            {['what1', 'what2', 'what3'].map((k) => (
+            {['what1', 'what2', 'what2b', 'what3'].map((k) => (
               <li key={k} className="flex items-start gap-2"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />{t(`cancelSubscription.${k}`)}</li>
             ))}
           </ul>
@@ -136,6 +136,7 @@ export default function CancelSubscription({ initial = {} }) {
             <Mail className="h-5 w-5" aria-hidden="true" />{t('cancelSubscription.mailButton')}
           </a>
           <p dir="ltr" className="mt-2 text-start text-sm text-gray-600">support@sipurai.ai</p>
+          <p className="mt-3 text-[15px] text-gray-800">{t('cancelSubscription.postal')}</p>
         </section>
       </div>
 
