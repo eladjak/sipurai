@@ -1,0 +1,1 @@
+export default { suggestions: { title:'Another story?', label:'Suggestions', hint:'Choose an idea to fill it in. You can edit it before starting.', newHero:'A first story with {name}', sequel:'A sequel to {title}', bedtime:'A short, calm bedtime story', oldTopic:'Return to a story about {title}', birthday:'A birthday story for {name}' } };

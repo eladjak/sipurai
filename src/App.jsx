@@ -13,6 +13,14 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Link } from 'react-router-dom';
 import { redirects, resolveRedirect } from './lib/routes';
 import { isNewShell } from '@/lib/flags';
+const ParentsHub = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/parents/ParentsHub')) : null;
+const HelpCentre = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/help/HelpCentre')) : null;
+const NewStory = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/new-story/NewStory')) : null;
+const NightReader = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/reader/NightReader')) : null;
+const Heroes = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/Heroes')) : null;
+const HeroEditor = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/HeroEditor')) : null;
+const Tonight = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/tonight/Tonight')) : null;
+const Shelf = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/shelf/Shelf')) : null;
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { EmptyState } from '@/components/ds/EmptyState';
 import PageNotFound from './lib/PageNotFound';
@@ -94,16 +102,17 @@ export const NewShellRoutes = () => {
   };
   return <Suspense fallback={<div role="status" aria-label={t('common.loading')} />}><PrivacyGate enabled={!!user && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
     {Object.keys(redirects).map(from => <Route caseSensitive key={from} path={from} element={<Navigate replace to={resolveRedirect(from, location.search, location.hash)} />} />)}
-    <Route path="/" element={user ? shell(MainPage) : <LandingPage />} />
+    <Route path="/" element={user ? shell(Tonight) : <LandingPage />} />
     <Route path="/welcome" element={<LandingPage />} />
     <Route path="/sign-in/*" element={<SignIn />} /><Route path="/sign-up/*" element={<SignUp />} />
     <Route path="/blog" element={<Blog />} /><Route path="/blog/:slug" element={<BlogPost />} />
     <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} />
     <Route path="/pricing" element={<Pages.Pricing />} />
     <Route path="/help/contact" element={<Pages.Contact />} /><Route path="/help/accessibility" element={<Accessibility />} />
-    <Route path="/shelf" element={protectedPage(Pages.Library)} /><Route path="/heroes" element={protectedPage(Pages.Characters)} />
-    <Route path="/parents" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(Pages.BookWizard)} />
-    <Route path="/help" element={protectedPage(Help)} />
+    <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
+    <Route path="/parents" element={protectedPage(ParentsHub)} /><Route path="/new" element={protectedPage(NewStory)} />
+    <Route path="/help" element={protectedPage(HelpCentre)} />
+    <Route path="/book/:id/read" element={protectedPage(NightReader)} />
     <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
     {['CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
     <Route path="/BlogPost" element={<BlogPost />} />

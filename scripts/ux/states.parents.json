@@ -1,0 +1,6 @@
+[
+ {"name":"parents-he","path":"/parents","setup":{"localStorage":{"language":"hebrew"}},"waitFor":"main h1"},
+ {"name":"parents-en","path":"/parents","setup":{"localStorage":{"language":"english"}},"waitFor":"main h1"},
+ {"name":"help-he","path":"/help","setup":{"localStorage":{"language":"hebrew"}},"waitFor":"main h1"},
+ {"name":"help-en","path":"/help","setup":{"localStorage":{"language":"english"}},"waitFor":"main h1"}
+]
