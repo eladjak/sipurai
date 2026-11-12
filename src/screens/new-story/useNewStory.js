@@ -4,12 +4,13 @@ import { Page } from '@/entities/Page';
 import { InvokeLLM, GenerateImage } from '@/integrations/Core';
 import { generateBookIncremental } from '@/lib/bookGeneration';
 import { buildRecipe, pageCountFor } from '@/lib/bookRecipe';
-import { reserveBookSlot, clearActiveBookKey, newBookKey } from '@/lib/bookQuota';
+import { reserveBookSlot, clearActiveBookKey, newBookKey, QuotaError } from '@/lib/bookQuota';
 import { moderateInput } from '@/utils/content-moderation';
 
 export function useNewStory(language, leaveMessage) {
  const [step, setStep] = useState(0), [hero, setHero] = useState(null), [topic, setTopic] = useState('');
  const [length, setLength] = useState('medium'), [style, setStyle] = useState('disney');
+ const [quotaError, setQuotaError] = useState(null);
  const [state, setState] = useState(null), [bookId, setBookId] = useState(null), [invalid, setInvalid] = useState(false);
  const lock = useRef(false), key = useRef(null), savedBook = useRef(null);
  useEffect(() => { const offline = () => { if (lock.current) setState('disconnected'); }; window.addEventListener('offline', offline); return () => window.removeEventListener('offline', offline); }, []);
@@ -29,8 +30,8 @@ export function useNewStory(language, leaveMessage) {
    if (result.bookId) { savedBook.current = result.bookId; setBookId(result.bookId); }
    if (result.status === 'failed' || !result.bookId) throw new Error('Story not readable');
    setState('success');
-  } catch (err) { if (err?.bookId) { savedBook.current = err.bookId; setBookId(err.bookId); } setState(navigator.onLine ? 'failed' : 'disconnected'); }
+  } catch (err) { if (err instanceof QuotaError) { setQuotaError(err); setState('limited'); } else { if (err?.bookId) { savedBook.current = err.bookId; setBookId(err.bookId); } setState(navigator.onLine ? 'failed' : 'disconnected'); } }
   finally { clearTimeout(timer); clearActiveBookKey(); lock.current = false; }
  };
- return { step,setStep,hero,setHero,topic,setTopic,length,setLength,style,setStyle,state,bookId,start,invalid };
+ return { step,setStep,hero,setHero,topic,setTopic,length,setLength,style,setStyle,state,bookId,start,invalid,quotaError };
 }
