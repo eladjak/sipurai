@@ -77,6 +77,7 @@ describe('AvatarSelector upload tab (real component)', () => {
     expect((await screen.findAllByTestId('photo-note')).length).toBeGreaterThan(0);
     const input = document.querySelector('input[type="file"]');
     expect(input).toBeTruthy();
+    fireEvent.click(document.getElementById('avatar-photo-consent')); // the separate photo approval
     fireEvent.change(input, { target: { files: [photo()] } });
     await waitFor(() => expect(onSelectAvatar).toHaveBeenCalledWith(DRAWING.url));
     expect(UploadFile).not.toHaveBeenCalled();

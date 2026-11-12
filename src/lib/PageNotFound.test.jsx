@@ -41,3 +41,5 @@ describe("PageNotFound language", () => {
     expect(p.textContent).toBe("The page \"Nope\" could not be found.");
   });
 });
+
+import "../pages/__tests__/legal-content.test.jsx";

@@ -60,10 +60,10 @@ async function call(method, url, body, { fetchImpl = globalThis.fetch, getHeader
   return data;
 }
 
-/** -> { hasConsent: boolean, policyVersion } */
+/** -> { hasConsent: boolean, returning: boolean, policyVersion } */
 export const fetchConsentStatus = (opts) => call('GET', '/api/privacy/consent', null, opts);
 
-/** Both boxes must be ticked; the server checks again. */
+/** All three boxes must be ticked; the server checks again. */
 export const acceptConsent = ({ locale }, opts) =>
   call(
     'POST',
@@ -90,6 +90,7 @@ export function isGateExempt(pathname = '/') {
     p === '/accessibility' ||
     p === '/contact' ||
     p === '/pricing' ||
+    p === '/cancel-subscription' ||
     p === '/welcome' ||
     p.startsWith('/blog') ||
     p.startsWith('/sign-in') ||

@@ -1,9 +1,9 @@
-// GET  /api/privacy/consent -> { hasConsent, policyVersion }   did this parent accept the current policy?
-// POST /api/privacy/consent -> records acceptance { policyVersion, items:{guardian_18,policy_and_terms}, locale }
+// GET  /api/privacy/consent -> { hasConsent, returning, policyVersion }   did this parent accept the current policy?
+// POST /api/privacy/consent -> records acceptance { policyVersion, items:{guardian_18,privacy_children_abroad,terms}, locale }
 // The user is always the one in the verified Clerk token; nothing in the body can name another user.
 import { requireClerkAuth } from '../_lib/verifyClerk.js';
 import { CURRENT_POLICY_VERSION } from '../_lib/policyVersion.js';
-import { CONSENT_MESSAGES, defaultConsentStore, hasConsent, recordConsent } from '../_lib/consent.js';
+import { CONSENT_MESSAGES, defaultConsentStore, hasConsent, isReturningParent, recordConsent } from '../_lib/consent.js';
 
 const ORIGINS = ['https://sipurai.ai', 'https://www.sipurai.ai', 'http://localhost:5173'];
 
@@ -28,7 +28,8 @@ export default async function handler(req, res, overrides = {}) {
     const store = overrides.consentStore || (await defaultConsentStore(overrides.env || process.env));
     if (req.method === 'GET') {
       const ok = await hasConsent({ store, userId });
-      return res.status(200).json({ hasConsent: ok, policyVersion: CURRENT_POLICY_VERSION });
+      const returning = ok ? false : await isReturningParent({ store, userId });
+      return res.status(200).json({ hasConsent: ok, returning, policyVersion: CURRENT_POLICY_VERSION });
     }
     const r = await recordConsent({ store, userId, body: req.body, userAgent: req.headers?.['user-agent'] });
     return res.status(r.http).json(r.body);

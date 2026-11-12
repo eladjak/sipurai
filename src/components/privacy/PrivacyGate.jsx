@@ -59,5 +59,5 @@ export default function PrivacyGate({ enabled, children }) {
     }
   };
 
-  return <ConsentScreen lang={lang} isRTL={isRTL} status={status} errorText={errorText} onAccept={accept} onDecline={() => logout()} />;
+  return <ConsentScreen lang={lang} isRTL={isRTL} status={status} errorText={errorText} returning={!!q.data?.returning} onAccept={accept} onDecline={() => logout()} />;
 }

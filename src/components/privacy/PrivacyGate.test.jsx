@@ -13,6 +13,12 @@ vi.mock('@/lib/privacyConsent', async () => {
 });
 
 import PrivacyGate from './PrivacyGate';
+import { gateCopy } from '@/data/privacyPolicyContent';
+
+const he = gateCopy.he;
+const tickAll = () => {
+  for (const id of ['gate-guardian', 'gate-privacy', 'gate-terms']) fireEvent.click(document.getElementById(id));
+};
 
 const wrap = (ui) => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -60,11 +66,42 @@ describe('PrivacyGate', () => {
     wrap(<PrivacyGate enabled><App /></PrivacyGate>);
     const accept = await screen.findByRole('button', { name: 'אישור והמשך' });
     fireEvent.click(accept);
-    expect(await screen.findByText('כדי להמשיך צריך לסמן את שתי התיבות.')).toBeTruthy();
+    expect(await screen.findByText(he.missing)).toBeTruthy();
     expect(acceptConsent).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('checkbox', { name: /אני ההורה או האפוטרופוס/ }));
+    fireEvent.click(document.getElementById('gate-guardian'));
     fireEvent.click(accept);
     expect(acceptConsent).not.toHaveBeenCalled(); // one box is not enough
+    fireEvent.click(document.getElementById('gate-privacy'));
+    fireEvent.click(accept);
+    expect(acceptConsent).not.toHaveBeenCalled(); // two boxes are not enough
+  });
+
+  it('shows three labelled boxes in order, and focuses the first missing one', async () => {
+    fetchConsentStatus.mockResolvedValue({ hasConsent: false });
+    wrap(<PrivacyGate enabled><App /></PrivacyGate>);
+    const accept = await screen.findByRole('button', { name: 'אישור והמשך' });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.getByRole('checkbox', { name: he.guardian })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: he.privacyItem })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: he.termsItem })).toBeTruthy();
+    fireEvent.click(document.getElementById('gate-guardian'));
+    fireEvent.click(accept);
+    await waitFor(() => expect(document.activeElement?.id).toBe('gate-privacy'));
+  });
+
+  it('a returning parent sees the "updated" title, lead and the what-changed list; a new parent does not', async () => {
+    fetchConsentStatus.mockResolvedValue({ hasConsent: false, returning: true });
+    const first = wrap(<PrivacyGate enabled><App /></PrivacyGate>);
+    expect(await screen.findByRole('heading', { level: 1, name: he.updatedTitle })).toBeTruthy();
+    expect(screen.getByText(he.updatedLead)).toBeTruthy();
+    const list = screen.getByTestId('what-changed');
+    expect(list.querySelectorAll('li')).toHaveLength(he.whatChanged.length);
+    first.unmount();
+
+    fetchConsentStatus.mockResolvedValue({ hasConsent: false, returning: false });
+    wrap(<PrivacyGate enabled><App /></PrivacyGate>);
+    expect(await screen.findByRole('heading', { level: 1, name: he.title })).toBeTruthy();
+    expect(screen.queryByTestId('what-changed')).toBeNull();
   });
 
   it('saves the acceptance with both boxes ticked, then opens the app', async () => {
@@ -72,8 +109,7 @@ describe('PrivacyGate', () => {
     acceptConsent.mockResolvedValue({ ok: true });
     wrap(<PrivacyGate enabled><App /></PrivacyGate>);
     await screen.findByRole('button', { name: 'אישור והמשך' });
-    fireEvent.click(screen.getByRole('checkbox', { name: /אני ההורה או האפוטרופוס/ }));
-    fireEvent.click(screen.getByRole('checkbox', { name: /קראתי ואני מסכים/ }));
+    tickAll();
     fireEvent.click(screen.getByRole('button', { name: 'אישור והמשך' }));
     await waitFor(() => expect(acceptConsent).toHaveBeenCalledTimes(1));
     expect(acceptConsent.mock.calls[0][0]).toEqual({ locale: 'he' });
@@ -85,8 +121,7 @@ describe('PrivacyGate', () => {
     acceptConsent.mockRejectedValue(Object.assign(new Error('network'), { code: 'network' }));
     wrap(<PrivacyGate enabled><App /></PrivacyGate>);
     await screen.findByRole('button', { name: 'אישור והמשך' });
-    fireEvent.click(screen.getByRole('checkbox', { name: /אני ההורה או האפוטרופוס/ }));
-    fireEvent.click(screen.getByRole('checkbox', { name: /קראתי ואני מסכים/ }));
+    tickAll();
     fireEvent.click(screen.getByRole('button', { name: 'אישור והמשך' }));
     expect(await screen.findByText(/לא הצלחנו לשמור את האישור/)).toBeTruthy();
     expect(screen.queryByText('THE-APP')).toBeNull();

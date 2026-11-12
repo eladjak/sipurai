@@ -7,7 +7,7 @@
  *     (`follow_user` / `unfollow_user`) which resolve email -> Clerk id
  *     server-side and store Clerk ids only.
  *   - READS (am I following X? counts) need the target's Clerk id, which we
- *     resolve from the public `profiles` directory by email. RLS on `follows`
+ *     resolve from the `resolve_clerk_id` rpc (id only; `profiles` is owner-read-only). RLS on `follows`
  *     returns only rows where the caller is the follower or the followed.
  *   - After a successful follow, a "new_follower" notification is created for the
  *     followed user via the `notify_user` rpc (fire-and-forget).
@@ -25,25 +25,13 @@ import { useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { Follow } from '@/entities/Follow';
 import { User } from '@/entities/User';
-import { supabase } from '@/lib/supabaseClient';
 import {
   followUserByEmail,
   unfollowUserByEmail,
   notifyUserByEmail,
+  resolveClerkIdByEmail,
 } from '@/lib/profiles';
 import { trackEvent } from '@/lib/analytics';
-
-/** Resolve a target email to its Clerk id via the public profiles directory. */
-async function resolveClerkId(email) {
-  if (!email) return null;
-  const rows = await supabase
-    .from('profiles')
-    .select('clerk_id')
-    .eq('email', email)
-    .limit(1);
-  if (rows.error) return null;
-  return rows.data?.[0]?.clerk_id ?? null;
-}
 
 export default function useFollow(targetEmail) {
   // Use the global QueryClient from the provider when available;
@@ -68,7 +56,7 @@ export default function useFollow(targetEmail) {
         const user = await User.me();
         if (!user?.id) return { existingFollow: null, followerCount: 0, followingCount: 0 };
 
-        const targetId = await resolveClerkId(targetEmail);
+        const targetId = await resolveClerkIdByEmail(targetEmail);
         if (!targetId) {
           // Target hasn't signed in yet — no follow relationship possible.
           return { currentUserId: user.id, existingFollow: null, followerCount: 0, followingCount: 0 };

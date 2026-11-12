@@ -77,3 +77,34 @@ export async function notifyUserByEmail({ targetEmail, type, title = '', message
   });
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Resolve a target email to its Clerk id. SECURITY DEFINER rpc: returns the id
+ * only (never the email or name), so the `profiles` table can stay readable
+ * by its owner alone. Returns null when the target has no profile or on error.
+ * @param {string} email
+ * @returns {Promise<string|null>}
+ */
+export async function resolveClerkIdByEmail(email) {
+  if (!email) return null;
+  const { data, error } = await supabase.rpc('resolve_clerk_id', { target_email: email });
+  if (error) return null;
+  return data ?? null;
+}
+
+/**
+ * Notify everyone who follows the caller. Done server-side by id, so the
+ * browser never sees follower emails. Returns how many were notified.
+ * @param {{ type: string, title?: string, message?: string, link?: string }} args
+ * @returns {Promise<number>}
+ */
+export async function notifyMyFollowers({ type, title = '', message = '', link = '' }) {
+  const { data, error } = await supabase.rpc('notify_my_followers', {
+    p_type: type,
+    p_title: title,
+    p_message: message,
+    p_link: link,
+  });
+  if (error) throw new Error(error.message);
+  return data ?? 0;
+}

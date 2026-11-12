@@ -163,7 +163,7 @@ function BlogSidebar({ categories = [], recentPosts = [], selectedCategory = "",
             {t("blog.newsletterDesc")}
           </p>
           <a
-            href="mailto:hello@sipurai.ai"
+            href="mailto:hello@sipurai.ai?subject=%D7%91%D7%A7%D7%A9%D7%94%20%D7%9C%D7%94%D7%A6%D7%98%D7%A8%D7%A3%20%D7%9C%D7%93%D7%99%D7%95%D7%95%D7%A8%20%D7%A1%D7%99%D7%A4%D7%95%D7%A8%D7%90%D7%99"
             className="inline-block w-full text-center py-2 px-4 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
           >
             {t("blog.subscribeBtn")}

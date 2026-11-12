@@ -26,6 +26,9 @@
  * and Sentry dropped the event: errors with breadcrumbs were never reported and never scrubbed.
  * The legacy `{ values: [...] }` shape is still handled.
  */
+/** Keys of captureError() context that may reach Sentry: labels and numbers, never user text. */
+export const SAFE_EXTRA = ['context', 'componentStack', 'page', 'index', 'badge_id', 'postId', 'language', 'count'];
+
 export function scrubEvent(event) {
   if (event.user) {
     // Keep only the anonymous id: drop email and username/name
@@ -56,6 +59,19 @@ export function scrubEvent(event) {
     delete event.request.query_string;
     delete event.request.cookies;
     if (event.request.headers) delete event.request.headers.Referer;
+  }
+
+  // `extra` is whatever a caller passed to captureError(). Callers have passed whole objects such as the
+  // book form (child name, age, family members) and the free-text story idea. Allowlist the technical
+  // keys only, and keep only short scalar values, so no child data reaches the error service.
+  if (event.extra && typeof event.extra === 'object') {
+    const extra = {};
+    for (const k of SAFE_EXTRA) {
+      const v = event.extra[k];
+      if (typeof v === 'number' || typeof v === 'boolean') extra[k] = v;
+      else if (typeof v === 'string') extra[k] = k === 'componentStack' ? v.slice(0, 2000) : v.slice(0, 120);
+    }
+    event.extra = extra;
   }
 
   if (Array.isArray(event.breadcrumbs)) {

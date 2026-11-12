@@ -1,10 +1,15 @@
 // Dev-only screenshot harness for the privacy gate (VITE_PRIVACY_HARNESS=1). Not part of a normal build.
 // /__privacy-gate?state=empty|missing|filled|saving|error|loading|loaderror|success|delete|delete-error&lang=he|en
+// owner-list|owner-unshare|owner-delete|owner-delete-error|owner-delete-busy|cancel-signedout|cancel-active|cancel-confirm|cancel-error|cancel-none|cancel-done|footer
+// add &returning=1 to see the "policy was updated" variant of the consent screen
 import { useSearchParams } from 'react-router-dom';
 import ConsentScreen, { GateLoadError, GateLoading, GateSuccess } from '@/components/privacy/ConsentScreen';
 import DeleteAccountCard from '@/components/settings/DeleteAccountCard';
 import AccountDataControls from '@/components/settings/AccountDataControls';
 import AvatarSelector from '@/components/profile/AvatarSelector';
+import { BookControlButton } from '@/components/bookControls/BookControls';
+import CancelSubscription from '@/pages/CancelSubscription';
+import FooterSection from '@/components/landing/FooterSection';
 
 export default function PrivacyGateHarness() {
   const [params] = useSearchParams();
@@ -13,6 +18,32 @@ export default function PrivacyGateHarness() {
   const isRTL = lang === 'he';
   const noop = () => {};
 
+  if (state.startsWith('owner-')) {
+    const book = { id: 'demo', title: 'דוב והירח', is_public: true };
+    const pending = () => new Promise(() => {});
+    const open = state !== 'owner-list';
+    const kind = state === 'owner-unshare' ? 'unshare' : 'delete';
+    return (
+      <div dir={isRTL ? 'rtl' : 'ltr'} className="mx-auto max-w-md space-y-2 bg-gray-50 p-4">
+        {state === 'owner-list' ? (<><BookControlButton kind="unshare" book={book} /><BookControlButton kind="delete" book={book} /></>) : (
+          <BookControlButton
+            key={state}
+            kind={kind}
+            book={book}
+            initialOpen={open}
+            initialError={state === 'owner-delete-error' ? 'המחיקה לא הושלמה. אפשר ללחוץ שוב. אם זה חוזר, כתבו ל-support@sipurai.ai.' : ''}
+            onAction={state === 'owner-delete-busy' ? pending : undefined}
+          />
+        )}
+      </div>
+    );
+  }
+  if (state.startsWith('cancel-')) {
+    const st = state.slice(7);
+    const map = { signedout: { status: 'signedOut' }, active: { status: 'active', plan: 'premium' }, confirm: { status: 'active', plan: 'premium', confirmOpen: true }, error: { status: 'active', plan: 'premium', confirmOpen: true, error: 'הביטול לא הושלם, ולא בוטל כלום. אפשר ללחוץ שוב, או לשלוח לנו מייל ונבטל בשבילכם.' }, none: { status: 'none' }, done: { status: 'done' } };
+    return <CancelSubscription initial={map[st] || map.signedout} />;
+  }
+  if (state === 'footer') return <FooterSection />;
   if (state === 'delete-off') {
     return (
       <div dir={isRTL ? 'rtl' : 'ltr'} className="mx-auto max-w-2xl bg-gray-50 p-4">
@@ -42,7 +73,11 @@ export default function PrivacyGateHarness() {
       lang={lang}
       isRTL={isRTL}
       status={state === 'saving' ? 'saving' : state === 'error' ? 'error' : 'idle'}
-      initialChecks={{ guardian: state === 'filled' || state === 'saving' || state === 'error', agree: state === 'filled' || state === 'saving' || state === 'error' }}
+      returning={params.get('returning') === '1'}
+      initialChecks={(() => {
+        const on = state === 'filled' || state === 'saving' || state === 'error';
+        return { guardian: on, privacy: on, terms: on };
+      })()}
       initialShowMissing={state === 'missing'}
       onAccept={noop}
       onDecline={noop}

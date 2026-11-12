@@ -1,3 +1,4 @@
+import { processors } from './processor-inventory';
 import { describe, it, expect, vi } from 'vitest';
 import { isGateExempt, waitForAuthHeaders, fetchConsentStatus, acceptConsent, deleteMyAccount, CURRENT_POLICY_VERSION } from './privacyConsent';
 import { policyContent, buildPolicyContent, buildGateCopy } from '@/data/privacyPolicyContent';
@@ -7,7 +8,7 @@ const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () =
 const headers = async () => ({ Authorization: 'Bearer t' });
 
 describe('isGateExempt', () => {
-  it.each(['/privacy', '/terms', '/accessibility', '/contact', '/pricing', '/welcome', '/blog', '/blog/some-post', '/sign-in', '/sign-up/verify', '/Privacy'])(
+  it.each(['/privacy', '/terms', '/accessibility', '/contact', '/pricing', '/welcome', '/blog', '/blog/some-post', '/sign-in', '/sign-up/verify', '/Privacy', '/cancel-subscription'])(
     '%s is open to everyone', (p) => expect(isGateExempt(p)).toBe(true));
   it.each(['/', '/Home', '/Library', '/BookView', '/Settings', '/CreativeStoryStudio', '/orders'])(
     '%s is the app and is gated', (p) => expect(isGateExempt(p)).toBe(false));
@@ -36,11 +37,11 @@ describe('API calls', () => {
     expect(init.headers.Authorization).toBe('Bearer t');
     expect(init.body).toBeUndefined();
   });
-  it('accept posts the current version, both items, and the locale', async () => {
+  it('accept posts the current version, all three items, and the locale', async () => {
     const fetchImpl = vi.fn(async () => ok({ ok: true }));
     await acceptConsent({ locale: 'he' }, { fetchImpl, getHeaders: headers });
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
-    expect(body).toEqual({ policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, policy_and_terms: true }, locale: 'he' });
+    expect(body).toEqual({ policyVersion: CURRENT_POLICY_VERSION, items: { guardian_18: true, privacy_children_abroad: true, terms: true }, locale: 'he' });
   });
   it('delete posts the confirmation word and no user id', async () => {
     const fetchImpl = vi.fn(async () => ok({ ok: true }));
@@ -63,11 +64,10 @@ describe('API calls', () => {
 });
 
 describe('policy text', () => {
-  it('names every outside processor found in the code, in both languages', () => {
+  it('lists the integrated processors in both languages', () => {
     for (const lang of ['he', 'en']) {
-      const text = policyContent[lang].sections.map((s) => s.body).join('\n');
-      for (const name of ['Clerk', 'Supabase', 'Vercel', 'Google', 'OpenAI', 'Creem', 'Morning', 'BookPod', 'Sentry', 'Umami', 'Sanity']) {
-        expect(text, `${lang} policy should mention ${name}`).toContain(name);
+      for (const name of processors) {
+        expect(policyContent[lang].sections[3].body, `${lang}: ${name}`).toContain(name);
       }
     }
   });
@@ -103,9 +103,13 @@ describe('policy wording stays TRUE (round 2)', () => {
     }
   });
 
-  it('is honest that drawing files sit in public storage', () => {
-    expect(all('he')).toContain('אחסון ציבורי');
-    expect(all('en')).toContain('public storage');
+  it('says drawings are in closed storage (bucket made private 12.11.2026) and no longer promises the opposite', () => {
+    expect(all('he')).toContain('נשמרים באחסון סגור');
+    expect(all('en')).toContain('closed storage');
+    expect(all('he')).not.toContain('אחסון שאפשר לפתוח בלי סיסמה');
+    expect(all('he')).not.toContain('אין כפתור לביטול שיתוף');
+    expect(all('he')).toContain('הפסקת השיתוף');
+    expect(all('he')).toContain('מחיקת הספר');
   });
 
   it('deletion wording follows the switch: no button promised while the button is off', () => {
@@ -122,7 +126,8 @@ describe('policy wording stays TRUE (round 2)', () => {
     for (const lang of ['he', 'en']) {
       const row = buildGateCopy(false)[lang].rows.find((r) => r.icon === 'camera');
       expect(row).toBeTruthy();
-      expect(row.text).toMatch(/Google/);
+      expect(row.text).toContain('Google');
+      expect(row.text).toContain('OpenAI');
     }
     expect(buildGateCopy(false).he.rows.find((r) => r.icon === 'camera').text).toContain('לא נשמרת');
   });

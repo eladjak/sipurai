@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Pencil, Printer } from 'lucide-react';
 import { Sheet } from '@/components/ds/Sheet';
 import { useI18n } from '@/components/i18n/i18nProvider';
+import BookControls from '@/components/bookControls/BookControls';
 
-export default function BookSheet({ book, open, onOpenChange, onRead }) {
+export default function BookSheet({ book, open, onOpenChange, onRead, onChanged }) {
   const { t } = useI18n();
   if (!book) return null;
   const ready = book.status === 'complete';
@@ -26,5 +27,6 @@ export default function BookSheet({ book, open, onOpenChange, onRead }) {
   return <Sheet open={open} onOpenChange={onOpenChange} title={title} description={t('shelf.chooseAction')}>
     {(book.status === 'partial' || book.status === 'failed') && <p className="mb-4 text-sp-sm text-sp-ink-600">{t('shelf.stoppedHint')}</p>}
     <div className="grid gap-2">{actions.map(({ label, to, icon: Icon, onClick }) => <Link key={to} to={to} onClick={onClick} className="flex min-h-12 items-center gap-3 rounded-sp-sm border border-sp-line bg-sp-card px-4 font-medium text-sp-ink-900 hover:bg-sp-violet-50 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600"><Icon aria-hidden="true" className="h-5 w-5" />{label}</Link>)}</div>
+    {onChanged && book.status !== 'generating' && <BookControls book={book} className="mt-6 border-t border-sp-line pt-6" onChanged={kind => { onOpenChange(false); onChanged(kind); }} />}
   </Sheet>;
 }

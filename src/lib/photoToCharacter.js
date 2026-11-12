@@ -75,6 +75,12 @@ export async function createAvatarFromPhoto(file, { style = 'cartoon', generate 
 
 /** Shown next to every photo upload. Must stay true: see the header and the privacy policy. */
 export const photoNote = {
-  he: 'התמונה נשלחת פעם אחת כדי לצייר את הדמות, ולא נשמרת אצלנו. נשמר רק הציור. לשניות שלוקח לצייר היא עוברת לשירות הציור (Google או OpenAI, כמו שמופיע במדיניות הפרטיות).',
-  en: 'The photo is sent once to draw the character and is not kept by us. Only the drawing is kept. For the few seconds it takes to draw, it passes to the drawing service (Google or OpenAI, as listed in the privacy policy).',
+  he: 'התמונה נשלחת פעם אחת כדי לצייר את הדמות, ולא נשמרת אצלנו. נשמר רק הציור. לצורך הציור היא עוברת לשירות הציור (Google או OpenAI, כמו שמופיע במדיניות הפרטיות), וכמה זמן היא נשמרת שם נקבע בתנאים שלו. הציור נשמר באחסון סגור ורק אתם רואים אותו. העלאת תמונה אינה חובה.',
+  en: 'The photo is sent once to draw the character and is not kept by us. Only the drawing is kept. To be drawn it passes to the drawing service (Google or OpenAI, as listed in the privacy policy), and how long it is kept there is set by that service\'s terms. The drawing is kept in closed storage that only you can open. Uploading a photo is optional.',
+};
+
+/** The separate, just-in-time approval the parent ticks before choosing a photo (not stored). */
+export const photoConsent = {
+  he: 'זו תמונה שלי, או של ילד שאני ההורה או האפוטרופוס שלו. אני מסכים או מסכימה שהתמונה תישלח ל-Google או ל-OpenAI, שנמצאות בארצות הברית, שבה ההגנה על מידע עשויה להיות שונה מבישראל, כדי לצייר ממנה דמות לתמונת הפרופיל.',
+  en: 'This is a photo of me, or of a child I am the parent or guardian of. I agree that the photo is sent to Google or OpenAI in the United States, where data protection may differ from Israel, to draw a profile character from it.',
 };

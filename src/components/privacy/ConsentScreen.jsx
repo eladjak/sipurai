@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Database, Sparkles, Users, Trash2, Heart, Camera, HelpCircle, Loader2, Check, ExternalLink, AlertTriangle, RefreshCw,
+  Database, Sparkles, Users, Trash2, Heart, Camera, HelpCircle, Loader2, Check, ExternalLink, AlertTriangle, RefreshCw, RotateCw,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -91,12 +91,13 @@ function ConsentCheck({ id, checked, onChange, invalid, describedBy, children })
  * so every state can be photographed without clicking.
  */
 export default function ConsentScreen({
-  lang = 'he', isRTL = true, status = 'idle', errorText = '', onAccept, onDecline,
-  initialChecks = { guardian: false, agree: false }, initialShowMissing = false,
+  lang = 'he', isRTL = true, status = 'idle', errorText = '', returning = false, onAccept, onDecline,
+  initialChecks = { guardian: false, privacy: false, terms: false }, initialShowMissing = false,
 }) {
   const c = gateCopy[lang] || gateCopy.he;
-  const [guardian, setGuardian] = useState(initialChecks.guardian);
-  const [agree, setAgree] = useState(initialChecks.agree);
+  const [guardian, setGuardian] = useState(!!initialChecks.guardian);
+  const [privacy, setPrivacy] = useState(!!initialChecks.privacy);
+  const [terms, setTerms] = useState(!!initialChecks.terms);
   const [showMissing, setShowMissing] = useState(initialShowMissing);
   const headingRef = useRef(null);
   const saving = status === 'saving';
@@ -107,16 +108,19 @@ export default function ConsentScreen({
 
   const submit = () => {
     if (saving) return;
-    if (!guardian || !agree) {
+    if (!guardian || !privacy || !terms) {
       setShowMissing(true);
-      requestAnimationFrame(() => document.getElementById(!guardian ? 'gate-guardian' : 'gate-agree')?.focus());
+      const firstMissing = !guardian ? 'gate-guardian' : !privacy ? 'gate-privacy' : 'gate-terms';
+      requestAnimationFrame(() => document.getElementById(firstMissing)?.focus());
       return;
     }
     onAccept?.();
   };
 
   const missingGuardian = showMissing && !guardian;
-  const missingAgree = showMissing && !agree;
+  const missingPrivacy = showMissing && !privacy;
+  const missingTerms = showMissing && !terms;
+  const whatChanged = Array.isArray(c.whatChanged) ? c.whatChanged : [];
 
   return (
     <main
@@ -139,10 +143,24 @@ export default function ConsentScreen({
             tabIndex={-1}
             className="mt-4 font-heading text-2xl font-bold leading-snug text-gray-900 outline-none sm:text-3xl dark:text-white"
           >
-            {c.title}
+            {returning && c.updatedTitle ? c.updatedTitle : c.title}
           </h1>
-          <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-gray-600 dark:text-gray-300">{c.lead}</p>
+          <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-gray-600 dark:text-gray-300">{returning && c.updatedLead ? c.updatedLead : c.lead}</p>
         </header>
+
+        {returning && whatChanged.length > 0 && (
+          <ul
+            data-testid="what-changed"
+            className="mx-5 mt-4 space-y-2 rounded-2xl bg-amber-50 p-4 sm:mx-8 dark:bg-amber-900/20"
+          >
+            {whatChanged.map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-[15px] leading-relaxed text-amber-950 dark:text-amber-100">
+                <RotateCw className="mt-1 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden="true" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <ul className="space-y-5 px-5 py-6 sm:px-8">
           {c.rows.map((row) => (
@@ -165,12 +183,15 @@ export default function ConsentScreen({
           <ConsentCheck id="gate-guardian" checked={guardian} onChange={setGuardian} invalid={missingGuardian} describedBy="gate-missing">
             {c.guardian}
           </ConsentCheck>
-          <ConsentCheck id="gate-agree" checked={agree} onChange={setAgree} invalid={missingAgree} describedBy="gate-missing">
-            {c.agree}
+          <ConsentCheck id="gate-privacy" checked={privacy} onChange={setPrivacy} invalid={missingPrivacy} describedBy="gate-missing">
+            {c.privacyItem}
+          </ConsentCheck>
+          <ConsentCheck id="gate-terms" checked={terms} onChange={setTerms} invalid={missingTerms} describedBy="gate-missing">
+            {c.termsItem}
           </ConsentCheck>
 
           <div id="gate-missing" role="alert" aria-live="assertive" className="min-h-0">
-            {(missingGuardian || missingAgree) && (
+            {(missingGuardian || missingPrivacy || missingTerms) && (
               <p className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 dark:bg-red-900/20 dark:text-red-300">
                 <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {c.missing}

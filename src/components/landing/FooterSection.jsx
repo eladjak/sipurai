@@ -12,6 +12,7 @@ const FooterSection = () => {
     { label: t('landing.footer.terms'), href: '/terms', external: false },
     { label: t('landing.footer.accessibility'), href: '/accessibility', external: false },
     { label: t('landing.footer.contact'), href: '/Contact', external: false },
+    { label: t('cancelSubscription.footerLink'), href: '/cancel-subscription', external: false },
     { label: isRTL ? 'קורות חיים' : 'CV', href: isRTL ? '/cv-elad-yaakobovitch-he.pdf' : '/cv-elad-yaakobovitch.pdf', external: true },
   ];
 
@@ -40,6 +41,14 @@ const FooterSection = () => {
               <Mail className="h-4 w-4" />
               support@sipurai.ai
             </a>
+            {/* Consumer Protection Law s.14T(e)(2): cancellation routes next to the dedicated link, on the home page. */}
+            <p className="mt-3 text-xs leading-relaxed text-gray-400 max-w-xs">
+              {t('cancelSubscription.footerRoutes')}{' '}
+              <Link to="/cancel-subscription" className="text-purple-300 underline underline-offset-2 hover:text-purple-200">
+                {t('cancelSubscription.footerLink')}
+              </Link>
+            </p>
+            <p className="mt-2 text-xs text-gray-500 max-w-xs">{t('cancelSubscription.footerOperator')}</p>
           </div>
 
           {/* Links */}

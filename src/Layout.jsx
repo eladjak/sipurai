@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/entities/User";
 import { useI18n } from "@/components/i18n/i18nProvider";
+import CancelSubscriptionLink from "@/components/CancelSubscriptionLink";
 import { useAuth } from "@/lib/AuthContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import useGamification from "@/hooks/useGamification";
@@ -395,6 +396,9 @@ export default function Layout({ children, currentPageName }) {
               {children}
             </ErrorBoundary>
           </main>
+          <footer className="px-4 pb-6 pt-2 text-center text-sm text-gray-500">
+            <CancelSubscriptionLink />
+          </footer>
         </div>
       </div>
 

@@ -169,6 +169,13 @@ const FAQChat = () => {
               <Send className="size-4" />
             </button>
           </form>
+          {/* Privacy Protection Law s.11: say who answers and where the text goes, before anything is typed. */}
+          <p className="px-5 pb-3 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+            {t('faqChat.privacyNote')}{' '}
+            <a href="/privacy" className="underline underline-offset-2 text-purple-700 dark:text-purple-300">
+              {t('faqChat.privacyLink')}
+            </a>
+          </p>
         </motion.div>
       </div>
     </section>

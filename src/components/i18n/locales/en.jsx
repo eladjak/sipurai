@@ -1283,6 +1283,7 @@ export default {
     alreadyLiked: "You already liked this post!"
   },
   sharing: {
+    publicAck: "I understand the book will be visible to anyone who visits the community, including the text, the illustrations and the names in the story, and that anyone who sees it can save a copy. I can stop sharing at any time.",
     communityTitle: "Share with Community",
     communityDesc: "Share your book with other Sipurai users",
     postTitle: "Post Title",
@@ -1707,7 +1708,7 @@ export default {
       sectionSubtitle: "Start with 5 free books a month \u2014 upgrade when you're hooked",
       heading: "Simple plans, big value",
       subheading: "Start free, upgrade as the kids create more.",
-      guaranteeNote: "Cancel any time. Charged in USD; NIS shown for reference.",
+      guaranteeNote: "The subscription has no end date, is billed monthly, and you can cancel any time, via the \"Cancel subscription\" link at the bottom of the page, by email or by post. A distance sale carries a 14-day cancellation right. Charged in USD through Creem; NIS shown for reference. Seller: Elad Yakobovich, exempt dealer no. 021983085. Full details in the Terms of Use.",
       period: "month",
       firstBookNote: "First book with ALL styles \u2014 free!",
       free: {
@@ -1922,7 +1923,7 @@ export default {
     linkCopied: "Copied!",
     relatedPostsTitle: "Related Articles",
     newsletterTitle: "Stay in the loop",
-    newsletterDesc: "Get our latest articles and tips delivered to your inbox.",
+    newsletterDesc: "Want our articles and tips by email? The button opens a message you send us from your own email, and that is your consent. Messages are marked as advertising and you can unsubscribe at any time.",
     subscribeBtn: "Subscribe",
     metaDescription: "Articles and tips for creating children's books",
     tableOfContents: "Table of Contents"

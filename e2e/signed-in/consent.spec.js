@@ -1,3 +1,4 @@
+import { CURRENT_POLICY_VERSION as POLICY } from '../../api/_lib/policyVersion.js';
 import { test, expect } from '@playwright/test';
 import { clerk } from '@clerk/testing/playwright';
 import { hasCredentials, SKIP_REASON } from './credentials.js';
@@ -13,7 +14,6 @@ test.skip(!hasCredentials, SKIP_REASON);
 // correctly shows its fail-closed error screen. Block it so the stand-in really is in front.
 test.use({ locale: 'he-IL', serviceWorkers: 'block' });
 
-const POLICY = '2026-11-10';
 
 test('first visit asks for consent, accepting is saved, the app opens, the next visit does not ask again', async ({ page }) => {
   let accepted = false;
@@ -27,7 +27,7 @@ test('first visit asks for consent, accepting is saved, the app opens, the next 
     }
     if (req.method() === 'GET') {
       seen.get += 1;
-      return route.fulfill({ json: { hasConsent: accepted, policyVersion: POLICY } });
+      return route.fulfill({ json: { hasConsent: accepted, returning: false, policyVersion: POLICY } });
     }
     seen.post += 1;
     seen.postBody = req.postDataJSON();
@@ -50,13 +50,14 @@ test('first visit asks for consent, accepting is saved, the app opens, the next 
   await expect(page.locator('#gate-missing')).toContainText(/\S/);
   expect(seen.post).toBe(0);
 
-  // 2. Tick both boxes and accept: saved once, with both items.
+  // 2. Tick all three boxes and accept: saved once, with all three items.
   await page.locator('#gate-guardian').click();
-  await page.locator('#gate-agree').click();
+  await page.locator('#gate-privacy').click();
+  await page.locator('#gate-terms').click();
   await accept.click();
   await expect.poll(() => seen.post).toBe(1);
   expect(seen.postBody.policyVersion).toBe(POLICY);
-  expect(seen.postBody.items).toEqual({ guardian_18: true, policy_and_terms: true });
+  expect(seen.postBody.items).toEqual({ guardian_18: true, privacy_children_abroad: true, terms: true });
 
   // 3. The app opens: no consent screen, and a signed-in "/" is the dashboard, not the landing page.
   await expect(page.locator('#gate-title')).toHaveCount(0, { timeout: 10000 });
