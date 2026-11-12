@@ -1,0 +1,62 @@
+[
+  {
+    "name": "he-first",
+    "path": "/?lang=he&state=first",
+    "waitFor": "main"
+  },
+  {
+    "name": "he-three",
+    "path": "/?lang=he&state=three",
+    "waitFor": "main"
+  },
+  {
+    "name": "he-edit",
+    "path": "/?lang=he&state=edit",
+    "waitFor": "main",
+    "actions": [
+      {
+        "click": "button:has-text(\"עריכת הטקסט\")"
+      }
+    ]
+  },
+  {
+    "name": "he-partial",
+    "path": "/?lang=he&state=partial",
+    "waitFor": "main"
+  },
+  {
+    "name": "he-failed",
+    "path": "/?lang=he&state=failed",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-first",
+    "path": "/?lang=en&state=first",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-three",
+    "path": "/?lang=en&state=three",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-edit",
+    "path": "/?lang=en&state=edit",
+    "waitFor": "main",
+    "actions": [
+      {
+        "click": "button:has-text(\"Edit text\")"
+      }
+    ]
+  },
+  {
+    "name": "en-partial",
+    "path": "/?lang=en&state=partial",
+    "waitFor": "main"
+  },
+  {
+    "name": "en-failed",
+    "path": "/?lang=en&state=failed",
+    "waitFor": "main"
+  }
+]

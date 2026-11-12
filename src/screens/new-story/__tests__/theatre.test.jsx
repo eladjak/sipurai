@@ -1,0 +1,25 @@
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import Theatre from '../Theatre';
+import words from '@/components/i18n/locales/en/newStory';
+import { Page } from '@/entities/Page';
+import { Book } from '@/entities/Book';
+vi.mock('@/entities/Book', () => ({ Book: { get: vi.fn().mockResolvedValue({status:'generating'}) } }));
+vi.mock('@/entities/Page', () => ({ Page: { filter: vi.fn(), update: vi.fn() } }));
+const t = key => key.split('.').reduce((a,k) => a?.[k], words) || key;
+const pages = [{id:'2',page_number:2,text_content:'Second page'}, {id:'1',page_number:1,text_content:'First page'}];
+beforeEach(() => { vi.clearAllMocks(); Page.filter.mockResolvedValue(pages); });
+describe('writing theatre', () => {
+ it('reads ready pages in order and skips to the next', async () => { render(<Theatre bookId="b" state="queued" t={t}/>); expect(await screen.findByText('First page')).toBeTruthy(); fireEvent.click(screen.getByRole('button',{name:'Next page'})); expect(screen.getByText('Second page')).toBeTruthy(); });
+ it('polls for newly readable pages and their illustrations', async () => { Page.filter.mockResolvedValueOnce([]).mockResolvedValueOnce([{id:'1',page_number:1,text_content:'A page arrives',image_url:'/fixture.jpg'}]); render(<Theatre bookId="b" state="queued" t={t}/>); await waitFor(() => expect(Page.filter).toHaveBeenCalledTimes(1)); await act(async () => { await new Promise(r => setTimeout(r, 4100)); }); expect(await screen.findByText('A page arrives')).toBeTruthy(); expect(document.querySelector('img').getAttribute('src')).toBe('/fixture.jpg'); });
+ it('orders pages arriving across polls', async () => { Page.filter.mockResolvedValueOnce([{id:'1',page_number:1,text_content:'First page'},{id:'3',page_number:3,text_content:'Third page'}]).mockResolvedValueOnce([{id:'3',page_number:3,text_content:'Third page'},{id:'2',page_number:2,text_content:'Second page'},{id:'1',page_number:1,text_content:'First page'}]); render(<Theatre bookId="b" state="queued" t={t}/>); await screen.findByText('First page'); await act(async () => { await new Promise(r => setTimeout(r, 4100)); }); fireEvent.click(screen.getByRole('button',{name:'Next page'})); expect(screen.getByText('Second page')).toBeTruthy(); });
+ it('stops polling after a final load', async () => { Book.get.mockResolvedValueOnce({status:'complete',total_pages:2}); render(<Theatre bookId="b" state="success" t={t}/>); await screen.findByText('First page'); await act(async () => { await new Promise(r => setTimeout(r, 4100)); }); expect(Page.filter).toHaveBeenCalledTimes(1); });
+ it('recognizes incomplete pages when the status write failed', async () => { Book.get.mockResolvedValueOnce({status:'generating',total_pages:3}); render(<Theatre bookId="b" state="success" t={t}/>); expect(await screen.findByText(/story stopped/i)).toBeTruthy(); });
+ it('describes a missing illustration honestly after completion', async () => { Book.get.mockResolvedValueOnce({status:'partial'}); render(<Theatre bookId="b" state="success" t={t}/>); expect(await screen.findByText('There is no illustration for this page yet.')).toBeTruthy(); });
+ it('waits for the existing save to resolve before confirming', async () => { let finish; Page.update.mockReturnValue(new Promise(r => { finish=r; })); render(<Theatre bookId="b" state="queued" t={t}/>); await screen.findByText('First page'); fireEvent.click(screen.getByRole('button',{name:'Edit text'})); fireEvent.change(screen.getByLabelText('Page text'),{target:{value:'Edited'}}); fireEvent.click(screen.getByRole('button',{name:'Save text'})); expect(Page.update).toHaveBeenCalledWith('1',{text_content:'Edited'}); expect(screen.queryByText('Text saved')).toBeNull(); finish(); expect(await screen.findByText('Text saved')).toBeTruthy(); });
+ it('does not offer unsupported replace actions', async () => { render(<Theatre bookId="b" state="queued" t={t}/>); await screen.findByText('First page'); expect(screen.queryByRole('button',{name:/replace|regenerate/i})).toBeNull(); });
+ it('links each page to the existing feedback flow with a page selection instruction', async () => { render(<Theatre bookId="b" state="queued" t={t}/>); await screen.findByText('First page'); expect(screen.getByRole('link',{name:'Report a problem'}).getAttribute('href')).toBe('/Feedback?id=b'); expect(screen.getByText(/choose page 1 in feedback/i)).toBeTruthy(); });
+ it('identifies a partial result even when the start flow reports success', async () => { Book.get.mockResolvedValueOnce({status:'partial'}); render(<Theatre bookId="b" state="success" t={t}/>); expect(await screen.findByText(/story stopped/i)).toBeTruthy(); });
+ it('keeps pages readable after failure', async () => { render(<Theatre bookId="b" state="failed" t={t}/>); expect(await screen.findByText('First page')).toBeTruthy(); expect(screen.getByText(/story stopped/i)).toBeTruthy(); fireEvent.click(screen.getByRole('button',{name:'Next page'})); expect(screen.getByText('Second page')).toBeTruthy(); });
+});
