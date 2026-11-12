@@ -12,7 +12,8 @@ export default function useVisitorCountry() {
     const ask = () => getVisitorCountry().then((c) => { if (live) setCountry(c); });
     ask();
     // Ask again when the visitor comes back to the tab (travel, new network).
-    const onVisible = () => { if (document.visibilityState === 'visible') ask(); };
+    // Back to 'loading' first, so an old answer (e.g. dollars from abroad) is never shown meanwhile.
+    const onVisible = () => { if (document.visibilityState === 'visible') { setCountry(null); ask(); } };
     document.addEventListener('visibilitychange', onVisible);
     return () => { live = false; document.removeEventListener('visibilitychange', onVisible); };
   }, []);

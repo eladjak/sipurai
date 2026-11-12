@@ -106,6 +106,8 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
   };
   const [upgrading, setUpgrading] = useState(null); // planId being upgraded
   const [confirmPlan, setConfirmPlan] = useState(null); // plan awaiting confirmation
+  // If payment becomes unavailable (country re-checked as Israel), close an open confirmation.
+  useEffect(() => { if (!checkoutOpen) setConfirmPlan(null); }, [checkoutOpen]);
   const lang = isRTL ? 'he' : 'en';
 
   const handleUpgrade = (planId) => {
