@@ -1,6 +1,7 @@
 export default {
   cancelSubscription: {
     footerRoutes: 'אפשר לבטל בכפתור, או לשלוח הודעת ביטול במייל:',
+    footerNotice: 'בהודעה כתבו שם מלא ומספר תעודת זהות.',
     footerPostal: 'או בדואר רשום: רחוב לח"י 13 דירה 3, מגדל העמק 2304364.',
     footerOperator: "סיפוראי מופעלת על ידי אלעד יעקובוביץ', עוסק פטור 021983085.",
     footerLink: 'ביטול מנוי',

@@ -51,9 +51,10 @@ const FooterSection = () => {
               </Link>
               <p className="mt-3 text-sm leading-relaxed text-gray-200">
                 {t('cancelSubscription.footerRoutes')}{' '}
-                <bdi dir="ltr">support@sipurai.ai</bdi>
+                <a href="mailto:support@sipurai.ai" className="text-purple-200 underline underline-offset-2"><bdi dir="ltr">support@sipurai.ai</bdi></a>
               </p>
               <p className="mt-1 text-sm leading-relaxed text-gray-200">{t('cancelSubscription.footerPostal')}</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-200">{t('cancelSubscription.footerNotice')}</p>
             </div>
             <p className="mt-3 text-xs text-gray-400 max-w-xs">{t('cancelSubscription.footerOperator')}</p>
           </div>

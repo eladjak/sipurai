@@ -1,6 +1,7 @@
 export default {
   cancelSubscription: {
     footerRoutes: 'Cancel with the button, or send a cancellation notice by email:',
+    footerNotice: 'In the notice, write your full name and ID number.',
     footerPostal: 'Or by registered mail: 13 Lehi St., Apt. 3, Migdal HaEmek 2304364, Israel.',
     footerOperator: 'Sipurai is operated by Elad Yakobovich, exempt dealer no. 021983085.',
     footerLink: 'Cancel subscription',

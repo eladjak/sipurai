@@ -20,6 +20,7 @@ describe('cancel link', () => {
     expect(container.textContent).toContain('cancelSubscription.footerRoutes');
     expect(container.textContent).toContain('cancelSubscription.footerPostal');
     expect(container.textContent).toContain('support@sipurai.ai');
+    expect(container.textContent).toContain('cancelSubscription.footerNotice');
     expect(container.textContent).toContain('cancelSubscription.footerOperator');
   });
 });
