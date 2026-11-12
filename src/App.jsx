@@ -155,7 +155,7 @@ export const LegacyAuthenticatedApp = () => {
     location.pathname === '/privacy' ||
     location.pathname === '/terms' ||
     // Consumer Protection Law s.14T(b): the cancellation link must work for everyone, signed in or not.
-    location.pathname === '/cancel-subscription' ||
+    location.pathname.replace(/\/+$/, '') === '/cancel-subscription' ||
     location.pathname === '/welcome' ||
     location.pathname === '/contact' ||
     location.pathname === '/Contact' ||
