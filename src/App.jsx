@@ -13,6 +13,8 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Link } from 'react-router-dom';
 import { redirects, resolveRedirect } from './lib/routes';
 import { isNewShell } from '@/lib/flags';
+const ParentsHub = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/parents/ParentsHub')) : null;
+const HelpCentre = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/help/HelpCentre')) : null;
 const NewStory = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/new-story/NewStory')) : null;
 const NightReader = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/reader/NightReader')) : null;
 const Heroes = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/heroes/Heroes')) : null;
@@ -108,8 +110,8 @@ export const NewShellRoutes = () => {
     <Route path="/pricing" element={<Pages.Pricing />} />
     <Route path="/help/contact" element={<Pages.Contact />} /><Route path="/help/accessibility" element={<Accessibility />} />
     <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
-    <Route path="/parents" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(NewStory)} />
-    <Route path="/help" element={protectedPage(Help)} />
+    <Route path="/parents" element={protectedPage(ParentsHub)} /><Route path="/new" element={protectedPage(NewStory)} />
+    <Route path="/help" element={protectedPage(HelpCentre)} />
     <Route path="/book/:id/read" element={protectedPage(NightReader)} />
     <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
     {['CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
