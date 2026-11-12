@@ -32,12 +32,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Shekel billing is not open yet: block Israeli visitors before touching Creem.
-  const country = String(req.headers?.['x-vercel-ip-country'] || '').toUpperCase();
-  if (country === 'IL' && process.env.BILLING_ILS_ENABLED !== 'true') {
+  // Shekel billing does not exist yet, and Creem charges USD only. Israeli visitors are
+  // always refused before Creem. On Vercel an unknown country also fails closed.
+  const country = String(req.headers?.['x-vercel-ip-country'] || '').trim().toUpperCase();
+  if (country === 'IL') {
     return res.status(409).json({
       error: 'il_billing_not_open',
       message: 'Shekel billing for Israel is not open yet',
+    });
+  }
+  if (!country && process.env.VERCEL) {
+    return res.status(409).json({
+      error: 'country_unknown',
+      message: 'Could not determine your country, so paid checkout is not available',
     });
   }
 

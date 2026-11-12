@@ -118,7 +118,10 @@ export async function openCheckout(planId, userEmail) {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       console.error('[creem] Checkout error:', err);
-      throw new Error(err.error || 'Failed to create checkout');
+      const error = new Error(err.error || 'Failed to create checkout');
+      error.code = err.error;
+      error.status = response.status;
+      throw error;
     }
 
     const { checkout_url } = await response.json();
@@ -137,3 +140,13 @@ export async function openCheckout(planId, userEmail) {
 export function getUserPlan(user) {
   return user?.subscription_tier || 'free';
 }
+
+/** True when the server refused checkout because paid plans are closed for this visitor's country. */
+export function isBillingClosedError(err) {
+  return err?.status === 409 && (err?.code === 'il_billing_not_open' || err?.code === 'country_unknown');
+}
+
+export const BILLING_CLOSED_MESSAGE = {
+  he: 'התשלום בשקלים לתוכניות בתשלום ייפתח בקרוב. בינתיים אפשר להמשיך בתוכנית החינמית.',
+  en: 'Paid plans are not open in your country yet. You can keep using the free plan.',
+};

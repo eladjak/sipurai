@@ -54,7 +54,7 @@ import AIProvidersPanel from '../components/ai/AIProvidersPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
 import AccountDataControls from '../components/settings/AccountDataControls';
-import { PLANS, openCheckout } from '@/lib/creem';
+import { PLANS, openCheckout, isBillingClosedError, BILLING_CLOSED_MESSAGE } from '@/lib/creem';
 import { resolveCurrency, browserTimeZone, formatPrice, canCheckout } from '@/lib/pricing';
 import useSubscription from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
@@ -114,7 +114,11 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
     setUpgrading(planId);
     try {
       await openCheckout(planId, userEmail);
-    } catch {
+    } catch (err) {
+      if (isBillingClosedError(err)) {
+        toast({ title: BILLING_CLOSED_MESSAGE[lang], variant: 'destructive' });
+        return;
+      }
       toast({
         title: t('settings.billing.checkoutError'),
         description: t('settings.billing.checkoutErrorDesc'),
@@ -138,15 +142,10 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
           <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 px-3 py-1 text-sm shadow-md">
             {PLANS[currentPlan]?.name[lang] || t('settings.billing.free')}
           </Badge>
-          {currentPlan !== 'free' && (
-            <span className="text-sm text-gray-500">
-              {priceText(currentPlan)}
-            </span>
-          )}
         </div>
       </SettingCard>
 
-      {!checkoutOpen && (
+      {!checkoutOpen && currentPlan === 'free' && (
         <p className="text-sm text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3" role="note">
           {isRTL
             ? 'התשלום בשקלים נפתח בקרוב. עד אז אפשר ליהנות מהתוכנית החינמית.'

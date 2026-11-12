@@ -39,9 +39,10 @@ export function formatPrice(planId, currency) {
   return currency === 'ILS' ? `${amountText(amount)} ₪` : `$${amountText(amount)}`;
 }
 
-// No ILS payment provider exists yet; set VITE_BILLING_ILS_ENABLED=true to open it.
+// Becomes true only when a real shekel payment provider is wired in. There is none today,
+// and no flag may route Israeli visitors into the USD Creem checkout.
 export function isIlsCheckoutOpen() {
-  return import.meta.env.VITE_BILLING_ILS_ENABLED === 'true';
+  return false;
 }
 
 export function canCheckout(currency) {

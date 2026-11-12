@@ -40,9 +40,9 @@ const PricingSection = () => {
         t('landing.pricing.lite.f3'),
         t('landing.pricing.lite.f4'),
       ],
-      cta: t('landing.pricing.lite.cta'),
+      cta: paidPaused ? t('landing.pricing.ilsFreeCta') : t('landing.pricing.lite.cta'),
       highlighted: false,
-      link: '/sign-up?plan=lite',
+      link: paidPaused ? '/sign-up?plan=free' : '/sign-up?plan=lite',
     },
     {
       name: t('landing.pricing.premium.name'),
@@ -55,10 +55,10 @@ const PricingSection = () => {
         t('landing.pricing.premium.f3'),
         t('landing.pricing.premium.f4'),
       ],
-      cta: t('landing.pricing.premium.cta'),
+      cta: paidPaused ? t('landing.pricing.ilsFreeCta') : t('landing.pricing.premium.cta'),
       highlighted: true,
       badge: t('landing.pricing.premium.badge'),
-      link: '/sign-up?plan=premium',
+      link: paidPaused ? '/sign-up?plan=free' : '/sign-up?plan=premium',
     },
     {
       name: t('landing.pricing.family.name'),
@@ -71,9 +71,9 @@ const PricingSection = () => {
         t('landing.pricing.family.f3'),
         t('landing.pricing.family.f4'),
       ],
-      cta: t('landing.pricing.family.cta'),
+      cta: paidPaused ? t('landing.pricing.ilsFreeCta') : t('landing.pricing.family.cta'),
       highlighted: false,
-      link: '/sign-up?plan=family',
+      link: paidPaused ? '/sign-up?plan=free' : '/sign-up?plan=family',
     },
   ];
 

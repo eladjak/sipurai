@@ -10,12 +10,50 @@ const mkRes = () => {
   r.end = () => r;
   return r;
 };
-const call = async (country) => {
+const call = async (country, vercel = false) => {
+  if (vercel) process.env.VERCEL = '1'; else delete process.env.VERCEL;
   const res = mkRes();
   const headers = country ? { 'x-vercel-ip-country': country } : {};
   await handler({ method: 'POST', headers, body: { productId: 'prod_x', customerEmail: 'a@example.com' } }, res);
   return res;
 };
+
+const withFetch = async (fn) => {
+  let calls = 0;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => { calls++; return { ok: true, json: async () => ({ checkout_url: 'https://c.example/x' }) }; };
+  try { return await fn(() => calls); } finally { globalThis.fetch = realFetch; delete process.env.VERCEL; delete process.env.BILLING_ILS_ENABLED; }
+};
+
+test('IL visitor is refused even if a legacy enable flag is set', async () => {
+  process.env.CREEM_API_KEY = 'ck_test_fake';
+  process.env.BILLING_ILS_ENABLED = 'true';
+  await withFetch(async (calls) => {
+    const res = await call('IL');
+    assert.equal(res.code, 409);
+    assert.equal(res.body.error, 'il_billing_not_open');
+    assert.equal(calls(), 0);
+  });
+});
+
+test('missing country on Vercel fails closed with country_unknown', async () => {
+  process.env.CREEM_API_KEY = 'ck_test_fake';
+  await withFetch(async (calls) => {
+    const res = await call(undefined, true);
+    assert.equal(res.code, 409);
+    assert.equal(res.body.error, 'country_unknown');
+    assert.equal(calls(), 0);
+  });
+});
+
+test('missing country off Vercel (local dev) proceeds', async () => {
+  process.env.CREEM_API_KEY = 'ck_test_fake';
+  await withFetch(async (calls) => {
+    const res = await call(undefined, false);
+    assert.equal(res.code, 200);
+    assert.equal(calls(), 1);
+  });
+});
 
 test('IL visitor is refused with 409 before Creem is called', async () => {
   process.env.CREEM_API_KEY = 'ck_test_fake';

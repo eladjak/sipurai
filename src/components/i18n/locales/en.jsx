@@ -1713,6 +1713,7 @@ export default {
       firstBookNote: "First book with ALL styles \u2014 free!",
       taxNoteIls: "Prices are in Israeli shekels and all-inclusive. The business is an exempt dealer, so no VAT applies.",
       taxNoteUsd: "Prices in US dollars. Local sales tax or VAT, if any, is added at checkout and shown before you pay.",
+      ilsFreeCta: "Start free",
       ilsSoon: "Shekel billing is opening soon. Until then you can enjoy the free plan.",
       free: {
         name: "Free",

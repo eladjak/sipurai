@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { openCheckout } from "@/lib/creem";
+import { openCheckout, isBillingClosedError, BILLING_CLOSED_MESSAGE } from "@/lib/creem";
+import { resolveCurrency, browserTimeZone, canCheckout } from "@/lib/pricing";
+import { useToast } from "@/components/ui/use-toast";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { InvokeLLM } from "@/integrations/Core";
@@ -34,6 +36,7 @@ export default function Home() {
   const { user: currentUserHook } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // After landing-page → /sign-up?plan=X → Home, auto-open Creem checkout for paid tiers.
   // Wave-7: ties pricing CTA selection through to checkout.
@@ -44,11 +47,17 @@ export default function Home() {
     if (!currentUserHook?.email) return;
     searchParams.delete("plan");
     setSearchParams(searchParams, { replace: true });
+    // Israeli visitors cannot pay yet (no shekel provider): just land on the app.
+    if (!canCheckout(resolveCurrency({ language: currentLanguage, timeZone: browserTimeZone() }))) return;
     openCheckout(plan, currentUserHook.email).catch((err) => {
       if (import.meta.env.DEV) console.warn("[Home] auto-checkout failed:", err);
+      if (isBillingClosedError(err)) {
+        toast({ title: BILLING_CLOSED_MESSAGE[isRTL ? "he" : "en"], variant: "destructive" });
+        return;
+      }
       navigate("/Settings?tab=billing");
     });
-  }, [searchParams, currentUserHook?.email, setSearchParams, navigate]);
+  }, [searchParams, currentUserHook?.email, setSearchParams, navigate, currentLanguage, isRTL, toast]);
 
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("onboarding_complete")
