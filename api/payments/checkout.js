@@ -10,7 +10,7 @@
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || 'https://sipurai.ai',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -28,8 +28,31 @@ export default async function handler(req, res) {
     res.setHeader(key, value);
   }
 
+  if (req.method === 'GET') {
+    // Which country the visitor is in, per Vercel's geo header. Used only to pick the currency shown.
+    const geo = String(req.headers?.['x-vercel-ip-country'] || '').trim().toUpperCase();
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ country: geo });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Shekel billing does not exist yet, and Creem charges USD only. Israeli visitors are
+  // always refused before Creem. On Vercel an unknown country also fails closed.
+  const country = String(req.headers?.['x-vercel-ip-country'] || '').trim().toUpperCase();
+  if (country === 'IL') {
+    return res.status(409).json({
+      error: 'il_billing_not_open',
+      message: 'Shekel billing for Israel is not open yet',
+    });
+  }
+  if (!country && process.env.VERCEL) {
+    return res.status(409).json({
+      error: 'country_unknown',
+      message: 'Could not determine your country, so paid checkout is not available',
+    });
   }
 
   const apiKey = process.env.CREEM_API_KEY;

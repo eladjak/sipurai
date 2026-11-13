@@ -54,7 +54,9 @@ import AIProvidersPanel from '../components/ai/AIProvidersPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
 import AccountDataControls from '../components/settings/AccountDataControls';
-import { PLANS, openCheckout } from '@/lib/creem';
+import { PLANS, openCheckout, isBillingClosedError, BILLING_CLOSED_MESSAGE } from '@/lib/creem';
+import useVisitorCountry from '@/hooks/useVisitorCountry';
+import { resolveCurrency, browserTimeZone, formatPrice, canCheckout } from '@/lib/pricing';
 import useSubscription from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -92,9 +94,20 @@ function SettingCard({ title, icon, children, isRTL, className = "" }) {
 }
 
 function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const country = useVisitorCountry();
+  const pricePending = country === null; // still asking the server which country we are in
+  const currency = resolveCurrency({ country: country || '', language, timeZone: browserTimeZone() });
+  const checkoutOpen = !pricePending && canCheckout(currency);
+  const priceText = (planId) => {
+    if (pricePending) return '…';
+    const p = formatPrice(planId, currency);
+    return planId === 'free' ? p : `${p} / ${t('landing.pricing.period')}`;
+  };
   const [upgrading, setUpgrading] = useState(null); // planId being upgraded
   const [confirmPlan, setConfirmPlan] = useState(null); // plan awaiting confirmation
+  // If payment becomes unavailable (country re-checked as Israel), close an open confirmation.
+  useEffect(() => { if (!checkoutOpen) setConfirmPlan(null); }, [checkoutOpen]);
   const lang = isRTL ? 'he' : 'en';
 
   const handleUpgrade = (planId) => {
@@ -107,7 +120,11 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
     setUpgrading(planId);
     try {
       await openCheckout(planId, userEmail);
-    } catch {
+    } catch (err) {
+      if (isBillingClosedError(err)) {
+        toast({ title: BILLING_CLOSED_MESSAGE[lang], variant: 'destructive' });
+        return;
+      }
       toast({
         title: t('settings.billing.checkoutError'),
         description: t('settings.billing.checkoutErrorDesc'),
@@ -131,13 +148,14 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
           <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 px-3 py-1 text-sm shadow-md">
             {PLANS[currentPlan]?.name[lang] || t('settings.billing.free')}
           </Badge>
-          {currentPlan !== 'free' && (
-            <span className="text-sm text-gray-500">
-              {PLANS[currentPlan]?.priceDisplay?.[lang] || PLANS[currentPlan]?.priceDisplay?.en}
-            </span>
-          )}
         </div>
       </SettingCard>
+
+      {!pricePending && !checkoutOpen && currentPlan === 'free' && (
+        <p className="text-sm text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3" role="note">
+          {t('settings.billing.ilsSoonNote')}
+        </p>
+      )}
 
       {/* Plan cards */}
       <div className="grid md:grid-cols-4 gap-4">
@@ -169,7 +187,9 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                   )}
                 </CardTitle>
                 <div className={`text-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {planDef.priceDisplay?.[lang] || planDef.priceDisplay?.en}
+                  {isCurrent && isPaid
+                    ? t('settings.billing.billedAsReceipt')
+                    : priceText(planDef.id)}
                 </div>
               </CardHeader>
               <CardContent className="px-5 pb-5">
@@ -189,10 +209,12 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
                   <Button
                     className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0 shadow-md"
                     onClick={() => handleUpgrade(planDef.id)}
-                    disabled={!!upgrading}
+                    disabled={!!upgrading || !checkoutOpen}
                   >
-                    {isLoadingThis ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {isLoadingThis || pricePending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-label={t('settings.billing.loadingPrice')} />
+                    ) : !checkoutOpen ? (
+                      t('settings.billing.ilsSoonButton')
                     ) : (
                       t('settings.billing.upgradeNow')
                     )}
@@ -218,8 +240,8 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
             <AlertDialogDescription className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
               <span className="block">
                 {isRTL
-                  ? `את/ה עומד/ת לשדרג לתוכנית ${PLANS[confirmPlan]?.name?.he || ''} (${PLANS[confirmPlan]?.priceDisplay?.he || ''}).`
-                  : `You are about to upgrade to the ${PLANS[confirmPlan]?.name?.en || ''} plan (${PLANS[confirmPlan]?.priceDisplay?.en || ''}).`}
+                  ? `את/ה עומד/ת לשדרג לתוכנית ${PLANS[confirmPlan]?.name?.he || ''} (${confirmPlan ? priceText(confirmPlan) : ''}).`
+                  : `You are about to upgrade to the ${PLANS[confirmPlan]?.name?.en || ''} plan (${confirmPlan ? priceText(confirmPlan) : ''}).`}
               </span>
               <span className="block">
                 {isRTL

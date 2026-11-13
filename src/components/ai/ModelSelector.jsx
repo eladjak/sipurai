@@ -633,21 +633,6 @@ export default function ModelSelector({
                 {tier === 'premium' && '💎'} 
                 {t(`modelSelector.${tier}`)}
               </h3>
-              {tier === 'creator' && userTier === 'free' && (
-                <Badge variant="outline" className="text-xs">
-                  $15/month
-                </Badge>
-              )}
-              {tier === 'pro' && (userTier === 'free' || userTier === 'creator') && (
-                <Badge variant="outline" className="text-xs">
-                  $40/month
-                </Badge>
-              )}
-              {tier === 'premium' && userTier !== 'premium' && (
-                <Badge variant="outline" className="text-xs">
-                  $80/month
-                </Badge>
-              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

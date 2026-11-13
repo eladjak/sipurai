@@ -4,18 +4,15 @@
  * Calls our own serverless endpoint (/api/payments/checkout) which
  * proxies to Creem and keeps the API key server-side.
  *
- * Prices in USD (Creem doesn't support NIS), displayed with NIS equivalent.
- * NIS conversion rate ~3.7 (updated periodically).
+ * Creem charges in USD only. Price text shown to visitors comes from
+ * src/lib/pricing.js (shekels for Israelis, dollars for everyone else).
  */
-
-const USD_TO_NIS = 3.65;
 
 export const PLANS = {
   free: {
     id: 'free',
     name: { en: 'Free', he: 'חינמי' },
     priceUsd: 0,
-    priceDisplay: { en: 'Free', he: 'חינם' },
     features: {
       en: [
         '5 books per month',
@@ -36,10 +33,6 @@ export const PLANS = {
     creemProductId: import.meta.env.VITE_CREEM_PRODUCT_LITE,
     name: { en: 'Lite', he: 'לייט' },
     priceUsd: 3.90,
-    priceDisplay: {
-      en: '$3.90/mo',
-      he: `~${Math.round(3.90 * USD_TO_NIS)}₪ לחודש ($3.90)`,
-    },
     features: {
       en: [
         '15 books per month',
@@ -60,10 +53,6 @@ export const PLANS = {
     creemProductId: import.meta.env.VITE_CREEM_PRODUCT_PREMIUM,
     name: { en: 'Premium', he: 'פרימיום' },
     priceUsd: 7.90,
-    priceDisplay: {
-      en: '$7.90/mo',
-      he: `~${Math.round(7.90 * USD_TO_NIS)}₪ לחודש ($7.90)`,
-    },
     popular: true,
     features: {
       en: [
@@ -85,10 +74,6 @@ export const PLANS = {
     creemProductId: import.meta.env.VITE_CREEM_PRODUCT_FAMILY,
     name: { en: 'Family', he: 'משפחתי' },
     priceUsd: 9.90,
-    priceDisplay: {
-      en: '$9.90/mo',
-      he: `~${Math.round(9.90 * USD_TO_NIS)}₪ לחודש ($9.90)`,
-    },
     features: {
       en: [
         'Up to 5 child profiles',
@@ -133,7 +118,11 @@ export async function openCheckout(planId, userEmail) {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       console.error('[creem] Checkout error:', err);
-      throw new Error(err.error || 'Failed to create checkout');
+      /** @type {Error & { code?: string, status?: number }} */
+      const error = new Error(err.error || 'Failed to create checkout');
+      error.code = err.error;
+      error.status = response.status;
+      throw error;
     }
 
     const { checkout_url } = await response.json();
@@ -152,3 +141,13 @@ export async function openCheckout(planId, userEmail) {
 export function getUserPlan(user) {
   return user?.subscription_tier || 'free';
 }
+
+/** True when the server refused checkout because paid plans are closed for this visitor's country. */
+export function isBillingClosedError(err) {
+  return err?.status === 409 && (err?.code === 'il_billing_not_open' || err?.code === 'country_unknown');
+}
+
+export const BILLING_CLOSED_MESSAGE = {
+  he: 'התשלום בשקלים לתוכניות בתשלום ייפתח בקרוב. בינתיים אפשר להמשיך בתוכנית החינמית.',
+  en: 'Paid plans are not open in your country yet. You can keep using the free plan.',
+};

@@ -10,7 +10,7 @@
 
 import { getModel } from './_lib/modelRegistry.js';
 
-const SYSTEM_PROMPT = `אתה צ'אטבוט ידידותי באתר סיפוראי — sipurai.ai — פלטפורמת AI בעברית ליצירת ספרי ילדים מותאמים אישית.
+const PROMPT_HEAD = `אתה צ'אטבוט ידידותי באתר סיפוראי — sipurai.ai — פלטפורמת AI בעברית ליצירת ספרי ילדים מותאמים אישית.
 
 תשובות בעברית, חמות ואישיות, קצרות (2-4 משפטים). אם מישהו רוצה ניסיון — שלח אותו ל"התחילו בחינם".
 
@@ -21,20 +21,50 @@ const SYSTEM_PROMPT = `אתה צ'אטבוט ידידותי באתר סיפורא
 - 18 סגנונות איור (Disney, Cartoon, Watercolor, Pixar וכו')
 - ייצוא PDF להדפסה
 
-מסלולים (USD):
+מסלולים:
 - חינם: 5 ספרים בחודש, 6 סגנונות, ייצוא PDF אחד
-- לייט ($3.90): 15 ספרים, 18 סגנונות, ייצוא ללא הגבלה
-- פרימיום ($7.90): ספרים ללא הגבלה, תמיכה מועדפת ⭐
-- משפחתי ($9.90): עד 5 פרופילי ילדים, כל תכונות הפרימיום
+- לייט: 15 ספרים, 18 סגנונות, ייצוא ללא הגבלה
+- פרימיום: ספרים ללא הגבלה, תמיכה מועדפת ⭐
+- משפחתי: עד 5 פרופילי ילדים, כל תכונות הפרימיום
 
-חוקים חשובים:
-- כל המחירים בש״ח: כפל ב-3.65 (לייט ~₪14, פרימיום ~₪29, משפחתי ~₪36)
+`;
+const PROMPT_TAIL = `חוקים חשובים:
 - כל ספר נשאר אצלך לתמיד
 - בלי פרסומות (גם בחינם)
 - המידע נשמר באופן מאובטח ב-Supabase
 - אם שואלים משהו שלא יודעים — הפנה ל-support@sipurai.ai
 
 מטרה: לעזור לילדים ישראלים לקבל ספרים בעברית מותאמים — הילד הוא הגיבור.`;
+
+const PRICES_IL = `מחירים (חשוב לדייק, לא לעגל ולא להמיר):
+- בישראל המחירים בשקלים, לחודש: לייט 14.90 ₪, פרימיום 29 ₪, משפחתי 39 ₪. זה המחיר הכולל (העסק הוא עוסק פטור, אין מע״מ). ההרשמה לתוכניות בתשלום בישראל תיפתח בקרוב; בינתיים אפשר להתחיל בתוכנית החינמית.
+- לעולם לא לציין מחירים במטבע אחר ולא להמיר בין מטבעות.
+
+`;
+const PRICES_ABROAD = `מחירים (חשוב לדייק, לא לעגל ולא להמיר):
+- המחירים בדולרים, לחודש: לייט $3.90, פרימיום $7.90, משפחתי $9.90. מס מקומי, אם חל, מתווסף ומוצג בדף התשלום לפני האישור.
+- לעולם לא לציין מחירים במטבע אחר ולא להמיר בין מטבעות.
+
+`;
+
+/** Only the price set that applies to the visitor's country goes into the prompt. Unknown country -> Israel set. */
+export function buildSystemPrompt(country) {
+  const c = String(country || '').trim().toUpperCase();
+  return PROMPT_HEAD + (c && c !== 'IL' ? PRICES_ABROAD : PRICES_IL) + PROMPT_TAIL;
+}
+
+
+// Israeli (or unknown-country) visitors must never be shown a dollar price (Consumer
+// Protection Law s.17D). The prompt asks the model for shekels only; this check enforces it
+// on the answer itself, because a user can ask for dollars or paste them into the chat.
+const DOLLAR_RE = /\$|US\s?D|דולר|dollar/i;
+export const IL_SAFE_PRICE_ANSWER = 'בישראל המחירים לחודש הם: לייט 14.90 ₪, פרימיום 29 ₪, משפחתי 39 ₪. זה המחיר הכולל. ההרשמה לתוכניות בתשלום בישראל תיפתח בקרוב, ובינתיים אפשר להתחיל בתוכנית החינמית.';
+export function guardAnswer(content, country) {
+  const c = String(country || '').toUpperCase();
+  const israelOrUnknown = !c || c === 'IL';
+  if (israelOrUnknown && DOLLAR_RE.test(String(content || ''))) return IL_SAFE_PRICE_ANSWER;
+  return content;
+}
 
 export default async function handler(req, res) {
   // CORS for sipurai.ai
@@ -65,7 +95,7 @@ export default async function handler(req, res) {
     }
     const recent = messages.slice(-10);
     const conversationText = recent.map(m => `${m.role === 'user' ? 'משתמש' : 'אסיסטנט'}: ${m.content}`).join('\n');
-    const fullPrompt = `${SYSTEM_PROMPT}\n\nשיחה עד כה:\n${conversationText}\n\nאסיסטנט:`;
+    const fullPrompt = `${buildSystemPrompt(req.headers?.['x-vercel-ip-country'])}\n\nשיחה עד כה:\n${conversationText}\n\nאסיסטנט:`;
 
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getModel('text')}:generateContent`, {
       method: 'POST',
@@ -92,7 +122,7 @@ export default async function handler(req, res) {
 
     const data = await r.json();
     const content = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "סליחה, לא הבנתי. נסה לנסח שאלה אחרת.";
-    return res.status(200).json({ content });
+    return res.status(200).json({ content: guardAnswer(content, req.headers?.['x-vercel-ip-country']) });
   } catch (err) {
     console.error('[chat-faq] error:', err.message);
     return res.status(500).json({ error: 'Internal error', content: "סליחה, נסה שוב בעוד רגע." });

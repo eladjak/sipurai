@@ -6,14 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/components/i18n/i18nProvider';
+import useVisitorCountry from '@/hooks/useVisitorCountry';
+import { resolveCurrency, browserTimeZone, formatPrice, isIlsCheckoutOpen } from '@/lib/pricing';
 
 const PricingSection = () => {
-  const { t, isRTL } = useI18n();
+  const { t, isRTL, language } = useI18n();
+  const country = useVisitorCountry();
+  const pricePending = country === null; // still asking the server which country we are in
+  const currency = resolveCurrency({ country: country || '', language, timeZone: browserTimeZone() });
+  // While loading, paid links stay as chosen: Home asks the server for the country before any
+  // checkout, so an Israeli who clicks early still never reaches a dollar checkout.
+  const paidPaused = !pricePending && currency === 'ILS' && !isIlsCheckoutOpen();
+  const priceFor = (id) => (pricePending ? '…' : formatPrice(id, currency));
 
   const plans = [
     {
       name: t('landing.pricing.free.name'),
-      price: t('landing.pricing.free.price'),
+      id: 'free',
+      price: priceFor('free'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.free.f1'),
@@ -27,7 +37,8 @@ const PricingSection = () => {
     },
     {
       name: t('landing.pricing.lite.name'),
-      price: t('landing.pricing.lite.price'),
+      id: 'lite',
+      price: priceFor('lite'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.lite.f1'),
@@ -35,13 +46,14 @@ const PricingSection = () => {
         t('landing.pricing.lite.f3'),
         t('landing.pricing.lite.f4'),
       ],
-      cta: t('landing.pricing.lite.cta'),
+      cta: paidPaused ? t('landing.pricing.ilsFreeCta') : t('landing.pricing.lite.cta'),
       highlighted: false,
-      link: '/sign-up?plan=lite',
+      link: paidPaused ? '/sign-up?plan=free' : '/sign-up?plan=lite',
     },
     {
       name: t('landing.pricing.premium.name'),
-      price: t('landing.pricing.premium.price'),
+      id: 'premium',
+      price: priceFor('premium'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.premium.f1'),
@@ -49,14 +61,15 @@ const PricingSection = () => {
         t('landing.pricing.premium.f3'),
         t('landing.pricing.premium.f4'),
       ],
-      cta: t('landing.pricing.premium.cta'),
+      cta: paidPaused ? t('landing.pricing.ilsFreeCta') : t('landing.pricing.premium.cta'),
       highlighted: true,
       badge: t('landing.pricing.premium.badge'),
-      link: '/sign-up?plan=premium',
+      link: paidPaused ? '/sign-up?plan=free' : '/sign-up?plan=premium',
     },
     {
       name: t('landing.pricing.family.name'),
-      price: t('landing.pricing.family.price'),
+      id: 'family',
+      price: priceFor('family'),
       period: t('landing.pricing.period'),
       features: [
         t('landing.pricing.family.f1'),
@@ -64,9 +77,9 @@ const PricingSection = () => {
         t('landing.pricing.family.f3'),
         t('landing.pricing.family.f4'),
       ],
-      cta: t('landing.pricing.family.cta'),
+      cta: paidPaused ? t('landing.pricing.ilsFreeCta') : t('landing.pricing.family.cta'),
       highlighted: false,
-      link: '/sign-up?plan=family',
+      link: paidPaused ? '/sign-up?plan=free' : '/sign-up?plan=family',
     },
   ];
 
@@ -154,6 +167,12 @@ const PricingSection = () => {
                     </span>
                   </div>
 
+                  {!pricePending && paidPaused && plan.id !== 'free' && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300 -mt-3 mb-4" role="note">
+                      {t('landing.pricing.ilsSoon')}
+                    </p>
+                  )}
+
                   {/* Features */}
                   <ul className="space-y-2.5 mb-6">
                     {plan.features.map((feature, fIndex) => (
@@ -190,6 +209,10 @@ const PricingSection = () => {
             </motion.div>
           ))}
         </div>
+
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-8 max-w-2xl mx-auto">
+          {pricePending ? '\u00a0' : (currency === 'ILS' ? t('landing.pricing.taxNoteIls') : t('landing.pricing.taxNoteUsd'))}
+        </p>
       </div>
     </section>
   );

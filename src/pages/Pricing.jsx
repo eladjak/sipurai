@@ -19,7 +19,7 @@ export default function Pricing() {
 
   const heading = t('landing.pricing.heading') || t('landing.pricing.sectionTitle') || (isRTL ? 'מסלולים פשוטים, ערך גדול' : 'Simple plans, big value');
   const subheading = t('landing.pricing.subheading') || t('landing.pricing.sectionSubtitle') || (isRTL ? 'התחילו חינם, שדרגו כשהילדים יוצרים יותר.' : 'Start free, upgrade as you go.');
-  const guaranteeNote = t('landing.pricing.guaranteeNote') || (isRTL ? 'ניתן לבטל מתי שרוצים. החיוב מתבצע בדולרים, התצוגה בש״ח להתמצאות בלבד.' : 'Cancel any time. Charged in USD, NIS shown for reference.');
+  const guaranteeNote = t('landing.pricing.guaranteeNote');
   const haveQuestions = t('common.haveQuestions') || (isRTL ? 'יש שאלות? דברו איתנו' : 'Questions? Get in touch');
   const homeLabel = t('common.home') || (isRTL ? 'דף הבית' : 'Home');
 

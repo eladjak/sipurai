@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { openCheckout } from "@/lib/creem";
+import { getVisitorCountry } from "@/lib/visitorCountry";
+import { openCheckout, isBillingClosedError, BILLING_CLOSED_MESSAGE } from "@/lib/creem";
+import { resolveCurrency, browserTimeZone, canCheckout } from "@/lib/pricing";
+import { useToast } from "@/components/ui/use-toast";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { InvokeLLM } from "@/integrations/Core";
@@ -34,21 +37,39 @@ export default function Home() {
   const { user: currentUserHook } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // After landing-page → /sign-up?plan=X → Home, auto-open Creem checkout for paid tiers.
   // Wave-7: ties pricing CTA selection through to checkout.
+  // Late answers after the user has left Home are ignored (mountedRef), but a re-render of
+  // Home itself (e.g. removing ?plan from the URL) must not cancel the pending decision.
+  const mountedRef = useRef(true);
+  const handledPlanRef = useRef(null);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   useEffect(() => {
     const plan = searchParams.get("plan");
     if (!plan || plan === "free") return;
     if (!["lite", "premium", "family"].includes(plan)) return;
     if (!currentUserHook?.email) return;
-    searchParams.delete("plan");
-    setSearchParams(searchParams, { replace: true });
-    openCheckout(plan, currentUserHook.email).catch((err) => {
+    if (handledPlanRef.current === plan) return;
+    handledPlanRef.current = plan;
+    // Israeli visitors cannot pay yet (no shekel provider): just land on the app.
+    getVisitorCountry().then((country) => {
+      if (!mountedRef.current) return;
+      const next = new URLSearchParams(window.location.search);
+      next.delete("plan");
+      setSearchParams(next, { replace: true });
+      if (!canCheckout(resolveCurrency({ country, language: currentLanguage, timeZone: browserTimeZone() }))) return;
+      return openCheckout(plan, currentUserHook.email);
+    }).catch((err) => {
       if (import.meta.env.DEV) console.warn("[Home] auto-checkout failed:", err);
+      if (isBillingClosedError(err)) {
+        toast({ title: BILLING_CLOSED_MESSAGE[isRTL ? "he" : "en"], variant: "destructive" });
+        return;
+      }
       navigate("/Settings?tab=billing");
     });
-  }, [searchParams, currentUserHook?.email, setSearchParams, navigate]);
+  }, [searchParams, currentUserHook?.email, setSearchParams, navigate, currentLanguage, isRTL, toast]);
 
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("onboarding_complete")
