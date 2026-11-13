@@ -6,7 +6,7 @@
  * -> admin allowlist (403, fail closed) -> logic.
  */
 import { requireClerkAuth } from '../verifyClerk.js';
-import { ACTION_CLASS, ZOEY_NAME, checkAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
+import { ACTION_CLASS, ZOEY_NAME, WRITES_PER_MINUTE as AGENT_WRITES_PER_MINUTE, checkAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
@@ -222,6 +222,17 @@ export function endpoint(name) {
           const confirm = chk.text;
           if (!confirm) return send(res, 428, { error: 'agent_confirm_required', class: cls, reason: chk.reason });
           if (writeRateLimited()) return send(res, 429, { error: 'rate_limited', class: 'rate_limit' });
+          // Shared limit across serverless instances (release review 13.11): every guarded
+          // write leaves an audit row first, so the audit table is the shared counter.
+          // Count unavailable -> fail closed.
+          try {
+            const since = new Date(Date.now() - 60_000).toISOString();
+            if ((await deps.store.countAgentAuditSince(ZOEY_NAME, since)) >= AGENT_WRITES_PER_MINUTE) {
+              return send(res, 429, { error: 'rate_limited', class: 'rate_limit' });
+            }
+          } catch {
+            return send(res, 503, { error: 'agent_audit_unavailable' });
+          }
           // Fail closed: no audit row, no action.
           try {
             await deps.store.addAgentAudit({ actor: ZOEY_NAME, action: `orders.${body.action}`, guard_class: cls, target: String(body.id || ''), confirm_text: confirm });

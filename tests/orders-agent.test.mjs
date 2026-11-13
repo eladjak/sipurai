@@ -118,3 +118,22 @@ test('a Clerk admin session is unchanged: cancel without any confirm header stil
   assert.equal(r.status, 200);
   assert.equal(d.store._agentAudit.length, 0);
 });
+
+test('release review 13.11: the limit is shared across instances (audit table is the counter)', async () => {
+  const d = deps();
+  const id = await orderId(d);
+  // 60 guarded writes made by ANOTHER serverless instance in the last minute (this process's in-memory counter is empty).
+  for (let i = 0; i < 60; i++) await d.store.addAgentAudit({ actor: 'Zoey (סוכנת)', action: 'orders.mark_shipped', guard_class: 'send', target: id, confirm_text: CONFIRM });
+  const r = await call(act, agentReq('POST', { confirm: CONFIRM, body: { id, action: 'cancel' } }), d);
+  assert.equal(r.status, 429);
+  assert.equal(d.store._orders.get(id).status, 'awaiting_payment');
+});
+
+test('release review 13.11: shared counter unavailable -> 503, action does not run', async () => {
+  const d = deps();
+  const id = await orderId(d);
+  d.store.countAgentAuditSince = async () => { throw new Error('db down'); };
+  const r = await call(act, agentReq('POST', { confirm: CONFIRM, body: { id, action: 'cancel' } }), d);
+  assert.equal(r.status, 503);
+  assert.equal(d.store._orders.get(id).status, 'awaiting_payment');
+});

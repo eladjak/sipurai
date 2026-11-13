@@ -18,6 +18,7 @@
  *   listAlerts(limit)                -> event[]       (type starts with "alert")
  *   listStuck({paidBefore})          -> row[]
  *   addAgentAudit(entry)             -> void          (Zoey agent audit; table agent_audit)
+ *   countAgentAuditSince(actor, iso) -> number        (shared rate limit across serverless instances)
  */
 import crypto from 'node:crypto';
 
@@ -123,6 +124,9 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
     async addAgentAudit(entry) {
       agentAudit.push({ ...clone(entry), created_at: ts() });
     },
+    async countAgentAuditSince(actor, sinceIso) {
+      return agentAudit.filter((a) => a.actor === actor && a.created_at >= sinceIso).length;
+    },
     async addEvent(orderId, type, data = {}) {
       events.push({ id: ++eventSeq, order_id: orderId, type, data: clone(data), created_at: ts() });
     },
@@ -217,6 +221,15 @@ export function createSupabaseStore(db) {
     },
     async addAgentAudit(entry) {
       must(await db.from('agent_audit').insert(entry));
+    },
+    async countAgentAuditSince(actor, sinceIso) {
+      const { count, error } = await db
+        .from('agent_audit')
+        .select('id', { count: 'exact', head: true })
+        .eq('actor', actor)
+        .gte('created_at', sinceIso);
+      if (error || typeof count !== 'number') throw new Error('agent audit count unavailable');
+      return count;
     },
     async addEvent(orderId, type, data = {}) {
       must(await db.from('print_order_events').insert({ order_id: orderId, type, data }));
