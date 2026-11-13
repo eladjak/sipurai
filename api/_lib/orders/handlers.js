@@ -6,7 +6,7 @@
  * -> admin allowlist (403, fail closed) -> logic.
  */
 import { requireClerkAuth } from '../verifyClerk.js';
-import { ACTION_CLASS, ZOEY_NAME, WRITES_PER_MINUTE as AGENT_WRITES_PER_MINUTE, checkAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
+import { ACTION_CLASS, AGENT_DISPLAY_NAME, WRITES_PER_MINUTE as AGENT_WRITES_PER_MINUTE, checkAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
 import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
@@ -200,12 +200,12 @@ export function endpoint(name) {
       if (!isEnabled(env)) return fail(res, 404, 'disabled', 'השירות אינו פעיל');
 
       const deps = overrides?.store ? { env, ...overrides } : { ...(await defaultDeps(env)), ...overrides, env };
-      // Zoey (סוכנת): an agent key is accepted ONLY on the admin endpoints, as an alternative to a Clerk admin.
+      // סוכן: an agent key is accepted ONLY on the admin endpoints, as an alternative to a Clerk admin.
       const agent = def.admin ? verifyAgentKey(req, env) : { present: false };
       if (agent.present && !agent.ok) return fail(res, 401, 'unauthorized', 'נדרשת התחברות');
       let userId;
       if (agent.present) {
-        userId = ZOEY_NAME;
+        userId = AGENT_DISPLAY_NAME;
       } else {
         const auth = await deps.auth(req);
         userId = auth?.ok ? auth.payload?.sub : null;
@@ -227,7 +227,7 @@ export function endpoint(name) {
           // Count unavailable -> fail closed.
           try {
             const since = new Date(Date.now() - 60_000).toISOString();
-            if ((await deps.store.countAgentAuditSince(ZOEY_NAME, since)) >= AGENT_WRITES_PER_MINUTE) {
+            if ((await deps.store.countAgentAuditSince(AGENT_DISPLAY_NAME, since)) >= AGENT_WRITES_PER_MINUTE) {
               return send(res, 429, { error: 'rate_limited', class: 'rate_limit' });
             }
           } catch {
@@ -235,7 +235,7 @@ export function endpoint(name) {
           }
           // Fail closed: no audit row, no action.
           try {
-            await deps.store.addAgentAudit({ actor: ZOEY_NAME, action: `orders.${body.action}`, guard_class: cls, target: String(body.id || ''), confirm_text: confirm });
+            await deps.store.addAgentAudit({ actor: AGENT_DISPLAY_NAME, action: `orders.${body.action}`, guard_class: cls, target: String(body.id || ''), confirm_text: confirm });
           } catch {
             return send(res, 503, { error: 'agent_audit_unavailable' });
           }

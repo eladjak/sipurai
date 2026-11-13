@@ -1,9 +1,9 @@
--- Zoey (סוכנת) agent audit trail for Sipurai. NOT APPLIED to any database by this PR.
+-- סוכן agent audit trail for Sipurai. NOT APPLIED to any database by this PR.
 -- Apply manually in the go-live phase, before enabling SIPURAI_AGENT_KEY_SHA256.
 -- Service role only (RLS on, no policies). Rollback: migrations/rollbacks/20261112_agent_audit.rollback.sql
 CREATE TABLE IF NOT EXISTS public.agent_audit (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  actor        text NOT NULL,             -- 'Zoey (סוכנת)'
+  actor        text NOT NULL,             -- 'סוכן'
   action       text NOT NULL,             -- e.g. orders.cancel
   guard_class  text NOT NULL CHECK (guard_class IN ('money','send','delete','access')),
   target       text,                      -- order id
