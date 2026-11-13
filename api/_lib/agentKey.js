@@ -1,11 +1,11 @@
 /**
- * "Zoey (סוכנת)" agent identity for Sipurai admin endpoints (owner decision 12.11.2026).
+ * "סוכן" agent identity for Sipurai admin endpoints (owner decision 12.11.2026).
  *
  * An agent key is an alternative to a Clerk admin session for the SAME admin endpoints
  * (/api/orders/admin-list, /api/orders/admin-action) - the rights ADMIN-listed Clerk ids have there,
  * nothing more. It does not touch the Clerk verifier.
  *
- *   Key shape:   szoey_<64 hex>             (raw key lives only in the vault file on the server)
+ *   Key shape:   sagent_<64 hex>             (raw key lives only in the vault file on the server)
  *   Server env:  SIPURAI_AGENT_KEY_SHA256   (hex sha256 of the raw key; the raw key is never in Vercel)
  *   Revoke:      delete/blank the env var (instant 401 for the key). Rotate: replace with the new hash.
  *
@@ -16,8 +16,9 @@
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
 
-export const ZOEY_NAME = 'Zoey (סוכנת)';
-export const KEY_PREFIX = 'szoey_';
+// Display name shown in audit rows / event actors. Override with SIPURAI_AGENT_DISPLAY_NAME; default is neutral.
+export const AGENT_DISPLAY_NAME = (process.env.SIPURAI_AGENT_DISPLAY_NAME || '').trim() || 'סוכן';
+export const KEY_PREFIX = 'sagent_';
 export const CONFIRM_MIN_CHARS = 20;
 export const WRITES_PER_MINUTE = 60;
 
@@ -73,13 +74,13 @@ export function readAgentConfirm(req) {
 const hits = new Map();
 /** true = over the limit */
 export function writeRateLimited(now = Date.now()) {
-  const recent = (hits.get('zoey') || []).filter((t) => now - t < 60_000);
+  const recent = (hits.get('agent') || []).filter((t) => now - t < 60_000);
   if (recent.length >= WRITES_PER_MINUTE) {
-    hits.set('zoey', recent);
+    hits.set('agent', recent);
     return true;
   }
   recent.push(now);
-  hits.set('zoey', recent);
+  hits.set('agent', recent);
   return false;
 }
 export const resetRateLimitForTests = () => hits.clear();

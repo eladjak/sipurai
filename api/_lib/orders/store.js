@@ -17,7 +17,7 @@
  *   listEvents(orderId)              -> event[]
  *   listAlerts(limit)                -> event[]       (type starts with "alert")
  *   listStuck({paidBefore})          -> row[]
- *   addAgentAudit(entry)             -> void          (Zoey agent audit; table agent_audit)
+ *   addAgentAudit(entry)             -> void          (agent audit; table agent_audit)
  *   countAgentAuditSince(actor, iso) -> number        (shared rate limit across serverless instances)
  */
 import crypto from 'node:crypto';

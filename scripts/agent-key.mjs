@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Create / rotate / revoke the "Zoey (סוכנת)" key for Sipurai admin endpoints.
- *   node scripts/zoey-agent-key.mjs generate --out <vault.env> --hash-out <hash.txt> [--base-url URL]
- *     - raw key (szoey_<64 hex>) -> ONLY the --out file (mode 600, refuses to overwrite), never printed
+ * Create / rotate / revoke the "סוכן" key for Sipurai admin endpoints.
+ *   node scripts/agent-key.mjs generate --out <vault.env> --hash-out <hash.txt> [--base-url URL]
+ *     - raw key (sagent_<64 hex>) -> ONLY the --out file (mode 600, refuses to overwrite), never printed
  *     - sha256 hex of it         -> --hash-out file (mode 600): this is what goes into Vercel env
  *                                   SIPURAI_AGENT_KEY_SHA256 (set by Elad in go-live; the raw key never leaves the vault)
  *   revoke : remove (or blank) SIPURAI_AGENT_KEY_SHA256 in Vercel and redeploy -> instant 401. No DB row to delete.
@@ -13,10 +13,10 @@ import { writeFileSync } from 'node:fs';
 const a = process.argv.slice(2);
 const f = (n) => { const i = a.indexOf(n); return i === -1 ? null : a[i + 1] ?? null; };
 if (a[0] !== 'generate' || !f('--out') || !f('--hash-out')) {
-  console.error('Usage: node scripts/zoey-agent-key.mjs generate --out <vault.env> --hash-out <hash.txt> [--base-url URL]');
+  console.error('Usage: node scripts/agent-key.mjs generate --out <vault.env> --hash-out <hash.txt> [--base-url URL]');
   process.exit(1);
 }
-const raw = `szoey_${randomBytes(32).toString('hex')}`;
+const raw = `sagent_${randomBytes(32).toString('hex')}`;
 const hash = createHash('sha256').update(raw, 'utf8').digest('hex');
 try {
   writeFileSync(f('--out'), `SIPURAI_AGENT_KEY=${raw}\nSIPURAI_BASE_URL=${f('--base-url') ?? 'https://www.sipurai.ai'}\n`, { mode: 0o600, flag: 'wx' });
