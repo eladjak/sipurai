@@ -261,12 +261,12 @@ test('CRON watcher: alert recorded once per order, webhook posted once, nothing 
   assert.equal(posts.length, 0);
   // 3h later: stuck -> one alert, one post
   r = await runStuckWatch({ ...deps, fetchImpl, now: () => new Date(t0 + 3 * 3600 * 1000) });
-  assert.deepEqual([r.checked, r.newAlerts, r.delivery], [1, 1, 'sent']);
+  assert.deepEqual([r.checked, r.newClaims, r.delivery], [1, 1, 'webhook_accepted']);
   // run again twice: no new alert, no new post
   await runStuckWatch({ ...deps, fetchImpl, now: () => new Date(t0 + 4 * 3600 * 1000) });
   r = await runStuckWatch({ ...deps, fetchImpl, now: () => new Date(t0 + 5 * 3600 * 1000) });
-  assert.equal(r.newAlerts, 0);
-  assert.equal(count(deps, orderId, 'alert_stuck:paid'), 1);
+  assert.equal(r.newClaims, 0);
+  assert.equal(count(deps, orderId, 'watch_claim:paid'), 1);
   assert.equal(posts.length, 1);
   assert.deepEqual(posts[0].body.orders.map((o) => o.id), [orderId]);
   assert.ok(!JSON.stringify(posts[0].body).includes(healthy.orderId));
@@ -276,10 +276,10 @@ test('CRON watcher: alert recorded once per order, webhook posted once, nothing 
   await handlePaymentEvent(d2, paidEvent(d2, o2.orderId));
   const noNet = async () => { throw new Error('network must not be used'); };
   r = await runStuckWatch({ ...d2, fetchImpl: noNet, now: () => new Date(Date.now() + 3 * 3600 * 1000) });
-  assert.deepEqual([r.newAlerts, r.delivery], [1, 'not_configured']);
+  assert.deepEqual([r.newClaims, r.delivery], [0, 'not_configured']);
 });
 
-test('CRON watcher: a failed delivery is retried next run without duplicating the alert row', async () => {
+test('CRON watcher: uncertain delivery is not retried automatically', async () => {
   let ok = false;
   const posts = [];
   const fetchImpl = async (u, init) => { posts.push(init.body); return { ok, status: ok ? 200 : 500 }; };
@@ -287,11 +287,11 @@ test('CRON watcher: a failed delivery is retried next run without duplicating th
   const { orderId } = await newOrder(deps);
   await handlePaymentEvent(deps, paidEvent(deps, orderId)); // failed_needs_attention
   let r = await runStuckWatch({ ...deps, fetchImpl });
-  assert.equal(r.delivery, 'failed_500');
+  assert.equal(r.delivery, 'attempt_unknown');
   ok = true;
   r = await runStuckWatch({ ...deps, fetchImpl });
-  assert.equal(r.delivery, 'sent');
-  assert.equal(r.newAlerts, 0);
-  assert.equal(count(deps, orderId, 'alert_stuck:failed_needs_attention'), 1);
-  assert.equal(posts.length, 2);
+  assert.equal(r.delivery, 'previous_claim_unknown');
+  assert.equal(r.newClaims, 0);
+  assert.equal(count(deps, orderId, 'watch_claim:failed_needs_attention'), 1);
+  assert.equal(posts.length, 1);
 });

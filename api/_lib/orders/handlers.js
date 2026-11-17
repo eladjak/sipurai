@@ -153,6 +153,7 @@ const ENDPOINTS = {
           id: a.id,
           orderId: a.order_id,
           type: a.type,
+          recipientDelivery: a.type.startsWith('watch_claim:') ? 'unknown' : undefined,
           createdAt: a.created_at,
           data: JSON.parse(sanitize(JSON.stringify(a.data ?? {}))),
         })),

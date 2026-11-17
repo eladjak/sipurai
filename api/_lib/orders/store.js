@@ -15,7 +15,7 @@
  *   addEvent(orderId, type, data)    -> void          (append-only)
  *   hasEvent(orderId, type)          -> boolean
  *   listEvents(orderId)              -> event[]
- *   listAlerts(limit)                -> event[]       (type starts with "alert")
+ *   listAlerts(limit)                -> event[]       (type starts with "alert" or "watch_claim:")
  *   listStuck({paidBefore})          -> row[]
  *   addAgentAudit(entry)             -> void          (Zoey agent audit; table agent_audit)
  *   countAgentAuditSince(actor, iso) -> number        (shared rate limit across serverless instances)
@@ -29,6 +29,16 @@ function uniqueError(constraint) {
   e.code = UNIQUE_VIOLATION;
   e.constraint = constraint;
   return e;
+}
+
+const ORDER_STATUSES = new Set(['awaiting_payment','paid','submitting','submitted','in_production','shipped','ready_for_pickup','cancelled','failed_needs_attention']);
+function selectStuck(rows, paidBefore) {
+  if (!Number.isFinite(Date.parse(paidBefore))) throw new Error('paid cutoff unavailable');
+  for (const row of rows) {
+    if (!row || !row.id || !ORDER_STATUSES.has(row.status)) throw new Error('print order status unavailable');
+    if (row.status === 'paid' && (!row.paid_at || !Number.isFinite(Date.parse(row.paid_at)))) throw new Error('paid timestamp unavailable');
+  }
+  return rows.filter(o => o.status === 'failed_needs_attention' || (o.status === 'paid' && Date.parse(o.paid_at) < Date.parse(paidBefore)));
 }
 
 /* ------------------------------------------------------------------ */
@@ -130,6 +140,12 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
     async addEvent(orderId, type, data = {}) {
       events.push({ id: ++eventSeq, order_id: orderId, type, data: clone(data), created_at: ts() });
     },
+    async tryWatchClaim(orderId, status) {
+      const type = `watch_claim:${status}`;
+      if (events.some(e => e.order_id === orderId && e.type === type)) return false;
+      events.push({ id: ++eventSeq, order_id: orderId, type, data: {}, created_at: ts() });
+      return true;
+    },
     async hasEvent(orderId, type) {
       return events.some((e) => e.order_id === orderId && e.type === type);
     },
@@ -137,16 +153,10 @@ export function createMemoryStore({ books = [], now = () => new Date() } = {}) {
       return events.filter((e) => e.order_id === orderId).map(clone);
     },
     async listAlerts(limit = 50) {
-      return events.filter((e) => e.type.startsWith('alert')).slice(-limit).reverse().map(clone);
+      return events.filter((e) => (e.type.startsWith('alert') || e.type.startsWith('watch_claim:'))).slice(-limit).reverse().map(clone);
     },
     async listStuck({ paidBefore }) {
-      return [...orders.values()]
-        .filter(
-          (o) =>
-            o.status === 'failed_needs_attention' ||
-            (o.status === 'paid' && o.paid_at && o.paid_at < paidBefore),
-        )
-        .map(clone);
+      return selectStuck([...orders.values()].map(clone), paidBefore);
     },
   };
 }
@@ -234,6 +244,12 @@ export function createSupabaseStore(db) {
     async addEvent(orderId, type, data = {}) {
       must(await db.from('print_order_events').insert({ order_id: orderId, type, data }));
     },
+    async tryWatchClaim(orderId, status) {
+      const { error } = await db.from('print_order_events').insert({ order_id: orderId, type: `watch_claim:${status}`, data: {} });
+      if (error?.code === '23505') return false;
+      if (error) throw new Error('watch claim unavailable');
+      return true;
+    },
     async hasEvent(orderId, type) {
       const rows = must(
         await db.from('print_order_events').select('id').eq('order_id', orderId).eq('type', type).limit(1),
@@ -245,15 +261,15 @@ export function createSupabaseStore(db) {
     },
     async listAlerts(limit = 50) {
       return must(
-        await db.from('print_order_events').select('*').like('type', 'alert%').order('id', { ascending: false }).limit(limit),
+        await db.from('print_order_events').select('*').or('type.like.alert%,type.like.watch_claim:%').order('id', { ascending: false }).limit(limit),
       );
     },
     async listStuck({ paidBefore }) {
-      const failed = must(await db.from('print_orders').select('*').eq('status', 'failed_needs_attention'));
-      const paid = must(
-        await db.from('print_orders').select('*').eq('status', 'paid').lt('paid_at', paidBefore),
-      );
-      return [...failed, ...paid];
+      // One statement gives a coherent snapshot; larger sets are unknown.
+      const result = await db.from('print_orders').select('id,status,paid_at', { count: 'exact' }).order('id').range(0, 499);
+      const rows = must(result);
+      if (!Array.isArray(rows) || !Number.isInteger(result.count) || rows.length !== result.count || new Set(rows.map(row => row.id)).size !== rows.length) throw new Error('print order source incomplete');
+      return selectStuck(rows, paidBefore);
     },
   };
 }

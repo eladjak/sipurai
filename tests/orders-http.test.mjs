@@ -163,6 +163,15 @@ test('admin sees failures and alerts, but vendor identity in error text is scrub
   assert.doesNotMatch(JSON.stringify(r.body), /bookpod|בוקפוד/i);
 });
 
+test('admin sees watcher claim with unknown recipient delivery', async () => {
+  const deps = makeDeps();
+  const id = await placeOrder(deps);
+  await deps.store.tryWatchClaim(id, 'paid');
+  const r = await call(H['admin-list'], fakeReq({method:'GET', user:ADMIN}), deps);
+  const claim = r.body.alerts.find(a => a.type === 'watch_claim:paid');
+  assert.ok(claim); assert.equal(claim.recipientDelivery, 'unknown');
+});
+
 test('CRON endpoint: bearer secret required, missing CRON_SECRET fails closed', async () => {
   const deps = makeDeps();
   const h = watchHandler();
@@ -170,7 +179,11 @@ test('CRON endpoint: bearer secret required, missing CRON_SECRET fails closed', 
   assert.equal((await call(h, fakeReq({ method: 'GET', headers: { authorization: 'Bearer wrong' } }), deps)).status, 401);
   const ok = await call(h, fakeReq({ method: 'GET', headers: { authorization: `Bearer ${CRON_TOKEN}` } }), deps);
   assert.equal(ok.status, 200);
-  assert.deepEqual(ok.body, { checked: 0, newAlerts: 0, delivery: 'not_configured' });
+  assert.equal(ok.body.checked, 0);
+  assert.equal(ok.body.newClaims, 0);
+  assert.equal(ok.body.delivery, 'not_configured');
+  assert.ok(Number.isFinite(Date.parse(ok.body.sourceReadAt)));
+  assert.ok(Number.isFinite(Date.parse(ok.body.paidBefore)));
   const noSecret = makeDeps();
   delete noSecret.env.CRON_SECRET;
   // even sending "Bearer undefined" or an empty bearer must not get in
@@ -188,4 +201,23 @@ test('NO VENDOR NAME in any response body returned during this file', () => {
 test('CONTROL: the vendor-name scan can fail (it flags a planted leak)', () => {
   const planted = [...seen, JSON.stringify({ error: { message_he: 'BookPod is down' } })];
   assert.equal(planted.filter((s) => /bookpod|book\s*pod|בוקפוד/i.test(s)).length, 1);
+});
+
+test('watch reports partial claim and webhook failures as unavailable', async () => {
+  const h=watchHandler(), req=fakeReq({method:'GET',headers:{authorization:`Bearer ${CRON_TOKEN}`}});
+  const deps=makeDeps(); deps.env.PRINT_ALERT_WEBHOOK_URL='https://example.invalid';
+  deps.store={listStuck:async()=>[{id:'a',status:'failed_needs_attention'},{id:'b',status:'failed_needs_attention'}], hasEvent:async id=>{if(id==='b') throw Error('offline');return false;}, tryWatchClaim:async()=>true};
+  deps.fetchImpl=async()=>({ok:true});
+  let r=await call(h,req,deps); assert.equal(r.status,503); assert.equal(r.body.claimCollection,'partial'); assert.equal(r.body.webhookAttempt,'accepted'); assert.equal(r.body.delivery,'claim_source_unavailable');
+  deps.store.hasEvent=async()=>false;deps.fetchImpl=async()=>({ok:false});
+  r=await call(h,req,deps);assert.equal(r.status,503);assert.equal(r.body.webhookAttempt,'unknown');
+  delete deps.env.PRINT_ALERT_WEBHOOK_URL;
+  r=await call(h,req,deps);assert.equal(r.status,503);assert.equal(r.body.webhookAttempt,'not_attempted');
+});
+
+test('watch readiness absent fails closed before source access', async () => {
+ const deps=makeDeps();delete deps.env.PRINT_WATCH_REPORT_READY;
+ deps.store={listStuck:async()=>{throw Error('must not read')}};
+ const r=await call(watchHandler(),fakeReq({method:'GET',headers:{authorization:`Bearer ${CRON_TOKEN}`}}),deps);
+ assert.equal(r.status,503);assert.equal(r.body.error.code,'watch_report_not_ready');assert.equal(r.body.sourceReadAt,null);assert.equal(r.body.claimCollection,'unavailable');
 });

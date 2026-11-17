@@ -20,13 +20,17 @@ export function watchHandler() {
     if (!secretMatches(req.headers?.authorization || req.headers?.Authorization, env.CRON_SECRET)) {
       return res.status(401).json({ error: { code: 'unauthorized' } });
     }
+    if (env.PRINT_WATCH_REPORT_READY !== 'true') {
+      return res.status(503).json({ error: { code: 'watch_report_not_ready' }, claimCollection: 'unavailable', webhookAttempt: 'not_attempted', recipientDelivery: 'unknown', sourceReadAt: null });
+    }
     try {
       const deps = overrides?.store ? { env, ...overrides } : { ...(await defaultDeps(env)), ...overrides, env };
       const out = await runStuckWatch(deps);
-      return res.status(200).json(out);
+      const unavailable = out.claimCollection !== 'complete' || out.webhookAttempt === 'unknown' || (!out.webhookConfigured && out.checked > 0);
+      return res.status(unavailable ? 503 : 200).json(out);
     } catch (e) {
       console.error('[print-orders-watch]', sanitize(e?.message));
-      return res.status(500).json({ error: { code: 'server_error' } });
+      return res.status(503).json({ error: { code: 'source_or_watcher_unavailable' }, claimCollection: 'unavailable', webhookAttempt: 'unknown', recipientDelivery: 'unknown' });
     }
   };
 }

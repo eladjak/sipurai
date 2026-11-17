@@ -332,46 +332,27 @@ export async function runStuckWatch(deps) {
   const { store, env, fetchImpl = globalThis.fetch, now = () => new Date() } = deps;
   const paidBefore = new Date(now().getTime() - 2 * 3600 * 1000).toISOString();
   const stuck = await store.listStuck({ paidBefore });
-  const fresh = [];
-  for (const o of stuck) {
-    const key = `alert_stuck:${o.status}`;
-    if (await store.hasEvent(o.id, key)) continue;
-    await store.addEvent(o.id, key, { status: o.status, paidAt: o.paid_at, lastError: sanitize(o.vendor_last_error) });
-    fresh.push(o);
-  }
-
-  let delivery = 'not_configured';
-  const url = env.PRINT_ALERT_WEBHOOK_URL;
-  if (url) {
-    // Everything stuck whose alert was not delivered yet (covers a failed earlier delivery).
-    const toSend = [];
+  const sourceReadAt = now().toISOString();
+  if (!Array.isArray(stuck) || stuck.some(o => !o || !o.id || !['paid', 'failed_needs_attention'].includes(o.status))) throw new Error('print order source invalid');
+  const claimed = []; let priorUnknown = 0; let claimCollection = (!env.PRINT_ALERT_WEBHOOK_URL && stuck.length) ? 'unavailable' : 'complete';
+  if (env.PRINT_ALERT_WEBHOOK_URL) {
     for (const o of stuck) {
-      if (!(await store.hasEvent(o.id, `alert_delivered:${o.status}`))) toSend.push(o);
-    }
-    if (toSend.length === 0) {
-      delivery = 'nothing_to_send';
-    } else {
+      // Legacy alert state could represent an already-sent or ambiguous attempt.
       try {
-        const res = await fetchImpl(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: `${toSend.length} הזמנות הדפסה תקועות וממתינות לטיפול`,
-            orders: toSend.map((o) => ({ id: o.id, status: o.status, paidAt: o.paid_at })),
-          }),
-        });
-        if (res.ok) {
-          for (const o of toSend) await store.addEvent(o.id, `alert_delivered:${o.status}`, {});
-          delivery = 'sent';
-        } else {
-          delivery = `failed_${res.status}`;
-        }
-      } catch (e) {
-        delivery = `failed_${sanitize(e?.message).slice(0, 60)}`;
-      }
+        if (await store.hasEvent(o.id, `alert_stuck:${o.status}`) || await store.hasEvent(o.id, `alert_delivered:${o.status}`)) { priorUnknown++; continue; }
+        if (await store.tryWatchClaim(o.id, o.status)) claimed.push(o); else priorUnknown++;
+      } catch { claimCollection = 'partial'; break; }
     }
   }
-  return { checked: stuck.length, newAlerts: fresh.length, delivery };
+  let webhookAttempt = 'not_attempted';
+  if (claimed.length) {
+    try {
+      const res = await fetchImpl(env.PRINT_ALERT_WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, signal: AbortSignal.timeout(10000), body:JSON.stringify({text:`${claimed.length} הזמנות הדפסה תקועות וממתינות לטיפול`,orders:claimed.map(o=>({id:o.id,status:o.status,paidAt:o.paid_at}))}) });
+      webhookAttempt = res.ok ? 'accepted' : 'unknown';
+    } catch { webhookAttempt = 'unknown'; }
+  }
+  const delivery = claimCollection === 'partial' ? 'claim_source_unavailable' : webhookAttempt === 'accepted' ? 'webhook_accepted' : webhookAttempt === 'unknown' ? 'attempt_unknown' : !env.PRINT_ALERT_WEBHOOK_URL ? 'not_configured' : priorUnknown ? 'previous_claim_unknown' : 'nothing_to_send';
+  return {checked:stuck.length,newClaims:claimed.length,claimCollection,webhookAttempt,delivery,recipientDelivery:'unknown',previousClaimsUnknown:priorUnknown,webhookConfigured:!!env.PRINT_ALERT_WEBHOOK_URL,sourceReadAt,paidBefore};
 }
 
 export const newIdempotencyKey = () => crypto.randomUUID();

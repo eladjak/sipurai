@@ -24,6 +24,7 @@ export const CRON_TOKEN = crypto.randomBytes(12).toString('hex');
 
 export const BASE_ENV = Object.freeze({
   PRINT_ORDER_ENABLED: 'true',
+  PRINT_WATCH_REPORT_READY: 'true',
   PRINT_ADMIN_CLERK_IDS: ADMIN,
   CRON_SECRET: CRON_TOKEN,
 });
