@@ -29,6 +29,7 @@ import { AuthProvider, FallbackAuthProvider, useAuth } from '@/lib/AuthContext';
 import ClerkLocaleProvider from '@/components/ClerkLocaleProvider';
 const SignIn = lazy(() => import('@/pages/SignIn'));
 const PrintedBookLink = lazy(() => import('@/pages/PrintedBookLink'));
+const SampleReader = lazy(() => import('@/pages/SampleReader'));
 const SignUp = lazy(() => import('@/pages/SignUp'));
 // Printed-book ordering. The env test is written inline so that, with the flag off,
 // the bundler drops these lazy imports and the screens are not in the build at all.
@@ -102,10 +103,11 @@ export const NewShellRoutes = () => {
     if (!user) return <Navigate replace to={`/sign-in?redirect_url=${encodeURIComponent(location.pathname + location.search + location.hash)}`} />;
     return shell(Page);
   };
-  return <Suspense fallback={<div role="status" aria-label={t('common.loading')} />}><PrivacyGate enabled={!!user && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
+  return <Suspense fallback={<div role="status" aria-label={t('common.loading')} />}><PrivacyGate enabled={!!user && !location.pathname.startsWith('/samples/') && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
     {Object.keys(redirects).map(from => <Route caseSensitive key={from} path={from} element={<Navigate replace to={resolveRedirect(from, location.search, location.hash)} />} />)}
     <Route path="/" element={user ? shell(Tonight) : <LandingPage />} />
     <Route path="/welcome" element={<LandingPage />} />
+    <Route path="/samples/:id" element={<SampleReader />} />
     <Route path="/sign-in/*" element={<SignIn />} /><Route path="/sign-up/*" element={<SignUp />} />
     <Route path="/blog" element={<Blog />} /><Route path="/blog/:slug" element={<BlogPost />} />
     <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfService />} />
@@ -151,6 +153,7 @@ export const LegacyAuthenticatedApp = () => {
   const isPublicRoute =
     PUBLIC_PAGES.has(currentPath) ||
     /^\/b\/print\/[^/]+\/?$/.test(location.pathname) ||
+    /^\/samples\/[^/]+\/?$/.test(location.pathname) ||
     location.pathname === '/' ||
     LEGACY_HOME_PATHS.some((p) => location.pathname.toLowerCase() === p.toLowerCase()) ||
     location.pathname.startsWith('/blog') ||
@@ -205,9 +208,10 @@ export const LegacyAuthenticatedApp = () => {
       <AnimatedPage>
         {/* Privacy gate: a signed-in parent who has not accepted the current policy version sees only the
             consent screen. Legal, marketing and sign-in pages stay open to everyone (see isGateExempt). */}
-        <PrivacyGate enabled={!!user && !isGateExempt(location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}>
+        <PrivacyGate enabled={!!user && !location.pathname.startsWith('/samples/') && !isGateExempt(location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}>
         <Routes location={location}>
           <Route path="/b/print/:id" element={<PrintedBookLink />} />
+          <Route path="/samples/:id" element={<SampleReader />} />
           {/* Root: logged-in users see Home dashboard; guests see LandingPage */}
           <Route path="/" element={
             user ? (

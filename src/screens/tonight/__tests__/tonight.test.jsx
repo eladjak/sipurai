@@ -15,6 +15,7 @@ const show = async () => {
 };
 afterEach(() => { cleanup(); localStorage.clear(); data.books = []; data.loading = false; data.error = false; data.offline = false; data.retry.mockClear(); });
 describe('tonight', () => {
+  it('links all three bundled examples to their public reader', async () => { await show(); for (const id of ['demo-dragons-garden','demo-space-adventure','demo-brave-fox']) expect(document.querySelector(`a[href="/samples/${id}"]`)).toBeTruthy(); });
   it('chooses the latest readable book and uses its saved page only when present', async () => {
     data.books = [{ id:'old', title:'Old', status:'complete', created_date:'2025-01-01' }, { id:'new', title:'New', status:'complete', created_date:'2026-01-01' }];
     localStorage.setItem('book_new_page', '3'); await show();

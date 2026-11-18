@@ -159,9 +159,7 @@ export default function Home() {
 
         setDraftBooks(drafts.slice(0, 3));
         setRecentBooks(completedBooks.slice(0, 6));
-        setFeaturedBooks(
-          completedBooks.length > 0 ? completedBooks.slice(0, 3) : createSampleFeaturedBooks()
-        );
+        setFeaturedBooks(createSampleFeaturedBooks());
 
         // Award XP on first ever login
         if (!localStorage.getItem("first_login_awarded")) {

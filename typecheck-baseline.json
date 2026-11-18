@@ -1,5 +1,5 @@
 {
-  "total": 288,
+  "total": 283,
   "files": {
     "src/components/ai/AIStudio.jsx": {
       "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
@@ -112,9 +112,6 @@
     },
     "src/components/landing/PricingSection.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
-    },
-    "src/components/landing/ShowcaseSection.jsx": {
-      "TS2339: Property 'cover_image' does not exist on type '{ displayTitle: string; displayGenre: any; color: string; id: string; title: { he: string; en: string; }; genre: string; art_style: string; age_range: string; language: string; moral: string; cover_gradient: string; pages: { ...; }[]; }'.": 5
     },
     "src/components/library/BookCard.jsx": {
       "TS2322: Type '{ src: any; alt: any; className: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 2,

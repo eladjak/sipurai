@@ -30,7 +30,7 @@ vi.mock('@/components/i18n/i18nProvider', async () => {
 
 describe('legacy home samples', () => {
   beforeEach(() => { localStorage.setItem('onboarding_complete', 'true'); state.language = 'hebrew'; });
-  it('renders the three demo titles and covers in Hebrew and uses sample creation links', async () => {
+  it('renders the three demo titles and covers in Hebrew and links all samples to reading', async () => {
     render(<MemoryRouter><Home /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText(demoBooks[0].title.he)).toBeInTheDocument());
     for (const book of demoBooks) {
@@ -43,7 +43,7 @@ describe('legacy home samples', () => {
     expect(screen.queryByText('Guest')).not.toBeInTheDocument();
     expect(screen.getByText('מדע בדיוני')).toBeInTheDocument();
     expect(screen.getByText('לילי מגלה גן סודי ופוגשת דרקון שמחפש חברים.')).toBeInTheDocument();
-    expect(screen.getAllByRole('link').filter(link => link.getAttribute('href') === '/BookWizard').length).toBeGreaterThanOrEqual(3);
+    for (const book of demoBooks) expect(screen.getAllByRole("link").some(link => link.getAttribute("href") === `/samples/${book.id}`)).toBe(true);
   });
   it('shows English demo copy for English users', async () => {
     state.language = 'english';
