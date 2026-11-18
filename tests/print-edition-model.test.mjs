@@ -104,11 +104,13 @@ describe('owner print-edition review', () => {
     edition.printTitle = 'סֵפֶר הַמִּשְׁפָּחָה';
     edition.copyright = 'טקסט מקור.\nכל הזכויות שמורות.';
     edition.pages.p1.printArt = 'uncropped-single.jpg';
+    edition.pages.p1.sourceParagraphs = ['שלום עולם!'];
     edition.pages.p1.printSettings = { anchor: [0.73, 0.36], panel: 'dark', panelWidthsMm: [81, 99] };
     edition.matterApproval = matterReview(edition, book).snapshot;
     const reopened = editionDraft(JSON.parse(JSON.stringify(edition)));
     const draft = pageDraft(reopened, pages[0], 0);
     reopened.pages.p1 = { ...draft, zone: 'top-right' };
+    assert.deepEqual(reopened.pages.p1.sourceParagraphs, ['שלום עולם!']);
     reopened.pages.p2 = { ...pageDraft(reopened, pages[1], 1), zone: 'bottom-left' };
 
     const render = () => createEditionManifest(book, pages, reopened, path => path);

@@ -52,6 +52,7 @@ export function pageDraft(edition, page, index) {
   const current = stored?.source === source ? stored : {};
   return {
     source,
+    sourceParagraphs: current.sourceParagraphs,
     text: current.text ?? source,
     approval: current.approval,
     zone: TEXT_ZONES.includes(stored?.zone) ? stored.zone : index % 2 === 0 ? 'bottom-right' : 'top-left',
