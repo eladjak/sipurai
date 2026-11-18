@@ -6,7 +6,7 @@ import { createMockVendor } from '../api/_lib/bookpod/mock.js';
 import { createCreemPayment, creemApiBase, PaymentError } from '../api/_lib/orders/payment/creem.js';
 import { PRINT_FILES } from './orders-helpers.mjs';
 
-const order = { id: 'o-1', qty: 2, method: 'ship', address: { fullName: 'x' }, preset_id: 'square-220', page_count: 24, quote: { presetId: 'square-220', pageCount: 24, paper: 'standard', cover: 'softcover', sheettype: 'wood-free-white-110' } };
+const order = { id: 'o-1', qty: 2, method: 'ship', address: { fullName: 'x' }, preset_id: 'square-220', page_count: 24, quote: { verified: true, presetId: 'square-220', pageCount: 24, paper: 'standard', cover: 'softcover', sheettype: 'wood-free-white-110' } };
 const UPLOADED = { vendorIssued: true, contentUrl: 'gs://bucket/content.pdf', coverUrl: 'gs://bucket/cover.pdf' };
 const countingFetch = (impl) => {
   const calls = [];
@@ -73,7 +73,7 @@ test('matching trusted file bindings carry each selected stock to CreateBook', a
 
 test('legacy v1 snapshot maps only its implicit standard product', async () => {
   const f = countingFetch();
-  const quote = {priceVersion:'2026-11-08.v1',presetId:'square-220',pageCount:24};
+  const quote = {verified:true,priceVersion:'2026-11-08.v1',presetId:'square-220',pageCount:24};
   const c = createVendorClient({env:ENABLED,fetchImpl:f});
   await c.submitOrder({...order,quote},UPLOADED);
   assert.equal(JSON.parse(f.calls[0].init.body).sheettype,'wood-free-white-110');
@@ -92,6 +92,16 @@ test('different object URI with same declared hashes never reaches network', asy
   ]) {
     const f = countingFetch();
     await assert.rejects(createVendorClient({env:ENABLED,fetchImpl:f}).submitOrder(boundOrder,files),{code:'vendor_rejected'});
+    assert.equal(f.calls.length,0);
+  }
+});
+
+test('real adapter rejects missing or false verified status before network', async () => {
+  for (const verified of [false, undefined]) {
+    const f = countingFetch();
+    const quote = {...order.quote};
+    if (verified === undefined) delete quote.verified; else quote.verified = verified;
+    assert.equal(await codeOf(createVendorClient({env:ENABLED,fetchImpl:f}).submitOrder({...order,quote},UPLOADED)), 'vendor_rejected');
     assert.equal(f.calls.length,0);
   }
 });

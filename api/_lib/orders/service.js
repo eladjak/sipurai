@@ -118,6 +118,9 @@ export async function createOrder(deps, { userId, body }) {
   };
   const verifyExisting = async order => {
     ensureSamePaper(order);
+    if (order.book_id !== bookId || order.qty !== qty || order.method !== method) {
+      throw new OrderError('idempotency_conflict', 409, 'פרטי ההזמנה השתנו, יש להתחיל הזמנה חדשה');
+    }
     const old = order.quote || {};
     const isLegacy = old.priceVersion === '2026-11-08.v1' &&
       old.paper === undefined && old.cover === undefined && old.sheettype === undefined &&
@@ -132,7 +135,8 @@ export async function createOrder(deps, { userId, body }) {
     if ((!isLegacy && !isCurrent) || !rowConsistent) {
       throw new OrderError('quote_changed', 409, 'פרטי ההזמנה השתנו, יש לאשר את המחיר מחדש');
     }
-    if (!isLegacy || !b.acceptedQuote) {
+    if (old.verified !== true) throw new OrderError('price_unavailable', 409, 'מחיר ההדפסה לא זמין להזמנה');
+    if (!isLegacy) {
       verifyAcceptance(old, order.book_id);
       return;
     }
@@ -196,7 +200,7 @@ export async function createOrder(deps, { userId, body }) {
   }
 
   let order = existing;
-  if (order.quote?.verified === false) throw new OrderError('price_unavailable', 409, 'מחיר ההדפסה לא זמין להזמנה');
+  if (order.quote?.verified !== true) throw new OrderError('price_unavailable', 409, 'מחיר ההדפסה לא זמין להזמנה');
   if (order.status === 'awaiting_payment' && !order.checkout_url) {
     try {
       const { url, ref } = await payment.createCheckout(order);
@@ -333,6 +337,11 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
     status: 'submitting',
   });
   if (!claimed) return { outcome: 'not_claimed' };
+  if (claimed.quote?.verified !== true) {
+    await store.transition(orderId, ['submitting'], { status: 'failed_needs_attention', vendor_last_error: 'unverified_quote' });
+    await store.addEvent(orderId, 'alert_unverified_quote', {});
+    return { outcome: 'unverified_quote' };
+  }
   await store.update(orderId, { vendor_submit_attempts: (order.vendor_submit_attempts || 0) + 1 });
   await store.addEvent(orderId, 'submit_started', { explicit });
 

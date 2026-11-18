@@ -48,9 +48,7 @@ test('create is idempotent: same key + user -> same order, one row, one checkout
   const deps = makeDeps();
   const a = await newOrder(deps);
   const b = await newOrder(deps);
-  const c = await newOrder(deps, { qty: 3 }); // even with different params the key wins
   assert.equal(a.orderId, b.orderId);
-  assert.equal(a.orderId, c.orderId);
   assert.equal(deps.store._orders.size, 1);
   assert.equal(deps.payment.checkouts.length, 1);
   assert.equal(b.checkoutUrl, a.checkoutUrl);
@@ -160,10 +158,77 @@ test('current quote resumes unchanged legacy order, but changed price or contrad
   row.total_agorot += 100;
   assert.equal((await send(body)).body.error.code,'quote_changed');
   row.total_agorot -= 100;
+  deps.env.PRINT_MARGIN_AGOROT = '6000';
+  assert.equal((await send(body)).body.error.code,'quote_changed');
+  delete deps.env.PRINT_MARGIN_AGOROT;
   row.quote.paper = 'chrome-matte-130';
   assert.equal((await send(body)).body.error.code,'idempotency_conflict');
   assert.equal(deps.store._orders.size,1);
   assert.equal(deps.payment.checkouts.length,1);
+});
+
+test('existing and insert-race retry compare request identity without accepted quote', async () => {
+  for (const race of [false, true]) {
+    const deps = makeDeps();
+    const original = await newOrder(deps);
+    const row = deps.store._orders.get(original.orderId);
+    row.quote.priceVersion = '2026-11-08.v1';
+    delete row.quote.paper; delete row.quote.cover;
+    const winner = structuredClone(row);
+    if (race) {
+      deps.store.findByKey = async () => null;
+      deps.store.insertOrder = async () => ({created:false,order:winner});
+    }
+    const body = {bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'key-0001-aaaa'};
+    const send = b => call(create,fakeReq({method:'POST',user:ALICE,body:b}),deps);
+    for (const change of [{bookId:'book-alice-200'}, {qty:2}, {method:'pickup'}]) {
+      // Pickup must be enabled so a race can reach the winning insert.
+      deps.env.PRINT_PICKUP_ENABLED = 'true';
+      deps.env.PRINT_VERIFIED_QUOTES_JSON = JSON.stringify([{presetId:'square-200',pageCount:24,paper:'standard',cover:'softcover',costAgorot:2466,quoteRef:'fixture'}]);
+      const result = await send({...body,...change});
+      assert.equal(result.body.error.code,'idempotency_conflict');
+    }
+    const ok = await send(body);
+    assert.equal(ok.status,200);
+    assert.equal(ok.body.orderId,original.orderId);
+    deps.env.PRINT_MARGIN_AGOROT = '6000';
+    const changed = await send(body);
+    assert.equal(changed.body.error.code,'quote_changed');
+    assert.equal(deps.payment.checkouts.length,1);
+  }
+});
+
+test('missing or false verification never returns checkout nor dispatches automatically or by admin', async () => {
+  for (const verified of [false, undefined]) {
+    const deps = makeDeps();
+    const {orderId} = await newOrder(deps);
+    const row = deps.store._orders.get(orderId);
+    if (verified === undefined) delete row.quote.verified; else row.quote.verified = verified;
+    const retry = await call(create,fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'key-0001-aaaa'}}),deps);
+    assert.equal(retry.body.error.code,'price_unavailable');
+    const event = paidEvent(deps,orderId);
+    const paid = await handlePaymentEvent(deps,event);
+    assert.equal(paid.submit.outcome,'unverified_quote');
+    assert.equal(row.status,'failed_needs_attention');
+    const admin = await adminAction(deps,{id:orderId,action:'retry_submit',actor:ADMIN});
+    assert.equal(admin.result.outcome,'unverified_quote');
+    assert.equal(row.status,'failed_needs_attention');
+    assert.equal(deps.vendor.calls.length,0);
+  }
+});
+
+test('insert-race winner without verified quote is never returned', async () => {
+  for (const verified of [false,undefined]) {
+    const deps = makeDeps();
+    const first = await newOrder(deps);
+    const winner = structuredClone(deps.store._orders.get(first.orderId));
+    if (verified === undefined) delete winner.quote.verified; else winner.quote.verified = verified;
+    deps.store.findByKey = async () => null;
+    deps.store.insertOrder = async () => ({created:false,order:winner});
+    const retry = await call(create,fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'key-0001-aaaa'}}),deps);
+    assert.equal(retry.body.error.code,'price_unavailable');
+    assert.equal(deps.payment.checkouts.length,1);
+  }
 });
 
 test('insert race rejects another stock snapshot and never creates checkout', async () => {

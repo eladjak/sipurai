@@ -87,6 +87,7 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
   return {
     async submitOrder(order, files) {
       assertEnabled();
+      if (order.quote?.verified !== true) throw new VendorError('vendor_rejected', 'unverified print quote');
       // CreateBook v5.1 requires GCS objects from its upload flow, not arbitrary URLs.
       // The current file provider yields HTTPS URLs, so it fails closed until the
       // upload integration supplies explicitly attested vendor-issued GCS URIs.
