@@ -155,7 +155,7 @@ def text_at(value: str, name: str, x: float, y: float, width: float, height: flo
 
 
 def panel(value: str, page: Page, geometry: Geometry, dark: bool,
-          width_cap: float | None = None, *, rubik: bool = False) -> tuple[str, TextBox]:
+          width_cap: float | None = None, *, rubik: bool = False, integrated: bool = False) -> tuple[str, TextBox]:
     w, h = geometry.media
     inset = geometry.bleed + SAFE_MM + 2
     extra = max(geometry.gutter, BINDING_SAFE_MM - SAFE_MM)
@@ -182,6 +182,21 @@ def panel(value: str, page: Page, geometry: Geometry, dark: bool,
     bg = "rgba(28,29,52,0.94)" if dark else "rgba(255,244,225,0.95)"
     colored = (f'<div class="layer" style="{mm_box(x, y, pnl_w, pnl_h)};'
                f'background:{bg};border-radius:4mm"></div>')
+    if integrated:
+        # Full-bleed wash reaches beyond the entire text box, then feathers
+        # into the image. Keep the same measured safe text box and live glyphs.
+        feather = 20.0
+        if page.zone.startswith("top"):
+            wash_h = min(h, y + pnl_h + feather)
+            direction = "to bottom"
+        else:
+            wash_h = min(h, h - y + feather)
+            direction = "to top"
+        wash_y = 0 if page.zone.startswith("top") else h - wash_h
+        opaque = 100 * (wash_h - feather) / wash_h
+        colored = (f'<div class="layer" style="{mm_box(0, wash_y, w, wash_h)};'
+                   f'background:linear-gradient({direction},rgba(255,244,225,0.97) 0%, '
+                   f'rgba(255,244,225,0.97) {opaque:.2f}%, rgba(255,244,225,0) 100%)"></div>')
     return colored + block(box, color=CREAM if dark else INK, align="right", display=rubik), box
 
 
@@ -361,7 +376,7 @@ def compose_interior(edition: Edition, pages: list[Page], art: Art) -> tuple[lis
                 index = 1 if scene.layout == "spread" and page.side == "left" else 0
                 cap = scene.panel_widths[index]
             pnl, panel_box = panel(page.text, page, geometry, scene.panel == "dark", cap,
-                                   rubik=edition.story_font == "rubik")
+                                   rubik=edition.story_font == "rubik", integrated=scene.panel == "integrated")
             content += pnl
             boxes.append(panel_box)
             x = width - geometry.bleed - 24 if page.side == "right" else geometry.bleed + 12

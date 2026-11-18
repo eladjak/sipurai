@@ -131,6 +131,9 @@ describe('owner print-edition review', () => {
     assert.equal(render().scenes[0].art, 'wide.png');
     assert.deepEqual(render().scenes[0].panelWidthsMm, [81, 99]);
 
+    reopened.pages.p1.printSettings.panel = 'integrated';
+    assert.equal(createEditionManifest(book, pages, editionDraft(JSON.parse(JSON.stringify(reopened))), path => path).scenes[0].panel, 'integrated');
+
     reopened.printTitle += '!';
     assert.throws(render, /review is incomplete/);
   });

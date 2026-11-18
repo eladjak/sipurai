@@ -70,7 +70,7 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
             </select>
             <p className="mt-1 text-sm text-sp-ink-600">{labels.safeZoneHelp}</p>
           </div>
-          {capabilities.advancedLayout && <Framing scene={scene} isSecond={isSecond} isWide={isWide} maxWidth={Math.round(preset.widthMm * 0.8)} labels={labels} onChange={(patch, key) => changePage(sceneId, { printSettings: { ...scene.printSettings, ...patch } }, key)} />}
+          {capabilities.advancedLayout && <Framing scene={scene} isSecond={isSecond} isWide={isWide} maxWidth={Math.round(preset.widthMm * 0.8)} draft={draft} aspectRatio={`${preset.widthMm} / ${preset.heightMm}`} artwork={scene.printArt || scene.spread || page.image_url} labels={labels} onChange={(patch, key) => changePage(sceneId, { printSettings: { ...scene.printSettings, ...patch } }, key)} />}
           <div>
             {isSecond ? <button id="edition-scene-layout" className={actionClass} type="button" disabled={busy} onClick={() => setIndex(currentIndex - 1)}>{labels.spreadSecond}</button> :
               (isWide || (next && nextDraft?.layout !== 'spread')) && <>
@@ -182,7 +182,7 @@ function StoryText({ nikud, busy, book, draft, labels, isRTL, rewriteEnabled, on
   );
 }
 
-function Framing({ scene, isSecond, isWide, maxWidth, labels, onChange }) {
+export function Framing({ scene, isSecond, isWide, maxWidth, draft, aspectRatio, artwork, labels, onChange }) {
   const settings = scene.printSettings || {};
   const anchor = settings.anchor || [0.5, 0.5];
   const widthCount = isWide ? 2 : 1;
@@ -197,9 +197,17 @@ function Framing({ scene, isSecond, isWide, maxWidth, labels, onChange }) {
           <label htmlFor="edition-panel-style" className="block text-sm font-semibold">{labels.panelStyle}</label>
           <select id="edition-panel-style" className={textClass} value={settings.panel || 'cream'} onChange={e => onChange({ panel: e.target.value })}>
             <option value="cream">{labels.creamPanel}</option>
+            <option value="integrated">{labels.integratedPanel}</option>
             <option value="dark">{labels.darkPanel}</option>
           </select>
         </div>
+        {settings.panel === 'integrated' && artwork && <div>
+          <p className="text-sm text-sp-ink-600">{labels.integratedPreview}</p>
+          <div className="relative mt-2 overflow-hidden" style={{ aspectRatio, background: '#f5e8d7' }}>
+            <img src={artwork} alt="" className="h-full w-full object-cover" />
+            <div className="absolute inset-x-0 px-[8%] py-[8%]" style={{ [draft.zone.startsWith('top') ? 'top' : 'bottom']: 0, background: `linear-gradient(to ${draft.zone.startsWith('top') ? 'bottom' : 'top'}, rgba(255,244,225,.97) 65%, transparent)` }}><div dir="auto" className="whitespace-pre-wrap text-right text-sm font-semibold leading-relaxed text-[#24243b]" style={{ maxWidth: '80%', marginLeft: draft.zone.endsWith('left') ? 0 : 'auto', marginRight: draft.zone.endsWith('right') ? 0 : 'auto' }}>{draft.text}</div></div>
+          </div>
+        </div>}
         {['anchorX', 'anchorY'].map((axis, n) => <label key={axis} className="block text-sm font-semibold">{labels[axis]}
           <input type="range" min="0" max="100" value={Math.round(anchor[n] * 100)} dir="ltr" className="block h-11 w-full accent-sp-violet-700" onChange={e => onChange({ anchor: anchor.map((value, i) => n === i ? Number(e.target.value) / 100 : value) }, axis)} />
         </label>)}
