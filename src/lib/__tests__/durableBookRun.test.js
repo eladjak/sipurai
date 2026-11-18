@@ -260,6 +260,35 @@ describe("durable book generation", () => {
     expect(reserveBookSlot).toHaveBeenCalledExactlyOnceWith(id);
   });
 
+  it("recovers a completed manuscript's real length when a legacy editor omitted total_pages", async () => {
+    const f = fixture();
+    f.setBook({ id, title: "Three pages", total_pages: null, status: "complete", cover_image: "cover" });
+    for (const i of [0, 1, 2]) {
+      f.rows.set("old-" + i, { id: "old-" + i, book_id: id, page_number: i,
+        text_content: "Original " + i, image_url: i === 1 ? "bad-art" : "old-art", image_prompt: "Scene " + i, layout_type: "standard" });
+    }
+    const ai = makeAI();
+    const result = await run(f, ai, { bookId: id, allowLegacyReservation: true, repairPages: [1] });
+    expect(result.status).toBe("complete");
+    expect(f.book.total_pages).toBe(3);
+    expect(f.checkpoint.plan).toHaveLength(3);
+    expect(f.storage.bookWrite.mock.calls[1][0]).toMatchObject({
+      expected: { status: "partial", total_pages: null }, patch: { total_pages: 3 },
+    });
+    expect([...f.rows.values()].map(p => p.text_content)).toEqual(["Original 0", "Original 1", "Original 2"]);
+    expect(ai.GenerateImage).toHaveBeenCalledTimes(1);
+    expect(ai.InvokeLLM).not.toHaveBeenCalled();
+    expect(reserveBookSlot).toHaveBeenCalledExactlyOnceWith(id);
+  });
+
+  it("does not reserve for a finished legacy book whose original length cannot be inferred", async () => {
+    const f = fixture();
+    f.setBook({ id, total_pages: null, status: "complete", cover_image: "cover" });
+    f.rows.set("gap", {id: "gap", page_number: 2, text_content: "Last surviving page"});
+    await expect(run(f, makeAI(), { bookId: id, allowLegacyReservation: true })).rejects.toMatchObject({ code: "legacy_count_unknown" });
+    expect(reserveBookSlot).not.toHaveBeenCalled();
+  });
+
   it("requires a deliberate legacy reservation before accepting an unproven old book", async () => {
     const f = fixture();
     f.setBook({ id, status: "partial", total_pages: 2, title: "Old book" });

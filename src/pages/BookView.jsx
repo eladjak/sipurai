@@ -306,6 +306,11 @@ function BookReader({ bookId, user }) {
         setResumeError(t('spxReader.legacyAllowance'));
         return;
       }
+      if (err?.code === 'legacy_count_unknown') {
+        setLegacyConfirmation(false);
+        setResumeError(t('spxReader.unknownPageCount'));
+        return;
+      }
       setResumeError(err instanceof QuotaError ? err.message : ['lease_busy', 'lease_lost'].includes(err?.code)
         ? t('spxWizard.leaseBusy') : t('bookView.resumeFailed'));
     } finally {

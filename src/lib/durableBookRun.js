@@ -33,6 +33,17 @@ function usableOutline(pages, total) {
   });
 }
 
+// The first editor persisted numbered pages but could finish without storing their count.
+function historicalPageCount(book, pages, suggestedCount) {
+  if (book.total_pages > 0) return book.total_pages;
+  const contiguous = pages.length > 0 && pages.every((page, i) => page.page_number === i);
+  const lastNumber = pages.at(-1)?.page_number ?? -1;
+  const count = book.status === "complete" ? pages.length : Math.max(suggestedCount, lastNumber + 1);
+  if ((book.status === "complete" && !contiguous) || !Number.isInteger(count) || count < 1 || count > 100)
+    throw Object.assign(new Error("Cannot determine the original page count"), { code: "legacy_count_unknown" });
+  return count;
+}
+
 /**
  * Bind the incremental writer to one fenced database lease. The service owns
  * identity, ownership, CAS and the transaction that publishes the manuscript.
@@ -76,7 +87,7 @@ export async function generateDurableBook({
     );
     seed = {
       recipe: recipe.checkpointInputs(),
-      plan: usableOutline(saved, Number(book.total_pages) || recipe.pageCount),
+      plan: usableOutline(saved, historicalPageCount(book, saved, recipe.pageCount)),
     };
   }
   if (allowLegacyReservation) {
@@ -134,20 +145,28 @@ export async function generateDurableBook({
           bookData: { ...checkpoint.recipe.bookData, title: book.title },
         })
       : recipe;
-    const total = Number(book.total_pages) || lockedRecipe.pageCount;
+    const writeBook = async (patch) => {
+      checkLease();
+      const expected = {
+        status: book.status ?? null,
+        cover_image: book.cover_image ?? null,
+      };
+      if ("total_pages" in patch)
+        Object.assign(expected, { total_pages: book.total_pages ?? null });
+      await storage.bookWrite({ ...fence, expected, patch });
+      book = { ...book, ...patch };
+      return book;
+    };
+    const total = Number(book.total_pages) || checkpoint.plan?.length || lockedRecipe.pageCount;
     const plan = checkpoint.plan || usableOutline(existing, total);
     let persisted = checkpoint;
+    // SQL requires reopening a completed book as a status-only write. Then
+    // recover a historical null count under the same lease and compare-and-swap.
+    if (book.status === "complete" && (!checkpoint.manuscriptSaved || !book.total_pages))
+      await writeBook({ status: "partial" });
+    if (!book.total_pages)
+      await writeBook({ total_pages: total });
     if (!checkpoint.manuscriptSaved) {
-      // A legacy finished book may have a broken published image. Reopen it
-      // under its owner's lease before installing the first durable manuscript.
-      if (book.status === "complete") {
-        await storage.bookWrite({
-          ...fence,
-          expected: { status: book.status, cover_image: book.cover_image ?? null },
-          patch: { status: "partial" },
-        });
-        book = { ...book, status: "partial" };
-      }
       const existingByNumber = new Map(
         existing.map((page) => [page.page_number, page]),
       );
@@ -216,18 +235,6 @@ export async function generateDurableBook({
     // Sequence cover and progress updates from the same worker. An editor in
     // another tab remains protected by the database's conditional update.
     let bookWrites = Promise.resolve();
-    const writeBook = async (patch) => {
-      checkLease();
-      const expected = {
-        status: book.status ?? null,
-        cover_image: book.cover_image ?? null,
-      };
-      if ("total_pages" in patch)
-        Object.assign(expected, { total_pages: book.total_pages });
-      await storage.bookWrite({ ...fence, expected, patch });
-      book = { ...book, ...patch };
-      return book;
-    };
     function queueBookWrite(patch) {
       bookWrites = bookWrites.then(() => writeBook(patch));
       return bookWrites;
