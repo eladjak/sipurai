@@ -33,7 +33,7 @@ export function editionDraft(saved = null) {
     dedication: input.dedication || '',
     matterApproval: input.matterApproval || null,
     cover: input.cover === 'hardcover' ? 'hardcover' : 'softcover',
-    paper: input.paper === 'premium' ? 'premium' : 'standard',
+    paper: ['standard', 'premium', 'chrome-matte-130', 'chrome-matte-170'].includes(input.paper) ? input.paper : 'standard',
     storyFont: STORY_FONTS.includes(input.storyFont) ? input.storyFont : STORY_FONTS[0],
     extraPages: Array.isArray(input.extraPages) ? [...new Set(input.extraPages.filter(id => /^extra-[a-f0-9-]{36}$/.test(id)))].slice(0, MAX_PAGES - 4) : [],
     pages: input.pages || {},
@@ -189,6 +189,7 @@ export function createDraftEditionManifest(book, pages, edition, assetPath) {
 }
 
 function buildManifest(book, pages, edition, assetPath, missingInputs) {
+  if (!['standard', 'chrome-matte-130', 'chrome-matte-170'].includes(edition.paper)) throw new Error('Paper choice required');
   const draftProof = Boolean(missingInputs);
   const mapArt = (src, name) => {
     if (!src && draftProof) {
@@ -263,7 +264,7 @@ function buildManifest(book, pages, edition, assetPath, missingInputs) {
     widthMm: preset.widthMm,
     heightMm: preset.heightMm,
     binding: 'soft-matte',
-    paper: 'white-110gsm',
+    paper: edition.paper === 'standard' ? 'white-110gsm' : edition.paper,
     requestedFinishing: { cover: edition.cover, paper: edition.paper },
     ...(edition.storyFont === 'rubik' ? { storyFont: edition.storyFont } : {}),
     bleedMm: 3.2,

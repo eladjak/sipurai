@@ -77,6 +77,7 @@ class Edition:
     closing_native_pixels: tuple[int, int] | None
     story_font: Literal["david-libre", "rubik"] = "david-libre"
     unsaved_draft: bool = False
+    paper: str = "white-110gsm"
 
 
 @dataclass(frozen=True)
@@ -216,8 +217,17 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
     cover = asset(data.get("coverArt"), "coverArt")
     closing = asset(data.get("closingArt"), "closingArt")
     assert cover is not None and closing is not None
-    if data.get("binding", "soft-matte") != "soft-matte" or data.get("paper", "white-110gsm") != "white-110gsm":
-        raise ValueError("This renderer uses the BookPod soft-matte white-110gsm proof template")
+    paper = data.get("paper", "white-110gsm")
+    stocks = {"white-110gsm", "chrome-matte-130", "chrome-matte-170"}
+    if data.get("binding", "soft-matte") != "soft-matte" or paper not in stocks:
+        raise ValueError("Unsupported binding or paper")
+    requested = data.get("requestedFinishing")
+    if requested is not None:
+        if not isinstance(requested, dict):
+            raise ValueError("Invalid requested finishing")
+        expected = {"standard": "white-110gsm", "chrome-matte-130": "chrome-matte-130", "chrome-matte-170": "chrome-matte-170"}.get(requested.get("paper"))
+        if expected is None or expected != paper:
+            raise ValueError("Requested paper does not match renderer paper")
     icc = asset(data.get("iccProfile"), "iccProfile", optional=True)
     profile_verified = boolean(data.get("profileVendorVerified", False), "profileVendorVerified")
     if profile_verified and icc is None:
@@ -246,6 +256,7 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         source_pixels(data.get("closingNativePixels"), "closingNativePixels"),
         story_font,
         boolean(data.get("unsavedDraft", False), "unsavedDraft"),
+        paper,
     )
 
 
@@ -279,8 +290,9 @@ def plan(edition: Edition) -> list[Page]:
 
 
 def spine_for(edition: Edition, pages: list[Page]) -> tuple[float, str]:
-    assumed = round(len(pages) * 0.075, 3)
+    caliper = {"white-110gsm": 0.15, "chrome-matte-130": 0.125, "chrome-matte-170": 0.16}[edition.paper]
+    assumed = round(len(pages) / 2 * caliper, 3)
     spine = edition.spine if edition.spine is not None else assumed
-    if (len(pages), edition.geometry.width, edition.geometry.height, spine) == (24, 220, 220, 1.8):
+    if edition.paper == "white-110gsm" and (len(pages), edition.geometry.width, edition.geometry.height, spine) == (24, 220, 220, 1.8):
         return spine, "measured-24pp-soft-white110"
     return spine, "user-supplied-unverified" if edition.spine is not None else "derived-unverified"

@@ -14,6 +14,7 @@ import { PrintOrderApiError } from '@/lib/printOrder/api';
 const quote = {
   currency: 'ILS',
   presetId: 'sq22',
+  pageCount: 24, cover: 'softcover', verified: true, priceVersion: 'fixture-v1',
   qty: 1,
   method: 'ship',
   lines: [
@@ -54,7 +55,7 @@ const adminOrders = [
 
 const base = {
   getConfig: async () => ({ enabled: true, pickup: { enabled: true, label_he: 'איסוף עצמי' }, maxQty: 10 }),
-  getQuote: async ({ method }) => (method === 'pickup' ? pickupQuote : quote),
+  getQuote: async ({ method, paper, qty }) => ({ ...(method === 'pickup' ? pickupQuote : quote), paper, qty }),
   createOrder: async () => ({ orderId: 'ord_new', status: 'awaiting_payment', checkoutUrl: '#harness-pay' }),
   getMyOrders: async () => ({ orders }),
   getOrder: async () => mk('ord_9f3a21', 'submitted'),

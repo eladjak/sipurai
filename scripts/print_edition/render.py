@@ -331,7 +331,7 @@ def build(edition: Edition, manifest: Path, target: Path, *, make_previews: bool
     record = {
         "structuralPass": not errors, "errors": errors, "warnings": warnings,
         "interiorPages": len(pages), "signatureMultiple": edition.signature,
-        "coverPages": 1, "optionalInsideCover": edition.inside_cover, "spineMm": spine, "spineSource": spine_source,
+        "coverPages": 1, "optionalInsideCover": edition.inside_cover, "paper": edition.paper, "spineMm": spine, "spineSource": spine_source,
         "bleedMm": edition.geometry.bleed, "outerTextSafeMm": SAFE_MM,
         "bindingTextSafeMm": max(BINDING_SAFE_MM, SAFE_MM + edition.geometry.gutter),
         "interiorMediaMm": edition.geometry.media, "coverMediaMm": edition.geometry.cover_media(spine),

@@ -101,7 +101,8 @@ const ENDPOINTS = {
     async run(req, res, { deps, userId }) {
       const q = queryOf(req);
       const book = await ownedBook(deps.store, q.bookId, userId);
-      return send(res, 200, quoteForBook(book, { qty: Number(q.qty), method: q.method }, deps.env));
+      const { sheettype: _sheettype, quoteRef: _quoteRef, ...publicQuote } = quoteForBook(book, { qty: Number(q.qty), method: q.method, paper: q.paper, cover: q.cover }, deps.env);
+      return send(res, 200, publicQuote);
     },
   },
   create: {

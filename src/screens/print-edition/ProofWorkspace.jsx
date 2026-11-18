@@ -39,6 +39,7 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
   const lastProof = useRef(null);
   useEffect(() => () => lastProof.current?.revoke(), []);
   const input = useMemo(() => {
+    if (edition.paper === 'premium') return { invalid: true, paperChoiceRequired: true };
     try {
       const assets = new Map();
       const path = source => {
@@ -98,6 +99,7 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
   }
   return (
     <div>
+      {input.paperChoiceRequired && <p role="alert" className="mb-3 text-sm">{t('print.paperChoice.legacyPaper')}</p>}
       <ProofViewer proof={proof} status={status} error={ready ? result.error : null} onRetry={again} onEdit={onEdit}
         onDownload={download} isRTL={isRTL} cover={edition.cover} paper={edition.paper} />
       {status === 'ready' && handoffReady && verifyHandoff && (

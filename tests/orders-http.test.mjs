@@ -75,6 +75,8 @@ test('quote: exact numbers over HTTP, ownership enforced', async () => {
   assert.equal(ok.status, 200);
   assert.equal(ok.body.totalAgorot, 18700); // 2 x 79.00 + 29.00
   assert.equal(ok.body.vatIncluded, true);
+  assert.equal('quoteRef' in ok.body, false);
+  assert.equal('sheettype' in ok.body, false);
   const foreign = await call(H.quote, fakeReq({ method: 'GET', user: ALICE, query: { bookId: 'book-bob', qty: '1', method: 'ship' } }), deps);
   assert.equal(foreign.status, 404);
   const sizes = await call(H.quote, fakeReq({ method: 'GET', user: ALICE, query: { bookId: 'book-alice-200', qty: '1', method: 'ship' } }), deps);

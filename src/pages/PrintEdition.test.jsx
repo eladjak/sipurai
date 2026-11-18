@@ -7,7 +7,14 @@ const fixture = vi.hoisted(() => ({ get: vi.fn(), rows: vi.fn(), save: vi.fn(), 
 vi.mock('@/entities/Book', () => ({ Book: { get: fixture.get }, savePrintEdition: fixture.save }));
 vi.mock('@/entities/Page', () => ({ Page: { filter: fixture.rows } }));
 vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: { id: 'owner-1' }, isLoading: false }) }));
-vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({ isRTL: true }) }));
+vi.mock('@/components/i18n/i18nProvider', async () => {
+  const { default: print } = await import('@/components/i18n/locales/he/print');
+  const t = (key, values = {}) => {
+    const value = key.split('.').reduce((item, part) => item?.[part], print);
+    return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '') : value;
+  };
+  return { useI18n: () => ({ isRTL: true, language: 'hebrew', t }) };
+});
 vi.mock('@/lib/printEdition/localNikudClient', () => ({ createNikudClient: () => ({ close() {}, suggest: fixture.suggestNikud }) }));
 vi.mock('@/integrations/Core', () => ({ InvokeLLM: fixture.invoke }));
 vi.mock('@/lib/printEdition/assets', () => ({ downloadEditionBundle: fixture.download }));

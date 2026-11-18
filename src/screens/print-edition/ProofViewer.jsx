@@ -15,8 +15,8 @@ const COPY = {
     bleedHelp: 'הקו המקווקו מסמן את גבול החיתוך. השוליים שמעבר לו מיועדים לחיתוך.',
     screen: 'זו הדמיה למסך. צבע, חיתוך ומגע בודקים בעותק מודפס.',
     soft: 'ההגהה הראשית משתמשת בתבנית לכריכה רכה שמודפסת מבחוץ.',
-    hard: 'כריכה קשה ממתינה לאישור הספק. ההגהה הראשית בתבנית לכריכה רכה שמודפסת מבחוץ.',
-    premium: 'נייר משודרג ממתין לאישור הספק.',
+    hard: 'כריכה קשה אינה זמינה. ההגהה מוצגת בתבנית לכריכה רכה.',
+    stock: { 'white-110gsm': 'נייר לבן 110 גרם', standard: 'נייר לבן 110 גרם', 'chrome-matte-130': 'נייר כרומו מט 130 גרם', 'chrome-matte-170': 'נייר כרומו מט 170 גרם' },
     draftNikud: 'טיוטה: הניקוד ממתין לאישור.',
     blankInside: 'הצד הפנימי של הכריכה ריק בהגהה הראשית.',
     inside: 'הצגת צד פנימי מאויר',
@@ -40,8 +40,8 @@ const COPY = {
     bleedHelp: 'Dashed lines mark the trim. The area outside them is cut away.',
     screen: 'Screen preview. Check color, trim, and paper feel on a printed copy.',
     soft: 'The main proof uses a softcover template printed on the outside.',
-    hard: 'Hardcover needs printer confirmation. The main proof uses a softcover template printed on the outside.',
-    premium: 'Upgraded paper needs printer confirmation.',
+    hard: 'Hardcover is unavailable. This proof uses a softcover template.',
+    stock: { 'white-110gsm': 'White paper, 110 gsm', standard: 'White paper, 110 gsm', 'chrome-matte-130': 'Matte coated paper, 130 gsm', 'chrome-matte-170': 'Matte coated paper, 170 gsm' },
     draftNikud: 'Draft: Hebrew vowel marks await approval.',
     blankInside: 'The inside cover is blank in the main proof.',
     inside: 'Show illustrated inside cover',
@@ -222,7 +222,7 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
         <h2 id={`${id}-heading`}><BookOpen aria-hidden="true" size={23} />{t.heading}</h2>
         {spread && (
           <>
-            <p>{cover === 'hardcover' ? t.hard : t.soft} {paper === 'premium' ? t.premium : ''}</p>
+            <p>{cover === 'hardcover' ? t.hard : t.soft} {t.stock[proof.paper || paper] || ''}</p>
             {proof.unsavedDraft && <p className="proof-draft" role="status">{t.unsaved}</p>}
             {proof.nikudStatus === 'pending' && <p className="proof-draft" role="status">{t.draftNikud}</p>}
             <dl className="proof-measures">
