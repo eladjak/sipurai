@@ -70,7 +70,7 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
             </select>
             <p className="mt-1 text-sm text-sp-ink-600">{labels.safeZoneHelp}</p>
           </div>
-          {capabilities.advancedLayout && <Framing scene={scene} isSecond={isSecond} isWide={isWide} maxWidth={Math.round(preset.widthMm * 0.8)} draft={draft} aspectRatio={`${preset.widthMm} / ${preset.heightMm}`} artwork={scene.printArt || scene.spread || page.image_url} labels={labels} onChange={(patch, key) => changePage(sceneId, { printSettings: { ...scene.printSettings, ...patch } }, key)} />}
+          {capabilities.advancedLayout && <Framing scene={scene} isSecond={isSecond} isWide={isWide} maxWidth={Math.round(preset.widthMm * 0.8)} draft={draft} defaultPanel={edition.defaultPanel} aspectRatio={`${preset.widthMm} / ${preset.heightMm}`} artwork={scene.printArt || scene.spread || page.image_url} labels={labels} onChange={(patch, key) => changePage(sceneId, { printSettings: { ...scene.printSettings, ...patch } }, key)} />}
           <div>
             {isSecond ? <button id="edition-scene-layout" className={actionClass} type="button" disabled={busy} onClick={() => setIndex(currentIndex - 1)}>{labels.spreadSecond}</button> :
               (isWide || (next && nextDraft?.layout !== 'spread')) && <>
@@ -182,8 +182,9 @@ function StoryText({ nikud, busy, book, draft, labels, isRTL, rewriteEnabled, on
   );
 }
 
-export function Framing({ scene, isSecond, isWide, maxWidth, draft, aspectRatio, artwork, labels, onChange }) {
+export function Framing({ scene, isSecond, isWide, maxWidth, draft, defaultPanel, aspectRatio, artwork, labels, onChange }) {
   const settings = scene.printSettings || {};
+  const panel = settings.panel || defaultPanel || 'cream';
   const anchor = settings.anchor || [0.5, 0.5];
   const widthCount = isWide ? 2 : 1;
   const widths = settings.panelWidthsMm?.length === widthCount ? settings.panelWidthsMm : Array(widthCount).fill(maxWidth);
@@ -195,13 +196,13 @@ export function Framing({ scene, isSecond, isWide, maxWidth, draft, aspectRatio,
         {isWide && <p className="text-sm text-sp-ink-600">{labels.sharedFraming}</p>}
         <div>
           <label htmlFor="edition-panel-style" className="block text-sm font-semibold">{labels.panelStyle}</label>
-          <select id="edition-panel-style" className={textClass} value={settings.panel || 'cream'} onChange={e => onChange({ panel: e.target.value })}>
+          <select id="edition-panel-style" className={textClass} value={panel} onChange={e => onChange({ panel: e.target.value })}>
             <option value="cream">{labels.creamPanel}</option>
             <option value="integrated">{labels.integratedPanel}</option>
             <option value="dark">{labels.darkPanel}</option>
           </select>
         </div>
-        {settings.panel === 'integrated' && artwork && <div>
+        {panel === 'integrated' && artwork && <div>
           <p className="text-sm text-sp-ink-600">{labels.integratedPreview}</p>
           <div className="relative mt-2 overflow-hidden" style={{ aspectRatio, background: '#f5e8d7' }}>
             <img src={artwork} alt="" className="h-full w-full object-cover" />

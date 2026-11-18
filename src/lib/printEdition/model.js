@@ -24,6 +24,7 @@ export function editionDraft(saved = null) {
   const input = saved?.version === 1 ? saved : {};
   return {
     version: 1,
+    ...(input.defaultPanel === 'integrated' ? { defaultPanel: 'integrated' } : {}),
     revision: Number.isSafeInteger(input.revision) ? input.revision : 0,
     printTitle: input.printTitle || '',
     copyright: input.copyright || '',
@@ -235,7 +236,7 @@ function buildManifest(book, pages, edition, assetPath, missingInputs) {
       zones,
       pointing,
       ...(settings.anchor ? { anchor: settings.anchor } : {}),
-      ...(settings.panel ? { panel: settings.panel } : {}),
+      ...((settings.panel || edition.defaultPanel) ? { panel: settings.panel || edition.defaultPanel } : {}),
       ...(panelWidths ? { panelWidthsMm: panelWidths } : {}),
     });
     index += isSpread ? 2 : 1;

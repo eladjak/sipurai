@@ -138,6 +138,19 @@ describe('owner print-edition review', () => {
     assert.throws(render, /review is incomplete/);
   });
 
+  it('applies new draft default per scene while preserving saved and explicit treatments', () => {
+    const edition = example();
+    edition.matterApproval = matterReview(edition, book).snapshot;
+    const render = () => createEditionManifest(book, pages, edition, path => path);
+    assert.equal(render().scenes[0].panel, undefined);
+    edition.defaultPanel = 'integrated';
+    assert.equal(render().scenes[0].panel, 'integrated');
+    edition.pages.p1.printSettings = { panel: 'cream' };
+    assert.equal(render().scenes[0].panel, 'cream');
+    edition.pages.p1.printSettings.panel = 'dark';
+    assert.equal(render().scenes[0].panel, 'dark');
+  });
+
   it('rejects overlapping spreads, unsupported trims and a missing independent closing illustration', () => {
     const edition = example();
     edition.pages.p2.layout = 'spread';
