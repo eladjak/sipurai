@@ -239,7 +239,7 @@ test('identity-matching race winner with different stock is rejected', async () 
   winner.quote.fileBindingDigest = 'a'.repeat(64);
   deps.store.findByKey = async () => null;
   deps.store.insertOrder = async () => ({created:false, order:winner});
-  const r = await call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'race-key-0001',paper:'standard'}}), deps);
+  const r = await call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:winner.idempotency_key,paper:'standard'}}), deps);
   assert.equal(r.body.error.code, 'idempotency_conflict');
   assert.equal(deps.payment.checkouts.length, 1);
 });
@@ -264,6 +264,45 @@ test('v2 retries bind identity with or without accepted quote and preserve origi
     assert.equal(same.body.orderId,first.orderId);
     assert.equal(same.body.checkoutUrl,first.checkoutUrl);
     assert.equal(deps.payment.checkouts.length,1);
+  }
+});
+
+test('verified v2 insert-race winners enforce identity and accepted price', async () => {
+  const cases = [
+    {name:'book', request:{bookId:'book-alice-200'}, error:'idempotency_conflict'},
+    {name:'quantity', request:{qty:2}, error:'idempotency_conflict'},
+    {name:'method', request:{method:'pickup'}, error:'idempotency_conflict'},
+    {name:'price', request:{}, margin:'6000', error:'quote_changed'},
+    {name:'unchanged', request:{}, error:null},
+  ];
+  for (const item of cases) {
+    const rate = {presetId:'square-200',pageCount:24,paper:'standard',cover:'softcover',costAgorot:2466,quoteRef:'fixture'};
+    const deps = makeDeps({env:{PRINT_PICKUP_ENABLED:'true', PRINT_VERIFIED_QUOTES_JSON:JSON.stringify([rate])}});
+    const first = await newOrder(deps);
+    const winner = structuredClone(deps.store._orders.get(first.orderId));
+    assert.equal(winner.quote.priceVersion,'2026-11-18.v2',item.name);
+    assert.equal(winner.quote.verified,true,item.name);
+    if (item.margin) deps.env.PRINT_MARGIN_AGOROT = item.margin;
+    const selection = {bookId:'book-alice',qty:1,method:'ship',...item.request};
+    const query = {...selection,qty:String(selection.qty),paper:'standard',cover:'softcover'};
+    const quoted = await call(endpoint('quote'),fakeReq({method:'GET',user:ALICE,query}),deps);
+    assert.equal(quoted.status,200,item.name);
+    const {presetId,pageCount,paper,cover,qty,method,totalAgorot,priceVersion} = quoted.body;
+    const acceptedQuote = {bookId:selection.bookId,presetId,pageCount,paper,cover,qty,method,totalAgorot,priceVersion};
+    let insertCalls = 0;
+    deps.store.findByKey = async () => null;
+    deps.store.insertOrder = async () => { insertCalls += 1; return {created:false,order:winner}; };
+    const body = {...selection,paper,cover,acceptedQuote,address:GOOD_ADDRESS,idempotencyKey:winner.idempotency_key};
+    const result = await call(create,fakeReq({method:'POST',user:ALICE,body}),deps);
+    assert.equal(insertCalls,1,`${item.name}: reached insert`);
+    if (item.error) {
+      assert.equal(result.body.error.code,item.error,item.name);
+    } else {
+      assert.equal(result.status,200,item.name);
+      assert.equal(result.body.orderId,first.orderId);
+      assert.equal(result.body.checkoutUrl,first.checkoutUrl);
+    }
+    assert.equal(deps.payment.checkouts.length,1,item.name);
   }
 });
 
