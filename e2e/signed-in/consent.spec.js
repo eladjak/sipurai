@@ -61,7 +61,7 @@ test('first visit asks for consent, accepting is saved, the app opens, the next 
 
   // 3. The app opens: no consent screen, and a signed-in "/" is the dashboard, not the landing page.
   await expect(page.locator('#gate-title')).toHaveCount(0, { timeout: 10000 });
-  await expect(page.getByRole('heading', { name: /הסיפור של הילד שלכם/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /עולם קטן של סיפורים, ממש משלכם/ })).toHaveCount(0);
   expect(new URL(page.url()).pathname).toBe('/');
 
   // 4. Second visit: the server remembers, so there is no question.
@@ -69,7 +69,7 @@ test('first visit asks for consent, accepting is saved, the app opens, the next 
   await page.reload();
   await expect.poll(() => seen.get, { timeout: 15000 }).toBeGreaterThan(1);
   await expect(page.locator('#gate-title')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: /הסיפור של הילד שלכם/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /עולם קטן של סיפורים, ממש משלכם/ })).toHaveCount(0);
   expect(seen.post).toBe(postsBefore);
 
   // The app always sent its login token to the consent route.

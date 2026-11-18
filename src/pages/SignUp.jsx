@@ -1,3 +1,4 @@
+import { safeAuthReturn, authLink } from "@/lib/authReturn";
 import React from 'react';
 import { isNewShell } from '@/lib/flags';
 import { Wordmark } from '@/components/brand/Wordmark';
@@ -7,10 +8,13 @@ import '@/styles/sp-fonts.css';
 import { SignUp as ClerkSignUp } from '@clerk/clerk-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { BookOpen } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const SignUp = () => {
   const { isRTL, language, t } = useI18n();
+  const [searchParams] = useSearchParams();
+  const afterSignUpUrl = safeAuthReturn(searchParams.get('redirect_url'));
+  const signInUrl = authLink('/sign-in', afterSignUpUrl);
 
   if (isNewShell()) {
     return (
@@ -19,7 +23,7 @@ const SignUp = () => {
           <Wordmark language={language === 'english' ? 'en' : 'he'} />
         </Link>
         <p className="mb-7 mt-4 text-center text-sp-ink-600">{t('auth.reassurance')}</p>
-        <ClerkSignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/" appearance={clerkAppearance} />
+        <ClerkSignUp routing="path" path="/sign-up" signInUrl={signInUrl} forceRedirectUrl={afterSignUpUrl} fallbackRedirectUrl={afterSignUpUrl} appearance={clerkAppearance} />
       </main>
     );
   }
@@ -39,8 +43,8 @@ const SignUp = () => {
       <ClerkSignUp
         routing="path"
         path="/sign-up"
-        signInUrl="/sign-in"
-        fallbackRedirectUrl="/"
+        signInUrl={signInUrl}
+        forceRedirectUrl={afterSignUpUrl} fallbackRedirectUrl={afterSignUpUrl}
         appearance={{
           elements: {
             rootBox: 'mx-auto',

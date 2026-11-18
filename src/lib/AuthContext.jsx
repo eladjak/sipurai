@@ -1,3 +1,4 @@
+import { safeAuthReturn } from "@/lib/authReturn";
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
 import { User } from '@/entities/User';
@@ -113,16 +114,15 @@ const ClerkAuthProvider = ({ children }) => {
         }
       },
       navigateToLogin: () => {
-        // Strip checkout/payment params before encoding redirect URL
-        // so post-signup users don't end up seeing stale billing toasts.
+        // Remove stale checkout state while preserving the intended local destination.
         const cleanUrl = (() => {
           try {
             const url = new URL(window.location.href);
             url.searchParams.delete('checkout');
             url.searchParams.delete('plan');
-            return url.toString();
+            return safeAuthReturn(url.pathname + url.search + url.hash);
           } catch {
-            return window.location.href;
+            return "/";
           }
         })();
         window.location.href = `/sign-in?redirect_url=${encodeURIComponent(cleanUrl)}`;

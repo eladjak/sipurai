@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test.use({ locale: 'he-IL' });
 
 const PUBLIC_PAGES = [
-  { path: '/', h1: /הסיפור של הילד שלכם/ },
+  { path: '/', h1: /עולם קטן של סיפורים, ממש משלכם/ },
   { path: '/privacy', h1: /מדיניות פרטיות/ },
   { path: '/terms', h1: /תנאי שימוש/ },
   { path: '/accessibility', h1: /הצהרת נגישות/ },
@@ -18,7 +18,7 @@ test.describe('public pages', () => {
     const html = page.locator('html');
     await expect(html).toHaveAttribute('lang', 'he');
     await expect(html).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('h1').first()).toContainText('הסיפור של הילד שלכם');
+    await expect(page.locator('h1').first()).toContainText('עולם קטן של סיפורים, ממש משלכם');
     await expect(page).toHaveTitle(/סיפוראי/);
   });
 

@@ -1,3 +1,4 @@
+import { safeAuthReturn, authLink } from "@/lib/authReturn";
 import React from 'react';
 import { isNewShell } from '@/lib/flags';
 import { Wordmark } from '@/components/brand/Wordmark';
@@ -15,9 +16,8 @@ const SignIn = () => {
 
   // Read redirect_url from query string, validate it's a relative path
   const rawRedirect = searchParams.get('redirect_url') || '/';
-  const afterSignInUrl = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
-    ? rawRedirect
-    : '/';
+  const afterSignInUrl = safeAuthReturn(rawRedirect);
+  const signUpUrl = authLink('/sign-up', afterSignInUrl);
 
   if (isNewShell()) {
     return (
@@ -26,7 +26,7 @@ const SignIn = () => {
           <Wordmark language={language === 'english' ? 'en' : 'he'} />
         </Link>
         <p className="mb-7 mt-4 text-center text-sp-ink-600">{t('auth.reassurance')}</p>
-        <ClerkSignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl={afterSignInUrl} appearance={clerkAppearance} />
+        <ClerkSignIn routing="path" path="/sign-in" signUpUrl={signUpUrl} forceRedirectUrl={afterSignInUrl} fallbackRedirectUrl={afterSignInUrl} appearance={clerkAppearance} />
       </main>
     );
   }
@@ -46,8 +46,8 @@ const SignIn = () => {
       <ClerkSignIn
         routing="path"
         path="/sign-in"
-        signUpUrl="/sign-up"
-        fallbackRedirectUrl={afterSignInUrl}
+        signUpUrl={signUpUrl}
+        forceRedirectUrl={afterSignInUrl} fallbackRedirectUrl={afterSignInUrl}
         appearance={{
           elements: {
             rootBox: 'mx-auto',

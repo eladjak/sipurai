@@ -6,9 +6,11 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import InstallPrompt from '@/components/shared/InstallPrompt';
 import { useTonight } from './useTonight';
 import ContinueCard from './ContinueCard';
+import demoBooks from '@/data/demoBooks';
 const action = 'inline-flex min-h-11 items-center gap-2 rounded-sp-sm px-4 py-2 font-semibold hover:bg-sp-violet-100 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sp-violet-600';
 export default function Tonight() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const en = language === 'english' || language === 'en';
   const { user } = useCurrentUser();
   const { books, readable, page, loading, error, offline, retry } = useTonight();
   return <main className="mx-auto max-w-5xl px-4 py-8 text-sp-ink-900 sm:px-8"><header className="mb-7"><p className="text-sp-ink-600">{user?.full_name?.trim() ? t('tonight.greetingName', { name: user.full_name.trim().split(/\s+/)[0] }) : t('tonight.subtitle')}</p><h1 className="mt-1 font-sp-display text-sp-3xl font-semibold">{t('tonight.title')}</h1></header>
@@ -18,6 +20,7 @@ export default function Tonight() {
       {readable.length > 1 && <section className="mt-8"><div className="flex items-center justify-between gap-4"><h2 className="font-sp-display text-sp-xl font-semibold">{t('tonight.favourites')}</h2><Link to="/shelf" className={`${action} text-sp-violet-700`}>{t('tonight.allBooks')}</Link></div><div className="mt-4 flex flex-wrap gap-4">{readable.slice(1, 3).map(book => <Link key={book.id} to={`/BookView?id=${encodeURIComponent(book.id)}`} className="w-28 rounded-sp-sm text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600 motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-1 active:scale-[0.98]"><div className="flex h-36 items-center justify-center overflow-hidden rounded-sp-sm bg-sp-violet-100">{book.cover_image ? <img src={book.cover_image} alt="" className="h-full w-full object-cover" /> : <BookOpen aria-hidden="true" className="h-10 w-10 text-sp-violet-700" />}</div><span className="mt-2 block break-words font-medium">{book.title || t('tonight.untitled')}</span></Link>)}</div></section>}
       {!readable.length && <Link to="/new" className={`${action} mt-8 border border-sp-line text-sp-violet-700`}><Plus aria-hidden="true" className="h-5 w-5" />{t('tonight.newStory')}</Link>}
     </>}
+    <section className="mt-10"><h2 className="font-sp-display text-sp-2xl font-semibold">{t('spxLibrary.tonightTitle')}</h2><div className="mt-4 grid grid-cols-3 gap-3 sm:gap-5">{demoBooks.map(book => <Link key={book.id} to={`/samples/${book.id}`} className="group rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-amber-600"><img src={book.cover_image} alt="" className="aspect-[4/5] w-full rounded-xl object-cover motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-1" /><span className="mt-2 block font-semibold">{en ? book.title.en : book.title.he}</span></Link>)}</div></section>
     <InstallPrompt />
   </main>;
 }
