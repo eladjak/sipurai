@@ -1,5 +1,5 @@
 {
-  "total": 270,
+  "total": 272,
   "files": {
     "src/components/ai/AIStudio.jsx": {
       "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
@@ -48,9 +48,7 @@
     },
     "src/components/checkout/PaymentReturn.jsx": {
       "TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.": 1,
-      "TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.": 1,
-      "TS2741: Property 'onRetry' is missing in type '{ children: any; tone: string; title: string; className: string; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1,
-      "TS2741: Property 'onRetry' is missing in type '{ children: string; tone: string; title: string; className: string; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1
+      "TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.": 1
     },
     "src/components/checkout/validation.js": {
       "TS2322: Type '{ fullName: string; phone: string; city: string; street: string; houseNumber: string; zip: string; }' is not assignable to type 'Record<string, string>'.": 2
@@ -99,8 +97,16 @@
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 3,
       "TS2741: Property 'variant' is missing in type '{ children: string; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
+    "src/components/home/UserWelcomeCard.jsx": {
+      "TS2322: Type '{ badgeId: any; size: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
+      "TS2339: Property 'userData' does not exist on type '{}'.": 1,
+      "TS2741: Property 'variant' is missing in type '{ children: Element[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 4
+    },
     "src/components/i18n/i18nProvider.jsx": {
       "TS2554: Expected 1 arguments, but got 0.": 1
+    },
+    "src/components/landing/LandingNav.jsx": {
+      "TS2353: Object literal may only specify known properties, and ''--i'' does not exist in type 'Properties<string | number, string & {}>'.": 1
     },
     "src/components/landing/PricingSection.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
@@ -108,6 +114,10 @@
     "src/components/library/BookCard.jsx": {
       "TS2322: Type '{ src: any; alt: any; className: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 2,
       "TS2741: Property 'variant' is missing in type '{ children: Element; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 2
+    },
+    "src/components/onboarding/OnboardingWizard.jsx": {
+      "TS2339: Property 'onComplete' does not exist on type '{}'.": 1,
+      "TS2339: Property 'userName' does not exist on type '{}'.": 1
     },
     "src/components/profile/AchievementList.jsx": {
       "TS2322: Type '{ badgeId: any; size: string; completed: any; inProgress: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
@@ -236,7 +246,6 @@
     },
     "src/pages/AdminPrintOrders.jsx": {
       "TS2741: Property 'className' is missing in type '{ children: (string | Element)[]; type: string; onClick: (silent: any) => Promise<void>; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 1,
-      "TS2741: Property 'className' is missing in type '{ children: any; title: string; onRetry: (silent: any) => Promise<void>; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1,
       "TS2741: Property 'headingRef' is missing in type '{ children: Element[]; title: string; subtitle: string; backTo: string; backLabel: string; wide: true; }' but required in type '{ title: any; subtitle: any; backTo: any; backLabel?: string; children: any; wide?: boolean; headingRef: any; }'.": 1
     },
     "src/pages/Blog.jsx": {
@@ -259,14 +268,13 @@
     "src/pages/BookWizard.jsx": {
       "TS2322: Type '{ title: any; message: any; onRetry: any; onGoBack: () => void; isRTL: any; language: string; }' is not assignable to type 'IntrinsicAttributes & { title: any; message: any; onRetry: any; onGoBack: any; isRTL: any; }'.": 1,
       "TS2322: Type 'string' is not assignable to type '\"english\" | \"hebrew\" | \"yiddish\"'.": 1,
+      "TS2339: Property '__sipurai_last_bible' does not exist on type 'Window & typeof globalThis'.": 1,
+      "TS2345: Argument of type '{ prompt: any; aspectRatio: string; referenceImageBase64: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
       "TS2353: Object literal may only specify known properties, and 'defaultAgeRange' does not exist in type '{ bookData: any; characters?: any[]; scenes?: any[]; topic?: string; useRhyming?: boolean; rhymeSettings?: any; storyBible?: any; pageCount?: number; }'.": 1
     },
     "src/pages/CharacterEditor.jsx": {
       "TS2345: Argument of type '{ prompt: string; quality: string; size: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
       "TS2741: Property 'className' is missing in type '{ children: Element[]; }' but required in type '{ [x: string]: any; className: any; }'.": 2
-    },
-    "src/pages/CheckoutStatesHarness.jsx": {
-      "TS2739: Type '{ key: string; api: any; paid: boolean; pollMs: number; }' is missing the following properties from type '{ api?: { getConfig: () => Promise<PrintConfig>; getQuote: ({ bookId, qty, method }: { bookId: any; qty: any; method: any; }) => Promise<Quote>; createOrder: ({ bookId, qty, method, address, idempotencyKey }: { bookId: any; qty: any; method: any; address: any; idempotencyKey: any; }) => Promise<...>; getMyOrders: ()...': orderId, maxPollMs": 1
     },
     "src/pages/Community.jsx": {
       "TS2741: Property 'className' is missing in type '{ children: Element[]; }' but required in type '{ [x: string]: any; className: any; }'.": 1,
@@ -289,7 +297,9 @@
     "src/pages/Home.jsx": {
       "TS2322: Type '{ dailyPrompt: any; isPromptLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
       "TS2322: Type '{ draftBooks: any[]; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
+      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
+      "TS2322: Type '{ onComplete: () => void; userName: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
+      "TS2322: Type '{ userData: { full_name: string; avatar_url: string; level: number; xp: number; nextLevelXp: number; completedBooks: number; streakDays: number; badges: any[]; notifications: number; }; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
     },
     "src/pages/LandingPage.jsx": {
       "TS2345: Argument of type '{ title: any; description: any; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
@@ -305,23 +315,16 @@
       "TS2741: Property 'variant' is missing in type '{ children: number; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
     "src/pages/MyOrders.jsx": {
-      "TS2739: Type '{ paid: boolean; orderId: string; }' is missing the following properties from type '{ api?: { getConfig: () => Promise<PrintConfig>; getQuote: ({ bookId, qty, method }: { bookId: any; qty: any; method: any; }) => Promise<Quote>; createOrder: ({ bookId, qty, method, address, idempotencyKey }: { bookId: any; qty: any; method: any; address: any; idempotencyKey: any; }) => Promise<...>; getMyOrders: ()...': pollMs, maxPollMs": 1,
       "TS2741: Property 'className' is missing in type '{ children: (string | Element)[]; type: string; onClick: () => Promise<void>; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 1,
-      "TS2741: Property 'className' is missing in type '{ children: any; title: string; onRetry: () => Promise<void>; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1,
       "TS2741: Property 'headingRef' is missing in type '{ children: Element[]; title: string; subtitle: string; backTo: string; backLabel: string; }' but required in type '{ title: any; subtitle: any; backTo: any; backLabel?: string; children: any; wide?: boolean; headingRef: any; }'.": 1
     },
     "src/pages/PrintCheckout.jsx": {
       "TS2551: Property 'message_he' does not exist on type 'Error'. Did you mean 'message'?": 1,
       "TS2739: Type '{ children: Element; title: string; backTo: string; backLabel: string; }' is missing the following properties from type '{ title: any; subtitle: any; backTo: any; backLabel?: string; children: any; wide?: boolean; headingRef: any; }': subtitle, headingRef": 3,
-      "TS2739: Type '{ children: string; tone: string; title: string; }' is missing the following properties from type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }': onRetry, className": 1,
       "TS2741: Property 'className' is missing in type '{ children: (string | Element)[]; type: string; onClick: () => void; disabled: boolean; \"aria-label\": string; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 1,
-      "TS2741: Property 'className' is missing in type '{ children: any; title: string; onRetry: () => Promise<void>; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1,
-      "TS2741: Property 'className' is missing in type '{ children: any; title: string; onRetry: () => Promise<void>; retryLabel: string; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1,
-      "TS2741: Property 'className' is missing in type '{ children: any; title: string; onRetry: () => void; }' but required in type '{ tone?: string; title: any; children: any; onRetry: any; retryLabel?: string; className: any; }'.": 1,
       "TS2741: Property 'className' is missing in type '{ children: Element; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 4,
       "TS2741: Property 'className' is missing in type '{ children: Element[]; \"aria-label\": string; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 1,
       "TS2741: Property 'className' is missing in type '{ children: Element[]; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 1,
-      "TS2741: Property 'initialAddress' is missing in type '{ bookId: string; }' but required in type '{ bookId: any; api?: { getConfig: () => Promise<PrintConfig>; getQuote: ({ bookId, qty, method }: { bookId: any; qty: any; method: any; }) => Promise<Quote>; createOrder: ({ bookId, qty, method, address, idempotencyKey }: { ...; }) => Promise<...>; getMyOrders: () => Promise<...>; getOrder: (id: any) => Promise<...>...'.": 1,
       "TS2741: Property 'subtitle' is missing in type '{ children: Element[]; title: any; backTo: string; backLabel: string; headingRef: MutableRefObject<any>; }' but required in type '{ title: any; subtitle: any; backTo: any; backLabel?: string; children: any; wide?: boolean; headingRef: any; }'.": 1
     },
     "src/pages/PrivacyGateHarness.jsx": {

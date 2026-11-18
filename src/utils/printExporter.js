@@ -5,7 +5,7 @@ import { PRINT_PRESETS, BLEED_MM, getPrintGeometry, getSpine, isSupportedPageCou
 // the surrounding trim and bleed are white. It does not create book layouts.
 function proofPreset(spec) {
   const preset = PRINT_PRESETS.find(item => item.id === spec?.presetId);
-  if (!preset || !isSupportedPageCount(spec.pageCount) || spec.paper !== 'white-110gsm' || spec.cover !== 'soft-matte') {
+  if (!preset || !isSupportedPageCount(spec.pageCount) || !getSpine(spec) || spec.cover !== 'soft-matte') {
     throw new Error('Unsupported print specification');
   }
   return preset;

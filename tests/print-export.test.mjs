@@ -88,3 +88,11 @@ test('rejects low resolution, missing pages and unverified paper specifications'
   }
   assert.throws(() => createCoverPdf({ ...spec, cover: 'hard' }, { front: adequate, back: adequate }), /specification/i);
 });
+
+test('coated stocks produce correctly sized unverified cover spreads', () => {
+  for (const [paper, spine] of [['chrome-matte-130', 1.5], ['chrome-matte-170', 1.92]]) {
+    const cover = createCoverPdf({ ...spec, paper }, { front: adequate, back: adequate });
+    near(boxes(cover)[0][0], 440 + spine + 6.4);
+  }
+  assert.throws(() => createCoverPdf({ ...spec, paper: 'premium' }, { front: adequate, back: adequate }), /specification/i);
+});

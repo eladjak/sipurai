@@ -74,6 +74,18 @@ class EditionTest(unittest.TestCase):
         extended = replace(edition, minimum=25)
         self.assertEqual(spine_for(extended, plan(extended)), (2.1, "derived-unverified"))
 
+    def test_stock_caliper_and_mismatch_fail_closed(self):
+        for paper, expected in (("white-110gsm", 1.8), ("chrome-matte-130", 1.5), ("chrome-matte-170", 1.92)):
+            self.edition["paper"] = paper
+            edition = self.parse()
+            self.assertEqual(spine_for(edition, plan(edition))[0], expected)
+        self.edition["requestedFinishing"] = {"cover": "softcover", "paper": "standard"}
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            self.parse()
+        self.edition["requestedFinishing"]["paper"] = "premium"
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            self.parse()
+
     def test_pending_and_bad_approvals_fail_closed(self):
         self.spread["text"] = ["לַיְלָה טוֹב", "שלום חבר"]
         self.spread["pointing"] = ["pending", "unpointed"]
@@ -103,7 +115,7 @@ class EditionTest(unittest.TestCase):
             self.parse()
         del self.edition["bleedMm"]
         self.edition["paper"] = "premium"
-        with self.assertRaisesRegex(ValueError, "white-110gsm"):
+        with self.assertRaisesRegex(ValueError, "Unsupported binding or paper"):
             self.parse()
         del self.edition["paper"]
         self.edition["qrUrl"] = "https://other.example/b/print/private"
@@ -136,6 +148,15 @@ class EditionTest(unittest.TestCase):
         with Pdf.open(output / "cover.pdf") as cover:
             self.assertEqual(len(cover.pages), 1)
             self.assertTrue(any(image.ColorSpace == Name.DeviceGray for image in cover.pages[0].images.values()))
+        # Actual generated second page: barcode reservation at center of the
+        # physical left panel near its bottom, independently from the exterior QR.
+        with Image.open(output / "previews" / "cover-inside.png").convert("RGB") as inside:
+            scale = 120 / 25.4
+            x = round((3.2 + 110) * scale)
+            y = round((3.2 + 220 - 5 - 7.5) * scale)
+            self.assertEqual(inside.getpixel((x, y)), (255, 255, 255))
+            self.assertNotEqual(inside.getpixel((x, round((3.2 + 110) * scale))), (255, 255, 255))
+            self.assertNotEqual(inside.getpixel((round((3.2 + 220 + 1.8 + 110) * scale), y)), (255, 255, 255))
         preview = output / "previews" / "spread-04-05.png"
         with Image.open(preview) as spread:
             y = spread.height // 2

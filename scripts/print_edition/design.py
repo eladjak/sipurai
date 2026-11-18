@@ -289,8 +289,6 @@ class Art:
             for col, x in enumerate(range(step // 2, w, step)):
                 x += (row % 2) * step // 3
                 radius = px(1.2 + digest[(row + col) % len(digest)] % 4 / 4)
-                if barcode_reserve and y > h - px(29) and abs(x - w/2) < px(37):
-                    continue
                 if (row + col + digest[1]) % 3:
                     draw.polygon([(x, y-radius), (x+radius//4, y-radius//4),
                                   (x+radius, y), (x+radius//4, y+radius//4),
@@ -492,12 +490,14 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
     parts = [cover]
 
     if edition.inside_cover:
-        # The BookPod sample places its 40 × 15 mm barcode near the bottom
-        # of the left (inside-back) panel. A quieter background leaves room
-        # around the estimated position without printing an empty box.
+        # BookPod specifies a 40 × 15 mm barcode in the middle of the
+        # left side of the optional inside cover; its example shows it near
+        # the bottom. The 5 mm trim offset is inferred, not specified.
         inside_back = art.pattern(edition, barcode_reserve=True)
         inside_front = art.pattern(edition)
         inside = picture(inside_back, 0, 0, page_width, height)
+        inside += solid(geometry.bleed + (geometry.width - 40) / 2,
+                        geometry.bleed + geometry.height - 5 - 15, 40, 15, "#fff")
         inside += picture(inside_front, back_start - geometry.bleed, 0, page_width, height)
         parts.append(inside)
     return parts, sizes

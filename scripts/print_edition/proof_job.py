@@ -99,7 +99,7 @@ def manifest_assets(data) -> set[str]:
         value = data["requestedFinishing"]
         if (not isinstance(value, dict) or set(value) != {"cover", "paper"}
                 or value["cover"] not in ("softcover", "hardcover")
-                or value["paper"] not in ("standard", "premium")):
+                or value["paper"] not in ("standard", "chrome-matte-130", "chrome-matte-170")):
             raise InvalidProofInput("Invalid finishing preferences")
 
     assets = {asset_name(data[field]) for field in ART_FIELDS if data.get(field) is not None}
@@ -245,7 +245,7 @@ def render_proof(job: Path, output: Path) -> None:
             "nikudStatus": edition.nikud_status,
             "unsavedDraft": edition.unsaved_draft,
             "trimWidthMm": edition.geometry.width, "trimHeightMm": edition.geometry.height,
-            "bleedMm": edition.geometry.bleed, "spineMm": spine,
+            "bleedMm": edition.geometry.bleed, "spineMm": spine, "paper": edition.paper,
             "pdfs": {"interior": "interior.pdf", "cover": "cover.pdf"},
             "pdfSha256": preflight["pdfSha256"],
         }

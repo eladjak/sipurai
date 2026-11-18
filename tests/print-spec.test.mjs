@@ -48,6 +48,9 @@ test('spine: exactly 1.8 for 24pp (measured), linear 0.15mm per sheet otherwise,
   assert.deepEqual(getSpine({ ...base, presetId: 'square-200' }), { mm: 1.8, source: 'derived-linear', verified: false });
   assert.deepEqual(getSpine({ ...base, pageCount: 40 }), { mm: 3, source: 'derived-linear', verified: false });
   assert.deepEqual(getSpine({ ...base, pageCount: 80 }), { mm: 6, source: 'derived-linear', verified: false });
+  assert.deepEqual(getSpine({ ...base, paper: 'chrome-matte-130' }), { mm: 1.5, source: 'derived-linear', verified: false });
+  assert.deepEqual(getSpine({ ...base, paper: 'chrome-matte-170' }), { mm: 1.92, source: 'derived-linear', verified: false });
+  assert.equal(getSpine({ ...base, paper: 'premium' }), null);
   assert.equal(getSpine({ ...base, paper: 'x' }), null);
   assert.equal(getSpine({ ...base, cover: 'x' }), null);
   assert.equal(getSpine({ ...base, presetId: 'nope' }), null);

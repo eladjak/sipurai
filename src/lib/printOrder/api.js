@@ -82,12 +82,12 @@ export const printOrderApi = {
   /** @returns {Promise<PrintConfig>} */
   getConfig: () => request('/api/orders/config', { auth: false }),
   /** @returns {Promise<Quote>} */
-  getQuote: ({ bookId, qty, method }) => request('/api/orders/quote' + qs({ bookId, qty, method })),
+  getQuote: ({ bookId, qty, method, paper }) => request('/api/orders/quote' + qs({ bookId, qty, method, paper })),
   /** @returns {Promise<{orderId: string, status: string, checkoutUrl: string}>} */
-  createOrder: ({ bookId, qty, method, address, idempotencyKey }) =>
+  createOrder: ({ bookId, qty, method, paper, cover, acceptedQuote, address, idempotencyKey }) =>
     request('/api/orders/create', {
       method: 'POST',
-      body: { bookId, qty, method, address: address ?? null, idempotencyKey },
+      body: { bookId, qty, method, paper, cover, acceptedQuote, address: address ?? null, idempotencyKey },
     }),
   /** @returns {Promise<{orders: OrderView[]}>} */
   getMyOrders: () => request('/api/orders/mine'),

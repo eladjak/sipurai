@@ -10,7 +10,7 @@ import { OrderCard } from '@/components/checkout/OrderCard';
 import { PaymentReturn } from '@/components/checkout/PaymentReturn';
 import { EmptyOrdersArt } from '@/components/checkout/Illustrations';
 
-export function MyOrdersView({ api = printOrderApi, paid = false, orderId, pollMs, maxPollMs }) {
+export function MyOrdersView({ api = printOrderApi, paid = false, orderId = undefined, pollMs = undefined, maxPollMs = undefined }) {
   const { t } = useI18n();
   const [state, setState] = useState({ status: 'loading', orders: [], error: null });
 

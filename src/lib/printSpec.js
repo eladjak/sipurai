@@ -63,16 +63,17 @@ export function printPageCountFor(storyPages) {
 }
 
 /**
- * Spine for the verified paper only (white-110gsm, soft-matte).
+ * Spine for supported softcover stocks. Only the white-110gsm reference case is verified.
  * Returns {mm, source, verified} or null for another paper/binding or bad page count.
  * measured-proof-24pp: exactly the vendor-previewed case (22x22, 24pp).
- * derived-linear: (pageCount/2) * 0.15 mm, not yet confirmed by a vendor preview.
+ * derived-linear: sheet count times the supplier average caliper; not yet vendor verified.
  */
 export function getSpine(spec) {
-  if (!spec || spec.paper !== 'white-110gsm' || spec.cover !== 'soft-matte') return null;
+  const calipers = { 'white-110gsm': 0.15, 'chrome-matte-130': 0.125, 'chrome-matte-170': 0.16 };
+  if (!spec || !Object.hasOwn(calipers, spec.paper) || spec.cover !== 'soft-matte') return null;
   if (!PRINT_PRESETS.some((p) => p.id === spec.presetId)) return null;
   if (!isSupportedPageCount(spec.pageCount)) return null;
-  const mm = roundMm((spec.pageCount / 2) * SPINE_MM_PER_SHEET);
+  const mm = roundMm((spec.pageCount / 2) * calipers[spec.paper]);
   return isVerifiedProof(spec)
     ? { mm, source: 'measured-proof-24pp', verified: true }
     : { mm, source: 'derived-linear', verified: false };
