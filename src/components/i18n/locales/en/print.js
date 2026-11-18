@@ -1,5 +1,36 @@
 export default {
   "print": {
+    "proofWorkspace": {
+      "downloadSaved": "Download print files for this saved edition",
+      "missingSummary": "To open the proof, complete {fields}.",
+      "workersBusy": "The proof workers are busy. You can keep editing and retry in a few minutes.",
+      "textOverflow": "Some text exceeds the safe area. Shorten it or choose a wider placement.",
+      "savedConflict": "A newer edition was saved. Open it in a new tab to keep your current edits.",
+      "openSaved": "Open saved edition",
+      "invalidInput": "Check the book language, dimensions and text in the print settings.",
+      "downloading": "Downloading and verifying the print file…",
+      "downloadConflict": "The book changed. Preserve your edits and open the current edition before downloading.",
+      "downloadError": "The file is unavailable. Refresh the proof and try again.",
+      "refreshProof": "Refresh proof",
+      "editionDetails": "edition details",
+      "sceneField": "Scene {number} · {label}",
+      "fields": {
+        "pageLimit": "up to 80 pages",
+        "coverArt": "cover illustration",
+        "closingArt": "closing illustration",
+        "creator": "creator name",
+        "blurb": "back cover blurb",
+        "title": "title",
+        "scenes": "story pages",
+        "language": "Hebrew book",
+        "printSize": "supported trim size",
+        "unsafeText": "text without hidden direction controls",
+        "art": "illustration",
+        "spreadArt": "spread illustration",
+        "text": "text",
+        "layout": "spread layout"
+      }
+    },
     "checkoutPage": {
   "pageTitle": "Order a printed book",
   "backBook": "Back to book",

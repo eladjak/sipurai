@@ -1,24 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '@/components/i18n/i18nProvider';
 import { createDraftEditionManifest } from '@/lib/printEdition/model';
 import { createProofClient } from '@/lib/printEdition/proofClient';
 import ProofViewer from './ProofViewer';
 
-const fieldLabels = {
-  pageLimit: ['עד 80 עמודים', 'up to 80 pages'], coverArt: ['איור כריכה', 'cover illustration'], closingArt: ['איור סיום', 'closing illustration'],
-  creator: ['שם היוצר', 'creator name'], blurb: ['תקציר לגב הכריכה', 'back cover blurb'],
-  printTitle: ['כותרת', 'title'], title: ['כותרת', 'title'], scenes: ['עמודי סיפור', 'story pages'],
-  language: ['ספר בעברית', 'Hebrew book'], printSize: ['מידת דפוס נתמכת', 'supported trim size'],
-  unsafeText: ['טקסט ללא תווי כיווניות מוסתרים', 'text without hidden direction controls'], art: ['איור', 'illustration'], spreadArt: ['איור רחב לכפולה', 'spread illustration'],
-  text: ['טקסט', 'text'], layout: ['פריסת כפולה', 'spread layout'],
-};
-
-function missingLabel(key, rtl) {
-  const [, index, item] = /^scene:(\d+):(.+)$/.exec(key) || [];
-  const label = fieldLabels[item || key]?.[rtl ? 0 : 1] || (rtl ? 'פרטי המהדורה' : 'edition details');
-  return item ? (rtl ? 'סצנה ' : 'Scene ') + (Number(index) + 1) + ' · ' + label : label;
+function missingLabels(fields, t) {
+  const labels = {
+    pageLimit: t('print.proofWorkspace.fields.pageLimit'),
+    coverArt: t('print.proofWorkspace.fields.coverArt'),
+    closingArt: t('print.proofWorkspace.fields.closingArt'),
+    creator: t('print.proofWorkspace.fields.creator'),
+    blurb: t('print.proofWorkspace.fields.blurb'),
+    title: t('print.proofWorkspace.fields.title'),
+    scenes: t('print.proofWorkspace.fields.scenes'),
+    language: t('print.proofWorkspace.fields.language'),
+    printSize: t('print.proofWorkspace.fields.printSize'),
+    unsafeText: t('print.proofWorkspace.fields.unsafeText'),
+    art: t('print.proofWorkspace.fields.art'),
+    spreadArt: t('print.proofWorkspace.fields.spreadArt'),
+    text: t('print.proofWorkspace.fields.text'),
+    layout: t('print.proofWorkspace.fields.layout'),
+  };
+  return [...new Set(fields.map(key => {
+    const [, index, item] = /^scene:(\d+):(.+)$/.exec(key) || [];
+    const field = key === 'printTitle' ? 'title' : item || key;
+    const label = labels[field] || t('print.proofWorkspace.editionDetails');
+    return item ? t('print.proofWorkspace.sceneField', { number: Number(index) + 1, label }) : label;
+  }))].join(', ');
 }
 
 export default function ProofWorkspace({ book, pages, edition, unsaved = false, isRTL, onEdit, complete, handoffReady = false, verifyHandoff = null }) {
+  const { t } = useI18n();
   const client = useMemo(() => createProofClient(), [book.id]);
   const [attempt, retry] = useState(0);
   const [result, setResult] = useState(null);
@@ -90,20 +102,19 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
         onDownload={download} isRTL={isRTL} cover={edition.cover} paper={edition.paper} />
       {status === 'ready' && handoffReady && verifyHandoff && (
         <button className="proof-control mt-2" type="button" disabled={downloadStatus === 'busy'} onClick={() => download('handoff')}>
-          {isRTL ? 'הורדת קובצי הדפוס של המהדורה השמורה' : 'Download print files for this saved edition'}
+          {t('print.proofWorkspace.downloadSaved')}
         </button>
       )}
       {input.missing?.length > 0 && <p className="mt-2 text-sm" role="status">
-        {isRTL ? 'כדי לפתוח את ההגהה, השלימו ' : 'To open the proof, complete '}
-        {[...new Set(input.missing.map(key => missingLabel(key, isRTL)))].join(', ')}.
+        {t('print.proofWorkspace.missingSummary', { fields: missingLabels(input.missing, t) })}
       </p>}
-      {ready && result.error === 'proof_limit' && <p className="mt-2 text-sm" role="status">{isRTL ? 'כל עמדות ההגהה תפוסות. אפשר להמשיך לערוך ולנסות שוב בעוד כמה דקות.' : 'The proof workers are busy. You can keep editing and retry in a few minutes.'}</p>}
-      {ready && result.error === 'proof_input' && result.detail && <p className="mt-2 text-sm" role="alert">{isRTL ? 'אחד הטקסטים חורג מהשטח הבטוח. קצרו אותו או בחרו מיקום רחב יותר.' : 'Some text exceeds the safe area. Shorten it or choose a wider placement.'} <bdi>{result.detail}</bdi></p>}
-      {ready && result.error === 'proof_conflict' && <p role="alert">{isRTL ? 'בינתיים נשמרה מהדורה חדשה. פתחו אותה בלשונית נוספת כדי לשמור גם את השינויים שכתבתם כאן.' : 'A newer edition was saved. Open it in a new tab to keep your current edits.'} <a href={window.location.href} target="_blank" rel="noreferrer" className="underline">{isRTL ? 'פתיחת המהדורה השמורה' : 'Open saved edition'}</a></p>}
-      {input.invalid && <p className="mt-2 text-sm" role="status">{isRTL ? 'בדקו את שפת הספר, המידות והטקסט בהגדרות הדפוס.' : 'Check the book language, dimensions and text in the print settings.'}</p>}
-      {downloadStatus === 'busy' && <p role="status">{isRTL ? 'מורידים את קובץ הדפוס ובודקים שהוא תואם להגהה…' : 'Downloading and verifying the print file…'}</p>}
-      {downloadStatus === 'conflict' && <p role="alert">{isRTL ? 'הספר השתנה מאז פתיחת ההגהה. שמרו את התיקונים ופתחו את המהדורה העדכנית לפני ההורדה.' : 'The book changed. Preserve your edits and open the current edition before downloading.'}</p>}
-      {downloadStatus === 'error' && <p role="alert">{isRTL ? 'הקובץ אינו זמין כרגע. אפשר לחדש את ההגהה ולנסות שוב.' : 'The file is unavailable. Refresh the proof and try again.'} <button type="button" className="underline" onClick={again}>{isRTL ? 'חידוש ההגהה' : 'Refresh proof'}</button></p>}
+      {ready && result.error === 'proof_limit' && <p className="mt-2 text-sm" role="status">{t('print.proofWorkspace.workersBusy')}</p>}
+      {ready && result.error === 'proof_input' && result.detail && <p className="mt-2 text-sm" role="alert">{t('print.proofWorkspace.textOverflow')} <bdi>{result.detail}</bdi></p>}
+      {ready && result.error === 'proof_conflict' && <p role="alert">{t('print.proofWorkspace.savedConflict')} <a href={window.location.href} target="_blank" rel="noreferrer" className="underline">{t('print.proofWorkspace.openSaved')}</a></p>}
+      {input.invalid && <p className="mt-2 text-sm" role="status">{t('print.proofWorkspace.invalidInput')}</p>}
+      {downloadStatus === 'busy' && <p role="status">{t('print.proofWorkspace.downloading')}</p>}
+      {downloadStatus === 'conflict' && <p role="alert">{t('print.proofWorkspace.downloadConflict')}</p>}
+      {downloadStatus === 'error' && <p role="alert">{t('print.proofWorkspace.downloadError')} <button type="button" className="underline" onClick={again}>{t('print.proofWorkspace.refreshProof')}</button></p>}
     </div>
   );
 }
