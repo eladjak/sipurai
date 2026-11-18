@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { canApproveNikud, createDraftEditionManifest, createEditionManifest, editPageText, editionDraft, editionPhysicalPageCount, editionStoryPages, isReviewCurrent, matterReview, pageDraft, printReviewComplete, reviewSource, sameEditionSource, stripNikud } from '../src/lib/printEdition/model.js';
+import { canApproveNikud, createDraftEditionManifest, createEditionManifest, editPageText, editionDraft, initialEditionFields, editionPhysicalPageCount, editionStoryPages, isReviewCurrent, matterReview, pageDraft, printReviewComplete, reviewSource, sameEditionSource, stripNikud } from '../src/lib/printEdition/model.js';
 
 import { fitDedication } from '../src/lib/printEdition/dedicationLayout.js';
+
+it('uses the new caption treatment even when a family selects paper in the wizard', () => {
+  const prefs = { ...editionDraft(), paper: 'chrome-matte-170' };
+  const { printEdition } = initialEditionFields(prefs);
+  assert.equal(printEdition.paper, prefs.paper);
+  assert.equal(printEdition.defaultPanel, 'integrated');
+  assert.deepEqual(initialEditionFields(null), {});
+  assert.equal(editionDraft(prefs).defaultPanel, undefined);
+});
 
 it('balances dedication lines inside the same text area without a one-word widow', () => {
   const layout = fitDedication('״לך איתך הספר פתוח תמיד ואפשר לקרוא ביחד שוב״', (text, points) => text.length * points / 3);

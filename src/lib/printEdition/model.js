@@ -43,7 +43,8 @@ export function editionDraft(saved = null) {
 }
 
 export function initialEditionFields(value) {
-  return value ? { printEdition: editionDraft(value) } : {};
+  if (!value) return {};
+  return { printEdition: { ...editionDraft(value), defaultPanel: 'integrated' } };
 }
 
 export function printEditionUrl(id) {
