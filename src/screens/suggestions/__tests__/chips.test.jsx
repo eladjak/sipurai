@@ -17,10 +17,10 @@ it('keeps the preference off after remount', () => {
 
 it('consumes a reader idea into the editable topic without starting', async () => {
  const { default: TopicStep } = await import('@/screens/new-story/TopicStep');
- sessionStorage.setItem('sipurai_suggestion', 'A moon story');
+ sessionStorage.setItem('sipurai_pending_idea', JSON.stringify({ ownerId: 'test-reader', title: 'A moon story' }));
  const change = vi.fn(); render(<TopicStep value="" change={change} t={t}/>);
  expect(change).toHaveBeenCalledWith('A moon story');
- expect(sessionStorage.getItem('sipurai_suggestion')).toBeNull();
+ expect(sessionStorage.getItem('sipurai_pending_idea')).toBeNull();
 });
 
 const readerNavigation = vi.hoisted(() => vi.fn());
