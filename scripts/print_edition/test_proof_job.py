@@ -72,7 +72,7 @@ class ProofJobTest(unittest.TestCase):
         self.scene["art"] = "art/image-1"
         for field, value in (("iccProfile", "art/image-1"), ("profileVendorVerified", True),
                              ("unknown", {}), ("qrUrl", "https://other.invalid/b/print/book"),
-                             ("title", "x" * 131)):
+                             ("title", "x" * 131), ("unsavedDraft", "true")):
             with self.subTest(field=field):
                 before = self.edition.copy()
                 self.edition[field] = value
@@ -168,6 +168,34 @@ class ProofJobTest(unittest.TestCase):
         self.assertTrue(fonts and all("Rubik" in name for name in fonts))
         with self.assertRaisesRegex(InvalidProofInput, "must be new"):
             render_proof(self.job, output)
+
+    def test_approved_unsaved_proof_keeps_draft_subject_in_all_pdfs(self):
+        self.edition["nikudStatus"] = "approved"
+        self.scene["pointing"][0] = "approved"
+        checked = []
+        for draft in (True, False):
+            # The saved handoff omits the draft flag completely.
+            if draft:
+                self.edition["unsavedDraft"] = True
+            else:
+                del self.edition["unsavedDraft"]
+            self.write_manifest()
+            output = self.room / ("unsaved" if draft else "saved")
+            render_proof(self.job, output)
+            record = json.loads((output / "preflight.json").read_text())
+            metadata = json.loads((output / "proof.json").read_text())
+            self.assertEqual(record["reviewOnly"], draft)
+            self.assertEqual(record["unsavedDraft"], draft)
+            self.assertEqual(metadata["unsavedDraft"], draft)
+            self.assertEqual(metadata["nikudStatus"], "approved")
+            self.assertEqual(set(metadata["pdfSha256"]), {"interior.pdf", "cover.pdf", "cover-with-inside.pdf"})
+            for filename in metadata["pdfSha256"]:
+                with Pdf.open(output / filename) as pdf:
+                    subject = str(pdf.docinfo.get("/Subject", ""))
+                    self.assertEqual(subject, "Unsaved draft — Hebrew pointing approved" if draft else "")
+            checked.append(((record["pages"], record["coverText"]),
+                            {file.name: file_hash(file) for file in output.glob("*.webp")}))
+        self.assertEqual(checked[0], checked[1], "draft status must not affect rendered layout")
 
     def test_prepare_persists_exact_worker_manifest_bytes_at_limit(self):
         manifest = dict(self.edition, coverArt="art/image-1", closingArt="art/image-1")

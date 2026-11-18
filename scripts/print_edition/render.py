@@ -94,7 +94,14 @@ def make_pdf(parts: list[str], size: tuple[float, float], edition: Edition,
                     image.Decode = Array([1, 0] * 4)
         pdf.docinfo["/Title"] = edition.title
         pdf.docinfo["/Author"] = edition.creator
-        if edition.nikud_status == "pending":
+        if edition.unsaved_draft:
+            pointing = {
+                "pending": "Hebrew pointing awaits approval",
+                "approved": "Hebrew pointing approved",
+                "unpointed": "Unpointed text",
+            }[edition.nikud_status]
+            pdf.docinfo["/Subject"] = f"Unsaved draft — {pointing}"
+        elif edition.nikud_status == "pending":
             pdf.docinfo["/Subject"] = "Review proof — Hebrew pointing awaits approval"
         pdf.save(target)
 
@@ -317,6 +324,8 @@ def build(edition: Edition, manifest: Path, target: Path, *, make_previews: bool
         warnings.append("Confirm the full wrap template and spine caliper with the printer.")
     if edition.nikud_status == "pending":
         warnings.append("Review-only proof: Hebrew pointing awaits the parent's approval.")
+    if edition.unsaved_draft:
+        warnings.append("Review-only proof: unsaved draft.")
     if not edition.character_sheet:
         warnings.append("Review character consistency against a reference sheet.")
     record = {
@@ -333,7 +342,8 @@ def build(edition: Edition, manifest: Path, target: Path, *, make_previews: bool
         "vendorProfileVerified": edition.profile_vendor_verified, "physicalProofRequired": True,
         "brightnessMultiplier": edition.brightness, "nikudStatus": edition.nikud_status,
         "storyFont": edition.story_font,
-        "reviewOnly": edition.nikud_status == "pending",
+        "unsavedDraft": edition.unsaved_draft,
+        "reviewOnly": edition.unsaved_draft or edition.nikud_status == "pending",
         "nativeDpiBelow300": low_dpi,
         "stagedPlacementDpi": {name: round(value, 2) for name, value in staged.items()},
         "effectiveDpiTarget": DPI, "pages": boxes, "coverText": cover_boxes,

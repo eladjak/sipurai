@@ -41,7 +41,7 @@ EDITION_FIELDS = set(TEXT_LIMITS) | ART_FIELDS | {
     "version", "scenes", "qrUrl", "nikudStatus", "widthMm", "heightMm", "bleedMm",
     "gutterMm", "minPages", "signatureMultiple", "spineMm", "binding", "paper",
     "insideCover", "brightness", "coverNativePixels", "closingNativePixels",
-    "requestedFinishing", "storyFont",
+    "requestedFinishing", "storyFont", "unsavedDraft",
 }
 SCENE_FIELDS = {"layout", "art", "text", "zones", "anchor", "panel", "pointing", "nativePixels", "panelWidthsMm"}
 IMAGE_FORMATS = ("JPEG", "PNG", "WEBP")
@@ -90,6 +90,8 @@ def manifest_assets(data) -> set[str]:
             check_text(data[field], limit)
     if "storyFont" in data and data["storyFont"] not in ("david-libre", "rubik"):
         raise InvalidProofInput("Unknown story font")
+    if "unsavedDraft" in data and type(data["unsavedDraft"]) is not bool:
+        raise InvalidProofInput("Unsaved draft status must be true or false")
     if (qr_url := data.get("qrUrl")) not in (None, ""):
         if not isinstance(qr_url, str) or not QR.fullmatch(qr_url):
             raise InvalidProofInput("Invalid Sipurai book QR link")
@@ -241,6 +243,7 @@ def render_proof(job: Path, output: Path) -> None:
                 "back": spoken_text([box for box in preflight["coverText"] if not box["role"].startswith("cover-")]),
             },
             "nikudStatus": edition.nikud_status,
+            "unsavedDraft": edition.unsaved_draft,
             "trimWidthMm": edition.geometry.width, "trimHeightMm": edition.geometry.height,
             "bleedMm": edition.geometry.bleed, "spineMm": spine,
             "pdfs": {"interior": "interior.pdf", "cover": "cover.pdf"},

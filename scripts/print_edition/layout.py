@@ -76,6 +76,7 @@ class Edition:
     cover_native_pixels: tuple[int, int] | None
     closing_native_pixels: tuple[int, int] | None
     story_font: Literal["david-libre", "rubik"] = "david-libre"
+    unsaved_draft: bool = False
 
 
 @dataclass(frozen=True)
@@ -244,6 +245,7 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         source_pixels(data.get("coverNativePixels"), "coverNativePixels"),
         source_pixels(data.get("closingNativePixels"), "closingNativePixels"),
         story_font,
+        boolean(data.get("unsavedDraft", False), "unsavedDraft"),
     )
 
 

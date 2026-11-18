@@ -147,6 +147,7 @@ test('proof API rejects unauthenticated, non-owner, disabled, unknown paths, exp
   assert.equal((await call(prepare(), { env: { PRINT_PROOF_DISABLED: 'true' }, serve })).code, 503);
   assert.equal((await call(prepare(image, { ...edition, iccProfile: '/etc/passwd' }), { serve })).code, 422);
   assert.equal((await call(prepare(image, { ...edition, storyFont: 'https://example.invalid/font.ttf' }), { serve })).code, 422);
+  assert.equal((await call(prepare(image, { ...edition, unsavedDraft: 'true' }), { serve })).code, 422);
   assert.equal((await call(prepare(image, { ...edition, closingArt: 'art/../image-1' }), { serve })).code, 422);
   const mismatch = await call({ ...prepare(), expectedRevision: 4 }, { serve });
   assert.equal(mismatch.code, 409);

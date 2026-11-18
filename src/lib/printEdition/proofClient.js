@@ -76,14 +76,13 @@ export function createProofClient() {
   return async function renderProof(bookId, manifest, sources, signal, expectedRevision = 0) {
     const current = new Set(sources);
     for (const key of cache.keys()) if (!current.has(key)) cache.delete(key);
-    const auth = await getApiAuthHeaders();
     const assets = [];
     let total = 0;
     for (const source of sources) {
       signal.throwIfAborted();
       let asset = cache.get(source);
       if (!asset) {
-        const blob = await readEditionArt(source, auth, signal);
+        const blob = await readEditionArt(source, signal);
         if (!blob.size || blob.size > maxImage || total + blob.size > maxBook) throw new Error('Artwork too large');
         const sha256 = await digestBlob(blob);
         asset = { blob, sha256, size: blob.size };
@@ -132,16 +131,15 @@ export function createProofClient() {
         yield* checkedChunks(response, proof.pdfSha256[file], signal);
       }
       async function verifyArt(signal) {
-        const auth = await getApiAuthHeaders();
         for (const [index, source] of sources.entries()) {
           signal.throwIfAborted();
           if (source.startsWith('data:')) continue;
-          const blob = await readEditionArt(source, auth, signal);
+          const blob = await readEditionArt(source, signal);
           if (blob.size !== descriptors[index].size || await digestBlob(blob) !== descriptors[index].sha256) throw new Error('conflict');
         }
       }
       return {
-        ...proof, pdfs, nikudStatus: manifest.nikudStatus, coverUrl: urls.get(proof.coverFile), insideUrl: urls.get(proof.insideFile),
+        ...proof, pdfs, unsavedDraft: Boolean(manifest.unsavedDraft), nikudStatus: manifest.nikudStatus, coverUrl: urls.get(proof.coverFile), insideUrl: urls.get(proof.insideFile),
         pages: proof.pages.map(page => ({ ...page, url: urls.get(page.file) })), revoke,
         download: async (key, revision, final, verifyHandoff, downloadSignal) => {
           const archive = key === 'handoff';

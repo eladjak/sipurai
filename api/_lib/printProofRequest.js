@@ -11,7 +11,7 @@ const EDITION_FIELDS = new Set([
   'version', 'title', 'creator', 'blurb', 'aboutAuthor', 'dedication', 'copyright',
   ...ART_FIELDS, 'scenes', 'qrUrl', 'nikudStatus', 'widthMm', 'heightMm', 'bleedMm', 'gutterMm',
   'minPages', 'signatureMultiple', 'spineMm', 'binding', 'paper', 'insideCover', 'brightness',
-  'coverNativePixels', 'closingNativePixels', 'requestedFinishing', 'storyFont',
+  'coverNativePixels', 'closingNativePixels', 'requestedFinishing', 'storyFont', 'unsavedDraft',
 ]);
 const SCENE_FIELDS = new Set(['layout', 'art', 'text', 'zones', 'anchor', 'panel', 'pointing', 'nativePixels', 'panelWidthsMm']);
 const BODY_FIELDS = {
@@ -95,6 +95,9 @@ function preparedSpec({ manifest, assets, bookId }) {
   if (manifest.qrUrl && manifest.qrUrl !== `https://www.sipurai.ai/b/print/${bookId}`
       && manifest.qrUrl !== `https://sipurai.ai/b/print/${bookId}`) throw new ProofError('proof_input');
   if (Object.hasOwn(manifest, 'storyFont') && !['david-libre', 'rubik'].includes(manifest.storyFont)) {
+    throw new ProofError('proof_input');
+  }
+  if (Object.hasOwn(manifest, 'unsavedDraft') && typeof manifest.unsavedDraft !== 'boolean') {
     throw new ProofError('proof_input');
   }
   if (referenced.size !== assets.length) throw new ProofError('proof_input');

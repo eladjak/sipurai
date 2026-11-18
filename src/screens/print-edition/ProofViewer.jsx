@@ -5,7 +5,7 @@ import './proof-viewer.css';
 
 const COPY = {
   he: {
-    heading: 'הגהת דפוס',
+    heading: 'הגהת דפוס', unsaved: 'ההגהה כוללת שינויים שעדיין לא נשמרו.',
     cover: 'הכריכה מבחוץ', opening: 'פתיחת הספר', closing: 'סוף הספר',
     front: 'כריכה קדמית', back: 'כריכה אחורית', spine: 'שדרה', insideFront: 'צד פנימי קדמי', insideBack: 'צד פנימי אחורי',
     title: 'שער', dedication: 'הקדשה', copyright: 'קרדיט וזכויות', endpaper: 'עמוד רקע', story: 'סיפור', lastPage: 'עמוד הסיום',
@@ -30,7 +30,7 @@ const COPY = {
     imageError: 'אחד מדפי ההגהה לא נטען.',
   },
   en: {
-    heading: 'Print proof',
+    heading: 'Print proof', unsaved: 'This proof includes unsaved changes.',
     cover: 'Outside cover', opening: 'Opening spread', closing: 'Closing spread',
     front: 'Front cover', back: 'Back cover', spine: 'Spine', insideFront: 'Inside front cover', insideBack: 'Inside back cover',
     title: 'Title page', dedication: 'Dedication', copyright: 'Credits and copyright', endpaper: 'Patterned page', story: 'Story', lastPage: 'Final page',
@@ -223,6 +223,7 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
         {spread && (
           <>
             <p>{cover === 'hardcover' ? t.hard : t.soft} {paper === 'premium' ? t.premium : ''}</p>
+            {proof.unsavedDraft && <p className="proof-draft" role="status">{t.unsaved}</p>}
             {proof.nikudStatus === 'pending' && <p className="proof-draft" role="status">{t.draftNikud}</p>}
             <dl className="proof-measures">
               {[

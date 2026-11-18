@@ -10,7 +10,7 @@ vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({ isRTL: true }) }));
 vi.mock('@/lib/printEdition/localNikudClient', () => ({ createNikudClient: () => ({ close() {}, suggest: fixture.suggestNikud }) }));
 vi.mock('@/integrations/Core', () => ({ InvokeLLM: fixture.invoke }));
-vi.mock('@/lib/printEdition/assets', () => ({ downloadEditionBundle: fixture.download, makeEndpaper: async () => '/art/pattern.png' }));
+vi.mock('@/lib/printEdition/assets', () => ({ downloadEditionBundle: fixture.download }));
 vi.mock('@/screens/print-edition/ProofWorkspace', () => ({
   default: ({ onEdit, verifyHandoff }) => <>
     <button type="button" onClick={() => onEdit({ kind: 'story', storyIndex: 1, field: 'text' })}>Page two in proof</button>
@@ -173,5 +173,21 @@ describe('print edition owner editing flow', () => {
     fireEvent.click(button(labels.undo));
     fireEvent.click(button(labels.next));
     expect(screen.getByLabelText(labels.text)).toHaveValue('ובסוף כולם חייכו.');
+  });
+
+  it('rechecks the saved revision after assembling a source bundle and before releasing it', async () => {
+    const released = vi.fn();
+    fixture.download.mockImplementationOnce(async (_book, _pages, _edition, verifyAgain) => {
+      stored = { ...stored, revision: stored.revision + 1 };
+      await verifyAgain();
+      released();
+    });
+    enter();
+    await waitFor(() => expect(button(labels.export)).toBeEnabled());
+    fireEvent.click(button(labels.export));
+    expect(await screen.findByRole('alert')).toHaveTextContent(labels.conflict);
+    expect(fixture.get).toHaveBeenCalledTimes(3);
+    expect(released).not.toHaveBeenCalled();
+    expect(button(labels.export)).toBeDisabled();
   });
 });

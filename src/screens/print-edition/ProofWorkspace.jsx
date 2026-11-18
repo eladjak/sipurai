@@ -18,7 +18,7 @@ function missingLabel(key, rtl) {
   return item ? (rtl ? 'סצנה ' : 'Scene ') + (Number(index) + 1) + ' · ' + label : label;
 }
 
-export default function ProofWorkspace({ book, pages, edition, endpaper, isRTL, onEdit, complete, handoffReady = false, verifyHandoff = null }) {
+export default function ProofWorkspace({ book, pages, edition, unsaved = false, isRTL, onEdit, complete, handoffReady = false, verifyHandoff = null }) {
   const client = useMemo(() => createProofClient(), [book.id]);
   const [attempt, retry] = useState(0);
   const [result, setResult] = useState(null);
@@ -34,13 +34,12 @@ export default function ProofWorkspace({ book, pages, edition, endpaper, isRTL, 
         if (!assets.has(source)) assets.set(source, 'art/image-' + (assets.size + 1));
         return assets.get(source);
       };
-      const draft = { ...edition, artwork: { ...edition.artwork, endpaperArt: endpaper || edition.artwork.endpaperArt } };
-      const { missingInputs, ...manifest } = createDraftEditionManifest(book, pages, draft, path);
-      return { revision: edition.revision, manifest, sources: [...assets.keys()], missing: missingInputs || [] };
+      const { missingInputs, ...manifest } = createDraftEditionManifest(book, pages, edition, path);
+      return { revision: edition.revision, manifest: unsaved ? { ...manifest, unsavedDraft: true } : manifest, sources: [...assets.keys()], missing: missingInputs || [] };
     } catch {
       return { invalid: true };
     }
-  }, [book, pages, edition, endpaper]);
+  }, [book, pages, edition, unsaved]);
   useEffect(() => {
     setDownloadStatus('');
     if (!complete || input.invalid || input.missing.length) return;

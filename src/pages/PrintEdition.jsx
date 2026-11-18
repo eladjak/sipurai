@@ -67,7 +67,6 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
     catch { return false; }
   });
   const [busy, setBusy] = useState(false);
-  const [pattern, setPattern] = useState(null);
   const [storyIndex, setStoryIndex] = useState(0);
   const [editTarget, setEditTarget] = useState(null);
   const [fromProof, setFromProof] = useState(false);
@@ -108,16 +107,6 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
   }, [id, ownerId]);
 
   const coverArt = edition?.artwork.coverArt || loaded?.book.cover_image;
-  const endpaperSource = !edition?.artwork.endpaperArt && (edition?.artwork.closingArt || coverArt);
-  useEffect(() => {
-    if (!endpaperSource) return;
-    let current = true;
-    import('@/lib/printEdition/assets').then(({ makeEndpaper }) => makeEndpaper(endpaperSource))
-      .then(url => { if (current) setPattern({ source: endpaperSource, url }); })
-      .catch(() => { if (current) setPattern(null); });
-    return () => { current = false; };
-  }, [endpaperSource]);
-
   useEffect(() => {
     if (!editTarget || busy || locked) return;
     const frame = requestAnimationFrame(() => {
@@ -137,7 +126,6 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
 
   if (!loaded || !edition) return error ? <p role="alert">{labels[error]}</p> : <p role="status">{labels.loading}</p>;
   const { book, complete } = loaded;
-  const endpaper = edition.artwork.endpaperArt || (pattern?.source === endpaperSource ? pattern.url : null);
   const { dirty } = workspace;
 
   const modifyHistory = updater => {
@@ -239,7 +227,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
     }
   };
   const unsafeText = editionHasUnsafeText(edition, book, pages);
-  let proofReady = !authorityStale && !unsafeText && complete && Boolean(endpaper) && !dirty && Boolean(edition.revision) && Boolean(edition.creator.trim() && edition.blurb.trim()) && printReviewComplete(edition, book, pages);
+  let proofReady = !authorityStale && !unsafeText && complete && !dirty && Boolean(edition.revision) && Boolean(edition.creator.trim() && edition.blurb.trim()) && printReviewComplete(edition, book, pages);
   if (proofReady) {
     try { createEditionManifest(book, pages, edition, src => { if (!src) throw new Error('Missing artwork'); return src; }); }
     catch { proofReady = false; }
@@ -256,12 +244,11 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
     const rows = await Page.filter({ book_id: id }, 'page_number');
     const fresh = readablePages(rows);
     if (!summarizeBook(current, rows).isComplete || !sameEditionSource(book, basePages, current, fresh)) rejectConflict();
-    const withPattern = { ...edition, artwork: { ...edition.artwork, endpaperArt: endpaper } };
     if (requireApproval) {
-      try { createEditionManifest(current, editionStoryPages(edition, fresh), withPattern, src => { if (!src) throw new Error('missing art'); return src; }); }
+      try { createEditionManifest(current, editionStoryPages(edition, fresh), edition, src => { if (!src) throw new Error('missing art'); return src; }); }
       catch { rejectConflict(); }
     }
-    return { book: current, pages: editionStoryPages(edition, fresh), edition: withPattern };
+    return { book: current, pages: editionStoryPages(edition, fresh), edition };
   };
   const download = async () => {
     if (!proofReady || lock.current || workInProgress.current) return;
@@ -271,11 +258,11 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
     try {
       const { downloadEditionBundle } = await import('@/lib/printEdition/assets');
       const verified = await verifyHandoff();
-      await downloadEditionBundle(verified.book, verified.pages, verified.edition);
+      await downloadEditionBundle(verified.book, verified.pages, verified.edition, verifyHandoff);
       setMessage('exported');
     } catch (err) {
       setMessage('');
-      setError(err.message === 'conflict' ? 'conflict' : 'exportFailed');
+      setError(err.message === 'conflict' ? 'exportConflict' : 'exportFailed');
     } finally {
       lock.current = false;
     }
@@ -299,7 +286,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
         (viewer?.querySelector('select') || viewer)?.focus({ preventScroll: true });
         setFromProof(false);
       }}><BookOpen size={17} aria-hidden="true" />{labels.returnToProof}</button>}
-      <ProofWorkspace book={book} pages={pages} edition={edition} endpaper={endpaper} isRTL={isRTL} onEdit={openEditor} complete={complete} handoffReady={proofReady && !busy && !locked} verifyHandoff={verifyHandoff} />
+      <ProofWorkspace book={book} pages={pages} edition={edition} unsaved={dirty || !edition.revision} isRTL={isRTL} onEdit={openEditor} complete={complete} handoffReady={proofReady && !busy && !locked} verifyHandoff={verifyHandoff} />
       <form onSubmit={save} className="mt-4" aria-labelledby="print-edition-title">
         <fieldset className="min-w-0 space-y-4" disabled={locked || busy}>
           <legend className="sr-only">{labels.title}</legend>
@@ -350,7 +337,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
             <p className="text-sm leading-relaxed text-sp-ink-600">{proofReady ? labels.proofOnly : labels.exportDisabled}</p>
             {unsafeText && <p className="text-sm text-sp-danger" role="alert">{labels.unsafeText}</p>}
             {(message === 'exporting' || message === 'exported') && <p className="text-sm font-semibold" role="status">{labels[message]}</p>}
-            {error === 'exportFailed' && <p className="text-sm text-sp-danger" role="alert">{labels[error]}</p>}
+            {(error === 'exportFailed' || (error === 'exportConflict' && !authorityStale)) && <p className="text-sm text-sp-danger" role="alert">{labels[error]}</p>}
           </section>
         </fieldset>
       </form>
