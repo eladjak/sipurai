@@ -35,5 +35,5 @@ The renderer labels the native placed resolution separately from 300 PPI interpo
 
 ```sh
 .print-venv/bin/python -m unittest discover -s scripts/print_edition -p 'test_*.py'
-node --test tests/print-spec.test.mjs tests/print-export.test.mjs
+node --test tests/print-spec.test.mjs tests/print-export.test.mjs tests/print-edition-model.test.mjs
 ```

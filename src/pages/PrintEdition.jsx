@@ -7,7 +7,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { isPrintBookId } from '@/lib/printedBookLink';
 import { readablePages, summarizeBook } from '@/lib/bookProgress';
-import { createEditionManifest, editionDraft, pageDraft, printReviewComplete } from '@/lib/printEdition/model';
+import { createEditionManifest, editionDraft, editionHasUnsafeText, matterReview, pageDraft, printReviewComplete, TEXT_LIMITS } from '@/lib/printEdition/model';
 import PrintPreferences from '@/screens/print-edition/PrintPreferences';
 import { EditionDetails } from '@/screens/print-edition/EditionDetails';
 import { EditionArtField } from '@/screens/print-edition/EditionArtField';
@@ -39,6 +39,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
   const [error, setError] = useState('');
   const [busyCount, setBusyCount] = useState(0);
   const [closingStatus, setClosingStatus] = useState('');
+  const [pattern, setPattern] = useState(null);
   const lock = useRef(false);
 
   useEffect(() => {
@@ -61,8 +62,19 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
     return () => { current = false; };
   }, [id, ownerId]);
 
+  const endpaperSource = !edition?.artwork.endpaperArt && (edition?.artwork.closingArt || loaded?.book.cover_image);
+  useEffect(() => {
+    if (!endpaperSource) return;
+    let current = true;
+    import('@/lib/printEdition/assets').then(({ makeEndpaper }) => makeEndpaper(endpaperSource))
+      .then(url => { if (current) setPattern({ source: endpaperSource, url }); })
+      .catch(() => { if (current) setPattern(null); });
+    return () => { current = false; };
+  }, [endpaperSource]);
+
   if (!loaded || !edition) return error ? <p role="alert">{labels[error]}</p> : <p role="status">{labels.loading}</p>;
   const { book, pages, complete } = loaded;
+  const endpaper = edition.artwork.endpaperArt || (pattern?.source === endpaperSource ? pattern.url : null);
 
   const modify = updater => {
     setEdition(updater);
@@ -70,7 +82,11 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
     setError('');
     setMessage('');
   };
-  const update = (field, value) => modify(prev => ({ ...prev, [field]: value }));
+  const update = (field, value) => modify(prev => ({
+    ...prev,
+    [field]: value,
+    ...(Object.hasOwn(TEXT_LIMITS, field) ? { matterApproval: null } : {}),
+  }));
   const changePage = (id, patch) => modify(prev => {
     const index = pages.findIndex(item => item.id === id);
     const draft = pageDraft(prev, pages[index], index);
@@ -111,7 +127,8 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
       lock.current = false;
     }
   };
-  let proofReady = complete && !dirty && Boolean(edition.revision) && Boolean(edition.creator.trim() && edition.blurb.trim()) && printReviewComplete(edition, book, pages);
+  const unsafeText = editionHasUnsafeText(edition, book, pages);
+  let proofReady = !unsafeText && complete && Boolean(endpaper) && !dirty && Boolean(edition.revision) && Boolean(edition.creator.trim() && edition.blurb.trim()) && printReviewComplete(edition, book, pages);
   if (proofReady) {
     try { createEditionManifest(book, pages, edition, src => { if (!src) throw new Error('Missing artwork'); return src; }); }
     catch { proofReady = false; }
@@ -132,7 +149,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
         setLoaded({ book: current, pages: currentPages, complete: true });
         throw new Error('conflict');
       }
-      await downloadEditionBundle(current, currentPages, edition);
+      await downloadEditionBundle(current, currentPages, { ...edition, artwork: { ...edition.artwork, endpaperArt: endpaper } });
       setMessage('exported');
     } catch (err) {
       setMessage('');
@@ -142,6 +159,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
     }
   };
 
+  const matter = matterReview(edition, book);
   return (
     <>
       <Link className={`${actionClass} mb-4`} to={`/BookView?id=${encodeURIComponent(id)}`}><BookOpen aria-hidden="true" size={17} />{labels.back}</Link>
@@ -157,7 +175,15 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
         <fieldset className="min-w-0 space-y-4" disabled={message === 'saving' || message === 'exporting'}>
           <legend className="sr-only">{labels.title}</legend>
           {!complete && <p className="rounded-sp-md bg-sp-violet-50 p-4 text-sm text-sp-ink-900" role="status">{labels.building}</p>}
-          <EditionDetails book={book} edition={edition} change={update} labels={labels} />
+          <EditionDetails book={book} endpaper={endpaper} edition={edition} change={update} labels={labels} />
+          {matter.needsReview && book.language === 'hebrew' && (
+            <section className="edition-panel space-y-3">
+              <p>{labels.matterReview}</p>
+              <button type="button" className={actionClass} disabled={matter.approved} onClick={() => update('matterApproval', matter.snapshot)}>
+                {matter.approved ? labels.reviewed : labels.approveMatter}
+              </button>
+            </section>
+          )}
           <section className="edition-panel"><PrintPreferences value={edition} onChange={value => modify(() => value)} isRTL={isRTL} /></section>
           <EditionPageReview book={book} pages={pages} edition={edition} changePage={changePage} onBusy={onBusy} busy={Boolean(busyCount)} labels={labels} isRTL={isRTL} />
           <section className="edition-panel space-y-3">
@@ -169,13 +195,13 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
               </button>}
             {closingStatus && <p className="text-sm text-sp-ink-600" role={closingStatus === 'generateFailed' ? 'alert' : 'status'}>{labels[closingStatus]}</p>}
             <div className="grid gap-3 sm:grid-cols-2">
-              {['characterSheet', 'closingArt'].map(kind => <EditionArtField key={kind} label={labels[kind]} labels={labels} src={edition.artwork[kind]} onChange={src => changeArtwork(kind, src)} onBusy={onBusy} />)}
+              {['characterSheet', 'closingArt'].map(kind => <EditionArtField key={kind} label={labels[kind]} labels={labels} src={edition.artwork[kind]} disabled={Boolean(busyCount)} onChange={src => changeArtwork(kind, src)} onBusy={onBusy} />)}
             </div>
             <details className="mt-3">
               <summary className="min-h-11 cursor-pointer py-3 font-semibold">{labels.artwork}</summary>
               <p className="mb-3 text-sm leading-relaxed text-sp-ink-600">{labels.artworkHelp}</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                {['dedicationArt', 'endpaperArt'].map(kind => <EditionArtField key={kind} label={labels[kind]} labels={labels} src={edition.artwork[kind]} onChange={src => changeArtwork(kind, src)} onBusy={onBusy} />)}
+                {['dedicationArt', 'endpaperArt'].map(kind => <EditionArtField key={kind} label={labels[kind]} labels={labels} src={edition.artwork[kind]} disabled={Boolean(busyCount)} onChange={src => changeArtwork(kind, src)} onBusy={onBusy} />)}
               </div>
             </details>
           </section>
@@ -185,6 +211,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL }) {
               <button type="button" className={actionClass} onClick={download} disabled={!proofReady || Boolean(busyCount)}><Download aria-hidden="true" size={17} />{labels.export}</button>
             </div>
             <p className="text-sm leading-relaxed text-sp-ink-600">{proofReady ? labels.proofOnly : labels.exportDisabled}</p>
+            {unsafeText && <p className="text-sm text-sp-danger" role="alert">{labels.unsafeText}</p>}
             {message && <p className="text-sm font-semibold" role="status">{labels[message]}</p>}
             {error && <p className="text-sm text-sp-danger" role="alert">{labels[error]}</p>}
           </section>

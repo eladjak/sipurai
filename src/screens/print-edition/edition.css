@@ -87,6 +87,7 @@
   width: 100%;
   height: 100%;
   border-radius: 0;
+  object-position: center;
   filter: brightness(1.07);
 }
 .edition-scene img {
@@ -111,6 +112,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.edition-text-zone.panel-dark { background: rgba(25, 23, 49, .94); color: #fff4e1; }
 .edition-text-zone.zone-top { inset: 7% 7% auto; }
 .edition-text-zone.zone-bottom { inset: auto 7% 7%; }
 .edition-text-zone.zone-top-right { top: 7%; right: 7%; max-width: 62%; }

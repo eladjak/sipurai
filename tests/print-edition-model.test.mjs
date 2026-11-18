@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { canApproveNikud, createEditionManifest, editionDraft, isReviewCurrent, pageDraft, printReviewComplete, stripNikud } from '../src/lib/printEdition/model.js';
+import { canApproveNikud, createEditionManifest, editionDraft, isReviewCurrent, matterReview, pageDraft, printReviewComplete, stripNikud } from '../src/lib/printEdition/model.js';
+
+import { fitDedication } from '../src/lib/printEdition/dedicationLayout.js';
+
+it('balances dedication lines inside the same text area without a one-word widow', () => {
+  const layout = fitDedication('״לך איתך הספר פתוח תמיד ואפשר לקרוא ביחד שוב״', (text, points) => text.length * points / 3);
+  assert.ok(layout);
+  assert.ok(layout.text.split('\n').length > 1);
+  assert.ok(layout.text.split('\n').slice(1).every(line => line.includes(' ')));
+  assert.equal(fitDedication('ל'.repeat(160), (text, points) => text.length * points / 3), null);
+});
 
 const book = {
   id: '12345678-1234-1234-1234-123456789012',
@@ -33,6 +43,13 @@ describe('owner print-edition review', () => {
     assert.equal(canApproveNikud({ source: 'שלום עולם!', text: pointed.replace('!', '?') }), false);
   });
 
+  it('normalizes line endings and blocks unsafe directional controls', () => {
+    assert.equal(canApproveNikud({ source: 'שלום\nעולם!', text: 'שָׁלוֹם\r\nעוֹלָם!' }), true);
+    const edition = example();
+    edition.blurb = '\u202eטקסט';
+    assert.throws(() => createEditionManifest(book, pages, edition, path => path), /Unsupported bidi controls/);
+  });
+
   it('accepts the Academy’s distinct fully pointed form of the same word', () => {
     assert.equal(canApproveNikud({ source: 'קובייה', text: 'קֻבִּיָּה' }), true);
     assert.equal(canApproveNikud({ source: 'הקובייה.', text: 'הַקֻּבִּיָּה.' }), true);
@@ -52,6 +69,18 @@ describe('owner print-edition review', () => {
     assert.equal(isReviewCurrent(pageDraft(edition, { ...pages[0], text_content: 'שלום לכולם!' }, 0)), false);
   });
 
+  it('requires separate approval for pointed cover, dedication and other non-story text', () => {
+    const edition = example();
+    const titling = { ...book, title: 'סֵפֶר' };
+    edition.pages.p1.text = edition.pages.p1.source;
+    edition.pages.p1.approval = { mode: 'unpointed', text: edition.pages.p1.source };
+    assert.throws(() => createEditionManifest(titling, pages, edition, p => p), /review is incomplete/);
+    edition.matterApproval = matterReview(edition, titling).snapshot;
+    assert.equal(createEditionManifest(titling, pages, edition, p => p).nikudStatus, 'approved');
+    edition.dedication = 'לְךָ.';
+    assert.throws(() => createEditionManifest(titling, pages, edition, p => p), /review is incomplete/);
+  });
+
   it('passes one continuous landscape asset and both reviewed texts to the prepress renderer', () => {
     const edition = example();
     const manifest = createEditionManifest(book, pages, edition, path => {
@@ -61,6 +90,7 @@ describe('owner print-edition review', () => {
     assert.equal(manifest.qrUrl, 'https://www.sipurai.ai/b/print/' + book.id);
     assert.equal(manifest.binding, 'soft-matte');
     assert.equal(manifest.paper, 'white-110gsm');
+    assert.deepEqual(manifest.requestedFinishing, { cover: 'hardcover', paper: 'premium' });
     assert.equal(manifest.nikudStatus, 'approved');
     assert.deepEqual(manifest.scenes, [{
       layout: 'spread', art: 'wide.png', text: [pointed, 'איך הולך?'],

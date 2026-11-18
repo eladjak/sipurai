@@ -25,10 +25,12 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
   const draft = pageDraft(edition, page, currentIndex);
   const preset = PRINT_PRESETS.find(item => item.id === book.print_size) || PRINT_PRESETS[0];
   const spreadRatio = (2 * preset.widthMm + 2 * BLEED_MM) / (preset.heightMm + 2 * BLEED_MM);
-  const previousSpread = edition.pages[pages[currentIndex - 1]?.id]?.spread;
-  const previousLayout = edition.pages[pages[currentIndex - 1]?.id]?.layout;
+  const previous = edition.pages[pages[currentIndex - 1]?.id];
+  const previousLayout = previous?.layout;
   const nextLayout = edition.pages[pages[currentIndex + 1]?.id]?.layout;
-  const wideSrc = draft.spread || previousSpread;
+  const wideSrc = previousLayout === 'spread' ? previous.spread : draft.layout === 'spread' ? draft.spread : null;
+  const framing = previousLayout === 'spread' ? previous.printSettings : draft.printSettings;
+  const previewArt = wideSrc || draft.printArt || page.image_url;
   const nextPage = pages[currentIndex + 1];
   const canGenerate = Boolean(nextPage && (edition.artwork.characterSheet || book.cover_image));
   const generateSpread = canGenerate ? async () => {
@@ -46,12 +48,12 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
         </div>
         <div className="text-sm leading-tight text-sp-ink-600" aria-live="polite">{labels.page} <bdi>{currentIndex + 1}/{pages.length}</bdi> · {labels.reviewed} <bdi>{reviewed}/{pages.length}</bdi></div>
       </div>
-      <PageDraft key={page.id} nikud={nikud} generateSpread={generateSpread} busy={busy} spreadRatio={spreadRatio} aspectRatio={preset.widthMm / preset.heightMm} wideSrc={wideSrc} isSecond={previousLayout === 'spread'} canPair={currentIndex + 1 < pages.length && previousLayout !== 'spread' && nextLayout !== 'spread'} page={page} draft={draft} isHebrew={book.language === 'hebrew'} onChange={patch => changePage(page.id, patch)} onBusy={onBusy} labels={labels} />
+      <PageDraft key={page.id} nikud={nikud} generateSpread={generateSpread} busy={busy} spreadRatio={spreadRatio} aspectRatio={preset.widthMm / preset.heightMm} wideSrc={wideSrc} previewArt={previewArt} framing={framing} isSecond={previousLayout === 'spread'} canPair={currentIndex + 1 < pages.length && previousLayout !== 'spread' && nextLayout !== 'spread'} page={page} draft={draft} isHebrew={book.language === 'hebrew'} onChange={patch => changePage(page.id, patch)} onBusy={onBusy} labels={labels} />
     </section>
   );
 }
 
-function PageDraft({ nikud, generateSpread, busy, spreadRatio, aspectRatio, wideSrc, isSecond, canPair, page, draft, isHebrew, onChange, onBusy, labels }) {
+function PageDraft({ nikud, generateSpread, busy, spreadRatio, aspectRatio, wideSrc, previewArt, framing, isSecond, canPair, page, draft, isHebrew, onChange, onBusy, labels }) {
   const [work, setWork] = useState('');
   const [spreadWork, setSpreadWork] = useState('');
   const wantSpread = draft.layout === 'spread';
@@ -59,6 +61,8 @@ function PageDraft({ nikud, generateSpread, busy, spreadRatio, aspectRatio, wide
   const textInHebrew = isHebrew && hasHebrew(draft.source);
   const approved = isReviewCurrent(draft);
   const showText = draft.text || draft.source;
+  const anchor = framing?.anchor;
+  const previewAnchor = anchor ? { objectPosition: `${anchor[0] * 100}% ${anchor[1] * 100}%` } : undefined;
   const edit = (text) => onChange({ text, approval: null });
   const suggest = async () => {
     setWork('working');
@@ -100,8 +104,8 @@ function PageDraft({ nikud, generateSpread, busy, spreadRatio, aspectRatio, wide
     <div className="grid gap-5 md:grid-cols-2">
       <div className="space-y-3">
         <div className="edition-scene" style={{ aspectRatio }}>
-          {(wideSrc || page.image_url) && <img src={wideSrc || page.image_url} className={wideSrc ? (isSecond ? 'edition-left-art' : 'edition-right-art') : ''} alt="" />}
-          <div className={`edition-text-zone zone-${draft.zone}`} dir={isHebrew ? 'rtl' : 'auto'}>{showText}</div>
+          {previewArt && <img src={previewArt} style={previewAnchor} className={wideSrc ? (isSecond ? 'edition-left-art' : 'edition-right-art') : ''} alt="" />}
+          <div className={`edition-text-zone zone-${draft.zone}${framing?.panel === 'dark' ? ' panel-dark' : ''}`} dir={isHebrew ? 'rtl' : 'auto'}>{showText}</div>
         </div>
         <label className="block font-semibold" htmlFor="edition-zone">{labels.zone}</label>
         <select id="edition-zone" className={textClass} value={draft.zone} onChange={e => onChange({ zone: e.target.value })}>
@@ -112,7 +116,7 @@ function PageDraft({ nikud, generateSpread, busy, spreadRatio, aspectRatio, wide
             <label className="block font-semibold" htmlFor="edition-scene-layout">{labels.layout}</label>
             <select id="edition-scene-layout" className={textClass} disabled={busy} value={wantSpread ? 'spread' : 'single'} onChange={e => {
               const layout = e.target.value;
-              onChange(layout === 'spread' ? { layout } : { layout, spread: null });
+              onChange({ layout });
             }}>
               <option value="single">{labels.single}</option>
               <option value="spread">{labels.spread}</option>

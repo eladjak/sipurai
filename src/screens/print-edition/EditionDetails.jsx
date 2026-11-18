@@ -4,7 +4,7 @@ import { BookHeart, PenLine } from 'lucide-react';
 import { TEXT_LIMITS } from '@/lib/printEdition/model';
 import { actionClass, textClass } from './labels';
 
-export function EditionDetails({ book, edition, change, labels }) {
+export function EditionDetails({ book, edition, endpaper, change, labels }) {
   const dedication = edition.dedication.trim();
   const dedicationArt = edition.artwork.dedicationArt || book.cover_image;
   const [preview, setPreview] = useState(null);
@@ -33,6 +33,10 @@ export function EditionDetails({ book, edition, change, labels }) {
       <section className="edition-panel space-y-4">
         <h2 className="edition-heading"><PenLine aria-hidden="true" size={22} />{labels.identity}</h2>
         <div>
+          <label className="font-semibold" htmlFor="edition-print-title">{labels.printTitle}</label>
+          <input id="edition-print-title" dir="auto" className={textClass} maxLength={TEXT_LIMITS.printTitle} value={edition.printTitle} placeholder={book.title} onChange={e => change('printTitle', e.target.value)} />
+        </div>
+        <div>
           <label className="font-semibold" htmlFor="edition-creator">{labels.creator}</label>
           <p id="edition-creator-hint" className="text-sm text-sp-ink-600">{labels.creatorHint}</p>
           <input id="edition-creator" aria-describedby="edition-creator-hint" autoComplete="off" dir="auto" className={textClass} maxLength={TEXT_LIMITS.creator} value={edition.creator} onChange={e => change('creator', e.target.value)} />
@@ -47,6 +51,10 @@ export function EditionDetails({ book, edition, change, labels }) {
           <p id="edition-author-hint" className="text-sm text-sp-ink-600">{labels.aboutPrompt}</p>
           <textarea id="edition-author" aria-describedby="edition-author-hint" dir="auto" className={textClass} rows={2} maxLength={TEXT_LIMITS.aboutAuthor} value={edition.aboutAuthor} onChange={e => change('aboutAuthor', e.target.value)} />
           {!edition.aboutAuthor && aboutExample && <button type="button" className={actionClass} onClick={() => change('aboutAuthor', aboutExample)}>{labels.aboutExampleAction}</button>}
+        </div>
+        <div>
+          <label className="font-semibold" htmlFor="edition-copyright">{labels.copyright}</label>
+          <textarea id="edition-copyright" dir="auto" className={textClass} rows={2} maxLength={TEXT_LIMITS.copyright} value={edition.copyright} onChange={e => change('copyright', e.target.value)} />
         </div>
       </section>
       <section className="edition-panel grid gap-5 sm:grid-cols-2">
@@ -63,7 +71,7 @@ export function EditionDetails({ book, edition, change, labels }) {
         </div>
         <figure className="m-0 min-w-0">
           <div className={`edition-dedication ${dedication ? 'has-dedication' : ''}`}>
-            {edition.artwork.endpaperArt && <img className="edition-endpaper" src={edition.artwork.endpaperArt} alt="" />}
+            {endpaper && <img className="edition-endpaper" src={endpaper} alt="" />}
             {dedication &&
               <><p dir={book.language === 'hebrew' ? 'rtl' : 'auto'} style={layout ? { fontSize: `${layout.size}cqw` } : undefined}>{layout?.text || dedication}</p>{dedicationArt && <img className="edition-dedication-art" src={dedicationArt} alt="" />}</>}
           </div>

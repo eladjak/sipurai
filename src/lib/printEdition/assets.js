@@ -135,3 +135,58 @@ export function makeSpreadArt(book, first, second, characterSheet, intendedRatio
   ].join(' ');
   return generateEditionArt(book, characterSheet, prompt, intendedRatio >= 1.64 ? '16:9' : '4:3', intendedRatio);
 }
+
+// Use the same high-resolution raster in the on-screen dedication and proof
+// handoff. Derive the palette and motif from this book's art in the browser.
+export async function makeEndpaper(source) {
+  const bitmap = await createImageBitmap(await readEditionArt(source, await getApiAuthHeaders()));
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 24;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  try {
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, 24, 24);
+    context.drawImage(bitmap, 0, 0, 24, 24);
+  } finally {
+    bitmap.close();
+  }
+  const pixels = context.getImageData(0, 0, 24, 24).data;
+  const colors = new Map();
+  let seed = 0;
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    const rgb = [pixels[offset], pixels[offset + 1], pixels[offset + 2]];
+    const key = rgb.map(channel => channel >> 5).join('');
+    const bucket = colors.get(key) || { count: 0, sum: [0, 0, 0] };
+    bucket.count++;
+    rgb.forEach((channel, i) => { bucket.sum[i] += channel; });
+    colors.set(key, bucket);
+    seed = (Math.imul(seed, 31) + rgb[0] + 3 * rgb[1] + 5 * rgb[2]) >>> 0;
+  }
+  const main = [...colors.values()].sort((a, b) => b.count - a.count)[0];
+  const tone = strength => `rgb(${main.sum.map(value => Math.round(248 * (1 - strength) + value / main.count * strength)).join(',')})`;
+  canvas.width = canvas.height = 2680;
+  context.fillStyle = tone(0.14);
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = tone(0.33);
+  const spacing = 215 + (seed % 43);
+  for (let row = 0, y = spacing / 2; y < canvas.height; row++, y += spacing) {
+    for (let col = 0, x = spacing / 2 + (row % 2) * spacing / 3; x < canvas.width; col++, x += spacing) {
+      const motif = (seed + 3 * row + 5 * col) % 7;
+      const radius = 11 + motif;
+      context.beginPath();
+      if (motif % 3 === 0) {
+        context.arc(x, y, radius * 0.48, 0, 2 * Math.PI);
+      } else {
+        const diagonal = radius * (motif % 2 ? 0.25 : 0.42);
+        for (let point = 0; point < 8; point++) {
+          const angle = Math.PI * point / 4;
+          const distance = point % 2 ? diagonal : radius;
+          context.lineTo(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance);
+        }
+        context.closePath();
+      }
+      context.fill();
+    }
+  }
+  return canvas.toDataURL('image/png');
+}
