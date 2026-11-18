@@ -9,7 +9,7 @@ import unittest
 from PIL import Image
 from pikepdf import ContentStreamInstruction, Name, Pdf, Rectangle, parse_content_stream, unparse_content_stream
 
-from design import BODY, balanced_lines
+from design import BODY, balanced_lines, panel
 from layout import load, normalize_quotes, plan, spine_for
 from render import build, verify_existing
 
@@ -36,6 +36,27 @@ class EditionTest(unittest.TestCase):
     def parse(self, **options):
         self.manifest.write_text(json.dumps(self.edition, ensure_ascii=False))
         return load(self.manifest, **options)
+
+    def test_integrated_wash_keeps_safe_text_and_legacy_panels(self):
+        self.single["panel"] = "integrated"
+        self.edition["scenes"] = [self.single]
+        edition = self.parse()
+        page = next(p for p in plan(edition) if p.kind == "story")
+        for zone in ("top-left", "bottom-right"):
+            for value in ("לילה טוב", "לילה אחד יצאו שני חברים למסע קטן בין העצים וראו כוכב נוצץ בשמים"):
+                current = replace(page, zone=zone, text=value)
+                html, box = panel(value, current, edition.geometry, False, integrated=True)
+                old, old_box = panel(value, current, edition.geometry, False)
+                self.assertIn("linear-gradient", html)
+                self.assertNotIn("border-radius", html)
+                self.assertEqual(box, old_box)
+                self.assertIn("border-radius", old)
+                self.assertGreaterEqual(box.x, edition.geometry.bleed + 12)
+                self.assertLessEqual(box.x + box.width, edition.geometry.media[0] - edition.geometry.bleed - 12)
+        self.single.pop("panel")
+        self.assertEqual(self.parse().scenes[0].panel, "cream")
+        self.single["panel"] = "dark"
+        self.assertEqual(self.parse().scenes[0].panel, "dark")
 
     def test_parity_signature_folios_and_cover_spine(self):
         self.edition.update(scenes=[self.single, self.spread])

@@ -230,7 +230,7 @@ const surpriseRevealVariants = {
   exit: { scale: 0.5, rotate: 15, opacity: 0, transition: { duration: 0.15 } }
 };
 
-function getTopicLabel(topic, t) {
+export function getTopicLabel(topic, t) {
   return t("topicNames." + topic.id) || topic.en;
 }
 
@@ -248,6 +248,27 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
   const [surprisedTopicId, setSurprisedTopicId] = useState(null);
   const surpriseTimerRef = useRef(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  function playSurpriseSound() {
+    // A short, local cue. Only an explicit button gesture can start it.
+    if (!soundEnabled || !window.AudioContext) return;
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const start = context.currentTime;
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(523.25, start);
+    oscillator.frequency.setValueAtTime(659.25, start + 0.075);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.035, start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.21);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.onended = () => { void context.close().catch(() => {}); };
+    oscillator.start(start);
+    oscillator.stop(start + 0.22);
+  }
 
   useEffect(() => {
     if (showSavedIdeas && savedIdeas.length === 0) {
@@ -291,6 +312,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
   };
 
   const handleSurpriseMe = () => {
+    try { playSurpriseSound(); } catch { /* The illustrated reveal also works silently. */ }
     const randomTopic = TOPIC_CARDS[Math.floor(Math.random() * TOPIC_CARDS.length)];
     const twistList = isYiddish ? SURPRISE_TWISTS.yi : isHebrew ? SURPRISE_TWISTS.he : SURPRISE_TWISTS.en;
     const randomTwist = twistList[Math.floor(Math.random() * twistList.length)];
@@ -342,7 +364,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
       </div>
 
       {/* Surprise Me! Button */}
-      <div className="flex justify-center">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <motion.button
           onClick={handleSurpriseMe}
           whileHover={{ scale: 1.06, y: -2 }}
@@ -359,23 +381,22 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
             transition-shadow duration-200 overflow-hidden
           "
         >
-          {/* Shimmer effect */}
-          <motion.div
-            className="absolute inset-0 bg-white/20 skew-x-12"
-            animate={{ x: ["-200%", "300%"] }}
-            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
-            aria-hidden="true"
-          />
           <Shuffle className="h-5 w-5 relative z-10" aria-hidden="true" />
           <span className="relative z-10">{t("surpriseMe")}</span>
           <Wand2 className="h-5 w-5 relative z-10" aria-hidden="true" />
         </motion.button>
+        {typeof window !== 'undefined' && window.AudioContext && (
+          <button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled(enabled => !enabled)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium text-slate-700 aria-pressed:bg-amber-100 dark:text-slate-100">
+            <Music aria-hidden="true" size={16} />{t('spxWizard.surpriseSound')}
+          </button>
+        )}
       </div>
 
       {/* Topic Cards Grid */}
       <div
         className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4"
-        role="radiogroup"
+        role="group"
         aria-label={t("wizard.topic.chooseTopic")}
       >
         {TOPIC_CARDS.map((topic, index) => {
@@ -397,8 +418,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
                 setSurprisedTopicId(null);
                 onSelectTopic(topic.id);
               }}
-              role="radio"
-              aria-checked={selectedTopic === topic.id}
+              aria-pressed={selectedTopic === topic.id}
               aria-label={getTopicLabel(topic, t)}
               className={`
                 relative flex flex-col items-center justify-center p-4 md:p-5 rounded-2xl
@@ -428,27 +448,27 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="mb-3"
+                    className="mb-3 w-full"
                   >
                     <img
-                      src={topic.image}
+                      src={`/images/spx/topics/${topic.id}.webp`}
                       alt=""
                       aria-hidden="true"
-                      className={`w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shadow-md ring-2 ring-white/70`}
+                      className={`w-full h-32 sm:h-40 rounded-xl object-cover`}
                     />
                   </motion.div>
                 ) : (
                   <motion.div
                     key="normal"
-                    className="mb-3"
+                    className="mb-3 w-full"
                     animate={isSelected ? { scale: [1, 1.08, 1] } : {}}
                     transition={{ duration: 0.4 }}
                   >
                     <img
-                      src={topic.image}
+                      src={`/images/spx/topics/${topic.id}.webp`}
                       alt=""
                       aria-hidden="true"
-                      className={`w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shadow-md ring-2 ${isSelected ? `ring-white` : "ring-white/40"}`}
+                      className={`w-full h-32 sm:h-40 rounded-xl object-cover`}
                     />
                   </motion.div>
                 )}
@@ -479,8 +499,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
           whileHover={{ scale: 1.05, y: -3 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSelectCustomIdea}
-          role="radio"
-          aria-checked={selectedTopic === "custom"}
+          aria-pressed={selectedTopic === "custom"}
           aria-label={t("wizard.topic.customIdea")}
           className={`
             relative flex flex-col items-center justify-center p-4 md:p-5 rounded-2xl

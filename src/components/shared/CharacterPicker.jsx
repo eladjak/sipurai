@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,7 +107,6 @@ const SURPRISE_CHARACTERS = {
   he: ["עכבר מדבר קטנטן", "חבר בלתי נראה", "גולש ענן", "ילד נוסע בזמן", "נסיכת הירח"]
 };
 
-const CHILD_CHARACTER_ID = "child_self";
 
 const cardVariants = {
   hidden: { opacity: 0, scale: 0.85, y: 16 },
@@ -119,38 +118,6 @@ const cardVariants = {
   })
 };
 
-function getChildNameFromStorage() {
-  try {
-    const childName = localStorage.getItem("childName");
-    if (childName && childName.trim()) return childName.trim();
-    const userName = localStorage.getItem("userName");
-    if (userName && userName.trim()) return userName.trim();
-    const onboarding = localStorage.getItem("onboardingData");
-    if (onboarding) {
-      const parsed = JSON.parse(onboarding);
-      if (parsed.childName && parsed.childName.trim()) return parsed.childName.trim();
-      if (parsed.name && parsed.name.trim()) return parsed.name.trim();
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return null;
-}
-
-function buildChildCharacter(name, t) {
-  return {
-    id: CHILD_CHARACTER_ID,
-    name,
-    traits: "the main character, adventurous, kind",
-    emoji: "⭐",
-    avatar: null,
-    isTemplate: false,
-    isEntity: false,
-    isChildSelf: true,
-    label: t("characterPicker.thatsYou")
-  };
-}
-
 /**
  * CharacterPicker - Unified character selection with visual gradient cards.
  * "Surprise Me" button, My Characters, Quick Templates, and Add Custom.
@@ -158,6 +125,7 @@ function buildChildCharacter(name, t) {
 export default function CharacterPicker({
   selectedCharacters,
   onCharactersChange,
+  ownerId,
   isRTL,
   language
 }) {
@@ -165,26 +133,16 @@ export default function CharacterPicker({
   const isHebrew = language === "hebrew";
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customCharacterName, setCustomCharacterName] = useState("");
-  const { savedCharacters, isLoading, entityToSelection } = useCharacterSelector();
-
-  // Auto-add child character on mount if name found and no characters selected yet
-  useEffect(() => {
-    if (selectedCharacters.length > 0) return;
-    const childName = getChildNameFromStorage();
-    if (!childName) return;
-    const childChar = buildChildCharacter(childName, t);
-    onCharactersChange([childChar]);
-  // Only run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { savedCharacters, isLoading, entityToSelection } = useCharacterSelector(ownerId);
+  const selectedRef = useRef(selectedCharacters);
+  selectedRef.current = selectedCharacters;
+  const updateSelection = (next) => { selectedRef.current = next; onCharactersChange(next); };
 
   const toggleCharacter = (charSelection) => {
-    const exists = selectedCharacters.find((c) => c.id === charSelection.id);
-    if (exists) {
-      onCharactersChange(selectedCharacters.filter((c) => c.id !== charSelection.id));
-    } else {
-      onCharactersChange([...selectedCharacters, charSelection]);
-    }
+    const current = selectedRef.current;
+    updateSelection(current.some((c) => c.id === charSelection.id)
+      ? current.filter((c) => c.id !== charSelection.id)
+      : [...current, charSelection]);
   };
 
   const toggleTemplate = (template) => {
@@ -216,28 +174,22 @@ export default function CharacterPicker({
       isTemplate: false,
       isEntity: false,
     };
-    onCharactersChange([...selectedCharacters, customChar]);
+    updateSelection([...selectedRef.current, customChar]);
     setCustomCharacterName("");
     setShowCustomInput(false);
   };
 
   const removeCharacter = (charId) => {
-    onCharactersChange(selectedCharacters.filter((c) => c.id !== charId));
+    updateSelection(selectedRef.current.filter((c) => c.id !== charId));
   };
 
   const handleSurpriseMe = () => {
-    const list = isHebrew ? SURPRISE_CHARACTERS.he : SURPRISE_CHARACTERS.en;
-    const randomName = list[Math.floor(Math.random() * list.length)];
-    const customChar = {
-      id: `surprise_${Date.now()}`,
-      name: randomName,
-      traits: "mysterious, magical, surprising",
-      emoji: ["✨", "🌟", "🎭", "🦄", "🌙"][Math.floor(Math.random() * 5)],
-      avatar: null,
-      isTemplate: false,
-      isEntity: false,
-    };
-    onCharactersChange([...selectedCharacters, customChar]);
+    const ids = ["tiny_mouse", "invisible_friend", "cloud_surfer", "time_traveler", "moon_princess"];
+    const available = ids.map((id, index) => ({ id, index })).filter(({ id }) => !selectedRef.current.some((c) => c.id === id));
+    if (!available.length) return;
+    const { id, index } = available[Math.floor(Math.random() * available.length)];
+    const names = isHebrew ? SURPRISE_CHARACTERS.he : SURPRISE_CHARACTERS.en;
+    updateSelection([...selectedRef.current, { id, name: names[index], traits: "mysterious, magical, surprising", emoji: null, avatar: `/images/spx/characters/${id}.webp`, isTemplate: false, isEntity: false }]);
   };
 
   const hasSavedCharacters = savedCharacters.length > 0;
@@ -284,12 +236,6 @@ export default function CharacterPicker({
             transition-shadow duration-200 overflow-hidden
           "
         >
-          <motion.div
-            className="absolute inset-0 bg-white/20 skew-x-12"
-            animate={{ x: ["-200%", "300%"] }}
-            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
-            aria-hidden="true"
-          />
           <Shuffle className="h-5 w-5 relative z-10" aria-hidden="true" />
           <span className="relative z-10">{t("characterPicker.surpriseButton")}</span>
           <Wand2 className="h-5 w-5 relative z-10" aria-hidden="true" />
@@ -411,9 +357,7 @@ export default function CharacterPicker({
                     <Check className="h-3 w-3 text-white" />
                   </motion.div>
                 )}
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${template.gradient} flex items-center justify-center mb-2.5 shadow-md`}>
-                  <span className="text-3xl leading-none drop-shadow" aria-hidden="true">{template.emoji}</span>
-                </div>
+                <img src={`/images/spx/characters/${template.id}.webp`} alt="" aria-hidden="true" className="w-full h-32 sm:h-40 rounded-xl object-cover mb-2.5" />
                 <span className="text-xs md:text-sm font-semibold text-gray-800 dark:text-gray-200 text-center line-clamp-2 w-full">
                   {isHebrew ? template.he : template.en}
                 </span>

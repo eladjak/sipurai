@@ -12,9 +12,10 @@ export default function BookSheet({ book, open, onOpenChange, onRead, onChanged 
   if (!book) return null;
   const ready = book.status === 'complete';
   const readable = ready || book.status === 'partial';
+  const recoverable = ['generating', 'partial', 'failed'].includes(book.status);
   const statuses = { generating: t('shelf.generating'), failed: t('shelf.failed'), partial: t('shelf.partial'), draft: t('shelf.draft') };
   const actions = [
-    readable && { label: t('shelf.read'), to: `/BookView?id=${encodeURIComponent(book.id)}`, icon: BookOpen, onClick: onRead },
+    (readable || recoverable) && { label: recoverable ? t('spxRecovery.openBook') : t('shelf.read'), to: `/BookView?id=${encodeURIComponent(book.id)}`, icon: BookOpen, onClick: onRead },
     book.status !== 'generating' && { label: t('shelf.edit'), to: `/BookCreation?id=${encodeURIComponent(book.id)}`, icon: Pencil },
     readable && { label: editionLabels(isRTL).title, to: printEditionUrl(book.id), icon: Printer },
     ready && !book.printEdition && import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' && { label: t('shelf.print'), to: `/book/${encodeURIComponent(book.id)}/order`, icon: Printer },
@@ -27,7 +28,7 @@ export default function BookSheet({ book, open, onOpenChange, onRead, onChanged 
       {book.status !== 'complete' && <span className="mt-1 block font-sp-body text-sp-sm font-normal text-sp-ink-600">{Object.hasOwn(statuses, book.status) ? statuses[book.status] : t('shelf.inProgress')}</span>}
     </span>
   </span>;
-  return <Sheet open={open} onOpenChange={onOpenChange} title={title} description={t('shelf.chooseAction')}>
+  return <Sheet trigger={null} closeLabel={t('common.close')} open={open} onOpenChange={onOpenChange} title={title} description={t('shelf.chooseAction')}>
     {(book.status === 'partial' || book.status === 'failed') && <p className="mb-4 text-sp-sm text-sp-ink-600">{t('shelf.stoppedHint')}</p>}
     <div className="grid gap-2">{actions.map(({ label, to, icon: Icon, onClick }) => <Link key={to} to={to} onClick={onClick} className="flex min-h-12 items-center gap-3 rounded-sp-sm border border-sp-line bg-sp-card px-4 font-medium text-sp-ink-900 hover:bg-sp-violet-50 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600"><Icon aria-hidden="true" className="h-5 w-5" />{label}</Link>)}</div>
     {onChanged && book.status !== 'generating' && <BookControls book={book} className="mt-6 border-t border-sp-line pt-6" onChanged={kind => { onOpenChange(false); onChanged(kind); }} />}

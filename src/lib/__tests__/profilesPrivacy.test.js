@@ -39,8 +39,8 @@ describe('no browser code reads other users from profiles', () => {
     const src = readFileSync(f, 'utf8');
     expect(src).not.toMatch(/from\(\s*['"]profiles['"]\s*\)/);
   });
-  it('BookWizard announceNewBook uses notifyMyFollowers', () => {
+  it('private book creation does not notify followers', () => {
     const src = readFileSync('src/pages/BookWizard.jsx', 'utf8');
-    expect(src).toMatch(/notifyMyFollowers\(/);
+    expect(src).not.toMatch(/notifyMyFollowers\(/);
   });
 });

@@ -30,6 +30,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import "@/styles/story-reader.css";
+import "@/styles/sp-fonts.css";
+import ReaderIllustration from "@/components/bookReader/ReaderIllustration";
 import PageFlip from "@/components/bookReader/PageFlip";
 import TTSControls, { getStoredTTSEngine } from "@/components/bookReader/TTSControls";
 import GiftEditionCTA from "@/components/bookReader/GiftEditionCTA";
@@ -48,13 +51,6 @@ import { InvokeLLM, GenerateImage } from "@/integrations/Core";
 import { editionLabels } from "@/screens/print-edition/labels";
 import { printEditionUrl } from "@/lib/printEdition/model";
 import { OrderBookButton } from "@/components/checkout/OrderBookButton";
-
-// canvas-confetti loaded on-demand (keeps BookView out of the confetti chunk on initial load)
-let _confettiMod = null;
-const loadConfetti = () => {
-  if (!_confettiMod) _confettiMod = import("canvas-confetti").then((m) => m.default);
-  return _confettiMod;
-};
 
 export default function BookView() {
   const { user } = useCurrentUser();
@@ -76,6 +72,8 @@ function BookReader({ bookId, user }) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isResuming, setIsResuming] = useState(false);
   const [resumeError, setResumeError] = useState(null);
+  const [legacyConfirmation, setLegacyConfirmation] = useState(false);
+  const [failedArt, setFailedArt] = useState(/** @type {Record<string, boolean>} */ ({}));
   // Re-read on a timer while a run is heartbeating, so pages appear as they land.
   const [liveTick, setLiveTick] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -218,20 +216,35 @@ function BookReader({ bookId, user }) {
   // Pages a reader may be shown, in order. Skeleton rows written to persist the
   // outline are excluded until they have words.
   const pages = useMemo(() => readablePages(allPages), [allPages]);
+  const currentPage = pages[currentPageIndex];
+  const isCoverPage = currentPage?.page_number === 0;
+  const coverImage = book?.cover_image || (isCoverPage ? currentPage?.image_url : null);
   const progress = summarizeBook(book, allPages);
+  const brokenPageNumbers = Object.keys(failedArt).filter(key => key !== 'cover').map(Number);
+  const fullyIllustrated = book?.status !== 'partial' && progress.isComplete && !progress.missingImage.length &&
+    !Object.keys(failedArt).length && !!book?.cover_image;
+  function recordArtFailure(key, failed) {
+    setFailedArt(previous => {
+      if (!!previous[key] === failed) return previous;
+      const next = { ...previous };
+      if (failed) next[key] = true;
+      else delete next[key];
+      return next;
+    });
+  }
   const runLive = isRunLive(bookId) || isResuming;
   const state = viewState(book, allPages, runLive);
-  const canResume = isOwner && isResumable(book, allPages);
+  const canResume = isOwner && (isResumable(book, allPages) || !fullyIllustrated);
 
   // While something is building this book, re-read it every few seconds so each
   // page appears as it lands. The poll stops the moment the run stops
   // heartbeating — a closed tab therefore leaves a still reader offering to
   // continue, not one spinning forever against nothing.
   useEffect(() => {
-    if (!bookId || !runLive || progress.isComplete) return undefined;
+    if (!bookId || !runLive || fullyIllustrated) return undefined;
     const timer = setInterval(() => setLiveTick((n) => n + 1), 4000);
     return () => clearInterval(timer);
-  }, [bookId, runLive, progress.isComplete]);
+  }, [bookId, runLive, fullyIllustrated]);
 
   /**
    * The characters a book was built with, as stored on the row. `jsonb` returns
@@ -255,15 +268,14 @@ function BookReader({ bookId, user }) {
    *
    * The prompts are rebuilt from the persisted row, and the generator only does
    * what is missing — so this never rewrites a page the parent has already read
-   * and never charges for one twice. What the row cannot carry (rhyme scheme,
-   * scene spine) is lost; see src/lib/bookRecipe.js.
+   * and recovers the original rhyme, scenes and artwork from the private checkpoint.
    */
-  const handleResume = async () => {
+  const handleResume = async (confirmLegacy = false) => {
     if (!canResume || !book?.id || isResuming) return;
     setIsResuming(true);
     setResumeError(null);
     try {
-      await reserveBookSlot(book.id);
+      if (!Book.generationStore) await reserveBookSlot(book.id);
       await generateBookIncremental({
         entities: { Book, Page },
         ai: { InvokeLLM, GenerateImage },
@@ -276,14 +288,31 @@ function BookReader({ bookId, user }) {
           pageCount: progress.total || undefined,
         }),
         bookId: book.id,
+        allowLegacyReservation: confirmLegacy === true,
+        repairPages: brokenPageNumbers,
+        repairCover: !!failedArt.cover || !book.cover_image,
         onEvent: (event) => {
+          if (event.type === 'cover') recordArtFailure('cover', false);
           if (event.type === "page-text" || event.type === "page-image") {
+            if (event.type === 'page-image') recordArtFailure(event.index, false);
             setLiveTick((n) => n + 1);
           }
         },
       });
+      setLegacyConfirmation(false);
     } catch (err) {
-      setResumeError(err instanceof QuotaError ? err.message : err?.message || t("bookView.resumeFailed"));
+      if (err?.code === 'provenance_missing') {
+        setLegacyConfirmation(true);
+        setResumeError(t('spxReader.legacyAllowance'));
+        return;
+      }
+      if (err?.code === 'legacy_count_unknown') {
+        setLegacyConfirmation(false);
+        setResumeError(t('spxReader.unknownPageCount'));
+        return;
+      }
+      setResumeError(err instanceof QuotaError ? err.message : ['lease_busy', 'lease_lost'].includes(err?.code)
+        ? t('spxWizard.leaseBusy') : t('bookView.resumeFailed'));
     } finally {
       clearActiveBookKey();
       setIsResuming(false);
@@ -323,19 +352,19 @@ function BookReader({ bookId, user }) {
       catch { return false; }
     })();
     if (!autoNarrate) return;
-    const text = currentPageIndex === 0
-      ? `${book?.title || ""}. ${book?.description || ""}`
+    const text = isCoverPage
+      ? [book?.title, currentPage?.text_content || book?.description].filter(Boolean).join(". ")
       : pages[currentPageIndex]?.text_content;
     if (!text) return;
     const timer = setTimeout(() => {
       if (!cancelled) ttsSpeakRef.current(text);
     }, 250);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [currentPageIndex, book?.title, book?.description, pages]);
+  }, [currentPageIndex, isCoverPage, currentPage?.text_content, book?.title, book?.description, pages]);
 
   useEffect(() => {
     if (
-      !isGuest &&
+      !isGuest && fullyIllustrated &&
       pages.length > 1 &&
       currentPageIndex === pages.length - 1 &&
       !bookReadAwardedRef.current
@@ -343,34 +372,8 @@ function BookReader({ bookId, user }) {
       bookReadAwardedRef.current = true;
       gamification.awardXP("book_read");
 
-      const duration = 2500;
-      const end = Date.now() + duration;
-      loadConfetti().then((confetti) => {
-        const celebrate = () => {
-          confetti({
-            particleCount: 4,
-            angle: 60,
-            spread: 60,
-            origin: { x: 0, y: 0.7 },
-            colors: ["#9333ea", "#f59e0b", "#10b981", "#6366f1"]
-          });
-          confetti({
-            particleCount: 4,
-            angle: 120,
-            spread: 60,
-            origin: { x: 1, y: 0.7 },
-            colors: ["#9333ea", "#f59e0b", "#10b981", "#6366f1"]
-          });
-          if (Date.now() < end) {
-            requestAnimationFrame(celebrate);
-          }
-        };
-        celebrate();
-      });
     }
-  }, [currentPageIndex, pages.length, isGuest]);
-
-  const currentPage = pages[currentPageIndex];
+  }, [currentPageIndex, pages.length, fullyIllustrated, isGuest]);
 
   const goToNextPage = useCallback(() => {
     if (currentPageIndex < pages.length - 1) {
@@ -477,29 +480,13 @@ function BookReader({ bookId, user }) {
     if (text) tts.speak(text);
   };
 
-  // Page layout helper
-  const getPageLayoutStyle = (layoutType) => {
-    switch (layoutType) {
-      case "text_top": return "flex-col";
-      case "text_bottom": return "flex-col-reverse";
-      case "text_left": return "flex-row";
-      case "text_right": return "flex-row-reverse";
-      case "standard": return "flex-col";
-      case "image_top": return "flex-col-reverse";
-      case "image_full": return "relative";
-      case "text_overlay": return "relative";
-      case "two_column": return "flex-row";
-      default: return "flex-col";
-    }
-  };
-
   // Map art styles to child-friendly font families
   const getBookFontFamily = () => {
     const style = book?.art_style;
     // For Hebrew books, use Fredoka (playful, supports Hebrew) for all styles
     // For English, vary by art style
     if (isHebrewBook) {
-      return "'Fredoka', 'Nunito', sans-serif";
+      return "'SP Rubik', Rubik, sans-serif";
     }
     switch (style) {
       case "storybook":
@@ -524,7 +511,7 @@ function BookReader({ bookId, user }) {
     if (!tts.isSpeaking || tts.currentWordIndex < 0) {
       return (
         <p
-          className={`text-xl md:text-2xl leading-loose ${isRTL ? "text-right" : ""} ${extraClass}`}
+          className={`reader-prose ${extraClass}`}
           style={bookFontStyle}
         >
           {text}
@@ -537,7 +524,7 @@ function BookReader({ bookId, user }) {
 
     return (
       <p
-        className={`text-xl md:text-2xl leading-loose ${isRTL ? "text-right" : ""} ${extraClass}`}
+        className={`reader-prose ${extraClass}`}
         style={bookFontStyle}
       >
         {words.map((segment, i) => {
@@ -563,16 +550,15 @@ function BookReader({ bookId, user }) {
   };
 
   // Night mode color helpers — consistent throughout
-  const nightBg       = nightMode ? "bg-gray-950" : "bg-gray-100 dark:bg-gray-900";
+  const nightBg       = nightMode ? "bg-gray-950" : "bg-[#eee3cd] dark:bg-gray-900";
   const nightCard     = nightMode ? "bg-gray-900 text-amber-50" : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200";
   const nightHeader   = nightMode ? "bg-gray-900/95 border-gray-800" : "bg-white/95 dark:bg-gray-900/95 border-gray-200 dark:border-gray-700";
   const nightNav      = nightMode ? "bg-gray-900 border-gray-800" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700";
   const nightToolbar  = nightMode ? "text-amber-100 hover:bg-gray-800" : "";
 
   // Whether TTS should show — cover page included now
-  const hasTTSContent = !!currentPage?.text_content || currentPageIndex === 0;
-  const ttsText = currentPageIndex === 0
-    ? book?.title
+  const ttsText = isCoverPage
+    ? [book?.title, currentPage?.text_content].filter(Boolean).join(". ")
     : currentPage?.text_content;
 
   const handleTTSPlayCover = () => {
@@ -624,14 +610,14 @@ function BookReader({ bookId, user }) {
         <div className="flex flex-wrap gap-3 justify-center">
           {canResume && !starting && (
             <Button
-              onClick={handleResume}
+              onClick={() => handleResume(legacyConfirmation)}
               disabled={isResuming}
               className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isResuming
                 ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 : <PenTool className="h-4 w-4" aria-hidden="true" />}
-              {t("bookView.building.continue")}
+              {legacyConfirmation ? t("spxReader.confirmAllowance") : t("bookView.building.continue")}
             </Button>
           )}
           <Link to={createPageUrl("Library")}>
@@ -669,7 +655,8 @@ function BookReader({ bookId, user }) {
   return (
     <div
       ref={containerRef}
-      className={`min-h-dvh flex flex-col ${nightBg} transition-colors duration-300`}
+      data-night={nightMode}
+      className={`family-reader min-h-dvh flex flex-col ${nightBg} transition-colors duration-300`}
       dir={isRTL ? "rtl" : "ltr"}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -696,7 +683,7 @@ function BookReader({ bookId, user }) {
           real, and, when nothing is working on it any more, offers to finish
           it. Never a bare spinner: the parent always knows which of the two
           situations they are in. */}
-      {progress.isReadable && (!progress.isComplete || progress.missingImage.length > 0) && (
+      {progress.isReadable && !fullyIllustrated && (
         <div
           className={`px-4 py-2 text-sm flex flex-wrap items-center justify-between gap-3 ${
             state === "building"
@@ -715,21 +702,21 @@ function BookReader({ bookId, user }) {
                   // Every page has words but some have no picture. The book is
                   // finished by the only definition that matters for reading it,
                   // and still visibly missing something a parent can fix.
-                  ? t("bookView.building.missingArt", { count: progress.missingImage.length })
+                  ? t("bookView.building.missingArt", { count: new Set([...progress.missingImage, ...brokenPageNumbers]).size + (failedArt.cover || !book.cover_image ? 1 : 0) })
                   : t("bookView.building.paused", { ready: progress.ready, total: progress.total })}
             </span>
           </span>
 
           {canResume && state !== "building" && (
             <button
-              onClick={handleResume}
+              onClick={() => handleResume(legacyConfirmation)}
               disabled={isResuming}
               className="shrink-0 flex items-center gap-1.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors px-3 py-1 rounded-full font-medium"
             >
               {isResuming
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                 : <PenTool className="h-3.5 w-3.5" aria-hidden="true" />}
-              {progress.isComplete
+              {legacyConfirmation ? t('spxReader.confirmAllowance') : progress.isComplete
                 ? t("bookView.building.retryArt")
                 : t("bookView.building.continue")}
             </button>
@@ -749,7 +736,7 @@ function BookReader({ bookId, user }) {
         {!nightMode && (
           <div className="h-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-violet-500" />
         )}
-        <div className="max-w-7xl mx-auto px-3 py-2 flex justify-between items-center gap-2">
+        <div className="reader-toolbar max-w-7xl mx-auto px-3 py-2 flex flex-wrap justify-between items-center gap-2">
           {/* Left: back + title */}
           <div className={`flex items-center gap-2 min-w-0 ${isRTL ? "flex-row-reverse" : ""}`}>
             <Link to={createPageUrl("Library")}>
@@ -777,14 +764,14 @@ function BookReader({ bookId, user }) {
           </div>
 
           {/* Right: controls */}
-          <div className={`flex items-center gap-0.5 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="reader-tools flex flex-wrap items-center gap-0.5">
             {/* TTS Controls — show on ALL pages including cover */}
-            {(currentPageIndex === 0 ? book?.title : currentPage?.text_content) && (
+            {ttsText && (
               <TTSControls
                 isSpeaking={tts.isSpeaking}
                 isPaused={tts.isPaused}
                 rate={tts.rate}
-                onPlay={currentPageIndex === 0 ? handleTTSPlayCover : handleTTSPlay}
+                onPlay={isCoverPage ? handleTTSPlayCover : handleTTSPlay}
                 onPause={tts.pause}
                 onResume={tts.resume}
                 onStop={tts.stop}
@@ -801,7 +788,7 @@ function BookReader({ bookId, user }) {
               size="icon"
               onClick={zoomOut}
               disabled={zoomLevel <= 0.75}
-              className={`rounded-xl hidden sm:flex ${nightToolbar}`}
+              className={`rounded-xl ${nightToolbar}`}
               aria-label={t('reader.zoomOut')}
             >
               <ZoomOut className="h-4 w-4" />
@@ -813,7 +800,7 @@ function BookReader({ bookId, user }) {
               size="icon"
               onClick={zoomIn}
               disabled={zoomLevel >= 2}
-              className={`rounded-xl hidden sm:flex ${nightToolbar}`}
+              className={`rounded-xl ${nightToolbar}`}
               aria-label={t('reader.zoomIn')}
             >
               <ZoomIn className="h-4 w-4" />
@@ -919,7 +906,7 @@ function BookReader({ bookId, user }) {
             )}
 
             {/* Printed-book order: only when the feature flag is on and the book is finished */}
-            {isOwner && !book.printEdition && progress.isComplete && <OrderBookButton bookId={book.id} />}
+            {isOwner && !book.printEdition && book.print_size !== 'landscape-210x170' && fullyIllustrated && <OrderBookButton bookId={book.id} />}
           </div>
         </div>
 
@@ -981,8 +968,8 @@ function BookReader({ bookId, user }) {
             {/* Book viewer */}
             <div className={`flex-1 flex flex-col items-center justify-center p-4 md:p-8 ${nightBg}`}>
               <div
-                className="w-full max-w-4xl"
-                style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top center", transition: "transform 0.2s ease" }}
+                className="reader-desk w-full max-w-4xl"
+                style={/** @type {React.CSSProperties} */ ({ "--reading-scale": zoomLevel })}
               >
                 <PageFlip
                   pageKey={currentPageIndex}
@@ -990,14 +977,14 @@ function BookReader({ bookId, user }) {
                   isRTL={isRTL}
                 >
                   <div className={`${nightCard} rounded-2xl shadow-xl overflow-hidden ring-1 ${nightMode ? "ring-gray-700" : "ring-black/5 dark:ring-white/10"} transition-colors duration-300`}>
-                    {currentPageIndex === 0 ? (
+                    {isCoverPage ? (
                       /* Cover page */
-                      <div className="aspect-video md:aspect-[3/2] relative overflow-hidden">
-                        {book.cover_image ? (
-                          <img
-                            src={book.cover_image}
+                      <div className="reader-cover relative">
+                        {coverImage ? (
+                          <ReaderIllustration onAvailability={failed => recordArtFailure("cover", failed)} key={coverImage}
+                            src={coverImage}
                             alt={book.title}
-                            className="w-full h-full object-contain"
+                            className="reader-cover-art object-contain"
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-600 flex items-center justify-center">
@@ -1018,8 +1005,8 @@ function BookReader({ bookId, user }) {
                           </div>
                         )}
                         {/* Cover overlay with title when image exists */}
-                        {book.cover_image && (
-                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                        {coverImage && (
+                          <div className="reader-cover-title text-center p-4">
                             <h2
                               className={`text-xl md:text-2xl font-bold text-white drop-shadow-sm ${isRTL ? "text-right" : ""}`}
                               style={{ fontFamily: getBookFontFamily() }}
@@ -1028,71 +1015,21 @@ function BookReader({ bookId, user }) {
                             </h2>
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      /* Regular page */
-                      <div className={`min-h-[60vh] flex ${getPageLayoutStyle(currentPage?.layout_type)}`}>
-                        {currentPage?.layout_type === "image_full" ? (
-                          <>
-                            {currentPage?.image_url ? (
-                              <img
-                                src={currentPage.image_url}
-                                alt={t('bookView.pageAlt', { number: currentPageIndex })}
-                                className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
-                                onClick={zoomIn}
-                              />
-                            ) : null}
-                            <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/75 via-black/40 to-transparent">
-                              <div className="text-white">
-                                {renderHighlightedText(currentPage?.text_content)}
-                              </div>
-                            </div>
-                          </>
-                        ) : currentPage?.layout_type === "text_overlay" ? (
-                          <>
-                            {currentPage?.image_url ? (
-                              <img
-                                src={currentPage.image_url}
-                                alt={t('bookView.pageAlt', { number: currentPageIndex })}
-                                className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
-                                onClick={zoomIn}
-                              />
-                            ) : null}
-                            <div className={`absolute inset-x-4 bottom-4 top-auto p-5 rounded-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-xl ${isRTL ? "text-right" : ""}`}>
-                              {renderHighlightedText(currentPage?.text_content)}
-                            </div>
-                          </>
-                        ) : (
-                          /* Standard, image_top, two_column */
-                          <>
-                            <div className={`p-6 md:p-8 flex-1 flex items-center ${isRTL ? "justify-end" : ""}`}>
-                              <div className={`max-w-prose ${isRTL ? "text-right w-full" : ""}`}>
-                                {renderHighlightedText(currentPage?.text_content)}
-                              </div>
-                            </div>
-
-                            <div className={`flex-1 ${nightMode ? "bg-gray-800" : "bg-gray-50 dark:bg-gray-700"}`}>
-                              {currentPage?.image_url ? (
-                                <img
-                                  src={currentPage.image_url}
-                                  alt={t('bookView.pageAlt', { number: currentPageIndex })}
-                                  className="w-full h-full object-contain cursor-zoom-in"
-                                  onClick={zoomIn}
-                                />
-                              ) : (
-                                <div className="w-full h-full min-h-[200px] flex items-center justify-center bg-gradient-to-br from-purple-50 via-indigo-50 to-violet-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-violet-900/20">
-                                  <div className="text-center p-6">
-                                    <div className="text-5xl mb-3 opacity-50">🎨</div>
-                                    <p className="text-gray-400 text-sm">
-                                      {t('bookView.noIllustration')}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </>
+                        {currentPage?.text_content && currentPage.text_content.trim() !== book.title && (
+                          <div className="reader-intro" dir="auto">{renderHighlightedText(currentPage.text_content)}</div>
                         )}
                       </div>
+                    ) : (
+                      <figure className="reader-leaf" data-layout={currentPage?.layout_type} dir={isHebrewBook || book.language === "yiddish" ? "rtl" : "ltr"}>
+                        <div className="reader-art">
+                          {currentPage?.image_url ? (
+                            <ReaderIllustration onAvailability={failed => recordArtFailure(currentPage.page_number, failed)} key={currentPage.image_url} className="reader-page-art" src={currentPage.image_url} alt={t('bookView.pageAlt', { number: currentPage.page_number })} />
+                          ) : (
+                            <p className="reader-art-pending"><BookOpen aria-hidden="true" />{t('bookView.noIllustration')}</p>
+                          )}
+                        </div>
+                        <figcaption>{renderHighlightedText(currentPage?.text_content)}</figcaption>
+                      </figure>
                     )}
                   </div>
                 </PageFlip>
@@ -1101,7 +1038,7 @@ function BookReader({ bookId, user }) {
 
             {/* "The End" celebration section */}
             <AnimatePresence>
-              {currentPageIndex === pages.length - 1 && pages.length > 1 && (
+              {fullyIllustrated && currentPageIndex === pages.length - 1 && pages.length > 1 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1114,7 +1051,7 @@ function BookReader({ bookId, user }) {
                       ? "bg-gray-900 ring-gray-700"
                       : "bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 ring-purple-100 dark:ring-purple-800/30"
                   }`}>
-                    <div className="text-4xl mb-2">🎉</div>
+                    <img className="reader-ending-art" src="/images/spx/characters/child_self.webp" alt="" />
                     <h3 className={`text-2xl font-bold mb-1 ${nightMode ? "text-amber-100" : "text-purple-700 dark:text-purple-300"}`}>
                       {t('bookView.finishedBook')}
                     </h3>
@@ -1171,7 +1108,7 @@ function BookReader({ bookId, user }) {
 
             {/* Navigation controls */}
             <div className={`p-3 md:p-4 border-t ${nightNav} transition-colors duration-300`}>
-              <div className={`max-w-4xl mx-auto flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className="reader-navigation max-w-4xl mx-auto flex justify-between items-center gap-2">
                 <Button
                   variant="outline"
                   onClick={goToPreviousPage}

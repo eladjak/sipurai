@@ -12,7 +12,7 @@ import { getModel } from '../_lib/modelRegistry.js';
 
 const ASPECT_TO_SIZE = {
   '1:1': '1024x1024',
-  '4:3': '1024x768',
+  '4:3': '1536x1024',
   '3:4': '768x1024',
   '2:3': '1024x1536',
   '16:9': '1536x1024',

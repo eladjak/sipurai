@@ -1,18 +1,21 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { isNewShell } from "@/lib/flags";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useI18n } from "@/components/i18n/i18nProvider";
-import { Sparkles, Wand2, Compass, Lightbulb } from "lucide-react";
+import { Sparkles, Wand2, Compass } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 const DailyPromptCard = React.memo(function DailyPromptCard({ dailyPrompt, isPromptLoading }) {
   const { isRTL, t } = useI18n();
+  const { user } = useCurrentUser();
 
   return (
     <section className="p-4 md:p-6 lg:p-8">
-      <div className={`flex justify-between items-center mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+      <div className={`flex flex-wrap gap-3 justify-between items-center mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
         <h2 className={`text-2xl font-bold flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-md">
             <Sparkles className="h-4 w-4 text-white" />
@@ -34,7 +37,7 @@ const DailyPromptCard = React.memo(function DailyPromptCard({ dailyPrompt, isPro
 
       <Card className="relative overflow-hidden border-0 shadow-xl">
         {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-orange-400 to-yellow-300 opacity-90" />
+        <div className="absolute inset-0 bg-[#344b50]" />
         {/* Decorative circles */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
@@ -65,13 +68,14 @@ const DailyPromptCard = React.memo(function DailyPromptCard({ dailyPrompt, isPro
                 <div className={`flex flex-wrap gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                   {/* Single clear CTA: go to book wizard with this prompt pre-loaded */}
                   <Link
-                    to={`${createPageUrl("BookWizard")}?prompt=${encodeURIComponent(JSON.stringify(dailyPrompt))}`}
+                    to={isNewShell() ? "/new" : createPageUrl("BookWizard")}
                     onClick={() => {
-                      if (dailyPrompt) {
-                        localStorage.setItem("selectedStoryPrompt", JSON.stringify({
+                      if (dailyPrompt && user?.id) {
+                        try { sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
                           ...dailyPrompt,
+                          ownerId: user.id,
                           source: "daily_prompt"
-                        }));
+                        })); } catch { /* Storage may be unavailable. */ }
                       }
                     }}
                   >
@@ -88,7 +92,7 @@ const DailyPromptCard = React.memo(function DailyPromptCard({ dailyPrompt, isPro
                   animate={{ y: [-4, 4, -4] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <Lightbulb className="h-16 w-16 text-white drop-shadow-lg" />
+                  <img src="/images/spx/hearth.webp" alt="" className="h-32 w-36 rounded-xl object-cover" />
                 </motion.div>
               </div>
             </div>

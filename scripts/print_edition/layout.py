@@ -13,7 +13,7 @@ Kind = Literal["title", "dedication", "copyright", "endpaper", "story", "closing
 ZONES = {"top", "bottom", "top-left", "bottom-left", "top-right", "bottom-right"}
 NIKUD = re.compile(r"[\u05b0-\u05bc\u05c1\u05c2\u05c7]")
 BIDI_CONTROLS = re.compile(r"[\u202a-\u202e\u2066-\u2069]")
-PRINT_SIZES = {(220, 220), (200, 200), (165, 235)}
+PRINT_SIZES = {(220, 220), (200, 200), (165, 235), (210, 170)}
 BLEED_MM = 3.2
 SAFE_MM = 12.0
 BINDING_SAFE_MM = 16.0
@@ -29,7 +29,7 @@ class Scene:
     text: tuple[str, ...]
     zones: tuple[str, ...]
     anchor: tuple[float, float] = (0.5, 0.5)
-    panel: Literal["cream", "dark"] = "cream"
+    panel: Literal["cream", "dark", "integrated"] = "cream"
     native_pixels: tuple[int, int] | None = None
     panel_widths: tuple[float, ...] | None = None
 
@@ -183,7 +183,7 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         if not isinstance(anchor, list) or len(anchor) != 2:
             raise ValueError(f"Scene {ix}: anchor must be an [x, y] pair")
         panel = item.get("panel", "cream")
-        if panel not in ("cream", "dark"):
+        if panel not in ("cream", "dark", "integrated"):
             raise ValueError(f"Scene {ix}: unknown text panel")
         widths = item.get("panelWidthsMm")
         if widths is not None:

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PRINT_PRESETS, getPrintGeometry, getVerifiedSpineMm, printPrice, getSpine, printPageCountFor, isSupportedPageCount, SPINE_24PP_DOC_DISCREPANT_MM } from '../src/lib/printSpec.js';
+import { PRINT_PRESETS, getPrintGeometry, imageAspectForBook, canChangePrintSize, getVerifiedSpineMm, printPrice, getSpine, printPageCountFor, isSupportedPageCount, SPINE_24PP_DOC_DISCREPANT_MM } from '../src/lib/printSpec.js';
 
-test('offers exactly the three requested trim sizes', () => {
-  assert.deepEqual(PRINT_PRESETS.map(({ widthMm, heightMm }) => [widthMm, heightMm]), [[220, 220], [200, 200], [165, 235]]);
+test('offers the existing trims and a landscape proof trim', () => {
+  assert.deepEqual(PRINT_PRESETS.map(({ widthMm, heightMm }) => [widthMm, heightMm]), [[220, 220], [200, 200], [165, 235], [210, 170]]);
 });
 
 test('content geometry includes 3.2mm bleed and 10mm safety inset', () => {
@@ -70,4 +70,11 @@ test('page counts: four-page signatures, 24..80; story lengths 6/10/15 pad to 24
   assert.equal(printPageCountFor(80), 80);
   assert.throws(() => printPageCountFor(81), /Unsupported/);
   assert.throws(() => printPageCountFor(0), /Invalid/);
+});
+
+test('landscape pages and covers preserve their orientation after artwork exists', () => {
+  const book = { print_size: 'landscape-210x170', cover_image: 'art' };
+  assert.equal(imageAspectForBook(book), '4:3');
+  assert.equal(canChangePrintSize(book, [], 'square-220'), false);
+  assert.equal(printPrice({ presetId: book.print_size, pageCount: 24, paper: 'white-110gsm', cover: 'soft-matte' }), null);
 });

@@ -20,7 +20,7 @@ export default function WizardProgress({ steps, currentStep, onStepClick, isRTL 
       role="navigation"
       aria-label={t("wizard.title")}
     >
-      <div className={`flex items-start justify-between ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
+      <div className="flex flex-row items-start justify-between">
         {steps.map((step, index) => {
           const isCompleted = index < currentStep;
           const isActive = index === currentStep;
@@ -58,15 +58,6 @@ export default function WizardProgress({ steps, currentStep, onStepClick, isRTL 
                     <Icon className="h-5 w-5 md:h-6 md:w-6" aria-hidden="true" />
                   )}
 
-                  {/* Pulse ring for active step */}
-                  {isActive && (
-                    <motion.div
-                      className="absolute inset-0 rounded-2xl bg-purple-400/30"
-                      animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      aria-hidden="true"
-                    />
-                  )}
                 </motion.button>
 
                 {/* Step label */}

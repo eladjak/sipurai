@@ -10,8 +10,8 @@ import { getNarrationPreset } from '../lib/storyBible';
  *   - 'openai' / 'gemini': cloud TTS via /api/ai/tts — natural voices, slight latency, costs $
  *
  * @param {Object} options
- * @param {'english'|'hebrew'|'yiddish'} options.language
- * @param {'browser'|'openai'|'gemini'} [options.engine='browser']
+ * @param {'english'|'hebrew'|'yiddish'} [options.language='english']
+ * @param {string} [options.engine='browser']
  * @param {string} [options.voice] - voice name for cloud engines (default per-engine)
  * @returns {{ speak, stop, pause, resume, isSpeaking, isPaused, currentWordIndex, rate, setRate, engine }}
  */

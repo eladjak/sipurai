@@ -15,16 +15,20 @@ vi.mock('@clerk/clerk-react', () => ({
 }));
 
 describe('legacy auth output', () => {
-  it.each([false, true])('keeps a safe local return through sign-in and sign-up for shell %s', enabled => {
-    state.enabled = enabled;
-    for (const Component of [SignIn, SignUp]) {
-      const markup = renderToStaticMarkup(<MemoryRouter initialEntries={['/?redirect_url=%2FBookWizard']}><Component /></MemoryRouter>);
-      expect(markup).toContain('&quot;fallbackRedirectUrl&quot;:&quot;/BookWizard&quot;');
-      expect(markup).toContain('redirect_url=%2FBookWizard');
-      const unsafe = renderToStaticMarkup(<MemoryRouter initialEntries={['/?redirect_url=%2F%2Fevil.example']}><Component /></MemoryRouter>);
-      expect(unsafe).toContain('&quot;fallbackRedirectUrl&quot;:&quot;/&quot;');
-    }
-    state.enabled = false;
+  it('keeps Clerk routing and a safe return path on the redesigned sign-in', () => {
+    const markup = renderToStaticMarkup(<MemoryRouter initialEntries={['/sign-in?redirect_url=%2Fb%2Fprint%2Fabc']}><SignIn /></MemoryRouter>);
+    expect(markup).toContain('aria-label="סיפוראי"');
+    expect(markup).toContain('&quot;routing&quot;:&quot;path&quot;');
+    expect(markup).toContain('&quot;path&quot;:&quot;/sign-in&quot;');
+    expect(markup).toContain('&quot;signUpUrl&quot;:&quot;/sign-up?redirect_url=%2Fb%2Fprint%2Fabc&quot;');
+    expect(markup).toContain('&quot;fallbackRedirectUrl&quot;:&quot;/b/print/abc&quot;');
+    const unsafe = renderToStaticMarkup(<MemoryRouter initialEntries={['/sign-in?redirect_url=%2F%2Fevil.example']}><SignIn /></MemoryRouter>);
+    expect(unsafe).toContain('&quot;fallbackRedirectUrl&quot;:&quot;/&quot;');
+  });
+  it('preserves QR return through sign-up and switching back to sign-in', () => {
+    const markup = renderToStaticMarkup(<MemoryRouter initialEntries={['/sign-up?redirect_url=%2Fb%2Fprint%2Fabc']}><SignUp /></MemoryRouter>);
+    expect(markup).toContain('&quot;signInUrl&quot;:&quot;/sign-in?redirect_url=%2Fb%2Fprint%2Fabc&quot;');
+    expect(markup).toContain('&quot;fallbackRedirectUrl&quot;:&quot;/b/print/abc&quot;');
   });
 
 });

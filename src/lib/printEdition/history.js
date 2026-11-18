@@ -32,7 +32,8 @@ function inlineArt(draft) {
 }
 
 export function openEditionWorkspace(raw) {
-  const active = snapshot(raw);
+  // Only a newly opened, unsaved edition opts into the new treatment.
+  const active = snapshot(raw == null ? { version: 1, defaultPanel: 'integrated' } : raw);
   const { revision } = editionDraft(raw);
   const baseline = {
     entries: [active], cursor: 0, revision, group: null, dirty: false,

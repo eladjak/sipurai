@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import SuggestionChips from '../SuggestionChips';
 vi.mock('@/screens/heroes/useHeroes', () => ({useHeroes: () => ({heroes:[],loading:false})}));
 vi.mock('@/screens/shelf/useShelf', () => ({useShelf: () => ({books:[],loading:false})}));
+vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: { id: 'test-reader' } }) }));
 const t = key => key;
 it('prefills without starting a story and can turn suggestions off', () => { localStorage.clear(); const choose=vi.fn(), start=vi.fn(); render(<SuggestionChips t={t} onChoose={choose} start={start} data={{now:new Date('2026-12-12T17:01:00Z')}}/>); fireEvent.click(screen.getByRole('button',{name:/suggestions.bedtime/})); expect(choose).toHaveBeenCalledOnce(); expect(start).not.toHaveBeenCalled(); fireEvent.click(screen.getByRole('switch')); expect(screen.queryByRole('button',{name:/suggestions.bedtime/})).toBeNull(); expect(localStorage.getItem('sipurai_suggestions')).toBe('off'); });
 
@@ -16,10 +17,10 @@ it('keeps the preference off after remount', () => {
 
 it('consumes a reader idea into the editable topic without starting', async () => {
  const { default: TopicStep } = await import('@/screens/new-story/TopicStep');
- sessionStorage.setItem('sipurai_suggestion', 'A moon story');
+ sessionStorage.setItem('sipurai_pending_idea', JSON.stringify({ ownerId: 'test-reader', title: 'A moon story' }));
  const change = vi.fn(); render(<TopicStep value="" change={change} t={t}/>);
  expect(change).toHaveBeenCalledWith('A moon story');
- expect(sessionStorage.getItem('sipurai_suggestion')).toBeNull();
+ expect(sessionStorage.getItem('sipurai_pending_idea')).toBeNull();
 });
 
 const readerNavigation = vi.hoisted(() => vi.fn());

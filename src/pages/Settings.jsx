@@ -91,7 +91,7 @@ function SettingCard({ title, icon, children, isRTL, className = "" }) {
   );
 }
 
-function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
+function BillingTab({ currentPlan, userEmail, isRTL, toast, selectedPlan }) {
   const { t } = useI18n();
   const [upgrading, setUpgrading] = useState(null); // planId being upgraded
   const [confirmPlan, setConfirmPlan] = useState(null); // plan awaiting confirmation
@@ -139,6 +139,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
         </div>
       </SettingCard>
 
+      {selectedPlan && <p role="status" className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-gray-900">{t('spxLibrary.selectedPlan')}: {PLANS[selectedPlan]?.name[lang]}<br />{t('spxLibrary.planReview')}</p>}
       {/* Plan cards */}
       <div className="grid md:grid-cols-4 gap-4">
         {Object.values(PLANS).map((planDef) => {
@@ -150,7 +151,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast }) {
             <Card
               key={planDef.id}
               className={`relative overflow-hidden rounded-2xl border-0 shadow-md transition-all ${
-                isCurrent ? 'ring-2 ring-purple-500 ring-offset-2' : ''
+                isCurrent || selectedPlan === planDef.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''
               } ${planDef.popular ? 'md:scale-105 shadow-lg shadow-purple-200/50 dark:shadow-purple-900/30' : ''}`}
             >
               {planDef.popular && (
@@ -430,7 +431,7 @@ export default function Settings() {
         </div>
       </motion.div>
 
-      <Tabs defaultValue="general" className="space-y-5">
+      <Tabs defaultValue={searchParams.get("tab") === "billing" ? "billing" : "general"} className="space-y-5">
         {/* Gradient tab navigation */}
         <motion.div
           initial={{ opacity: 0, y: 5 }}
@@ -442,6 +443,7 @@ export default function Settings() {
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
+                aria-label={tab.label}
                 className={`rounded-xl flex items-center gap-1.5 px-3 py-2 text-sm transition-all ${isRTL ? "flex-row-reverse" : ""}
                   data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600
                   data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/20`}
@@ -757,6 +759,7 @@ export default function Settings() {
         <TabsContent value="billing">
           <BillingTab
             currentPlan={currentPlan}
+            selectedPlan={["free", "lite", "premium", "family"].includes(searchParams.get("plan")) ? searchParams.get("plan") : null}
             userEmail={hookUser?.email || user?.email}
             isRTL={isRTL}
             toast={toast}

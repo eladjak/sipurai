@@ -11,12 +11,12 @@ function show(data = books) { useShelf.mockReturnValue({ books: data, loading: f
 describe('shelf', () => {
   it('shows each book', () => { show(); expect(screen.getByText('First')).toBeTruthy(); expect(screen.getByText('Second')).toBeTruthy(); cleanup(); });
   it('filters by hero', () => { show(); fireEvent.click(screen.getByRole('button', { name: 'A' })); expect(screen.queryByText('Second')).toBeNull(); cleanup(); });
-  it('shows generating status and no read action', () => { show(); fireEvent.click(screen.getByRole('button', { name: /Second/ })); expect(screen.getAllByText('shelf.generating').length).toBeGreaterThan(0); expect(screen.queryByRole('link', { name: /shelf.read/ })).toBeNull(); cleanup(); });
+  it('opens generating books for the owner', () => { show(); fireEvent.click(screen.getByRole('button', { name: /Second/ })); expect(screen.getAllByText('shelf.generating').length).toBeGreaterThan(0); expect(screen.getByRole('link', { name: /spxRecovery.openBook/ })).toHaveAttribute('href', '/BookView?id=2'); cleanup(); });
   it('shows available actions but hides print when disabled', () => { show(); fireEvent.click(screen.getByRole('button', { name: /First/ })); expect(screen.getByRole('link', { name: /shelf.read/ })).toBeTruthy(); expect(screen.queryByRole('link', { name: /shelf.print/ })).toBeNull(); cleanup(); });
 });
 
 describe('review regressions', () => {
-  it('offers reading for a partial book', () => { show([{ id: '3', title: 'Partial', status: 'partial' }]); fireEvent.click(screen.getByRole('button', { name: /Partial/ })); expect(screen.getByRole('link', { name: /shelf.read/ })).toBeTruthy(); cleanup(); });
+  it('offers reading for a partial book', () => { show([{ id: '3', title: 'Partial', status: 'partial' }]); fireEvent.click(screen.getByRole('button', { name: /Partial/ })); expect(screen.getByRole('link', { name: /spxRecovery.openBook/ })).toHaveAttribute('href', '/BookView?id=3'); cleanup(); });
   it('uses a neutral label for an unknown status', () => { show([{ id: '4', title: 'Unknown', status: 'future' }]); expect(screen.getByText('shelf.inProgress')).toBeTruthy(); cleanup(); });
 });
 

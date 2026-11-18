@@ -119,7 +119,6 @@ const ClerkAuthProvider = ({ children }) => {
           try {
             const url = new URL(window.location.href);
             url.searchParams.delete('checkout');
-            url.searchParams.delete('plan');
             return safeAuthReturn(url.pathname + url.search + url.hash);
           } catch {
             return "/";

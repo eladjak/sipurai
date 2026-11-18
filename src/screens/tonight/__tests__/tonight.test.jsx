@@ -38,6 +38,10 @@ describe('tonight', () => {
   it('shows a first story action when there are no books', async () => { await show(); expect(screen.getByRole('link', { name: /create.*first story/i }).getAttribute('href')).toBe('/new'); });
   it('does not invent a gift count', async () => { data.books = [{ id:'a', title:'A', status:'complete' }]; await show(); expect(document.body.textContent).not.toMatch(/\d+.*gift/i); });
   it('offers retry on errors and tells the reader when offline', async () => { data.error = true; await show(); fireEvent.click(screen.getByRole('button', { name: /try again/i })); expect(data.retry).toHaveBeenCalledOnce(); cleanup(); data.error = false; data.offline = true; await show(); expect(screen.getByText(/you are offline/i)).toBeTruthy(); });
+  it.each(['generating', 'partial', 'failed'])('offers an owner recovery route for %s from another device', async status => {
+    localStorage.clear(); data.books = [{ id:'owner-book', title:'A story', status }]; await show();
+    expect(screen.getByRole('link', { name: /A story.*Open story/i })).toHaveAttribute('href', '/BookView?id=owner-book');
+  });
   it('links to the shelf when books exist but are not yet readable', async () => { data.books = [{ id:'draft', status:'generating' }]; await show(); expect(screen.getByRole('link', { name: /open the shelf/i }).getAttribute('href')).toBe('/shelf'); });
 
 });

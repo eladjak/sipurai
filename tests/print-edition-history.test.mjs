@@ -75,3 +75,11 @@ it('opens optional pilot features for everyone by default and recognizes existin
   for (const plan of ['free', 'lite', 'invalid']) assert.ok(Object.values(printEditionCapabilities('subscriber-preview', plan)).every(value => !value));
   assert.ok(Object.values(printEditionCapabilities('manual-only', 'family')).every(value => !value));
 });
+
+it('defaults only newly opened editions to integrated and retains it after save', () => {
+  const fresh = openEditionWorkspace(null);
+  assert.equal(active(fresh).defaultPanel, 'integrated');
+  assert.equal(fresh.dirty, false);
+  assert.equal(active(save(editEdition(fresh, field('creator', 'משפחה')))).defaultPanel, 'integrated');
+  assert.equal(active(openEditionWorkspace({ version: 1, revision: 1 })).defaultPanel, undefined);
+});

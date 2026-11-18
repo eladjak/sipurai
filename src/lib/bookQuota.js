@@ -22,7 +22,12 @@ export class QuotaError extends Error {
 
 export function newBookKey() {
   const c = globalThis.crypto;
-  return c?.randomUUID ? c.randomUUID() : `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  if (c?.randomUUID) return c.randomUUID();
+  const bytes = c.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  return [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20)].join('-');
 }
 
 /** Reserve (or re-confirm) a slot for this book. Throws QuotaError when refused. */

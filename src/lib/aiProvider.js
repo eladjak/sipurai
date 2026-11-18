@@ -97,13 +97,14 @@ async function proxyCall(type, prompt, options = {}) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || `AI request failed (${response.status})`);
+      const message = typeof data.error === 'string' ? data.error : data.error?.message_he;
+      throw Object.assign(new Error(message || `AI request failed (${response.status})`), { status: response.status });
     }
 
     return response.json();
   } catch (err) {
     if (err?.name === 'AbortError') {
-      throw new Error(`AI request timed out after ${timeoutMs / 1000}s. Please try again.`);
+      throw Object.assign(new Error(`AI request timed out after ${timeoutMs / 1000}s. Please try again.`), { status: 408 });
     }
     throw err;
   } finally {

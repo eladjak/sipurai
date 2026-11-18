@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { canApproveNikud, createDraftEditionManifest, createEditionManifest, editPageText, editionDraft, editionPhysicalPageCount, editionStoryPages, isReviewCurrent, matterReview, pageDraft, printReviewComplete, reviewSource, sameEditionSource, stripNikud } from '../src/lib/printEdition/model.js';
+import { canApproveNikud, createDraftEditionManifest, createEditionManifest, editPageText, editionDraft, initialEditionFields, editionPhysicalPageCount, editionStoryPages, isReviewCurrent, matterReview, pageDraft, printReviewComplete, reviewSource, sameEditionSource, stripNikud } from '../src/lib/printEdition/model.js';
 
 import { fitDedication } from '../src/lib/printEdition/dedicationLayout.js';
+
+it('uses the new caption treatment even when a family selects paper in the wizard', () => {
+  const prefs = { ...editionDraft(), paper: 'chrome-matte-170' };
+  const { printEdition } = initialEditionFields(prefs);
+  assert.equal(printEdition.paper, prefs.paper);
+  assert.equal(printEdition.defaultPanel, 'integrated');
+  assert.deepEqual(initialEditionFields(null), {});
+  assert.equal(editionDraft(prefs).defaultPanel, undefined);
+});
 
 it('balances dedication lines inside the same text area without a one-word widow', () => {
   const layout = fitDedication('״לך איתך הספר פתוח תמיד ואפשר לקרוא ביחד שוב״', (text, points) => text.length * points / 3);
@@ -131,8 +140,24 @@ describe('owner print-edition review', () => {
     assert.equal(render().scenes[0].art, 'wide.png');
     assert.deepEqual(render().scenes[0].panelWidthsMm, [81, 99]);
 
+    reopened.pages.p1.printSettings.panel = 'integrated';
+    assert.equal(createEditionManifest(book, pages, editionDraft(JSON.parse(JSON.stringify(reopened))), path => path).scenes[0].panel, 'integrated');
+
     reopened.printTitle += '!';
     assert.throws(render, /review is incomplete/);
+  });
+
+  it('applies new draft default per scene while preserving saved and explicit treatments', () => {
+    const edition = example();
+    edition.matterApproval = matterReview(edition, book).snapshot;
+    const render = () => createEditionManifest(book, pages, edition, path => path);
+    assert.equal(render().scenes[0].panel, undefined);
+    edition.defaultPanel = 'integrated';
+    assert.equal(render().scenes[0].panel, 'integrated');
+    edition.pages.p1.printSettings = { panel: 'cream' };
+    assert.equal(render().scenes[0].panel, 'cream');
+    edition.pages.p1.printSettings.panel = 'dark';
+    assert.equal(render().scenes[0].panel, 'dark');
   });
 
   it('rejects overlapping spreads, unsupported trims and a missing independent closing illustration', () => {

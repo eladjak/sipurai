@@ -1,8 +1,9 @@
 import { createSupabaseEntity } from '../lib/supabaseEntity';
 import { createSecureEntity } from '../lib/secureEntity';
+import { generationStore } from '../lib/generationStore';
 import { supabase } from '../lib/supabaseClient';
 
-export const Book = createSecureEntity(
+export const Book = { generationStore, ...createSecureEntity(
   createSupabaseEntity('books', {
     columnMap: {
       childNames: 'child_names',
@@ -10,7 +11,7 @@ export const Book = createSecureEntity(
       printEdition: 'print_edition',
     },
   })
-);
+) };
 
 /** Compare revisions in the write so parallel edits cannot silently overwrite each other. */
 export async function savePrintEdition(id, ownerId, edition) {
