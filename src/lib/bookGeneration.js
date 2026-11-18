@@ -45,6 +45,7 @@ import { imageAspectForBook } from "./printSpec";
 import { BOOK_STATUS, isPageReady, isPageIllustrated, normalizePages, summarizeBook } from '@/lib/bookProgress';
 import { editedPages } from "@/lib/storyManuscript";
 import { acquireRun } from '@/lib/generationLock';
+import { getApiAuthHeaders } from '@/lib/apiAuth';
 
 /** How many pages past the first to work on at once. */
 export const DEFAULT_CONCURRENCY = 3;
@@ -564,13 +565,18 @@ function messageOf(err) {
 
 /**
  * Re-derive the character reference from a cover that already exists, so a
- * resumed run draws the same child as the pages written before it. Best effort:
- * if it fails, later pages lose consistency but still get drawn.
+ * resumed run draws the same child as earlier pages. A durable run pauses
+ * illustration when this reference cannot be decoded.
  */
 export async function fetchImageAsBase64(url) {
   if (!url || typeof fetch !== 'function') return null;
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    const target = new URL(url, window.location.href);
+    const isOwnImage = target.origin === window.location.origin && target.pathname === '/api/img';
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(12000),
+      ...(isOwnImage && { headers: await getApiAuthHeaders(), redirect: 'error' }),
+    });
     if (!response.ok) return null;
     const mime = response.headers.get('content-type')?.split(';')[0].toLowerCase();
     if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'].includes(mime)) return null;

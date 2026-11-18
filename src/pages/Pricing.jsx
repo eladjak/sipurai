@@ -54,7 +54,7 @@ export default function Pricing() {
           <h2 className="text-xl font-bold">{t('spxLibrary.selectedPlan')}</h2>
           <p className="mt-2">{names[selected]}</p>
           <p className="mt-2">{t('spxLibrary.planReview')}</p>
-          <Link className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#263c4c] px-5 font-semibold text-white" to={isNewShell() ? '/parents' : '/Settings?tab=billing'}>{t('spxLibrary.accountSettings')}</Link>
+          <Link className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#263c4c] px-5 font-semibold text-white" to={(isNewShell() ? '/parents/billing' : '/Settings') + '?tab=billing&plan=' + encodeURIComponent(selected)}>{t('spxLibrary.accountSettings')}</Link>
         </section>}
         <PricingSection />
 

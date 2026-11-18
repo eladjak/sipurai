@@ -20,6 +20,6 @@ describe('pricing handoff', () => {
     render(<MemoryRouter initialEntries={['/pricing?plan=lite']}><Pricing /></MemoryRouter>);
     expect(screen.getByRole('status')).toHaveTextContent('landing.pricing.lite.name');
     expect(screen.getByText('spxLibrary.planReview')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name:'spxLibrary.accountSettings' })).toHaveAttribute('href', shell ? '/parents' : '/Settings?tab=billing');
+    expect(screen.getByRole('link', { name:'spxLibrary.accountSettings' })).toHaveAttribute('href', shell ? '/parents/billing?tab=billing&plan=lite' : '/Settings?tab=billing&plan=lite');
   });
 });

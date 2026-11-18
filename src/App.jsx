@@ -115,7 +115,7 @@ export const NewShellRoutes = () => {
     <Route path="/cancel-subscription" element={<CancelSubscription />} />
     <Route path="/help/contact" element={<Pages.Contact />} /><Route path="/help/accessibility" element={<Accessibility />} />
     <Route path="/shelf" element={protectedPage(Shelf)} /><Route path="/heroes" element={protectedPage(Heroes)} /><Route path="/heroes/new" element={protectedPage(HeroEditor)} /><Route path="/heroes/:id" element={protectedPage(HeroEditor)} />
-    <Route path="/parents" element={protectedPage(ParentsHub)} /><Route path="/new" element={protectedPage(NewStory)} />
+    <Route path="/parents" element={protectedPage(ParentsHub)} /><Route path="/parents/billing" element={protectedPage(Pages.Settings)} /><Route path="/new" element={protectedPage(NewStory)} />
     <Route path="/help" element={protectedPage(HelpCentre)} />
     <Route path="/book/:id/read" element={protectedPage(NightReader)} />
     <Route path="/b/print/:id" element={<PrintedBookLink />} />
