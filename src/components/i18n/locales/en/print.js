@@ -6,6 +6,7 @@ export default {
   "loading": "Loading",
   "loadError": "Could not load your order",
   "retry": "Try again",
+  "editionNotOrderable": "This edition is being prepared. Orders can open once the print specifications are confirmed.",
   "generic": "Something went wrong. Please try again.",
   "unauthorized": "Please sign in again.",
   "forbidden": "You do not have permission to do this.",

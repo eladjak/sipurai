@@ -1,0 +1,16 @@
+Nakdimon browser model, by Elazar Gershuni and Yuval Pinter.
+Source: https://github.com/elazarg/nakdimon/tree/5b73cdd6a43ad465faabc8c1118933592df356c8/model_js
+The upstream LICENSE is included unchanged. Model JSON and all weights are
+byte-for-byte copies. The model and its input stay local to the browser after
+this same-origin static download. The upstream trained model predicts Hebrew
+diacritics; suggestions do not represent editorial or parental approval.
+
+SHA-256
+c1003f4bcecf823d0604dc4454119a8235fda0d7560e25cde445862253477985  LICENSE
+53da123c5bf1439a9137504273c71825b48d8dd7e4d8283c7ab66c32ca54efde  model.json
+e10d4d4778800af64345a0125146d09c25cf1f6a3fdc9ad2b5bb2a121dd99d28  group1-shard1of6.bin
+2ac76e85e37b935f8d287cbc95cb64e4985b01b429527a718aaedc1bbb996852  group1-shard2of6.bin
+29a4f27bb5aa275eb7fa897f89b73cabbeec77e9a11f4cf70d19bdeb4b1ff06d  group1-shard3of6.bin
+d1c40ae5a25e7f1f46b097ea591406b370c8ab2efa1efa027bb1f4f62980e30b  group1-shard4of6.bin
+9a2ad4eaf27a1efd7d9726d25398573a2af38baaa2d1b219fa98a4599e620f65  group1-shard5of6.bin
+be15f70233db8ecb50eb34c328f0a6fbc3f56a87bbb5e9b92044e6098544e438  group1-shard6of6.bin

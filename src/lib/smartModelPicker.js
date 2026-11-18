@@ -88,8 +88,8 @@ function canAccess(model, userTier) {
 
 /**
  * @param {Object} params
- * @param {string} params.prompt
- * @param {'free'|'creator'|'pro'|'premium'} [params.userTier='free']
+ * @param {string} [params.prompt]
+ * @param {string} [params.userTier='free'] - Unknown tiers are treated as free
  * @param {string} [params.lastManualPick] - id from localStorage smart-default
  * @returns {{ modelId: string, reason: string, model: Object }}
  */

@@ -51,19 +51,19 @@ test('spine: exactly 1.8 for 24pp (measured), linear 0.15mm per sheet otherwise,
   assert.equal(getSpine({ ...base, paper: 'x' }), null);
   assert.equal(getSpine({ ...base, cover: 'x' }), null);
   assert.equal(getSpine({ ...base, presetId: 'nope' }), null);
-  for (const pageCount of [22, 23, 25, 82, 0, -24, 24.5, '24', null]) assert.equal(getSpine({ ...base, pageCount }), null);
+  for (const pageCount of [22, 23, 25, 26, 82, 0, -24, 24.5, '24', null]) assert.equal(getSpine({ ...base, pageCount }), null);
   assert.notEqual(getSpine(base).mm, SPINE_24PP_DOC_DISCREPANT_MM); // 1.65 is the documented-but-unused value
 });
 
-test('page counts: even, 24..80; story lengths 6/10/15 pad to 24', () => {
+test('page counts: four-page signatures, 24..80; story lengths 6/10/15 pad to 24', () => {
   assert.equal(isSupportedPageCount(24), true);
   assert.equal(isSupportedPageCount(80), true);
-  assert.equal(isSupportedPageCount(26), true);
+  assert.equal(isSupportedPageCount(26), false);
   assert.equal(isSupportedPageCount(22), false);
   assert.equal(isSupportedPageCount(81), false);
   assert.equal(isSupportedPageCount(82), false);
   for (const n of [6, 10, 15]) assert.equal(printPageCountFor(n), 24);
-  assert.equal(printPageCountFor(25), 26);
+  assert.equal(printPageCountFor(25), 28);
   assert.equal(printPageCountFor(80), 80);
   assert.throws(() => printPageCountFor(81), /Unsupported/);
   assert.throws(() => printPageCountFor(0), /Invalid/);

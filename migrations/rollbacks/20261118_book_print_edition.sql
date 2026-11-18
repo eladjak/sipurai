@@ -1,0 +1,2 @@
+-- Roll back the application first. Retain the additive column so edits
+-- already saved by parents can be reopened after redeployment.

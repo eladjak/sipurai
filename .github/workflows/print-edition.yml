@@ -1,0 +1,29 @@
+name: Print edition preflight
+on:
+  pull_request:
+    paths:
+      - 'scripts/print_edition/**'
+      - 'src/lib/printEdition/**'
+      - '.github/workflows/print-edition.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/print_edition/**'
+      - 'src/lib/printEdition/**'
+      - '.github/workflows/print-edition.yml'
+permissions:
+  contents: read
+jobs:
+  print-pdf:
+    runs-on: ubuntu-latest
+    container: python:3.12-bookworm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PDF renderer and preflight dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends poppler-utils fontconfig libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+          pip install -r scripts/print_edition/requirements.txt
+      - name: Verify RTL spreads, Hebrew text and the printed PDF
+        run: python -m unittest discover -s scripts/print_edition -p 'test_*.py'

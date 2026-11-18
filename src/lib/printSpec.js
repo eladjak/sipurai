@@ -7,6 +7,7 @@ export const PRINT_PRESETS = Object.freeze([
 
 export const BLEED_MM = 3.2;
 export const MIN_PAGES = 24;
+export const PRINT_SIGNATURE_PAGES = 4;
 export const MAX_PAGES = 80;
 
 /**
@@ -43,21 +44,21 @@ function isVerifiedProof(spec) {
     spec.paper === 'white-110gsm' && spec.cover === 'soft-matte';
 }
 
-/** Page count must be an even integer in [24, 80]. */
+/** Page count must be a four-page signature multiple in [24, 80]. */
 export function isSupportedPageCount(n) {
-  return Number.isInteger(n) && n % 2 === 0 && n >= MIN_PAGES && n <= MAX_PAGES;
+  return Number.isInteger(n) && n % PRINT_SIGNATURE_PAGES === 0 && n >= MIN_PAGES && n <= MAX_PAGES;
 }
 
 /**
  * Print pages for a story of `storyPages` pages (the product makes 6/10/15
- * via pageCountFor): padded up to the 24-page minimum, rounded up to even.
+ * via pageCountFor): padded up to the 24-page minimum, rounded up to the next print signature.
  */
 export function printPageCountFor(storyPages) {
   const n = Number(storyPages);
   if (!Number.isFinite(n) || n < 1) throw new Error('Invalid story page count');
-  const even = Math.max(MIN_PAGES, Math.ceil(n / 2) * 2);
-  if (!isSupportedPageCount(even)) throw new Error('Unsupported page count');
-  return even;
+  const pages = Math.max(MIN_PAGES, Math.ceil(n / PRINT_SIGNATURE_PAGES) * PRINT_SIGNATURE_PAGES);
+  if (!isSupportedPageCount(pages)) throw new Error('Unsupported page count');
+  return pages;
 }
 
 /**

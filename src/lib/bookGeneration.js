@@ -168,6 +168,8 @@ export async function generateBookIncremental({
       // the reader can say "2 of 10" instead of pretending two was the plan.
       book = await Book.create({
         ...recipe.bookFields,
+        // Sharing is an explicit later action; never inherit a draft's flag.
+        is_public: false,
         title,
         status: BOOK_STATUS.GENERATING,
         total_pages: entries.length,

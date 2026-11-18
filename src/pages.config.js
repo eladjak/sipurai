@@ -11,6 +11,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const BookCreation = lazy(() => import('./pages/BookCreation'));
 const BookView = lazy(() => import('./pages/BookView'));
+const PrintEdition = lazy(() => import('./pages/PrintEdition'));
 const BookWizard = lazy(() => import('./pages/BookWizard'));
 const CharacterEditor = lazy(() => import('./pages/CharacterEditor'));
 const Characters = lazy(() => import('./pages/Characters'));
@@ -35,6 +36,7 @@ export const PAGES = {
     "TermsOfService": TermsOfService,
     "BookView": BookView,
     "BookWizard": BookWizard,
+    "PrintEdition": PrintEdition,
     "CharacterEditor": CharacterEditor,
     "Characters": Characters,
     "Community": Community,

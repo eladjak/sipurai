@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Pencil, Printer } from 'lucide-react';
 import { Sheet } from '@/components/ds/Sheet';
 import { useI18n } from '@/components/i18n/i18nProvider';
+import { printEditionUrl } from '@/lib/printEdition/model';
+import { editionLabels } from '@/screens/print-edition/labels';
 import BookControls from '@/components/bookControls/BookControls';
 
 export default function BookSheet({ book, open, onOpenChange, onRead, onChanged }) {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   if (!book) return null;
   const ready = book.status === 'complete';
   const readable = ready || book.status === 'partial';
@@ -14,7 +16,8 @@ export default function BookSheet({ book, open, onOpenChange, onRead, onChanged 
   const actions = [
     readable && { label: t('shelf.read'), to: `/BookView?id=${encodeURIComponent(book.id)}`, icon: BookOpen, onClick: onRead },
     book.status !== 'generating' && { label: t('shelf.edit'), to: `/BookCreation?id=${encodeURIComponent(book.id)}`, icon: Pencil },
-    ready && import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' && { label: t('shelf.print'), to: `/book/${encodeURIComponent(book.id)}/order`, icon: Printer },
+    readable && { label: editionLabels(isRTL).title, to: printEditionUrl(book.id), icon: Printer },
+    ready && !book.printEdition && import.meta.env.VITE_PRINT_ORDER_ENABLED === 'true' && { label: t('shelf.print'), to: `/book/${encodeURIComponent(book.id)}/order`, icon: Printer },
   ].filter(Boolean);
   const title = <span className="flex items-center gap-4">
     {book.cover_image ? <img src={book.cover_image} alt="" className="h-24 w-16 shrink-0 rounded-sp-sm object-cover" /> : <span className="flex h-24 w-16 shrink-0 items-center justify-center rounded-sp-sm bg-sp-violet-100"><BookOpen aria-hidden="true" /></span>}

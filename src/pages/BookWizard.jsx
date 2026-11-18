@@ -27,6 +27,8 @@ import TopicStep from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "@/components/wizard/PreviewEditStep";
 import PrintSizeStep from "@/components/wizard/PrintSizeStep";
+import PrintPreferences from "@/screens/print-edition/PrintPreferences";
+import { initialEditionFields } from "@/lib/printEdition/model";
 import { imageAspectForBook } from "@/lib/printSpec";
 import SaveStep from "@/components/wizard/SaveStep";
 import StoryStructure from "@/components/storyBuilder/StoryStructure";
@@ -159,7 +161,8 @@ export default function BookWizard() {
     family_members: "",
     status: "draft",
     cover_image: "",
-    print_size: "square-220"
+    print_size: "square-220",
+    printEdition: null
   });
 
   const [generatedOutline, setGeneratedOutline] = useState(null);
@@ -709,8 +712,9 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         traits: c.traits || "",
       }));
 
+      const { printEdition, ...storyFields } = bookData;
       const recipe = buildRecipe({
-        bookData: { ...bookData, selectedCharacters: persistedCharacters },
+        bookData: { ...storyFields, ...initialEditionFields(printEdition), selectedCharacters: persistedCharacters },
         characters: selectedCharacters,
         scenes,
         topic: selectedTopic === "custom" && customIdea ? customIdea : selectedTopic,
@@ -1011,7 +1015,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
           />
         );
       case 4:
-        return <PrintSizeStep value={bookData.print_size || "square-220"} onChange={(value) => updateBookField("print_size", value)} length={bookData.length} isRTL={isRTL} />;
+        return <>
+          <PrintSizeStep value={bookData.print_size || "square-220"} onChange={(value) => updateBookField("print_size", value)} length={bookData.length} isRTL={isRTL} />
+          <PrintPreferences value={bookData.printEdition} onChange={(value) => updateBookField("printEdition", value)} isRTL={isRTL} compact />
+        </>;
       case 5:
         return (
           <SaveStep

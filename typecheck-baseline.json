@@ -1,12 +1,10 @@
 {
-  "total": 294,
+  "total": 288,
   "files": {
     "src/components/ai/AIStudio.jsx": {
-      "TS2322: Type 'string' is not assignable to type '\"free\" | \"premium\" | \"creator\" | \"pro\"'.": 2,
       "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
     },
     "src/components/ai/SmartAutoSelector.jsx": {
-      "TS2322: Type 'string' is not assignable to type '\"free\" | \"premium\" | \"creator\" | \"pro\"'.": 1,
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
     "src/components/ai/TextOverlay.jsx": {
@@ -232,9 +230,6 @@
       "TS2339: Property 'body' does not exist on type '{ method?: string; auth?: boolean; }'.": 1,
       "TS2353: Object literal may only specify known properties, and 'body' does not exist in type '{ method?: string; auth?: boolean; }'.": 2
     },
-    "src/lib/privacyConsent.js": {
-      "TS2339: Property 'getHeaders' does not exist on type '{ fetchImpl?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>; }'.": 1
-    },
     "src/lib/profiles.js": {
       "TS2339: Property 'full_name' does not exist on type '{ id: string; email?: string; display_name?: string; avatar_url?: string; }'.": 1
     },
@@ -250,9 +245,6 @@
       "TS2339: Property 'storyIdea' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
       "TS2339: Property 'storyIdea' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
       "TS2339: Property 'tone' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1
-    },
-    "src/lib/smartModelPicker.js": {
-      "TS2741: Property 'prompt' is missing in type '{}' but required in type '{ prompt: string; userTier?: \"free\" | \"premium\" | \"creator\" | \"pro\"; lastManualPick?: string; }'.": 1
     },
     "src/pages/AccessibilityStatement.jsx": {
       "TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
@@ -389,9 +381,6 @@
     },
     "src/pages/TermsOfService.jsx": {
       "TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
-    },
-    "src/utils/hebrewText.js": {
-      "TS2552: Cannot find name 'Buffer'. Did you mean 'buffer'?": 1
     },
     "src/utils/pdfExporter.js": {
       "TS2322: Type 'string' is not assignable to type '\"center\" | \"right\" | \"justify\" | \"left\"'.": 1,

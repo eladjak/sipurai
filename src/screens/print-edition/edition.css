@@ -1,0 +1,121 @@
+@font-face {
+  font-family: 'Sipurai Print';
+  src: url('../../../scripts/print_edition/fonts/DavidLibre-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+.edition-print-font,
+.edition-scene,
+.edition-dedication {
+  font-family: 'Sipurai Print', Georgia, serif;
+  font-weight: 500;
+}
+.edition-panel {
+  padding: clamp(1rem, 3.5vw, 1.75rem);
+  min-width: 0;
+  border: 1px solid var(--sp-line);
+  border-radius: var(--sp-r-lg);
+  background-color: var(--sp-card);
+  box-shadow: var(--sp-shadow-1);
+}
+.edition-heading {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: var(--sp-font-display), sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.25rem, 2.4vw, 1.55rem);
+  line-height: 1.25;
+}
+.edition-heading svg { color: var(--sp-violet-700); flex: none; }
+.edition-scene,
+.edition-dedication {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--sp-r-sm);
+  color: #26243b;
+  background: #f5e8d7;
+  container-type: inline-size;
+}
+.edition-dedication {
+  margin-inline: auto;
+  max-inline-size: 23rem;
+  background: radial-gradient(circle at center, #d6cbbd 0 9%, transparent 10%) 0 0 / 9% 9%, #f1ebe1;
+}
+.edition-dedication.has-dedication::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 9.55%;
+  border-radius: 3.2%;
+  background: #f5e8d7;
+}
+
+.edition-dedication p {
+  position: absolute;
+  z-index: 2;
+  inset: 22.64% 13.09% auto;
+  min-height: 22.27%;
+  display: grid;
+  align-items: center;
+  margin: 0;
+  text-align: center;
+  font-size: 4.17cqw;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.31;
+}
+.edition-dedication img {
+  position: absolute;
+  top: 52.18%;
+  left: 30.45%;
+  width: 39.09%;
+  height: 31.81%;
+  border-radius: 5.8%;
+  object-fit: cover;
+  object-position: 50% 63%;
+}
+.edition-dedication-art {
+  z-index: 2;
+  filter: brightness(1.07);
+}
+.edition-dedication img.edition-endpaper {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  object-position: center;
+  filter: brightness(1.07);
+}
+.edition-scene img {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+.edition-scene .edition-left-art { width: 200%; left: 0; }
+.edition-scene .edition-right-art { width: 200%; right: 0; }
+.edition-text-zone {
+  position: absolute;
+  max-width: 86%;
+  padding: 2% 4%;
+  border-radius: .45rem;
+  background: rgba(251, 241, 222, .94);
+  font-size: clamp(.8125rem, 4cqw, 1.1rem);
+  line-height: 1.32;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.edition-text-zone.panel-dark { background: rgba(25, 23, 49, .94); color: #fff4e1; }
+.edition-text-zone.zone-top { inset: 7% 7% auto; }
+.edition-text-zone.zone-bottom { inset: auto 7% 7%; }
+.edition-text-zone.zone-top-right { top: 7%; right: 7%; max-width: 62%; }
+.edition-text-zone.zone-top-left { top: 7%; left: 7%; max-width: 62%; }
+.edition-text-zone.zone-bottom-right { bottom: 7%; right: 7%; max-width: 62%; }
+.edition-text-zone.zone-bottom-left { bottom: 7%; left: 7%; max-width: 62%; }
