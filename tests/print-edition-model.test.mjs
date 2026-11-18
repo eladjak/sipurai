@@ -99,6 +99,40 @@ describe('owner print-edition review', () => {
     assert.equal(manifest.closingArt, 'ending.png');
   });
 
+  it('reopens imported artwork and keeps framing across zone edits and layout toggles', () => {
+    const edition = example();
+    edition.printTitle = 'סֵפֶר הַמִּשְׁפָּחָה';
+    edition.copyright = 'טקסט מקור.\nכל הזכויות שמורות.';
+    edition.pages.p1.printArt = 'uncropped-single.jpg';
+    edition.pages.p1.printSettings = { anchor: [0.73, 0.36], panel: 'dark', panelWidthsMm: [81, 99] };
+    edition.matterApproval = matterReview(edition, book).snapshot;
+    const reopened = editionDraft(JSON.parse(JSON.stringify(edition)));
+    const draft = pageDraft(reopened, pages[0], 0);
+    reopened.pages.p1 = { ...draft, zone: 'top-right' };
+    reopened.pages.p2 = { ...pageDraft(reopened, pages[1], 1), zone: 'bottom-left' };
+
+    const render = () => createEditionManifest(book, pages, reopened, path => path);
+    let manifest = render();
+    assert.equal(manifest.title, edition.printTitle);
+    assert.equal(manifest.copyright, edition.copyright);
+    assert.equal(manifest.scenes[0].art, 'wide.png');
+    assert.deepEqual(manifest.scenes[0].anchor, [0.73, 0.36]);
+    assert.equal(manifest.scenes[0].panel, 'dark');
+    assert.deepEqual(manifest.scenes[0].panelWidthsMm, [81, 99]);
+    assert.deepEqual(manifest.scenes[0].zones, ['top-right', 'bottom-left']);
+
+    reopened.pages.p1.layout = 'single';
+    manifest = render();
+    assert.equal(manifest.scenes[0].art, 'uncropped-single.jpg');
+    assert.equal(manifest.scenes[0].panelWidthsMm, undefined);
+    reopened.pages.p1.layout = 'spread';
+    assert.equal(render().scenes[0].art, 'wide.png');
+    assert.deepEqual(render().scenes[0].panelWidthsMm, [81, 99]);
+
+    reopened.printTitle += '!';
+    assert.throws(render, /review is incomplete/);
+  });
+
   it('rejects overlapping spreads, unsupported trims and a missing independent closing illustration', () => {
     const edition = example();
     edition.pages.p2.layout = 'spread';
