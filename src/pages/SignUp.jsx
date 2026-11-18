@@ -23,7 +23,7 @@ const SignUp = () => {
           <Wordmark language={language === 'english' ? 'en' : 'he'} />
         </Link>
         <p className="mb-7 mt-4 text-center text-sp-ink-600">{t('auth.reassurance')}</p>
-        <ClerkSignUp routing="path" path="/sign-up" signInUrl={signInUrl} fallbackRedirectUrl={afterSignUpUrl} appearance={clerkAppearance} />
+        <ClerkSignUp routing="path" path="/sign-up" signInUrl={signInUrl} forceRedirectUrl={afterSignUpUrl} fallbackRedirectUrl={afterSignUpUrl} appearance={clerkAppearance} />
       </main>
     );
   }
@@ -44,7 +44,7 @@ const SignUp = () => {
         routing="path"
         path="/sign-up"
         signInUrl={signInUrl}
-        fallbackRedirectUrl={afterSignUpUrl}
+        forceRedirectUrl={afterSignUpUrl} fallbackRedirectUrl={afterSignUpUrl}
         appearance={{
           elements: {
             rootBox: 'mx-auto',
