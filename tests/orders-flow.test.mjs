@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { endpoint } from '../api/_lib/orders/handlers.js';
 import { handlePaymentEvent, submitOrder, adminAction, runStuckWatch, OrderError } from '../api/_lib/orders/service.js';
+import { stockBindingDigest, stockFileBinding } from '../api/_lib/bookpod/stockFiles.js';
 import { normalizeCreemEvent } from '../api/_lib/orders/payment/creem.js';
 import { ALICE, BOB, ADMIN, GOOD_ADDRESS, call, fakeReq, makeDeps } from './orders-helpers.mjs';
 
@@ -36,6 +37,9 @@ test('create: stores a price snapshot, opens checkout, returns the checkout url'
   assert.equal(row.total_agorot, 10800);
   assert.equal(row.quote.priceVersion, '2026-11-18.v2');
   assert.equal(row.quote.bookTitle, 'הדרקון של נועה');
+  assert.equal('quoteRef' in row.quote, false);
+  assert.equal('sheettype' in row.quote, false);
+  assert.equal('fileBinding' in row.quote, false);
   assert.equal(row.preset_id, 'square-220');
   assert.equal(deps.payment.checkouts.length, 1);
 });
@@ -83,7 +87,12 @@ test('configured chrome checks trusted binding before payment and rechecks at di
     deps.store.getVerifiedPrintFiles = async () => files;
     const acceptedQuote = await accepted(deps,paper);
     const out = await newOrder(deps,{paper,cover:'softcover',acceptedQuote});
-    assert.deepEqual(deps.store._orders.get(out.orderId).quote.fileBinding,proof);
+    const snapshot = deps.store._orders.get(out.orderId).quote;
+    assert.equal(snapshot.fileBindingDigest, stockBindingDigest(stockFileBinding(files,snapshot)));
+    for (const secret of ['gs://', 'supplier', 'private-ref', 'chromo-mat', proof.contentSha256, proof.coverSha256, '101', '102']) assert.equal(JSON.stringify(snapshot).includes(secret), false, secret);
+    assert.equal('sheettype' in snapshot, false);
+    assert.equal('quoteRef' in snapshot, false);
+    assert.equal('fileBinding' in snapshot, false);
     const good = await handlePaymentEvent(deps, paidEvent(deps,out.orderId));
     assert.equal(good.submit.outcome,'submitted');
     assert.equal(deps.vendor.calls.length,1);
@@ -132,6 +141,29 @@ test('hardcover stays blocked even with an exact configured quote and enable var
   const r = await call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'hardcover-0001',cover:'hardcover'}}), deps);
   assert.equal(r.body.error.code,'cover_not_available');
   assert.equal(deps.payment.checkouts.length,0);
+});
+
+test('current quote resumes unchanged legacy order, but changed price or contradictory row rejects', async () => {
+  const deps = makeDeps();
+  const prior = await newOrder(deps);
+  const row = deps.store._orders.get(prior.orderId);
+  row.quote.priceVersion = '2026-11-08.v1';
+  delete row.quote.paper; delete row.quote.cover;
+  const acceptedQuote = await accepted(deps,'standard');
+  const body = {bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'key-0001-aaaa',paper:'standard',cover:'softcover',acceptedQuote};
+  const send = b => call(create, fakeReq({method:'POST',user:ALICE,body:b}),deps);
+  const resumed = await send(body);
+  assert.equal(resumed.status,200);
+  assert.equal(resumed.body.orderId,prior.orderId);
+  assert.equal(resumed.body.checkoutUrl,prior.checkoutUrl);
+  assert.equal((await send({...body,acceptedQuote:{...acceptedQuote,totalAgorot:acceptedQuote.totalAgorot+100}})).body.error.code,'quote_changed');
+  row.total_agorot += 100;
+  assert.equal((await send(body)).body.error.code,'quote_changed');
+  row.total_agorot -= 100;
+  row.quote.paper = 'chrome-matte-130';
+  assert.equal((await send(body)).body.error.code,'idempotency_conflict');
+  assert.equal(deps.store._orders.size,1);
+  assert.equal(deps.payment.checkouts.length,1);
 });
 
 test('insert race rejects another stock snapshot and never creates checkout', async () => {

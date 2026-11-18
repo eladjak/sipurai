@@ -1,5 +1,5 @@
 import { PAPER_SHEET_TYPES, vendorFinishForCover } from '../../../src/lib/printOrder/pricing.js';
-import { stockFileBinding, sameStockBinding } from './stockFiles.js';
+import { stockFileBinding, stockBindingDigest } from './stockFiles.js';
 /**
  * Print-fulfilment vendor client (server only; this path and name must never
  * reach any response body, src/ or public/).
@@ -98,12 +98,12 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
       const paper = quote?.paper;
       const finishtype = vendorFinishForCover(quote?.cover);
       if (typeof paper !== 'string' || !Object.hasOwn(PAPER_SHEET_TYPES, paper) ||
-          quote?.sheettype !== PAPER_SHEET_TYPES[paper] || !finishtype) {
+          (quote?.sheettype !== undefined && quote.sheettype !== PAPER_SHEET_TYPES[paper]) || !finishtype) {
         throw new VendorError('vendor_rejected', 'invalid print specification');
       }
       if (paper !== 'standard') {
         const binding = stockFileBinding(files, quote);
-        if (!binding || !sameStockBinding(binding, quote.fileBinding)) throw new VendorError('vendor_rejected', 'stock-bound files unavailable');
+        if (!binding || stockBindingDigest(binding) !== quote.fileBindingDigest) throw new VendorError('vendor_rejected', 'stock-bound files unavailable');
       }
       const dims = { 'square-220': [22, 22], 'square-200': [20, 20], 'portrait-165x235': [16.5, 23.5] }[order.preset_id];
       if (!dims || quote?.presetId !== order.preset_id || quote?.pageCount !== order.page_count) throw new VendorError('vendor_rejected', 'invalid print specification');

@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 // Only the trusted server-side print asset provider may supply this record.
 // The production store currently has no such provider; callers fail closed.
 export function stockFileBinding(files, spec) {
@@ -18,4 +20,12 @@ export function stockFileBinding(files, spec) {
 
 export function sameStockBinding(a, b) {
   return Boolean(a && b && ['version', 'paper', 'presetId', 'pageCount', 'cover', 'contentSha256', 'coverSha256', 'contentUri', 'coverUri', 'contentGeneration', 'coverGeneration'].every(key => a[key] === b[key]));
+}
+
+/** Hash a canonical binding; only the trusted provider can establish its truth. */
+export function stockBindingDigest(binding) {
+  if (!binding) return null;
+  const fields = ['version', 'paper', 'presetId', 'pageCount', 'cover', 'contentSha256', 'coverSha256', 'contentUri', 'coverUri', 'contentGeneration', 'coverGeneration'];
+  const canonical = JSON.stringify(['sipurai:print-file-binding:v1', ...fields.map(key => binding[key])]);
+  return crypto.createHash('sha256').update(canonical).digest('hex');
 }

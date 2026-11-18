@@ -9,7 +9,7 @@
 import crypto from 'node:crypto';
 import { computeQuote, PRINT_PAGE_COUNT, PricingError, PAPER_SHEET_TYPES, vendorFinishForCover } from '../../../src/lib/printOrder/pricing.js';
 import { validateAddress } from './address.js';
-import { stockFileBinding, sameStockBinding } from '../bookpod/stockFiles.js';
+import { stockFileBinding, stockBindingDigest } from '../bookpod/stockFiles.js';
 import { STATUS_LABEL_HE, canTransition } from './states.js';
 
 export class OrderError extends Error {
@@ -116,11 +116,39 @@ export async function createOrder(deps, { userId, body }) {
       throw new OrderError('idempotency_conflict', 409, 'יש להתחיל הזמנה חדשה לבחירת נייר אחרת');
     }
   };
+  const verifyExisting = async order => {
+    ensureSamePaper(order);
+    const old = order.quote || {};
+    const isLegacy = old.priceVersion === '2026-11-08.v1' &&
+      old.paper === undefined && old.cover === undefined && old.sheettype === undefined &&
+      old.presetId === 'square-220' && old.pageCount === 24;
+    const isCurrent = old.priceVersion === '2026-11-18.v2' &&
+      typeof old.paper === 'string' && Object.hasOwn(PAPER_SHEET_TYPES, old.paper) &&
+      vendorFinishForCover(old.cover) && old.fileBinding === undefined &&
+      (old.sheettype === undefined || old.sheettype === PAPER_SHEET_TYPES[old.paper]) &&
+      (old.paper === 'standard' || /^[a-f0-9]{64}$/.test(old.fileBindingDigest || ''));
+    const rowConsistent = order.preset_id === old.presetId && order.page_count === old.pageCount &&
+      order.qty === old.qty && order.method === old.method && order.total_agorot === old.totalAgorot;
+    if ((!isLegacy && !isCurrent) || !rowConsistent) {
+      throw new OrderError('quote_changed', 409, 'פרטי ההזמנה השתנו, יש לאשר את המחיר מחדש');
+    }
+    if (!isLegacy || !b.acceptedQuote) {
+      verifyAcceptance(old, order.book_id);
+      return;
+    }
+    const book = await store.getBook(order.book_id);
+    if (!book || book.ownerId !== userId) throw new OrderError('book_not_found', 404, 'הספר לא נמצא');
+    const current = quoteForBook(book, { qty, method, paper: requestedPaper, cover: requestedCover }, env);
+    const consistent = requestedPaper === 'standard' && requestedCover === 'softcover' &&
+      order.book_id === bookId && order.preset_id === old.presetId && order.page_count === old.pageCount &&
+      order.qty === old.qty && order.method === old.method && order.total_agorot === old.totalAgorot &&
+      current.presetId === old.presetId && current.pageCount === old.pageCount && current.qty === old.qty &&
+      current.method === old.method && current.totalAgorot === old.totalAgorot && current.verified;
+    if (!consistent) throw new OrderError('quote_changed', 409, 'פרטי ההזמנה השתנו, יש לאשר את המחיר מחדש');
+    verifyAcceptance(current, order.book_id);
+  };
   let existing = await store.findByKey(userId, idempotencyKey);
-  if (existing) {
-    ensureSamePaper(existing);
-    verifyAcceptance(existing.quote || {}, existing.book_id);
-  }
+  if (existing) await verifyExisting(existing);
   if (!existing) {
     const book = await store.getBook(bookId);
     // Not found and "someone else's" look identical on purpose.
@@ -150,15 +178,20 @@ export async function createOrder(deps, { userId, body }) {
       qty: quote.qty,
       method: quote.method,
       address: addr.address,
-      quote: { ...quote, bookTitle: book.title, ...(fileBinding ? { fileBinding } : {}) },
+      quote: {
+        currency: quote.currency, presetId: quote.presetId, paper: quote.paper, cover: quote.cover,
+        qty: quote.qty, method: quote.method, lines: quote.lines, totalAgorot: quote.totalAgorot,
+        vatIncluded: quote.vatIncluded, vatAgorot: quote.vatAgorot, unitAgorot: quote.unitAgorot,
+        pageCount: quote.pageCount, verified: quote.verified, priceVersion: quote.priceVersion,
+        bookTitle: book.title, ...(fileBinding ? { fileBindingDigest: stockBindingDigest(fileBinding) } : {}),
+      },
       total_agorot: quote.totalAgorot,
       currency: quote.currency,
       idempotency_key: idempotencyKey,
       payment_provider: payment.name,
     });
     existing = res.order;
-    ensureSamePaper(existing); // insert race may return an order for another stock
-    verifyAcceptance(existing.quote || {}, existing.book_id);
+    await verifyExisting(existing); // insert race may return an existing order
     if (res.created) await store.addEvent(existing.id, 'created', { totalAgorot: existing.total_agorot });
   }
 
@@ -308,7 +341,7 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
   if (claimed.quote?.paper && claimed.quote.paper !== 'standard') {
     try { files = await store.getVerifiedPrintFiles?.(claimed.book_id, claimed.quote); } catch { files = null; }
     const binding = stockFileBinding(files, claimed.quote);
-    if (!binding || !sameStockBinding(binding, claimed.quote.fileBinding)) files = null;
+    if (!binding || stockBindingDigest(binding) !== claimed.quote.fileBindingDigest) files = null;
   } else {
     files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
   }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { stockBindingDigest, stockFileBinding } from '../api/_lib/bookpod/stockFiles.js';
 import { createVendorClient, isVendorEnabled, VendorError } from '../api/_lib/bookpod/client.js';
 import { createMockVendor } from '../api/_lib/bookpod/mock.js';
 import { createCreemPayment, creemApiBase, PaymentError } from '../api/_lib/orders/payment/creem.js';
@@ -60,7 +61,7 @@ test('matching trusted file bindings carry each selected stock to CreateBook', a
   for (const [paper,sheettype] of [['chrome-matte-130','chromo-mat-130'], ['chrome-matte-170','chromo-mat-170']]) {
     const proof = {version:1,paper,presetId:'square-220',pageCount:24,cover:'softcover',contentSha256:'a'.repeat(64),coverSha256:'b'.repeat(64),contentUri:'gs://bucket/content.pdf',coverUri:'gs://bucket/cover.pdf',contentGeneration:'101',coverGeneration:'102'};
     const files = {...UPLOADED,proof};
-    const boundOrder = {...order, quote:{...order.quote,paper,sheettype,fileBinding:proof}};
+    const boundOrder = {...order, quote:{...order.quote,paper,sheettype,fileBindingDigest:stockBindingDigest(stockFileBinding(files,proof))}};
     const f = countingFetch();
     await createVendorClient({env:ENABLED,fetchImpl:f}).submitOrder(boundOrder,files);
     assert.equal(JSON.parse(f.calls[0].init.body).sheettype,sheettype);
@@ -84,7 +85,7 @@ test('legacy v1 snapshot maps only its implicit standard product', async () => {
 test('different object URI with same declared hashes never reaches network', async () => {
   const paper = 'chrome-matte-170';
   const proof = {version:1,paper,presetId:'square-220',pageCount:24,cover:'softcover',contentSha256:'a'.repeat(64),coverSha256:'b'.repeat(64),contentUri:'gs://bucket/content.pdf',coverUri:'gs://bucket/cover.pdf',contentGeneration:'101',coverGeneration:'102'};
-  const boundOrder = {...order,quote:{...order.quote,paper,sheettype:'chromo-mat-170',fileBinding:proof}};
+  const boundOrder = {...order,quote:{...order.quote,paper,sheettype:'chromo-mat-170',fileBindingDigest:stockBindingDigest(stockFileBinding({...UPLOADED,proof},proof))}};
   for (const files of [
     {...UPLOADED,contentUrl:'gs://bucket/other.pdf',proof},
     {...UPLOADED,contentUrl:'gs://bucket/other.pdf',proof:{...proof,contentUri:'gs://bucket/other.pdf'}},
