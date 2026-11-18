@@ -5,7 +5,6 @@ from functools import lru_cache
 from hashlib import sha256
 from html import escape
 from io import BytesIO
-from itertools import combinations
 from math import ceil
 from pathlib import Path
 
@@ -85,23 +84,39 @@ def balanced_lines(value: str, points: int, width: float, max_lines: int,
         text = " ".join(words[start:stop])
         return text, text_width(text, points, path)
 
+    @lru_cache(maxsize=None)
+    def fitting_ends(start: int, count: int) -> tuple[int, ...]:
+        # Reserve at least two words for every subsequent line. Only the
+        # opening line can contain a single word.
+        earliest = start + (1 if start == 0 else 2)
+        latest = len(words) - 2 * (count - 1)
+        if count == 1:
+            return (latest,) if earliest <= latest and line(start, latest)[1] <= width else ()
+        return tuple(end for end in range(earliest, latest + 1)
+                     if line(start, end)[1] <= width and fitting_ends(end, count - 1))
+
     for count in range(2, min(max_lines, len(words)) + 1):
-        best = None
-        for breaks in combinations(range(1, len(words)), count - 1):
-            stops = (0, *breaks, len(words))
-            # A single word at the end is a widow. Interior single-word lines
-            # are likewise avoided unless a first-line emphasis is unavoidable.
-            if any(j - i < 2 for i, j in zip(stops[1:-1], stops[2:])):
-                continue
-            parts = [line(i, j) for i, j in zip(stops[:-1], stops[1:])]
-            widths = [w for _, w in parts]
-            if max(widths) > width:
-                continue
-            cost = max(widths) - min(widths) + (width if stops[1] == 1 else 0)
-            if best is None or cost < best[0]:
-                best = cost, tuple(text for text, _ in parts)
-        if best:
-            return best[1]
+        best_cost = float("inf")
+        best_lines = None
+
+        def search(start: int, remaining: int, lines: tuple[str, ...],
+                   narrowest: float, widest: float, penalty: float) -> None:
+            nonlocal best_cost, best_lines
+            if remaining == 0:
+                best_cost, best_lines = widest - narrowest + penalty, lines
+                return
+            for end in fitting_ends(start, remaining):
+                text, measured = line(start, end)
+                smallest = min(narrowest, measured)
+                largest = max(widest, measured)
+                cost = width if start == 0 and end == 1 else penalty
+                # The width difference can only grow as more lines are added.
+                if largest - smallest + cost < best_cost:
+                    search(end, remaining - 1, (*lines, text), smallest, largest, cost)
+
+        search(0, count, (), float("inf"), 0, 0)
+        if best_lines:
+            return best_lines
     return None
 
 
@@ -140,7 +155,7 @@ def text_at(value: str, name: str, x: float, y: float, width: float, height: flo
 
 
 def panel(value: str, page: Page, geometry: Geometry, dark: bool,
-          width_cap: float | None = None) -> tuple[str, TextBox]:
+          width_cap: float | None = None, *, rubik: bool = False) -> tuple[str, TextBox]:
     w, h = geometry.media
     inset = geometry.bleed + SAFE_MM + 2
     extra = max(geometry.gutter, BINDING_SAFE_MM - SAFE_MM)
@@ -150,9 +165,10 @@ def panel(value: str, page: Page, geometry: Geometry, dark: bool,
     if width_cap is not None:
         maximum = min(maximum, width_cap)
     padding_x, padding_y = 5.2, 3.1
+    typeface = DISPLAY if rubik else BODY
     points, lines, used = fit(value, 27, 22, maximum - 2 * padding_x,
-                              h * 0.31, 4, BODY, f"Page {page.number} story text")
-    text_w = max(text_width(line, points, BODY) for line in lines) + 1.4
+                              h * 0.31, 4, typeface, f"Page {page.number} story text")
+    text_w = max(text_width(line, points, typeface) for line in lines) + 1.4
     pnl_w = text_w + 2 * padding_x
     pnl_h = used + 2 * padding_y
     if page.zone.endswith("left"):
@@ -166,7 +182,7 @@ def panel(value: str, page: Page, geometry: Geometry, dark: bool,
     bg = "rgba(28,29,52,0.94)" if dark else "rgba(255,244,225,0.95)"
     colored = (f'<div class="layer" style="{mm_box(x, y, pnl_w, pnl_h)};'
                f'background:{bg};border-radius:4mm"></div>')
-    return colored + block(box, color=CREAM if dark else INK, align="right"), box
+    return colored + block(box, color=CREAM if dark else INK, align="right", display=rubik), box
 
 
 class Art:
@@ -344,7 +360,8 @@ def compose_interior(edition: Edition, pages: list[Page], art: Art) -> tuple[lis
             if scene.panel_widths:
                 index = 1 if scene.layout == "spread" and page.side == "left" else 0
                 cap = scene.panel_widths[index]
-            pnl, panel_box = panel(page.text, page, geometry, scene.panel == "dark", cap)
+            pnl, panel_box = panel(page.text, page, geometry, scene.panel == "dark", cap,
+                                   rubik=edition.story_font == "rubik")
             content += pnl
             boxes.append(panel_box)
             x = width - geometry.bleed - 24 if page.side == "right" else geometry.bleed + 12

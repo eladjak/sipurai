@@ -1,5 +1,6 @@
 import { createEditionManifest } from './model';
 import { getApiAuthHeaders } from '@/lib/apiAuth';
+import { imageAspectForBook } from '../printSpec';
 
 const fileTypes = new Set(['image/jpeg', 'image/png']);
 const proofTypes = new Set([...fileTypes, 'image/webp']);
@@ -53,14 +54,15 @@ export async function downloadEditionBundle(book, pages, edition) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-async function readEditionArt(src, headers) {
+export async function readEditionArt(src, headers, signal = undefined) {
+  if (!src) throw new Error('Missing illustration');
   if (src.startsWith('data:')) {
     const match = inlineArt.exec(src);
     if (!match) throw new Error('Invalid inline illustration');
     return new Blob([Uint8Array.from(atob(match[2]), char => char.charCodeAt(0))], { type: match[1] });
   }
   // Only the first-party image proxy receives bearer credentials.
-  const response = await fetch(src, src.startsWith('/api/img?') ? { headers, cache: 'no-store', redirect: 'error' } : { credentials: 'omit', referrerPolicy: 'no-referrer' });
+  const response = await fetch(src, src.startsWith('/api/img?') ? { headers, signal, cache: 'no-store', redirect: 'error' } : { signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
   if (!response.ok) throw new Error('Illustration unavailable');
   const blob = await response.blob();
   if (!proofTypes.has(blob.type)) throw new Error('Illustration format unsupported');
@@ -107,7 +109,7 @@ async function generateEditionArt(book, characterSheet, prompt, aspectRatio, spr
   return url;
 }
 
-export function makeClosingArt(book, ending, characterSheet) {
+export function makeClosingArt(book, ending, characterSheet, instruction = '') {
   const prompt = [
     'Create one new square end-page illustration for this children’s picture book.',
     'The reader has already read the ending. Imagine a small wordless moment immediately after it: a gesture, gentle joke, or meaningful detail that pays off an object or action from the actual story.',
@@ -117,11 +119,12 @@ export function makeClosingArt(book, ending, characterSheet) {
     'Illustration style: ' + book.art_style,
     'Story ending: ' + ending.text_content.slice(0, 800),
     'Final scene artwork notes: ' + String(ending.image_prompt || '').slice(0, 800),
+    instruction && 'Parent’s visual direction: ' + instruction.trim(),
   ].join(' ');
-  return generateEditionArt(book, characterSheet, prompt, '1:1');
+  return generateEditionArt(book, characterSheet, prompt, imageAspectForBook(book));
 }
 
-export function makeSpreadArt(book, first, second, characterSheet, intendedRatio) {
+export function makeSpreadArt(book, first, second, characterSheet, intendedRatio, instruction = '') {
   const beat = (page) => [
     page.text_content.slice(0, 500),
     String(page.image_prompt || '').slice(0, 600),
@@ -132,8 +135,22 @@ export function makeSpreadArt(book, first, second, characterSheet, intendedRatio
     'The book is read right to left. On the right side show this beat: ' + beat(first),
     'Continue that scene on the left with this beat: ' + beat(second),
     'Book illustration style: ' + book.art_style,
+    instruction && 'Parent’s visual direction: ' + instruction.trim(),
   ].join(' ');
   return generateEditionArt(book, characterSheet, prompt, intendedRatio >= 1.64 ? '16:9' : '4:3', intendedRatio);
+}
+
+export function makeSceneArt(book, page, characterSheet, instruction) {
+  const prompt = [
+    'Illustrate this one scene for a children’s picture book. Use the attached character reference to preserve faces, ages, outfits, colors, and style.',
+    'Make the requested visual adjustment while keeping the scene’s events and all relevant characters. No writing, lettering, signs or frames.',
+    'Leave calm space for the caption, with important objects and faces inside the trim area.',
+    'Scene text: ' + page.text_content.slice(0, 900),
+    'Original visual notes: ' + String(page.image_prompt || '').slice(0, 800),
+    'Book illustration style: ' + book.art_style,
+    'Parent’s visual direction: ' + instruction.trim(),
+  ].join(' ');
+  return generateEditionArt(book, characterSheet, prompt, imageAspectForBook(book));
 }
 
 // Use the same high-resolution raster in the on-screen dedication and proof

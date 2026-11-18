@@ -2,7 +2,7 @@
 """Render and preflight a versioned Sipurai edition manifest."""
 
 import argparse
-from hashlib import sha256
+from hashlib import file_digest
 from io import BytesIO
 import json
 from pathlib import Path
@@ -17,15 +17,17 @@ from PIL import Image, ImageCms
 from pikepdf import Array, Dictionary, Matrix, Name, Pdf, PdfError, PdfImage, Rectangle, parse_content_stream
 from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
+from weasyprint.urls import URLFetcher
 
-from design import Art, PT_PER_MM, compose_cover, compose_interior, document
+from design import Art, BODY, DISPLAY, PT_PER_MM, compose_cover, compose_interior, document
 from layout import BINDING_SAFE_MM, DPI, SAFE_MM, Edition, load, plan, spine_for
 
 RESOLUTION = 120
 
 
 def file_hash(file: Path) -> str:
-    return sha256(file.read_bytes()).hexdigest()
+    with file.open("rb") as source:
+        return file_digest(source, "sha256").hexdigest()
 
 
 def command(*args: str | Path) -> str:
@@ -37,7 +39,15 @@ def make_pdf(parts: list[str], size: tuple[float, float], edition: Edition,
              target: Path, work: Path) -> None:
     width, height = size
     raw = work / target.name
-    HTML(string=document(parts, width, height, edition.title)).write_pdf(
+    resources = {file.as_uri() for file in (BODY, DISPLAY, *work.glob("*.jpg"), work / "qr.png")}
+    read_local = URLFetcher(allowed_protocols={"file"}, allow_redirects=False, fail_on_errors=True)
+
+    def fetch(url: str):
+        if url not in resources:
+            raise ValueError("Unexpected print resource")
+        return read_local.fetch(url)
+
+    HTML(string=document(parts, width, height, edition.title), url_fetcher=fetch).write_pdf(
         raw, font_config=FontConfiguration(), jpeg_quality=95,
     )
     srgb = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB"))
@@ -161,7 +171,10 @@ def inspect_pdf(file: Path, size: tuple[float, float], expected: int, edition: E
     fonts = command("pdffonts", file).splitlines()[2:]
     if not fonts or any(line.split()[-5] != "yes" for line in fonts if line.strip()):
         errors.append(f"{file.name}: missing embedded text fonts")
-    if not any("DavidLibre" in line for line in fonts) or not any("Rubik" in line for line in fonts):
+    intended = ["Rubik"]
+    if file.name != "interior.pdf" or edition.story_font == "david-libre" or edition.dedication:
+        intended.append("DavidLibre")
+    if any(not any(family in line for line in fonts) for family in intended):
         errors.append(f"{file.name}: missing intended Hebrew fonts")
     rasters = [line.split() for line in command("pdfimages", "-list", file).splitlines()[2:] if line.strip()]
     for row in rasters:
@@ -276,7 +289,7 @@ def pdf_names(edition: Edition) -> tuple[str, ...]:
     return (*names, "cover-with-inside.pdf") if edition.inside_cover else names
 
 
-def build(edition: Edition, manifest: Path, target: Path) -> None:
+def build(edition: Edition, manifest: Path, target: Path, *, make_previews: bool = True) -> None:
     pages = plan(edition)
     spine, spine_source = spine_for(edition, pages)
     with TemporaryDirectory(prefix="print-assets-") as temp:
@@ -319,6 +332,7 @@ def build(edition: Edition, manifest: Path, target: Path) -> None:
         "colorMode": "CMYK images, tagged sRGB vector/text" if edition.icc_profile else "tagged sRGB",
         "vendorProfileVerified": edition.profile_vendor_verified, "physicalProofRequired": True,
         "brightnessMultiplier": edition.brightness, "nikudStatus": edition.nikud_status,
+        "storyFont": edition.story_font,
         "reviewOnly": edition.nikud_status == "pending",
         "nativeDpiBelow300": low_dpi,
         "stagedPlacementDpi": {name: round(value, 2) for name, value in staged.items()},
@@ -330,7 +344,8 @@ def build(edition: Edition, manifest: Path, target: Path) -> None:
     (target / "preflight.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n")
     if errors:
         raise ValueError("\n".join(errors))
-    preview(edition, len(pages), spine, target)
+    if make_previews:
+        preview(edition, len(pages), spine, target)
 
 
 def main() -> int:

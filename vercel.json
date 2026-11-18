@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/books/print-proof.js": {
+      "includeFiles": "scripts/print_edition/**",
+      "maxDuration": 300
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
