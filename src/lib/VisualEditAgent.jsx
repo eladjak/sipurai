@@ -78,11 +78,11 @@ export default function VisualEditAgent() {
 	// Find elements by ID - first try data-source-location, fallback to data-visual-selector-id
 	const findElementsById = (id) => {
 		if (!id) return [];
-		const sourceElements = [...document.querySelectorAll(`[data-source-location="${id}"]`)];
+		const sourceElements = Array.from(document.querySelectorAll(`[data-source-location="${id}"]`));
 		if (sourceElements.length > 0) {
 			return sourceElements;
 		}
-		return [...document.querySelectorAll(`[data-visual-selector-id="${id}"]`)];
+		return Array.from(document.querySelectorAll(`[data-visual-selector-id="${id}"]`));
 	};
 
 	// Clear hover overlays
@@ -121,7 +121,6 @@ export default function VisualEditAgent() {
 
 		// Prefer data-source-location, fallback to data-visual-selector-id  
 		const selectorId = element.dataset.sourceLocation || element.dataset.visualSelectorId;
-		const useSourceLocation = !!element.dataset.sourceLocation;
 
 		// Skip if this element is already selected
 		if (selectedElementIdRef.current === selectorId) {
@@ -130,7 +129,7 @@ export default function VisualEditAgent() {
 		}
 
 		// Find all elements with the same ID
-		const elements = findElementsById(selectorId, useSourceLocation);
+		const elements = findElementsById(selectorId);
 
 		// Clear previous hover overlays
 		clearHoverOverlays();
@@ -187,7 +186,6 @@ export default function VisualEditAgent() {
 
 		// Prefer data-source-location, fallback to data-visual-selector-id
 		const visualSelectorId = element.dataset.sourceLocation || element.dataset.visualSelectorId;
-		const useSourceLocation = !!element.dataset.sourceLocation;
 
 		// Clear any existing selected overlays
 		selectedOverlaysRef.current.forEach(overlay => {
@@ -198,7 +196,7 @@ export default function VisualEditAgent() {
 		selectedOverlaysRef.current = [];
 
 		// Find all elements with the same ID
-		const elements = findElementsById(visualSelectorId, useSourceLocation);
+		const elements = findElementsById(visualSelectorId);
 
 		// Create selected overlays for all matching elements
 		elements.forEach(el => {
@@ -230,9 +228,9 @@ export default function VisualEditAgent() {
 		const elementData = {
 			type: 'element-selected',
 			tagName: element.tagName,
-			classes: element.className?.baseVal || element.className || '',
+			classes: (element instanceof SVGElement ? element.className.baseVal : element.className) || '',
 			visualSelectorId: visualSelectorId,
-			content: element.innerText,
+			content: element instanceof HTMLElement ? element.innerText : undefined,
 			dataSourceLocation: element.dataset.sourceLocation,
 			isDynamicContent: element.dataset.dynamicContent === 'true',
 			linenumber: element.dataset.linenumber, // Keep for backward compatibility
@@ -271,7 +269,7 @@ export default function VisualEditAgent() {
 				element.className = classes;
 			} else {
 				// For normal updates, merge with existing classes
-				const currentClasses = element.className?.baseVal || element.className || '';
+				const currentClasses = (element instanceof SVGElement ? element.className.baseVal : element.className) || '';
 				element.className = twMerge(currentClasses, classes);
 			}
 		});
@@ -312,7 +310,7 @@ export default function VisualEditAgent() {
 
 		// Update content for all matching elements
 		elements.forEach((element) => {
-			element.innerText = content;
+			Reflect.set(element, 'innerText', content);
 		});
 
 		// Use a small delay to allow the browser to recalculate layout before repositioning
@@ -365,7 +363,7 @@ export default function VisualEditAgent() {
 	// Listen for messages from parent window
 	useEffect(() => {
 		// Add IDs to elements that don't have them but have linenumbers
-		const elementsWithLineNumber = document.querySelectorAll('[data-linenumber]:not([data-visual-selector-id])');
+		const elementsWithLineNumber = /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-linenumber]:not([data-visual-selector-id])'));
 		elementsWithLineNumber.forEach((el, index) => {
 			const id = `visual-id-${el.dataset.filename}-${el.dataset.linenumber}-${index}`;
 			el.dataset.visualSelectorId = id;

@@ -1,7 +1,7 @@
 export function EmptyState({
-  illustration,
+  illustration = null,
   title,
-  description,
+  description = null,
   action,
   quietAction,
   headingLevel = 2,

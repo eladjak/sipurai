@@ -1,5 +1,5 @@
 {
-  "total": 272,
+  "total": 254,
   "files": {
     "src/components/ai/AIStudio.jsx": {
       "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
@@ -97,16 +97,8 @@
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 3,
       "TS2741: Property 'variant' is missing in type '{ children: string; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
-    "src/components/home/UserWelcomeCard.jsx": {
-      "TS2322: Type '{ badgeId: any; size: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2339: Property 'userData' does not exist on type '{}'.": 1,
-      "TS2741: Property 'variant' is missing in type '{ children: Element[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 4
-    },
     "src/components/i18n/i18nProvider.jsx": {
       "TS2554: Expected 1 arguments, but got 0.": 1
-    },
-    "src/components/landing/LandingNav.jsx": {
-      "TS2353: Object literal may only specify known properties, and ''--i'' does not exist in type 'Properties<string | number, string & {}>'.": 1
     },
     "src/components/landing/PricingSection.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
@@ -114,10 +106,6 @@
     "src/components/library/BookCard.jsx": {
       "TS2322: Type '{ src: any; alt: any; className: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 2,
       "TS2741: Property 'variant' is missing in type '{ children: Element; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 2
-    },
-    "src/components/onboarding/OnboardingWizard.jsx": {
-      "TS2339: Property 'onComplete' does not exist on type '{}'.": 1,
-      "TS2339: Property 'userName' does not exist on type '{}'.": 1
     },
     "src/components/profile/AchievementList.jsx": {
       "TS2322: Type '{ badgeId: any; size: string; completed: any; inProgress: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
@@ -183,9 +171,7 @@
       "TS2739: Type '{}' is missing the following properties from type '{ onSaveToDb: Function; delayMs: number; enabled: boolean; }': onSaveToDb, delayMs, enabled": 1
     },
     "src/hooks/useTTS.js": {
-      "TS2322: Type '\"gemini\" | \"openai\" | \"browser\"' is not assignable to type '\"gemini\" | \"openai\"'.": 1,
-      "TS2353: Object literal may only specify known properties, and 'notice' does not exist in type '{ speak: any; stop: any; pause: any; resume: any; isSpeaking: any; isPaused: any; currentWordIndex: any; rate: any; setRate: any; engine: any; }'.": 1,
-      "TS2741: Property 'language' is missing in type '{}' but required in type '{ language: \"english\" | \"hebrew\" | \"yiddish\"; engine?: \"gemini\" | \"openai\" | \"browser\"; voice?: string; }'.": 1
+      "TS2353: Object literal may only specify known properties, and 'notice' does not exist in type '{ speak: any; stop: any; pause: any; resume: any; isSpeaking: any; isPaused: any; currentWordIndex: any; rate: any; setRate: any; engine: any; }'.": 1
     },
     "src/integrations/Core.js": {
       "TS2353: Object literal may only specify known properties, and 'referenceImageBase64' does not exist in type '{ prompt: string; aspectRatio?: string; provider?: \"gemini\" | \"openai\" | \"gemini-pro\"; modelId?: string; }'.": 1,
@@ -215,7 +201,6 @@
       "TS2339: Property 'setTitle' does not exist on type 'GenerationRecipe'.": 2
     },
     "src/lib/bookRecipe.js": {
-      "TS2339: Property 'defaultAgeRange' does not exist on type '{ bookData: any; characters?: any[]; scenes?: any[]; topic?: string; useRhyming?: boolean; rhymeSettings?: any; storyBible?: any; pageCount?: number; }'.": 1,
       "TS2353: Object literal may only specify known properties, and 'outlineMaxTokens' does not exist in type 'GenerationRecipe'.": 1
     },
     "src/lib/photoToCharacter.js": {
@@ -261,16 +246,12 @@
     "src/pages/BookView.jsx": {
       "TS2322: Type '{ children: Element; pageKey: number; direction: number; isRTL: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
       "TS2322: Type '{ isSpeaking: any; isPaused: any; rate: any; onPlay: () => void; onPause: any; onResume: any; onStop: any; onRateChange: any; notice: any; isRTL: boolean; isHebrew: boolean; }' is not assignable to type 'IntrinsicAttributes & { isSpeaking: any; isPaused: any; rate: any; onPlay: any; onPause: any; onResume: any; onStop: any; onRateChange: any; isRTL: any; showEngineSelector?: boolean; notice?: string; }'.": 1,
-      "TS2322: Type 'string' is not assignable to type '\"gemini\" | \"openai\" | \"browser\"'.": 1,
       "TS2339: Property 'notice' does not exist on type '{ speak: any; stop: any; pause: any; resume: any; isSpeaking: any; isPaused: any; currentWordIndex: any; rate: any; setRate: any; engine: any; }'.": 1,
       "TS2345: Argument of type '{ title: any; description: any; image: any; type: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
     },
     "src/pages/BookWizard.jsx": {
       "TS2322: Type '{ title: any; message: any; onRetry: any; onGoBack: () => void; isRTL: any; language: string; }' is not assignable to type 'IntrinsicAttributes & { title: any; message: any; onRetry: any; onGoBack: any; isRTL: any; }'.": 1,
-      "TS2322: Type 'string' is not assignable to type '\"english\" | \"hebrew\" | \"yiddish\"'.": 1,
-      "TS2339: Property '__sipurai_last_bible' does not exist on type 'Window & typeof globalThis'.": 1,
-      "TS2345: Argument of type '{ prompt: any; aspectRatio: string; referenceImageBase64: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
-      "TS2353: Object literal may only specify known properties, and 'defaultAgeRange' does not exist in type '{ bookData: any; characters?: any[]; scenes?: any[]; topic?: string; useRhyming?: boolean; rhymeSettings?: any; storyBible?: any; pageCount?: number; }'.": 1
+      "TS2322: Type 'string' is not assignable to type '\"english\" | \"hebrew\" | \"yiddish\"'.": 1
     },
     "src/pages/CharacterEditor.jsx": {
       "TS2345: Argument of type '{ prompt: string; quality: string; size: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
@@ -297,9 +278,7 @@
     "src/pages/Home.jsx": {
       "TS2322: Type '{ dailyPrompt: any; isPromptLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
       "TS2322: Type '{ draftBooks: any[]; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ onComplete: () => void; userName: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ userData: { full_name: string; avatar_url: string; level: number; xp: number; nextLevelXp: number; completedBooks: number; streakDays: number; badges: any[]; notifications: number; }; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
+      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
     },
     "src/pages/LandingPage.jsx": {
       "TS2345: Argument of type '{ title: any; description: any; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1

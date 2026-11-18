@@ -16,7 +16,7 @@ const PROXY_URL = '/api/ai/tts';
  * Synthesize speech from text via the serverless TTS proxy.
  * @param {Object} params
  * @param {string} params.text - Text to narrate
- * @param {'openai'|'gemini'} [params.provider='openai']
+ * @param {string} [params.provider='openai'] - Server validates supported providers.
  * @param {string} [params.voice] - Voice name (per-provider)
  * @param {'mp3'|'wav'} [params.format='mp3']
  * @param {string} [params.instructions] - OpenAI gpt-4o-mini-tts steering: tone/pacing/emotion (Hebrew narration presets)

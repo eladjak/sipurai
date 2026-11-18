@@ -40,6 +40,7 @@ export function pageCountFor(length) {
  * @param {Object} [input.rhymeSettings]
  * @param {Object} [input.storyBible]    Opt-in fast path: pre-written page texts.
  * @param {number} [input.pageCount]
+ * @param {string} [input.defaultAgeRange]
  * @returns {import('@/lib/bookGeneration').GenerationRecipe}
  */
 export function buildRecipe({

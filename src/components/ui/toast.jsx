@@ -12,7 +12,7 @@ const ToastContext = createContext({
   dismissAll: () => {}
 });
 
-const ToastProvider = ({ children }) => {
+const ToastProvider = ({ children = null }) => {
   const [toasts, setToasts] = useState([])
 
   const toast = useCallback(
