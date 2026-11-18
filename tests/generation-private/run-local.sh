@@ -60,6 +60,10 @@ wait_for_transaction() {
   return 1
 }
 psql_test postgres -f "$repo/tests/generation-private/bootstrap.sql" -f "$repo/migrations/20261118_generation_private.sql" -f "$repo/tests/generation-private/sql-test.sql"
+if psql_test postgres -f "$repo/migrations/20261118_generation_private.sql" >"$work/reapply.log" 2>&1; then echo 'migration unexpectedly replaced existing objects'; exit 1; fi
+grep -q 'already exists' "$work/reapply.log"
+psql_test postgres -At -c "SELECT to_regprocedure('public.sipurai_generation_tx(text,text,uuid,uuid,bigint,jsonb)') IS NOT NULL" | grep -q '^t$'
+echo 'existing object collision: migration refused without replacing RPC'
 psql_test postgres -c "INSERT INTO public.books (id,created_by,status,cover_image,is_public) VALUES ('22222222-2222-4222-8222-222222222222','owner','draft','',false)" >/dev/null
 psql_test postgres -c "SET ROLE service_role; BEGIN; SELECT public.sipurai_generation_tx('acquire','owner','22222222-2222-4222-8222-222222222222','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,'{\"newQuotaKey\":\"22222222-2222-4222-8222-222222222222\",\"seed\":{}}'); SELECT pg_sleep(2); COMMIT;" >"$work/first.log" 2>&1 &
 first_pid=$!

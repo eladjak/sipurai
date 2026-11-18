@@ -67,7 +67,7 @@ CREATE TABLE sipurai_generation_private.checkpoints (
 );
 -- Service-only transaction boundary. owner is supplied ONLY by verified backend.
 -- Fixed search path, fully qualified data objects, no dynamic SQL. No client ACL changes.
-CREATE OR REPLACE FUNCTION public.sipurai_generation_tx (p_action text, p_owner text, p_book uuid, p_run uuid, p_fence bigint DEFAULT NULL, p_payload jsonb DEFAULT '{}'::jsonb)
+CREATE FUNCTION public.sipurai_generation_tx (p_action text, p_owner text, p_book uuid, p_run uuid, p_fence bigint DEFAULT NULL, p_payload jsonb DEFAULT '{}'::jsonb)
     RETURNS jsonb
     LANGUAGE plpgsql
     SECURITY DEFINER
@@ -81,12 +81,16 @@ DECLARE
     n integer;
     i integer;
     changed integer;
+    trim_chars text;
     result jsonb;
 BEGIN
     IF current_setting('role', TRUE) IS DISTINCT FROM 'service_role' THEN
         RAISE EXCEPTION 'service_only'
             USING ERRCODE = '42501';
     END IF;
+    -- ECMAScript-style whitespace for text and image URL emptiness checks.
+    trim_chars := chr(9) || chr(10) || chr(11) || chr(12) || chr(13) || ' '
+      || U&'\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF';
     IF p_owner IS NULL OR p_owner = '' OR p_book IS NULL OR p_run IS NULL OR jsonb_typeof(p_payload) IS DISTINCT FROM 'object' THEN
         RAISE EXCEPTION 'invalid_request';
     END IF;
@@ -249,9 +253,9 @@ BEGIN
                OR (result -> 'plan' -> i ->> 'page_number')::integer IS DISTINCT FROM i
                OR jsonb_typeof(result -> 'plan' -> i -> 'description') IS DISTINCT FROM 'string'
                OR jsonb_typeof(result -> 'drawingPrompts' -> i) IS DISTINCT FROM 'string'
-               OR length(btrim(result -> 'drawingPrompts' ->> i)) = 0 THEN RAISE EXCEPTION 'invalid_checkpoint'; END IF;
+               OR length(btrim(result -> 'drawingPrompts' ->> i, trim_chars)) = 0 THEN RAISE EXCEPTION 'invalid_checkpoint'; END IF;
             item := result -> 'manuscript' -> i;
-            IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR (item ->> 'page_number')::integer IS DISTINCT FROM i OR jsonb_typeof(item -> 'text_content') IS DISTINCT FROM 'string' OR length(btrim(item ->> 'text_content')) = 0 OR jsonb_typeof(item -> 'image_prompt') IS DISTINCT FROM 'string' OR jsonb_typeof(item -> 'layout_type') IS DISTINCT FROM 'string' THEN
+            IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR (item ->> 'page_number')::integer IS DISTINCT FROM i OR jsonb_typeof(item -> 'text_content') IS DISTINCT FROM 'string' OR length(btrim(item ->> 'text_content', trim_chars)) = 0 OR jsonb_typeof(item -> 'image_prompt') IS DISTINCT FROM 'string' OR jsonb_typeof(item -> 'layout_type') IS DISTINCT FROM 'string' THEN
                 RAISE EXCEPTION 'invalid_checkpoint';
             END IF;
         END LOOP;
@@ -424,7 +428,7 @@ NOT IN ('draft', 'generating', 'partial', 'complete', 'failed')) THEN
         RAISE EXCEPTION 'invalid_book_patch';
     END IF;
     -- Reopening is an explicit status-only transition; repair writes come later.
-    IF b.status = 'complete' AND (p_payload -> 'patch' ->> 'status') IN ('partial','generating','failed')
+    IF b.status = 'complete' AND (p_payload -> 'patch' ->> 'status') IN ('draft','partial','generating','failed')
        AND (p_payload -> 'patch') - 'status' <> '{}'::jsonb THEN RAISE EXCEPTION 'invalid_book_patch'; END IF;
     IF coalesce(p_payload -> 'patch' ->> 'status', b.status) = 'complete' THEN
         -- Freeze existing rows for this book during the completion snapshot.
@@ -435,13 +439,13 @@ NOT IN ('draft', 'generating', 'partial', 'complete', 'failed')) THEN
         -- One statement uses one snapshot for both count and validity.
         SELECT count(*), count(*) FILTER (WHERE created_by IS DISTINCT FROM p_owner
             OR page_number IS NULL OR page_number < 0 OR page_number >= n
-            OR nullif(btrim(coalesce(text_content,'')), '') IS NULL
-            OR nullif(btrim(coalesce(image_url,'')), '') IS NULL
+            OR nullif(btrim(coalesce(text_content,''), trim_chars), '') IS NULL
+            OR nullif(btrim(coalesce(image_url,''), trim_chars), '') IS NULL
             OR coalesce(image_prompt,'') LIKE '[Image generation failed] %')
           INTO changed, i FROM public.pages WHERE book_id=p_book;
         IF c.checkpoint IS NULL OR n IS DISTINCT FROM jsonb_array_length(c.checkpoint -> 'plan')
            OR nullif(btrim(coalesce(CASE WHEN (p_payload -> 'patch') ? 'cover_image'
-               THEN p_payload -> 'patch' ->> 'cover_image' ELSE b.cover_image END, '')), '') IS NULL
+               THEN p_payload -> 'patch' ->> 'cover_image' ELSE b.cover_image END, ''), trim_chars), '') IS NULL
            OR changed <> n OR i <> 0 THEN
             RAISE EXCEPTION 'book_incomplete';
         END IF;
