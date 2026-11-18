@@ -44,8 +44,8 @@ export function createInteriorPdf(spec, pages) {
 }
 
 /**
- * RTL spread (flat, as printed): BACK on the left, FRONT on the right, because
- * a right-to-left book opens from the right. Empty white spine, no spine text.
+ * RTL outside wrap for BookPod, with the front on the left, then spine,
+ * then back. The spine has no text.
  * Size: 2*trimWidth + spine + 2*bleed by trimHeight + 2*bleed.
  */
 export function createCoverPdf(spec, { front, back } = {}) {
@@ -54,10 +54,10 @@ export function createCoverPdf(spec, { front, back } = {}) {
   if (!spine) throw new Error('Unsupported spine specification');
   const { content, safe } = getPrintGeometry(spec.presetId);
   const doc = newPdf(2 * preset.widthMm + spine.mm + 2 * BLEED_MM, content.heightMm);
-  const backImage = prepare(doc, back, safe);
-  const frontImage = prepare(doc, front, { ...safe, xMm: safe.xMm + preset.widthMm + spine.mm });
-  draw(doc, backImage, 'back');
+  const frontImage = prepare(doc, front, safe);
+  const backImage = prepare(doc, back, { ...safe, xMm: safe.xMm + preset.widthMm + spine.mm });
   draw(doc, frontImage, 'front');
+  draw(doc, backImage, 'back');
   return doc;
 }
 

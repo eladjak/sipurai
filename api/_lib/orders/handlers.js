@@ -7,7 +7,7 @@
  */
 import { requireClerkAuth } from '../verifyClerk.js';
 import { ACTION_CLASS, ZOEY_NAME, WRITES_PER_MINUTE as AGENT_WRITES_PER_MINUTE, checkAgentConfirm, verifyAgentKey, writeRateLimited } from '../agentKey.js';
-import { computeQuote, getPricingSettings, PRINT_PAGE_COUNT } from '../../../src/lib/printOrder/pricing.js';
+import { getPricingSettings } from '../../../src/lib/printOrder/pricing.js';
 import { createVendorClient } from '../bookpod/client.js';
 import { createCreemPayment } from './payment/creem.js';
 import { createMorningPayment } from './payment/morning.js';
@@ -20,7 +20,7 @@ import {
   createOrder,
   isUuid,
   orderView,
-  pricingToOrderError,
+  quoteForBook,
   sanitize,
 } from './service.js';
 
@@ -101,16 +101,7 @@ const ENDPOINTS = {
     async run(req, res, { deps, userId }) {
       const q = queryOf(req);
       const book = await ownedBook(deps.store, q.bookId, userId);
-      let quote;
-      try {
-        quote = computeQuote(
-          { presetId: book.printSize || 'square-220', pageCount: PRINT_PAGE_COUNT, qty: Number(q.qty), method: q.method },
-          { env: deps.env },
-        );
-      } catch (e) {
-        throw pricingToOrderError(e);
-      }
-      return send(res, 200, quote);
+      return send(res, 200, quoteForBook(book, { qty: Number(q.qty), method: q.method }, deps.env));
     },
   },
   create: {

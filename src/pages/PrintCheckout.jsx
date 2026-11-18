@@ -58,7 +58,8 @@ export function PrintCheckoutView({
   /** @type {(key: string, values?: any) => string} */
   const t = translate;
   /** @returns {any} */
-  const errorText = (error) => error?.code === 'network' ? t('print.checkoutPage.network') : error?.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : error?.code === 'forbidden' ? t('print.checkoutPage.forbidden') : t('print.checkoutPage.generic');
+  const errorText = (error) => error?.code === 'network' ? t('print.checkoutPage.network') : error?.code === 'unauthorized' ? t('print.checkoutPage.unauthorized') : error?.code === 'forbidden' ? t('print.checkoutPage.forbidden') :
+    error?.code === 'print_edition_not_orderable' ? t('print.checkoutPage.editionNotOrderable') : t('print.checkoutPage.generic');
   const saved = useMemo(() => (persist ? readJson(draftKey(bookId)) : null), [persist, bookId]);
   const [config, setConfig] = useState({ status: 'loading', data: null, error: null });
   const [step, setStep] = useState(initialStep);

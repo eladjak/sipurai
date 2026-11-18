@@ -4,11 +4,11 @@ import { deflateSync } from 'node:zlib';
 import { createInteriorPdf, createCoverPdf, buildPrintPackage } from '../src/utils/printExporter.js';
 
 // A real, compressed PNG with explicitly controlled pixel dimensions.
-function png(width, height) {
+function png(width, height, gray = 180) {
   const crc = (buf) => { let c = 0xffffffff; for (const b of buf) { c ^= b; for (let i = 0; i < 8; i++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1)); } return (c ^ 0xffffffff) >>> 0; };
   const chunk = (name, data) => { const type = Buffer.from(name); const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const sum = Buffer.alloc(4); sum.writeUInt32BE(crc(Buffer.concat([type, data]))); return Buffer.concat([len, type, data, sum]); };
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(width); ihdr.writeUInt32BE(height, 4); ihdr[8] = 8; ihdr[9] = 2;
-  const raw = Buffer.alloc((width * 3 + 1) * height, 180); for (let y = 0; y < height; y++) raw[y * (width * 3 + 1)] = 0;
+  const raw = Buffer.alloc((width * 3 + 1) * height, gray); for (let y = 0; y < height; y++) raw[y * (width * 3 + 1)] = 0;
   return new Uint8Array(Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]));
 }
 const adequate = png(3000, 3000);
@@ -40,16 +40,19 @@ test('cover is one spread of exact size for every trim and page count', () => {
   }
   near(boxes(createCoverPdf(spec, { front: adequate, back: adequate }))[0][0], 448.2);
 });
-test('RTL cover: back on the left, front on the right, nothing on the spine', () => {
-  const doc = createCoverPdf(spec, { front: adequate, back: adequate });
+test('RTL outside cover: front on the left, then spine, then back', () => {
+  const doc = createCoverPdf(spec, { front: png(2900, 2900, 140), back: png(3000, 3000, 180) });
+  const firstImageIndex = doc.output().indexOf('/Width 2900');
+  const secondImageIndex = doc.output().indexOf('/Width 3000');
+  assert.ok(firstImageIndex > -1 && secondImageIndex > firstImageIndex, 'front asset is written first');
   const operations = doc.internal.pages[1].join('\n');
   const placements = [...operations.matchAll(/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm\s*\/I\d+ Do/g)].map(m => m.slice(1).map(Number).map(n => n * 25.4 / 72));
   assert.equal(placements.length, 2);
   for (const [width, height, , y] of placements) { near(width, 200); near(height, 200); near(y, 13.2); }
   const spine = 1.8;
-  near(placements[0][2], 13.2);                 // back, left
-  near(placements[1][2], 13.2 + 220 + spine);   // front, right
-  assert.ok(placements[1][2] > 3.2 + 220 + spine, 'front starts right of the spine');
+  near(placements[0][2], 13.2);                 // front, left
+  near(placements[1][2], 13.2 + 220 + spine);   // back, right
+  assert.ok(placements[1][2] > 3.2 + 220 + spine, 'back starts right of the spine');
   assert.equal((operations.match(/ Do/g) || []).length, 2);
 });
 test('MUTATION CONTROL: the size assertions discriminate a 3.0mm bleed from 3.2mm', () => {

@@ -1,0 +1,4 @@
+Pillow==12.2.0
+WeasyPrint==68.1
+pikepdf==10.3.0
+qrcode==8.2

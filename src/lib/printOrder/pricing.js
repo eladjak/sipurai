@@ -14,12 +14,14 @@
  *    PRINT_ALLOW_UNVERIFIED_SIZES === 'true'; otherwise code `size_not_available`.
  */
 
+import { isSupportedPageCount } from '../printSpec.js';
+
 export const PRICE_VERSION = '2026-11-08.v1';
 export const VAT_RATE_PERCENT = 18;
 export const DEFAULT_MARGIN_AGOROT = 5434; // 24.66 + 54.34 = 79.00 ILS for the verified size
 export const DEFAULT_SHIP_AGOROT = 2900;
 export const DEFAULT_MAX_QTY = 10;
-export const PRINT_PAGE_COUNT = 24; // the print exporter currently emits exactly 24 pages
+export const PRINT_PAGE_COUNT = 24; // Page count for the previously quoted physical product.
 
 /**
  * cost24Agorot: print cost for 24 pages, VAT included.
@@ -97,7 +99,7 @@ export function computeQuote(input, { env = {} } = {}) {
 
   const product = PRINT_PRODUCTS.find((p) => p.presetId === presetId);
   if (!product) throw new PricingError('unknown_preset', 'גודל הדפסה לא מוכר');
-  if (!Number.isInteger(pageCount) || pageCount < 8 || pageCount > 80 || pageCount % 2 !== 0) {
+  if (!isSupportedPageCount(pageCount)) {
     throw new PricingError('invalid_page_count', 'מספר העמודים אינו תקין להדפסה');
   }
   if (!Number.isInteger(qty) || qty < 1 || qty > settings.maxQty) {

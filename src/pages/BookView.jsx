@@ -21,6 +21,7 @@ import {
   ZoomOut,
   Loader2,
   PenTool,
+  Printer,
   BookOpen,
   Share2,
   Plus,
@@ -44,6 +45,8 @@ import { generateBookIncremental } from "@/lib/bookGeneration";
 import { reserveBookSlot, clearActiveBookKey, QuotaError } from "@/lib/bookQuota";
 import { buildRecipe } from "@/lib/bookRecipe";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
+import { editionLabels } from "@/screens/print-edition/labels";
+import { printEditionUrl } from "@/lib/printEdition/model";
 import { OrderBookButton } from "@/components/checkout/OrderBookButton";
 
 // canvas-confetti loaded on-demand (keeps BookView out of the confetti chunk on initial load)
@@ -54,11 +57,17 @@ const loadConfetti = () => {
 };
 
 export default function BookView() {
-  const { t, language: i18nLanguage, isRTL: i18nIsRTL } = useI18n();
   const { user } = useCurrentUser();
-  const { navigateToLogin } = useAuth();
   const [searchParams] = useSearchParams();
+  const bookId = searchParams.get("id");
+  return <BookReader key={JSON.stringify([bookId, user?.id])} bookId={bookId} user={user} />;
+}
+
+function BookReader({ bookId, user }) {
+  const { t, language: i18nLanguage, isRTL: i18nIsRTL } = useI18n();
+  const { navigateToLogin } = useAuth();
   const [book, setBook] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
   // Every page row the book has, including skeleton rows a run has not filled
   // in yet. `pages` below is what the reader may actually show — see
   // src/lib/bookProgress.js. Keeping both means the reader can say "3 of 10"
@@ -89,7 +98,6 @@ export default function BookView() {
   const bookReadAwardedRef = useRef(false);
 
   const gamification = useGamification();
-  const bookId = searchParams.get("id");
 
   const isRTL = currentLanguage === "hebrew" || currentLanguage === "yiddish";
   const isHebrew = currentLanguage === "hebrew";
@@ -114,6 +122,7 @@ export default function BookView() {
     // not throw the reader back into a full-page spinner mid-story, so only the
     // first pass shows one.
     const isRefresh = liveTick > 0;
+    let current = true;
 
     const loadBook = async () => {
       try {
@@ -137,10 +146,12 @@ export default function BookView() {
         let pagesData = [];
 
         try {
-          bookData = await Book.get(bookId);
+          bookData = user?.id ? await Book.get(bookId) : null;
+          if (bookData?.created_by !== user?.id) bookData = null;
         } catch {
           bookData = null;
         }
+        const ownerLoaded = Boolean(bookData);
         if (!bookData) {
           try {
             bookData = await PublicBook.get(bookId);
@@ -150,17 +161,17 @@ export default function BookView() {
         }
 
         try {
-          pagesData = await Page.filter({ book_id: bookId }, "page_number");
-        } catch {
-          try {
-            pagesData = await PublicPage.filter({ book_id: bookId }, "page_number");
-          } catch {
-            pagesData = [];
+          if (bookData) {
+            pagesData = await (ownerLoaded ? Page : PublicPage).filter({ book_id: bookId }, "page_number");
           }
+        } catch {
+          pagesData = [];
         }
         pagesData = Array.isArray(pagesData) ? pagesData : [];
 
+        if (!current) return;
         setBook(bookData);
+        setIsOwner(ownerLoaded);
         setAllPages(pagesData);
 
         // Restoring the saved position is a first-load concern. On a refresh
@@ -191,17 +202,18 @@ export default function BookView() {
           });
         }
       } catch {
-        toast({
+        if (current) toast({
           variant: "destructive",
           description: t('bookView.loadError'),
         });
       } finally {
-        setLoading(false);
+        if (current) setLoading(false);
       }
     };
 
     loadBook();
-  }, [bookId, liveTick]);
+    return () => { current = false; };
+  }, [bookId, liveTick, user?.id]);
 
   // Pages a reader may be shown, in order. Skeleton rows written to persist the
   // outline are excluded until they have words.
@@ -209,7 +221,7 @@ export default function BookView() {
   const progress = summarizeBook(book, allPages);
   const runLive = isRunLive(bookId) || isResuming;
   const state = viewState(book, allPages, runLive);
-  const canResume = !isGuest && isResumable(book, allPages);
+  const canResume = isOwner && isResumable(book, allPages);
 
   // While something is building this book, re-read it every few seconds so each
   // page appears as it lands. The poll stops the moment the run stops
@@ -247,7 +259,7 @@ export default function BookView() {
    * scene spine) is lost; see src/lib/bookRecipe.js.
    */
   const handleResume = async () => {
-    if (!book?.id || isResuming) return;
+    if (!canResume || !book?.id || isResuming) return;
     setIsResuming(true);
     setResumeError(null);
     try {
@@ -907,9 +919,17 @@ export default function BookView() {
             )}
 
             {/* Printed-book order: only when the feature flag is on and the book is finished */}
-            {book && !isGuest && book.created_by === user?.id && progress.isComplete && <OrderBookButton bookId={book.id} />}
+            {isOwner && !book.printEdition && progress.isComplete && <OrderBookButton bookId={book.id} />}
           </div>
         </div>
+
+        {isOwner && (
+          <div className="mx-auto flex max-w-7xl px-4">
+            <Link className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:underline focus-visible:outline focus-visible:outline-2 ${nightMode ? "text-purple-200" : "text-purple-700"}`} to={printEditionUrl(book.id)}>
+              <Printer aria-hidden="true" className="h-4 w-4" />{editionLabels(i18nIsRTL).title}
+            </Link>
+          </div>
+        )}
 
         {/* PDF progress bar */}
         {isExportingPDF && (

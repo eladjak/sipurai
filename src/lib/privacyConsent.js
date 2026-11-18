@@ -31,7 +31,9 @@ export async function waitForAuthHeaders({ timeoutMs = 4000, stepMs = 50, getHea
   }
 }
 
-async function call(method, url, body, { fetchImpl = globalThis.fetch, getHeaders } = {}) {
+/** @param {{fetchImpl?: typeof fetch, getHeaders?: typeof getApiAuthHeaders}} [options] */
+async function call(method, url, body, options = {}) {
+  const { fetchImpl = globalThis.fetch, getHeaders } = options;
   const headers = await waitForAuthHeaders({ getHeaders });
   if (!headers.Authorization) throw new ConsentApiError('not signed in', { status: 401, code: 'unauthorized' });
   let res;

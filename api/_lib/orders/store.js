@@ -4,7 +4,7 @@
  *   - createMemoryStore(): in-memory fake used by tests
  *
  * Interface (rows are snake_case, same as the print_orders table):
- *   getBook(id)                      -> {id, ownerId, title, printSize, printFiles} | null
+ *   getBook(id)                      -> {id, ownerId, title, printSize, hasPrintEdition, printFiles} | null
  *   findByKey(userId, key)           -> row | null
  *   insertOrder(row)                 -> {order, created}   (idempotent on user_id+idempotency_key)
  *   getOrder(id)                     -> row | null
@@ -185,6 +185,7 @@ export function createSupabaseStore(db) {
         ownerId: data.created_by,
         title: data.title || '',
         printSize: data.print_size || null,
+        hasPrintEdition: data.print_edition != null,
         // TODO(unverified): the print-file columns do not exist yet; the print pipeline owner decides.
         printFiles:
           data.print_content_url && data.print_cover_url

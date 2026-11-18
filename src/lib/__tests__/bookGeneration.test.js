@@ -165,6 +165,16 @@ describe('pool', () => {
   });
 });
 
+describe('private sharing default', () => {
+  it('creates a private book even if stale draft data requests sharing', async () => {
+    const store = makeStore();
+    const recipe = makeRecipe(1);
+    recipe.bookFields.is_public = true;
+    await run({ entities: store, ai: makeAi(), recipe });
+    expect(store.Book.create).toHaveBeenCalledWith(expect.objectContaining({ is_public: false }));
+  });
+});
+
 describe('generateBookIncremental — the happy path', () => {
   let store;
   beforeEach(() => {

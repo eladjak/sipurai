@@ -28,6 +28,7 @@ import RedirectHome, { LEGACY_HOME_PATHS } from './lib/RedirectHome';
 import { AuthProvider, FallbackAuthProvider, useAuth } from '@/lib/AuthContext';
 import ClerkLocaleProvider from '@/components/ClerkLocaleProvider';
 const SignIn = lazy(() => import('@/pages/SignIn'));
+const PrintedBookLink = lazy(() => import('@/pages/PrintedBookLink'));
 const SignUp = lazy(() => import('@/pages/SignUp'));
 // Printed-book ordering. The env test is written inline so that, with the flag off,
 // the bundler drops these lazy imports and the screens are not in the build at all.
@@ -115,7 +116,9 @@ export const NewShellRoutes = () => {
     <Route path="/parents" element={protectedPage(ParentsHub)} /><Route path="/new" element={protectedPage(NewStory)} />
     <Route path="/help" element={protectedPage(HelpCentre)} />
     <Route path="/book/:id/read" element={protectedPage(NightReader)} />
+    <Route path="/b/print/:id" element={<PrintedBookLink />} />
     <Route path="/BookView" element={user ? shell(Pages.BookView) : <Pages.BookView />} />
+    <Route path="/PrintEdition" element={protectedPage(Pages.PrintEdition)} />
     {['CharacterEditor', 'CommunityPost', 'BookCreation', 'Feedback', 'Leaderboard', 'Community'].map(name => <Route key={name} path={`/${name}`} element={protectedPage(Pages[name])} />)}
     <Route path="/BlogPost" element={<BlogPost />} />
     {PrintCheckout && <Route path="/book/:id/order" element={protectedPage(PrintCheckout)} />}
@@ -147,6 +150,7 @@ export const LegacyAuthenticatedApp = () => {
   const currentPath = location.pathname.replace(/^\//, '') || mainPageKey;
   const isPublicRoute =
     PUBLIC_PAGES.has(currentPath) ||
+    /^\/b\/print\/[^/]+\/?$/.test(location.pathname) ||
     location.pathname === '/' ||
     LEGACY_HOME_PATHS.some((p) => location.pathname.toLowerCase() === p.toLowerCase()) ||
     location.pathname.startsWith('/blog') ||
@@ -203,6 +207,7 @@ export const LegacyAuthenticatedApp = () => {
             consent screen. Legal, marketing and sign-in pages stay open to everyone (see isGateExempt). */}
         <PrivacyGate enabled={!!user && !isGateExempt(location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}>
         <Routes location={location}>
+          <Route path="/b/print/:id" element={<PrintedBookLink />} />
           {/* Root: logged-in users see Home dashboard; guests see LandingPage */}
           <Route path="/" element={
             user ? (

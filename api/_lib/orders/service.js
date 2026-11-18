@@ -85,15 +85,7 @@ export async function createOrder(deps, { userId, body }) {
     // Not found and "someone else's" look identical on purpose.
     if (!book || book.ownerId !== userId) throw new OrderError('book_not_found', 404, 'הספר לא נמצא');
 
-    let quote;
-    try {
-      quote = computeQuote(
-        { presetId: book.printSize || 'square-220', pageCount: PRINT_PAGE_COUNT, qty, method },
-        { env },
-      );
-    } catch (e) {
-      throw pricingToOrderError(e);
-    }
+    const quote = quoteForBook(book, { qty, method }, env);
     const addr = validateAddress(b.address, method);
     if (!addr.ok) {
       const err = new OrderError('invalid_address', 400, 'יש לתקן את פרטי המשלוח');
@@ -138,12 +130,22 @@ export async function createOrder(deps, { userId, body }) {
   };
 }
 
-export function pricingToOrderError(e) {
-  if (e instanceof PricingError) {
-    const status = e.code === 'size_not_available' ? 409 : 400;
-    return new OrderError(e.code, status, e.message_he);
+export function quoteForBook(book, { qty, method }, env) {
+  // This checkout only has a validated legacy 24-page product. The private
+  // wizard draft does not identify an approved, supplier-verified print PDF.
+  if (book.hasPrintEdition) {
+    throw new OrderError('print_edition_not_orderable', 409, 'המהדורה בעריכה ואינה זמינה להזמנה עדיין');
   }
-  return e;
+  try {
+    return computeQuote(
+      { presetId: book.printSize || 'square-220', pageCount: PRINT_PAGE_COUNT, qty, method },
+      { env },
+    );
+  } catch (error) {
+    if (!(error instanceof PricingError)) throw error;
+    const status = error.code === 'size_not_available' ? 409 : 400;
+    throw new OrderError(error.code, status, error.message_he);
+  }
 }
 
 /* ----------------------------- payment ----------------------------- */

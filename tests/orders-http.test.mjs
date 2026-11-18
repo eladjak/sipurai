@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { endpoint } from '../api/_lib/orders/handlers.js';
+import { createSupabaseStore } from '../api/_lib/orders/store.js';
 import { watchHandler } from '../api/_lib/orders/cron.js';
 import { handlePaymentEvent } from '../api/_lib/orders/service.js';
 import { normalizeCreemEvent } from '../api/_lib/orders/payment/creem.js';
@@ -220,4 +221,40 @@ test('watch readiness absent fails closed before source access', async () => {
  deps.store={listStuck:async()=>{throw Error('must not read')}};
  const r=await call(watchHandler(),fakeReq({method:'GET',headers:{authorization:`Bearer ${CRON_TOKEN}`}}),deps);
  assert.equal(r.status,503);assert.equal(r.body.error.code,'watch_report_not_ready');assert.equal(r.body.sourceReadAt,null);assert.equal(r.body.claimCollection,'unavailable');
+});
+
+
+test('quote and create refuse a wizard draft even with a legacy preset and proof files', async () => {
+  for (const print_edition of [
+    { version: 1, cover: 'hardcover', paper: 'premium' },
+    { version: 1, cover: 'softcover', paper: 'standard', pageCount: 28 },
+  ]) {
+    const deps = makeDeps();
+    const query = {
+      select: () => query,
+      eq: () => query,
+      maybeSingle: async () => ({
+        error: null,
+        data: {
+          id: 'book-alice', created_by: ALICE, print_size: 'square-220',
+          print_content_url: 'https://files.test/content.pdf', print_cover_url: 'https://files.test/cover.pdf',
+          print_edition,
+        },
+      }),
+    };
+    deps.store.getBook = createSupabaseStore({ from: () => query }).getBook;
+    const selection = { bookId: 'book-alice', qty: 1, method: 'ship' };
+    const quote = await call(H.quote, fakeReq({ method: 'GET', user: ALICE, query: selection }), deps);
+    const create = await call(H.create, fakeReq({
+      method: 'POST', user: ALICE,
+      body: { ...selection, address: GOOD_ADDRESS, idempotencyKey: 'key-new-edition', approval: true },
+    }), deps);
+    for (const response of [quote, create]) {
+      assert.equal(response.status, 409);
+      assert.equal(response.body.error.code, 'print_edition_not_orderable');
+    }
+    assert.equal(deps.store._orders.size, 0);
+    assert.equal(deps.payment.checkouts.length, 0);
+    assert.equal(deps.vendor.calls.length, 0);
+  }
 });

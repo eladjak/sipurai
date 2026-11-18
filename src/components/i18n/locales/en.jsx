@@ -1,5 +1,16 @@
 // English translations
 export default {
+  printedLink: {
+    "privateTitle": "The story continues here",
+    "privateBody": "The digital edition lives in its creator’s library. Your family can make a book of its own, too.",
+    "errorTitle": "The library could not open",
+    "errorBody": "Check your connection and try again in a moment.",
+    "shared": "The family who made this book has invited you to look inside.",
+    "read": "Open the story",
+    "retry": "Try again",
+    "create": "Create your own book",
+    "owner": "My book · Sign in"
+},
   common: {
     brandName: "Sipurai",
     close: "Close",
