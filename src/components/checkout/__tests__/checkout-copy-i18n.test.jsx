@@ -42,7 +42,7 @@ it('explains uncertain payment status in English when checkout cannot open', asy
   const { PrintCheckoutView } = await import('@/pages/PrintCheckout');
   const api = {
     getConfig: async () => ({ enabled: true, pickup: { enabled: false }, maxQty: 5 }),
-    getQuote: async () => ({ qty: 1, method: 'ship', lines: [], totalAgorot: 100 }),
+    getQuote: async () => ({ qty: 1, method: 'ship', paper: 'standard', cover: 'softcover', presetId: 'sq22', pageCount: 24, priceVersion: 'v1', lines: [], totalAgorot: 100 }),
     createOrder: async () => ({}),
   };
   wrap(<PrintCheckoutView bookId="b" api={api} persist={false} initialStep={3} initialAddress={{ fullName: 'Dana Levy', phone: '0501234567', city: 'Haifa', street: 'Main', houseNumber: '12' }} quoteDebounceMs={0} redirect={() => {}} />);
@@ -68,7 +68,7 @@ it('shows sign-in guidance above the payment explanation for unauthorized checko
   const { PrintCheckoutView } = await import('@/pages/PrintCheckout');
   const api = {
     getConfig: async () => ({ enabled: true, pickup: { enabled: false }, maxQty: 5 }),
-    getQuote: async () => ({ qty: 1, method: 'ship', lines: [], totalAgorot: 100 }),
+    getQuote: async () => ({ qty: 1, method: 'ship', paper: 'standard', cover: 'softcover', presetId: 'sq22', pageCount: 24, priceVersion: 'v1', lines: [], totalAgorot: 100 }),
     createOrder: async () => { throw { code: 'unauthorized' }; },
   };
   wrap(<PrintCheckoutView bookId="b" api={api} persist={false} initialStep={3} initialAddress={{ fullName: 'Dana Levy', phone: '0501234567', city: 'Haifa', street: 'Main', houseNumber: '12' }} quoteDebounceMs={0} redirect={() => {}} />);

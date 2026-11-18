@@ -15,6 +15,12 @@ async function newOrder(deps, over = {}) {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   return r.body;
 }
+async function accepted(deps, paper, bookId = 'book-alice') {
+  const q = await call(endpoint('quote'), fakeReq({method:'GET',user:ALICE,query:{bookId,qty:'1',method:'ship',paper,cover:'softcover'}}), deps);
+  assert.equal(q.status,200);
+  const {presetId,pageCount,cover,qty,method,totalAgorot,priceVersion} = q.body;
+  return {bookId,presetId,pageCount,paper,cover,qty,method,totalAgorot,priceVersion};
+}
 const paidEvent = (deps, orderId, opts) => {
   const row = deps.store._orders.get(orderId);
   return normalizeCreemEvent(deps.payment.buildCompletedEvent(row, opts).event);
@@ -28,7 +34,7 @@ test('create: stores a price snapshot, opens checkout, returns the checkout url'
   assert.match(out.checkoutUrl, /^https:\/\/pay\.mock\.test\/checkout\//);
   const row = deps.store._orders.get(out.orderId);
   assert.equal(row.total_agorot, 10800);
-  assert.equal(row.quote.priceVersion, '2026-11-08.v1');
+  assert.equal(row.quote.priceVersion, '2026-11-18.v2');
   assert.equal(row.quote.bookTitle, 'הדרקון של נועה');
   assert.equal(row.preset_id, 'square-220');
   assert.equal(deps.payment.checkouts.length, 1);
@@ -51,6 +57,90 @@ test('create is idempotent: same key + user -> same order, one row, one checkout
   }), deps);
   assert.notEqual(bob.body.orderId, a.orderId);
   assert.equal(deps.store._orders.size, 2);
+});
+
+test('create rejects stale stock, non-string stock, and unbound upgraded files before payment', async () => {
+  const quote = {presetId:'square-220',pageCount:24,paper:'chrome-matte-130',cover:'softcover',costAgorot:3000,quoteRef:'private-ref'};
+  const deps = makeDeps({env:{PRINT_VERIFIED_QUOTES_JSON:JSON.stringify([quote])}});
+  const first = await newOrder(deps);
+  const request = (paper, idempotencyKey = 'key-0001-aaaa') => call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey,paper}}), deps);
+  assert.equal((await request('chrome-matte-130')).body.error.code, 'idempotency_conflict');
+  assert.equal((await request(['standard'])).body.error.code, 'invalid_paper');
+  const aq = await accepted(deps,'chrome-matte-130');
+  const unbound = await call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'key-new-0002',paper:aq.paper,cover:aq.cover,acceptedQuote:aq}}),deps);
+  assert.equal(unbound.body.error.code, 'print_files_not_ready');
+  assert.equal(deps.store._orders.size, 1);
+  assert.equal(deps.payment.checkouts.length, 1);
+  assert.equal((await deps.store.getOrder(first.orderId)).quote.paper, 'standard');
+});
+
+test('configured chrome checks trusted binding before payment and rechecks at dispatch', async () => {
+  for (const paper of ['chrome-matte-130','chrome-matte-170']) {
+    const quote = {presetId:'square-220',pageCount:24,paper,cover:'softcover',costAgorot:3000,quoteRef:'private-ref'};
+    const deps = makeDeps({env:{PRINT_VERIFIED_QUOTES_JSON:JSON.stringify([quote])}});
+    const proof = {version:1,paper,presetId:'square-220',pageCount:24,cover:'softcover',contentSha256:'a'.repeat(64),coverSha256:'b'.repeat(64),contentUri:'gs://bucket/content.pdf',coverUri:'gs://bucket/cover.pdf',contentGeneration:'101',coverGeneration:'102'};
+    let files = {vendorIssued:true,contentUrl:'gs://bucket/content.pdf',coverUrl:'gs://bucket/cover.pdf',proof};
+    deps.store.getVerifiedPrintFiles = async () => files;
+    const acceptedQuote = await accepted(deps,paper);
+    const out = await newOrder(deps,{paper,cover:'softcover',acceptedQuote});
+    assert.deepEqual(deps.store._orders.get(out.orderId).quote.fileBinding,proof);
+    const good = await handlePaymentEvent(deps, paidEvent(deps,out.orderId));
+    assert.equal(good.submit.outcome,'submitted');
+    assert.equal(deps.vendor.calls.length,1);
+    const second = await newOrder(deps,{paper,cover:'softcover',acceptedQuote,idempotencyKey:'key-0002-aaaa'});
+    files = {...files,proof:{...proof,coverSha256:'c'.repeat(64)}};
+    const result = await handlePaymentEvent(deps, paidEvent(deps,second.orderId));
+    assert.equal(result.submit.outcome,'files_missing');
+    assert.equal(deps.vendor.calls.length,1);
+  }
+});
+
+test('accepted quote binds each chrome selection and current total before checkout', async () => {
+  for (const paper of ['chrome-matte-130','chrome-matte-170']) {
+    const record = {presetId:'square-220',pageCount:24,paper,cover:'softcover',costAgorot:3000,quoteRef:'test-evidence'};
+    const deps = makeDeps({env:{PRINT_VERIFIED_QUOTES_JSON:JSON.stringify([record])}});
+    const aq = await accepted(deps,paper);
+    const body = {bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'accept-0001',cover:'softcover',acceptedQuote:aq};
+    const send = b => call(create, fakeReq({method:'POST',user:ALICE,body:b}),deps);
+    assert.equal((await send(body)).body.error.code,'quote_changed');
+    assert.equal((await send({...body,paper,acceptedQuote:{...aq,totalAgorot:aq.totalAgorot+100}})).body.error.code,'quote_changed');
+    assert.equal((await send({...body,paper,acceptedQuote:{...aq,bookId:'another-book'}})).body.error.code,'quote_changed');
+    deps.env.PRINT_MARGIN_AGOROT = '6000';
+    assert.equal((await send({...body,paper})).body.error.code,'quote_changed');
+    assert.equal(deps.payment.checkouts.length,0);
+    assert.equal(deps.store._orders.size,0);
+  }
+});
+
+test('calculator estimate is preview only; exact configured standard rate can open checkout without opt-in', async () => {
+  const estimate = makeDeps({env:{PRINT_ALLOW_UNVERIFIED_SIZES:'true'}});
+  const query = {bookId:'book-alice-200',qty:'1',method:'ship'};
+  const q = await call(endpoint('quote'),fakeReq({method:'GET',user:ALICE,query}),estimate);
+  assert.equal(q.status,200); assert.equal(q.body.verified,false);
+  const req = fakeReq({method:'POST',user:ALICE,body:{bookId:query.bookId,qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'estimated-0001'}});
+  assert.equal((await call(create,req,estimate)).body.error.code,'price_unavailable');
+  assert.equal(estimate.payment.checkouts.length,0);
+  const rate = {presetId:'square-200',pageCount:24,paper:'standard',cover:'softcover',costAgorot:2800,quoteRef:'supplier-quote-one-copy'};
+  const verified = makeDeps({env:{PRINT_VERIFIED_QUOTES_JSON:JSON.stringify([rate])}});
+  assert.equal((await call(create,req,verified)).status,200);
+  assert.equal(verified.payment.checkouts.length,1);
+});
+
+test('hardcover stays blocked even with an exact configured quote and enable variable', async () => {
+  const hard = {presetId:'square-220',pageCount:24,paper:'standard',cover:'hardcover',costAgorot:3000,quoteRef:'fixture'};
+  const deps = makeDeps({env:{PRINT_HARDCOVER_ENABLED:'true',PRINT_VERIFIED_QUOTES_JSON:JSON.stringify([hard])}});
+  const r = await call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'hardcover-0001',cover:'hardcover'}}), deps);
+  assert.equal(r.body.error.code,'cover_not_available');
+  assert.equal(deps.payment.checkouts.length,0);
+});
+
+test('insert race rejects another stock snapshot and never creates checkout', async () => {
+  const deps = makeDeps();
+  deps.store.findByKey = async () => null;
+  deps.store.insertOrder = async () => ({created:false, order:{quote:{paper:'chrome-matte-130',cover:'softcover'},status:'awaiting_payment'}});
+  const r = await call(create, fakeReq({method:'POST',user:ALICE,body:{bookId:'book-alice',qty:1,method:'ship',address:GOOD_ADDRESS,idempotencyKey:'race-key-0001',paper:'standard'}}), deps);
+  assert.equal(r.body.error.code, 'idempotency_conflict');
+  assert.equal(deps.payment.checkouts.length, 0);
 });
 
 test('create: concurrent identical requests still produce one order', async () => {
@@ -83,7 +173,7 @@ test('create: Israeli address validation (ship needs street+house, bad phone/zip
   assert.ok([...deps.store._orders.values()].every((o) => o.address.phone === '050-1234567'));
 });
 
-test('create: unverified size is refused with size_not_available', async () => {
+test('create: unverified size is refused with price_unavailable', async () => {
   const deps = makeDeps();
   const r = await call(create, fakeReq({
     method: 'POST', user: ALICE,

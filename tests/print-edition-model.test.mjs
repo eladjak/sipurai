@@ -29,7 +29,7 @@ function example() {
   edition.creator = 'סופר';
   edition.blurb = 'תיאור הסיפור';
   edition.cover = 'hardcover';
-  edition.paper = 'premium';
+  edition.paper = 'standard';
   edition.pages.p1 = { source: 'שלום עולם!', text: pointed, approval: { mode: 'approved', text: pointed }, layout: 'spread', spread: 'wide.png', zone: 'bottom-right' };
   edition.pages.p2 = { source: 'איך הולך?', text: 'איך הולך?', approval: { mode: 'unpointed', text: 'איך הולך?' } };
   edition.artwork.closingArt = 'ending.png';
@@ -90,7 +90,7 @@ describe('owner print-edition review', () => {
     assert.equal(manifest.qrUrl, 'https://www.sipurai.ai/b/print/' + book.id);
     assert.equal(manifest.binding, 'soft-matte');
     assert.equal(manifest.paper, 'white-110gsm');
-    assert.deepEqual(manifest.requestedFinishing, { cover: 'hardcover', paper: 'premium' });
+    assert.deepEqual(manifest.requestedFinishing, { cover: 'hardcover', paper: 'standard' });
     assert.equal(manifest.nikudStatus, 'approved');
     assert.deepEqual(manifest.scenes, [{
       layout: 'spread', art: 'wide.png', text: [pointed, 'איך הולך?'],
@@ -251,4 +251,14 @@ it('compares authoritative art and text even when print overlays hide their chan
   assert.equal(sameEditionSource(old, pages, copy, changed), false);
   copy.printEdition.blurb = 'הועלה בלי שינוי מונה';
   assert.equal(sameEditionSource(old, pages, copy, pages), false);
+});
+
+
+it('requires an explicit stock for legacy premium before proof and export', () => {
+  const edition = example();
+  edition.paper = 'premium';
+  assert.throws(() => createDraftEditionManifest(book, pages, edition, x => x), /Paper choice required/);
+  assert.throws(() => createEditionManifest(book, pages, edition, x => x), /Paper choice required/);
+  edition.paper = 'chrome-matte-170';
+  assert.equal(createEditionManifest(book, pages, edition, x => x).paper, 'chrome-matte-170');
 });

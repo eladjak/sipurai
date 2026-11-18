@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import { execFile } from 'node:child_process';
 import handler from '../api/books/print-proof.js';
-import { CHUNK_BYTES, SESSION_MS, currentSession } from '../api/_lib/printProofRequest.js';
+import { CHUNK_BYTES, SESSION_MS, currentSession, proofRequest } from '../api/_lib/printProofRequest.js';
 import { createPrintProofStore } from '../api/_lib/printProofSource.js';
 
 const run = promisify(execFile);
@@ -248,6 +248,7 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
   const { provider, phases, state } = await harness(t, { python: process.env.PRINT_TEST_PYTHON });
   // PNG accepts trailing bytes after its IEND chunk. This forces an upload across the 1 MiB boundary.
   const large = Buffer.concat([image, Buffer.alloc(CHUNK_BYTES, 3)]);
+  const chromeEdition = { ...edition, paper: 'chrome-matte-130', requestedFinishing: { cover: 'softcover', paper: 'chrome-matte-130' } };
   const book = { created_by: 'user_private', print_revision: 4, title: 'Original title',
     cover_image: '/cover-original', language: 'hebrew', print_size: 'square-220', total_pages: 24 };
   const pages = [
@@ -256,7 +257,7 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
   ];
   const options = { provider, env: { ...env, PRINT_PROOF_SANDBOX_IMAGE: 'test-local-verified-image' },
     store: { findBook: async () => book, sourcePages: async () => pages } };
-  const opened = await call({ ...prepare(large), expectedRevision: 4 }, options);
+  const opened = await call({ ...prepare(large, chromeEdition), expectedRevision: 4 }, options);
   assert.equal(opened.code, 200, JSON.stringify(opened.body));
   const job = opened.body.job;
   assert.deepEqual(opened.body, { job, session, missing: [1] });
@@ -273,11 +274,13 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
   const result = await render();
   assert.equal(result.code, 200, JSON.stringify(result.body));
   assert.equal(result.body.proof.pages.length, 24);
+  assert.equal(result.body.proof.paper, 'chrome-matte-130');
+  assert.equal(result.body.proof.spineMm, 1.5);
   assert.equal(result.body.proof.pages[3].storyIndex, 0);
   assert.equal(result.body.proof.insideFile, null);
   assert.deepEqual((await render()).body, result.body);
-  assert.deepEqual((await call(prepare(large), options)).body, { job, session, missing: [] });
-  const revised = await call(prepare(large, { ...edition, title: 'סיפור חדש' }), options);
+  assert.deepEqual((await call(prepare(large, chromeEdition), options)).body, { job, session, missing: [] });
+  const revised = await call(prepare(large, { ...chromeEdition, title: 'סיפור חדש' }), options);
   assert.equal(revised.code, 200);
   assert.notEqual(revised.body.job, job);
   assert.deepEqual(revised.body.missing, []);
@@ -297,7 +300,7 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
     source[key] = prior;
   }
   pages[1].text_content = 'A revised duplicate';
-  const newSource = await call({ ...prepare(large), expectedRevision: 4 }, options);
+  const newSource = await call({ ...prepare(large, chromeEdition), expectedRevision: 4 }, options);
   assert.notEqual(newSource.body.job, job);
   assert.deepEqual(newSource.body.missing, []);
   const raster = await call({ bookId, job, session, file: 'page-04.webp' }, options, 'GET');
@@ -305,4 +308,17 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
   const vm = [...state.values()][0];
   vm.expiresAt = new Date(now);
   assert.equal((await render()).code, 410);
+});
+
+test('proof request preserves supported stocks and rejects mismatches or ambiguous legacy stock', () => {
+  for (const [choice, paper] of [['standard', 'white-110gsm'], ['chrome-matte-130', 'chrome-matte-130'], ['chrome-matte-170', 'chrome-matte-170']]) {
+    const manifest = { ...edition, paper, requestedFinishing: { cover: 'softcover', paper: choice } };
+    const result = proofRequest({ method: 'POST', body: prepare(image, manifest) }, now);
+    assert.equal(result.spec.manifest.paper, paper);
+    assert.equal(result.spec.manifest.requestedFinishing.paper, choice);
+  }
+  for (const manifest of [
+    { ...edition, paper: 'white-110gsm', requestedFinishing: { cover: 'softcover', paper: 'chrome-matte-130' } },
+    { ...edition, paper: 'premium', requestedFinishing: { cover: 'softcover', paper: 'premium' } },
+  ]) assert.throws(() => proofRequest({ method: 'POST', body: prepare(image, manifest) }, now), /proof_input/);
 });

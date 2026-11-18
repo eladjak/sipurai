@@ -181,7 +181,7 @@
 }
 
 .proof-spread[data-paper='standard'] .proof-raster { filter: sepia(.09) saturate(.95); }
-.proof-spread[data-paper='premium'] .proof-raster { filter: sepia(.18) saturate(.9) contrast(.96); }
+.proof-spread[data-paper^='chrome-matte-'] .proof-raster { filter: saturate(.98); }
 
 .proof-spread[data-bleed='true'] .proof-leaf:has(.proof-raster)::after {
   position: absolute;

@@ -7,8 +7,9 @@
  * that wins the CAS owns the side effect; losers get "duplicate" and do nothing.
  */
 import crypto from 'node:crypto';
-import { computeQuote, PRINT_PAGE_COUNT, PricingError } from '../../../src/lib/printOrder/pricing.js';
+import { computeQuote, PRINT_PAGE_COUNT, PricingError, PAPER_SHEET_TYPES, vendorFinishForCover } from '../../../src/lib/printOrder/pricing.js';
 import { validateAddress } from './address.js';
+import { stockFileBinding, sameStockBinding } from '../bookpod/stockFiles.js';
 import { STATUS_LABEL_HE, canTransition } from './states.js';
 
 export class OrderError extends Error {
@@ -79,13 +80,61 @@ export async function createOrder(deps, { userId, body }) {
     throw new OrderError('invalid_idempotency_key', 400, 'בקשה לא תקינה, נא לנסות שוב');
   }
 
+  if (b.acceptedQuote && b.acceptedQuote.paper !== 'standard' && b.paper === undefined) throw new OrderError('quote_changed', 409, 'פרטי ההזמנה השתנו, יש לאשר את המחיר מחדש');
+  const requestedPaper = b.paper === undefined ? 'standard' : b.paper;
+  const requestedCover = b.cover === undefined ? 'softcover' : b.cover;
+  if (typeof requestedPaper !== 'string' || !Object.hasOwn(PAPER_SHEET_TYPES, requestedPaper)) {
+    throw new OrderError('invalid_paper', 400, 'יש לבחור סוג נייר');
+  }
+  if (!vendorFinishForCover(requestedCover)) {
+    throw new OrderError('cover_not_available', 409, 'כריכה זו אינה זמינה להזמנה');
+  }
+  const verifyAcceptance = (quote, actualBookId) => {
+    const accepted = b.acceptedQuote;
+    if (requestedPaper !== 'standard' && (b.paper === undefined || b.cover === undefined || !accepted)) {
+      throw new OrderError('quote_changed', 409, 'יש לאשר את המחיר לפני ההזמנה');
+    }
+    if (!accepted && requestedPaper === 'standard') return;
+    const expected = {
+      bookId: actualBookId,
+      presetId: quote.presetId,
+      pageCount: quote.pageCount,
+      paper: quote.paper || 'standard',
+      cover: quote.cover || 'softcover',
+      qty: quote.qty,
+      method: quote.method,
+      totalAgorot: quote.totalAgorot,
+      priceVersion: quote.priceVersion,
+    };
+    const invalid = bookId !== actualBookId || !accepted || typeof accepted !== 'object' || Array.isArray(accepted);
+    if (invalid || Object.keys(expected).some(key => accepted[key] !== expected[key])) {
+      throw new OrderError('quote_changed', 409, 'פרטי ההזמנה השתנו, יש לאשר את המחיר מחדש');
+    }
+  };
+  const ensureSamePaper = order => {
+    if ((order.quote?.paper || 'standard') !== requestedPaper || (order.quote?.cover || 'softcover') !== requestedCover) {
+      throw new OrderError('idempotency_conflict', 409, 'יש להתחיל הזמנה חדשה לבחירת נייר אחרת');
+    }
+  };
   let existing = await store.findByKey(userId, idempotencyKey);
+  if (existing) {
+    ensureSamePaper(existing);
+    verifyAcceptance(existing.quote || {}, existing.book_id);
+  }
   if (!existing) {
     const book = await store.getBook(bookId);
     // Not found and "someone else's" look identical on purpose.
     if (!book || book.ownerId !== userId) throw new OrderError('book_not_found', 404, 'הספר לא נמצא');
 
-    const quote = quoteForBook(book, { qty, method }, env);
+    const quote = quoteForBook(book, { qty, method, paper: b.paper, cover: b.cover }, env);
+    verifyAcceptance(quote, book.id);
+    if (!quote.verified) throw new OrderError('price_unavailable', 409, 'מחיר ההדפסה לא זמין להזמנה');
+    let fileBinding = null;
+    if (quote.paper !== 'standard') {
+      const trustedFiles = await store.getVerifiedPrintFiles?.(book.id, quote);
+      fileBinding = stockFileBinding(trustedFiles, quote);
+      if (!fileBinding) throw new OrderError('print_files_not_ready', 409, 'קובצי ההדפסה לסוג הנייר הזה אינם מוכנים להזמנה');
+    }
     const addr = validateAddress(b.address, method);
     if (!addr.ok) {
       const err = new OrderError('invalid_address', 400, 'יש לתקן את פרטי המשלוח');
@@ -101,17 +150,20 @@ export async function createOrder(deps, { userId, body }) {
       qty: quote.qty,
       method: quote.method,
       address: addr.address,
-      quote: { ...quote, bookTitle: book.title },
+      quote: { ...quote, bookTitle: book.title, ...(fileBinding ? { fileBinding } : {}) },
       total_agorot: quote.totalAgorot,
       currency: quote.currency,
       idempotency_key: idempotencyKey,
       payment_provider: payment.name,
     });
     existing = res.order;
+    ensureSamePaper(existing); // insert race may return an order for another stock
+    verifyAcceptance(existing.quote || {}, existing.book_id);
     if (res.created) await store.addEvent(existing.id, 'created', { totalAgorot: existing.total_agorot });
   }
 
   let order = existing;
+  if (order.quote?.verified === false) throw new OrderError('price_unavailable', 409, 'מחיר ההדפסה לא זמין להזמנה');
   if (order.status === 'awaiting_payment' && !order.checkout_url) {
     try {
       const { url, ref } = await payment.createCheckout(order);
@@ -130,7 +182,7 @@ export async function createOrder(deps, { userId, body }) {
   };
 }
 
-export function quoteForBook(book, { qty, method }, env) {
+export function quoteForBook(book, { qty, method, paper, cover }, env) {
   // This checkout only has a validated legacy 24-page product. The private
   // wizard draft does not identify an approved, supplier-verified print PDF.
   if (book.hasPrintEdition) {
@@ -138,12 +190,12 @@ export function quoteForBook(book, { qty, method }, env) {
   }
   try {
     return computeQuote(
-      { presetId: book.printSize || 'square-220', pageCount: PRINT_PAGE_COUNT, qty, method },
+      { presetId: book.printSize || 'square-220', pageCount: PRINT_PAGE_COUNT, qty, method, paper, cover },
       { env },
     );
   } catch (error) {
     if (!(error instanceof PricingError)) throw error;
-    const status = error.code === 'size_not_available' ? 409 : 400;
+    const status = ['size_not_available', 'price_unavailable', 'cover_not_available'].includes(error.code) ? 409 : 400;
     throw new OrderError(error.code, status, error.message_he);
   }
 }
@@ -252,7 +304,14 @@ export async function submitOrder(deps, orderId, { explicit = false } = {}) {
   await store.addEvent(orderId, 'submit_started', { explicit });
 
   const book = await store.getBook(order.book_id);
-  const files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
+  let files;
+  if (claimed.quote?.paper && claimed.quote.paper !== 'standard') {
+    try { files = await store.getVerifiedPrintFiles?.(claimed.book_id, claimed.quote); } catch { files = null; }
+    const binding = stockFileBinding(files, claimed.quote);
+    if (!binding || !sameStockBinding(binding, claimed.quote.fileBinding)) files = null;
+  } else {
+    files = deps.getPrintFiles ? await deps.getPrintFiles(claimed, book) : book?.printFiles || null;
+  }
   if (!files) {
     await store.transition(orderId, ['submitting'], {
       status: 'failed_needs_attention',

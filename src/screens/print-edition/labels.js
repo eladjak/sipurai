@@ -86,12 +86,12 @@ const hebrew = {
   cover: 'כריכה',
   softcover: 'כריכה רכה',
   hardcover: 'כריכה קשה',
-  hardcoverHint: 'מומלצת לספר שקוראים שוב ושוב',
+  hardcoverHint: 'אינה זמינה כרגע',
   pending: 'ממתין לאישור בית הדפוס',
   paper: 'נייר',
   standardPaper: 'נייר לבן רגיל',
   premiumPaper: 'נייר איכותי יותר',
-  choicesHint: 'הבחירות נשמרות כהעדפה. כריכה קשה ונייר משודרג עדיין אינם זמינים להזמנה.',
+  choicesHint: 'הבחירות נשמרות כהעדפה. כריכה קשה אינה זמינה כרגע.',
   story: 'עוברים על העמודים',
   storyHelp: 'קראו כל עמוד בקול, במיוחד שמות ומילים שאפשר לקרוא בכמה דרכים. במקרה של ספק אפשר לבחור להשאיר את העמוד בלי ניקוד.',
   page: 'עמוד',
@@ -147,7 +147,7 @@ const hebrew = {
   exportConflict: 'אחד האיורים השתנה או אינו זמין כרגע. רעננו את ההגהה ונסו שוב.',
   exportFailed: 'לא הצלחנו לאסוף אחד מהאיורים. בדקו שהאיורים נטענים ונסו שוב.',
   exportDisabled: 'החבילה זמינה לספר עברי במידת דפוס נתמכת אחרי שמירת טיוטה, בדיקת כל עמוד, מילוי שם ותקציר והכנת האיורים.',
-  proofOnly: 'החבילה מיועדת להגהה במידה שנבחרה. ההגהה מבוססת על כריכה רכה ונייר לבן 110 גרם. הפקת קובץ דפוס דורשת בדיקה של האיורים ושל תנאי ההדפסה.',
+  proofOnly: 'החבילה מיועדת להגהה במידה שנבחרה. ההגהה מבוססת על כריכה רכה והנייר שנבחר. הפקת קובץ דפוס דורשת בדיקה של האיורים ושל תנאי ההדפסה.',
 };
 
 const english = {
@@ -238,12 +238,12 @@ const english = {
   cover: 'Cover',
   softcover: 'Softcover',
   hardcover: 'Hardcover',
-  hardcoverHint: 'Recommended for a book you’ll read again and again',
+  hardcoverHint: 'Currently unavailable',
   pending: 'Awaiting printer confirmation',
   paper: 'Paper',
   standardPaper: 'Standard white paper',
   premiumPaper: 'Upgraded paper',
-  choicesHint: 'Choices are saved as preferences. Hardcover and upgraded paper are awaiting printer confirmation.',
+  choicesHint: 'Choices are saved as preferences. Hardcover is currently unavailable.',
   story: 'Review the story pages',
   storyHelp: 'Read each page aloud, especially names and words with multiple readings. If you’re unsure, keep that page unpointed.',
   page: 'Page',
@@ -299,7 +299,7 @@ const english = {
   exportConflict: 'An illustration changed or is temporarily unavailable. Refresh the proof and try again.',
   exportFailed: 'We couldn’t collect an illustration. Check that the images load and try again.',
   exportDisabled: 'The bundle is available for Hebrew books in a supported print size after you review each page, add the creator and blurb, prepare the art and save your work.',
-  proofOnly: 'These files are for proofing in the selected trim size. The proof uses the softcover template and 110 gsm white stock. Artwork and print specifications still need production review.',
+  proofOnly: 'These files are for proofing in the selected trim size. The proof uses the softcover template and the selected paper. Artwork and print specifications still need production review.',
 };
 
 export const editionLabels = (isRTL) => isRTL ? hebrew : english;

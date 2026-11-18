@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  computeQuote, PRICE_VERSION, PricingError, PRINT_PRODUCTS, vatIncludedAgorot,
+  computeQuote, PRICE_VERSION, PricingError, vatIncludedAgorot,
 } from '../src/lib/printOrder/pricing.js';
 
 const base = { presetId: 'square-220', pageCount: 24, qty: 1, method: 'ship' };
@@ -46,17 +46,30 @@ test('shipping and margin are configurable; garbage config fails closed', () => 
   assert.equal(code(() => computeQuote(base, { env: { PRINT_SHIP_AGOROT: '-5' } })), 'config_invalid');
 });
 
-test('only 22x22/24pp is verified; other sizes are blocked unless PRINT_ALLOW_UNVERIFIED_SIZES=true', () => {
-  assert.equal(PRINT_PRODUCTS.filter((p) => p.verified).length, 1);
-  assert.equal(code(() => computeQuote({ ...base, presetId: 'square-200' })), 'size_not_available');
-  assert.equal(code(() => computeQuote({ ...base, presetId: 'portrait-165x235' })), 'size_not_available');
+test('unquoted combinations fail closed even with legacy estimate flag', () => {
   const env = { PRINT_ALLOW_UNVERIFIED_SIZES: 'true' };
-  const q = computeQuote({ ...base, presetId: 'square-200' }, { env });
-  assert.equal(q.verified, false);
-  assert.equal(q.lines[0].amountAgorot, 7800); // ceil(23.00 + 54.34) = 78
-  // same size, different page count: also unverified
-  assert.equal(code(() => computeQuote({ ...base, pageCount: 28 })), 'size_not_available');
-  assert.equal(computeQuote({ ...base, pageCount: 28 }, { env }).lines[0].amountAgorot, 8200);
+  for (const input of [{paper:'chrome-matte-130'}, {paper:'chrome-matte-170'}])
+    assert.equal(code(() => computeQuote({...base, ...input}, {env})), 'price_unavailable');
+  const estimated = computeQuote({...base, presetId:'square-200'}, {env});
+  assert.equal(estimated.verified, false);
+  assert.equal(estimated.totalAgorot, 10800);
+  assert.equal(code(() => computeQuote({...base, presetId:'square-200'})), 'size_not_available');
+  assert.equal(code(() => computeQuote({...base, paper:'premium'})), 'invalid_paper');
+  for (const paper of [null, ['standard'], {}, 42]) assert.equal(code(() => computeQuote({...base, paper})), 'invalid_paper');
+  assert.equal(code(() => computeQuote(base, {env:{PRINT_MARGIN_AGOROT:'9007199254740991'}})), 'config_invalid');
+  assert.equal(code(() => computeQuote(base, {env:{PRINT_MAX_QTY:'9007199254740991'}})), 'config_invalid');
+  assert.equal(code(() => computeQuote({...base, cover:'hardcover'}, {env:{PRINT_HARDCOVER_ENABLED:'true'}})), 'cover_not_available');
+});
+
+test('specific verified configuration keeps stock, price and source in snapshot', () => {
+  const entry = {presetId:'square-220', pageCount:24, paper:'chrome-matte-130', cover:'softcover', costAgorot:3000, quoteRef:'fixture'};
+  const env = {PRINT_VERIFIED_QUOTES_JSON: JSON.stringify([entry])};
+  const q = computeQuote({...base, paper:entry.paper}, {env});
+  assert.equal(q.unitAgorot, 8500);
+  assert.equal(q.sheettype, 'chromo-mat-130');
+  assert.equal(q.paper, entry.paper);
+  assert.equal(q.quoteRef, 'fixture');
+  assert.equal(code(() => computeQuote({...base, paper:'chrome-matte-170'}, {env})), 'price_unavailable');
 });
 
 test('input validation', () => {

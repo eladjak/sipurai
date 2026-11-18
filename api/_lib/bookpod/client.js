@@ -1,3 +1,5 @@
+import { PAPER_SHEET_TYPES, vendorFinishForCover } from '../../../src/lib/printOrder/pricing.js';
+import { stockFileBinding, sameStockBinding } from './stockFiles.js';
 /**
  * Print-fulfilment vendor client (server only; this path and name must never
  * reach any response body, src/ or public/).
@@ -85,17 +87,33 @@ export function createVendorClient({ env = process.env, fetchImpl = globalThis.f
   return {
     async submitOrder(order, files) {
       assertEnabled();
-      if (!files?.contentUrl || !files?.coverUrl) throw new VendorError('vendor_rejected', 'missing print files');
-
-      // Step 1: create the book from the two PDFs.
-      // TODO(unverified): docs describe two PDFs; whether they are multipart uploads or URLs, and the
-      // field names below, are NOT confirmed against the account.
+      // CreateBook v5.1 requires GCS objects from its upload flow, not arbitrary URLs.
+      // The current file provider yields HTTPS URLs, so it fails closed until the
+      // upload integration supplies explicitly attested vendor-issued GCS URIs.
+      const uri = value => typeof value === 'string' && /^gs:\/\/[a-z0-9][a-z0-9._-]*\/[A-Za-z0-9._/-]+\.pdf$/i.test(value) && !value.includes('..');
+      if (files?.vendorIssued !== true || !uri(files?.contentUrl) || !uri(files?.coverUrl)) throw new VendorError('vendor_rejected', 'vendor uploaded print files required');
+      const original = order.quote;
+      const legacy = original?.priceVersion === '2026-11-08.v1' && original.paper === undefined && original.cover === undefined && original.sheettype === undefined && original.pageCount === 24 && original.presetId === order.preset_id && order.page_count === 24;
+      const quote = legacy ? { ...original, paper: 'standard', cover: 'softcover', sheettype: PAPER_SHEET_TYPES.standard } : original;
+      const paper = quote?.paper;
+      const finishtype = vendorFinishForCover(quote?.cover);
+      if (typeof paper !== 'string' || !Object.hasOwn(PAPER_SHEET_TYPES, paper) ||
+          quote?.sheettype !== PAPER_SHEET_TYPES[paper] || !finishtype) {
+        throw new VendorError('vendor_rejected', 'invalid print specification');
+      }
+      if (paper !== 'standard') {
+        const binding = stockFileBinding(files, quote);
+        if (!binding || !sameStockBinding(binding, quote.fileBinding)) throw new VendorError('vendor_rejected', 'stock-bound files unavailable');
+      }
+      const dims = { 'square-220': [22, 22], 'square-200': [20, 20], 'portrait-165x235': [16.5, 23.5] }[order.preset_id];
+      if (!dims || quote?.presetId !== order.preset_id || quote?.pageCount !== order.page_count) throw new VendorError('vendor_rejected', 'invalid print specification');
       const book = await call('POST', '/api/v1/books', {
-        title: order.quote?.bookTitle || `order-${order.id}`,
-        content_pdf_url: files.contentUrl,
-        cover_pdf_url: files.coverUrl,
+        title: `Sipurai ${String(order.id).slice(0, 8)}`, category: ['childrens'], bookType: 'print',
+        printcolor: 'color', sheettype: PAPER_SHEET_TYPES[paper], laminationtype: 'matt',
+        finishtype, readingdirection: 'right', width: dims[0], height: dims[1],
+        bleed: true, status: false, contentUrl: files.contentUrl, coverUrl: files.coverUrl,
       });
-      const bookId = book?.id ?? book?.book_id;
+      const bookId = book?.bookid ?? book?.id ?? book?.book_id;
       if (!bookId) throw new VendorError('vendor_unknown', 'no book id in response', { unknownOutcome: true });
 
       // Step 2: place the order.

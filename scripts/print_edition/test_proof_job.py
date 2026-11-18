@@ -44,7 +44,7 @@ class ProofJobTest(unittest.TestCase):
                  "zones": ["bottom"], "pointing": ["unpointed"]},
                 self.scene,
             ],
-            "nikudStatus": "pending", "requestedFinishing": {"cover": "hardcover", "paper": "premium"},
+            "nikudStatus": "pending", "requestedFinishing": {"cover": "softcover", "paper": "standard"},
             "qrUrl": "https://www.sipurai.ai/b/print/synthetic-book",
         }
 
@@ -113,12 +113,15 @@ class ProofJobTest(unittest.TestCase):
 
     def test_rendered_preview_follows_pdf_reading_order_and_hashes(self):
         self.edition["dedication"] = "למי שאוהב סיפורים"
+        self.edition["paper"] = "chrome-matte-130"
+        self.edition["requestedFinishing"]["paper"] = "chrome-matte-130"
         self.write_manifest()
         output = self.room / "proof"
         render_proof(self.job, output)
         result = json.loads((output / "proof.json").read_text())
         self.assertEqual((result["trimWidthMm"], result["trimHeightMm"], result["bleedMm"], result["spineMm"]),
-                         (220, 220, 3.2, 1.8))
+                         (220, 220, 3.2, 1.5))
+        self.assertEqual(result["paper"], "chrome-matte-130")
         self.assertEqual(result["pdfs"], {"interior": "interior.pdf", "cover": "cover.pdf"})
         self.assertEqual(result["insideFile"], "cover-inside.webp")
         self.assertEqual(result["coverFile"], "cover-wrap.webp")

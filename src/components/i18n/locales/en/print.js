@@ -1,5 +1,6 @@
 export default {
   "print": {
+    "paperChoice": {"paper": "Paper", "cover": "Cover", "softcover": "Softcover", "hardSoon": "Hardcover (coming soon)", "legacyCover": "Your previous hardcover choice is unavailable. Select softcover to continue.", "legacyPaper": "Your previous upgraded-paper choice did not specify a stock. Please choose one above.", "unavailablePlan": "Not available on your plan", "hint": "Your choice is saved as a preference. Matte coated paper pricing and availability are not yet confirmed for ordering.", "preferences": "Print preferences", "standard": "White paper, 110 gsm", "standardHint": "Uncoated white paper, best suited to text.", "matte130": "Matte coated, 130 gsm", "matte130Hint": "Recommended for picture books when you prefer lighter pages.", "matte170": "Matte coated, 170 gsm", "matte170Hint": "Recommended for picture books when you prefer thicker pages."},
     "proofWorkspace": {
       "downloadSaved": "Download print files for this saved edition",
       "missingSummary": "To open the proof, complete {fields}.",

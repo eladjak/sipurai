@@ -22,7 +22,7 @@ const t = (key, values = {}) => {
 const wrap = (ui) => render(<I18nContext.Provider value={{ t, language: 'hebrew', direction: 'rtl' }}><MemoryRouter>{ui}</MemoryRouter></I18nContext.Provider>);
 
 const quote = {
-  currency: 'ILS', presetId: 'sq22', qty: 1, method: 'ship', vatIncluded: true,
+  currency: 'ILS', paper: 'standard', cover: 'softcover', pageCount: 24, priceVersion: 'v1', presetId: 'sq22', qty: 1, method: 'ship', vatIncluded: true,
   lines: [
     { key: 'book', label_he: 'ספר מודפס', amountAgorot: 7777 },
     { key: 'shipping', label_he: 'משלוח סיפוראי', amountAgorot: 1234 },
@@ -310,4 +310,67 @@ it('explains uncertain payment status after a missing checkout URL', async () =>
   await waitFor(() => expect(screen.getByTestId('pay-button')).not.toBeDisabled());
   fireEvent.click(screen.getByTestId('pay-button'));
   expect(await screen.findByText("לא הגעתם לעמוד התשלום, ולכן לא חויבתם בניסיון הזה. אפשר לנסות שוב, ואם ניסיתם קודם, בדקו ב'ההזמנות שלי'.")).toBeInTheDocument();
+});
+
+
+describe('paper selection', () => {
+  it('requests the chosen stock and blocks payment when the quote is unavailable', async () => {
+    const api = mkApi({ getQuote: vi.fn(async ({ paper }) => { if (paper !== 'standard') throw new PrintOrderApiError({ code: 'price_unavailable' }); return quote; }) });
+    checkout(api);
+    await screen.findByText('נייר לבן 110 גרם');
+    fireEvent.click(screen.getByLabelText(/כרומו מט 130 גרם/));
+    await waitFor(() => expect(api.getQuote).toHaveBeenCalledWith(expect.objectContaining({ paper: 'chrome-matte-130' })));
+    expect(api.createOrder).not.toHaveBeenCalled();
+  });
+});
+
+
+it('loads the saved edition and requests its explicit stock', async () => {
+  const api = mkApi({ getQuote: vi.fn(async ({paper}) => ({...quote, paper})) });
+  checkout(api, { loadEdition: async () => ({ printEdition: { paper: 'chrome-matte-170', cover: 'softcover' } }) });
+  await waitFor(() => expect(api.getQuote).toHaveBeenCalledWith(expect.objectContaining({ paper: 'chrome-matte-170' })));
+  expect(screen.getByLabelText(/כרומו מט 170 גרם/).checked).toBe(true);
+});
+
+it('requires fresh choices for legacy premium and hardcover', async () => {
+  const api = mkApi();
+  checkout(api, { initialEdition: { paper: 'premium', cover: 'hardcover' } });
+  await screen.findByText(/הבחירה הקודמת בנייר משודרג אינה מציינת סוג/);
+  expect(api.getQuote).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText(/נייר לבן 110 גרם/));
+  expect(api.getQuote).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText('כריכה רכה'));
+  await waitFor(() => expect(api.getQuote).toHaveBeenCalledWith(expect.objectContaining({ paper: 'standard' })));
+});
+
+it('blocks payment for a failed quote', async () => {
+  const api = mkApi({ getQuote: vi.fn(async () => { throw new PrintOrderApiError({ code: 'price_unavailable' }); }) });
+  checkout(api, { initialStep: 3, initialAddress: FILLED });
+  const pay = await screen.findByTestId('pay-button');
+  await waitFor(() => expect(pay.disabled).toBe(true));
+  fireEvent.click(pay);
+  expect(api.createOrder).not.toHaveBeenCalled();
+});
+
+
+it('sends the exact displayed quote when creating an order', async () => {
+  const api = mkApi();
+  checkout(api, { initialStep: 3, initialAddress: FILLED });
+  const pay = await screen.findByTestId('pay-button');
+  await waitFor(() => expect(pay.disabled).toBe(false));
+  fireEvent.click(pay);
+  await waitFor(() => expect(api.createOrder).toHaveBeenCalledWith(expect.objectContaining({
+    paper: 'standard', cover: 'softcover',
+    acceptedQuote: { bookId: 'b1', presetId: 'sq22', pageCount: 24, paper: 'standard', cover: 'softcover', qty: 1, method: 'ship', totalAgorot: 9999, priceVersion: 'v1' },
+  })));
+});
+
+it("honors the subscriber paper restriction in checkout", async () => {
+  const api = mkApi();
+  checkout(api, { initialEdition: { paper: "chrome-matte-170", cover: "softcover" }, allowUpgradedPaper: false });
+  const upgraded = await screen.findByLabelText(/כרומו מט 170 גרם/);
+  expect(upgraded.disabled).toBe(true);
+  expect(api.getQuote).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText(/נייר לבן 110 גרם/));
+  await waitFor(() => expect(api.getQuote).toHaveBeenCalledWith(expect.objectContaining({ paper: "standard" })));
 });
