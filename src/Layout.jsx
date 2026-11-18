@@ -1,8 +1,8 @@
+import { Wordmark } from "@/components/brand/Wordmark";
 
-import React, { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { User } from "@/entities/User";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import CancelSubscriptionLink from "@/components/CancelSubscriptionLink";
 import { useAuth } from "@/lib/AuthContext";
@@ -14,15 +14,12 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import InstallPrompt from "@/components/shared/InstallPrompt";
 
 import {
-  BookOpen,
   Settings,
   Home,
   Menu,
   X,
   Library,
   LogOut,
-  Moon,
-  Sun,
   Users,
   User as UserIcon,
   Users2,
@@ -160,18 +157,6 @@ export default function Layout({ children, currentPageName }) {
     }
   };
 
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem("darkMode", newDarkMode.toString());
-
-    if (newDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  };
-
   const getLocalizedPageName = (pageName) => {
     const localized = i18nT(`pageTitles.${pageName}`);
     return localized !== `pageTitles.${pageName}` ? localized : pageName;
@@ -223,12 +208,7 @@ export default function Layout({ children, currentPageName }) {
       <div className={isRTL ? 'pr-64 max-lg:pr-0' : 'pl-64 max-lg:pl-0'}>
         <aside className={`fixed top-0 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} h-full w-64 bg-gradient-to-b from-white via-white to-purple-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-purple-950/20 border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-300 z-50 ${sidebarOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')} lg:translate-x-0`}>
           <div className="p-6 flex items-center justify-between border-b border-gray-100 dark:border-gray-700">
-            <Link to={createPageUrl("Home")} className="flex items-center gap-3">
-              <img src="/icons/icon-192x192.jpg" alt="Sipurai" className="h-10 w-10 rounded-xl shadow-lg" width="40" height="40" loading="eager" />
-              <span className="font-bold text-xl bg-gradient-to-r from-purple-400 to-indigo-400 dark:from-purple-300 dark:to-indigo-300 bg-clip-text text-transparent">
-                Sipurai
-              </span>
-            </Link>
+            <Link to="/" className="inline-flex min-h-12 items-center rounded-xl bg-[#f8f1e3] px-2 text-[#202b3c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"><Wordmark language={currentLanguage === 'english' ? 'en' : 'he'} size="sm" /></Link>
             <Button
               variant="ghost"
               size="icon"
@@ -311,31 +291,13 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             <div className="space-y-1 mt-4">
-              <Button
-                variant="ghost"
-                className={`w-full ${isRTL ? 'justify-end flex-row-reverse' : 'justify-start'} py-5 px-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200`}
-                onClick={toggleDarkMode}
-              >
-                {darkMode ? (
-                  <>
-                    <Sun className={`h-5 w-5 ${isRTL ? 'ms-3' : 'me-3'} text-amber-400`} />
-                    {t("common.lightMode")}
-                  </>
-                ) : (
-                  <>
-                    <Moon className={`h-5 w-5 ${isRTL ? 'ms-3' : 'me-3'} text-gray-400 dark:text-gray-300`} />
-                    {t("common.darkMode")}
-                  </>
-                )}
-              </Button>
-
               <Link to="/welcome" className="w-full">
                 <Button
                   variant="ghost"
                   className={`w-full ${isRTL ? 'justify-end flex-row-reverse' : 'justify-start'} py-5 px-4 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-300`}
                 >
                   <Globe className={`h-4 w-4 ${isRTL ? 'ms-3' : 'me-3'} opacity-70`} />
-                  <span className="text-sm">sipurai.ai</span>
+                  <span className="text-sm">{t("spxLibrary.about")}</span>
                 </Button>
               </Link>
 
@@ -363,10 +325,7 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-5 w-5 dark:text-gray-300" />
             </Button>
 
-            <Link to={createPageUrl("Home")} className="flex items-center gap-2">
-              <img src="/icons/icon-192x192.jpg" alt="Sipurai" className="h-8 w-8 rounded-lg" width="32" height="32" loading="eager" />
-              <span className="font-bold text-base text-gray-900 dark:text-white">Sipurai</span>
-            </Link>
+            <Link to="/" className="inline-flex min-h-12 items-center rounded-xl bg-[#f8f1e3] px-2 text-[#202b3c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"><Wordmark language={currentLanguage === 'english' ? 'en' : 'he'} size="sm" /></Link>
 
             <div className="flex items-center gap-1">
               <NotificationBell />

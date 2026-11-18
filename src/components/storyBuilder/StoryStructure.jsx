@@ -516,7 +516,8 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
 
       {/* Loading skeleton */}
       {isGenerating && !hasScenes && (
-        <div className="space-y-3">
+        <div className="space-y-3" role="status" aria-live="polite">
+          <p className="text-center font-semibold text-purple-800 dark:text-purple-200">{t("spxWizard.preparing")}</p>
           {structure.map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4 space-y-2">
@@ -549,8 +550,8 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {scenes.map((scene, i) => (
+              <div key={scene.id || i} className="rounded-2xl border border-purple-100 bg-purple-50/40 p-2 dark:border-purple-900 dark:bg-purple-950/20">
               <SceneCard
-                key={scene.id || i}
                 scene={scene}
                 onSceneChange={(patch) => updateScene(i, patch)}
                 allCharacters={selectedCharacters}
@@ -560,6 +561,7 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
                 language={language}
                 sceneNumber={i + 1}
               />
+              </div>
             ))}
           </AnimatePresence>
         </div>

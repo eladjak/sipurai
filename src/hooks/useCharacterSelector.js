@@ -7,7 +7,7 @@ import { Character } from '@/entities/Character';
  * Character entity format and the bookData.selectedCharacters format.
  * Uses React Query for automatic caching and deduplication.
  */
-export default function useCharacterSelector() {
+export default function useCharacterSelector(ownerId) {
   // Use the global QueryClient from the provider when available;
   // fall back to a per-instance client for test environments.
   const fallbackRef = useRef(null);
@@ -23,7 +23,8 @@ export default function useCharacterSelector() {
 
   const { data, isPending, refetch } = useQuery(
     {
-      queryKey: ['characters'],
+      queryKey: ['characters', ownerId],
+      enabled: Boolean(ownerId),
       queryFn: async () => {
         try {
           return await Character.list('-created_date', 50);

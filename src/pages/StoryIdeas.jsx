@@ -231,11 +231,12 @@ export default function StoryIdeas() {
   // "Use idea": stash the idea and jump into the book wizard, which prefills
   // the topic/title/description on mount.
   const handleUseIdea = (idea) => {
-    if (!idea) return;
+    if (!idea || !hookUser?.id) return;
     try {
       sessionStorage.setItem(
         PENDING_IDEA_KEY,
         JSON.stringify({
+          ownerId: hookUser.id,
           title: idea.title || "",
           description: idea.description || "",
           moral: idea.moral_lesson || "",

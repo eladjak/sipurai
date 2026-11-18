@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
@@ -56,6 +56,7 @@ const PageFlip = React.memo(function PageFlip({
   children
 }) {
   const { t } = useI18n();
+  const reduceMotion = useReducedMotion();
 
   // RTL flips direction
   const effectiveDirection = isRTL ? -direction : direction;
@@ -69,10 +70,10 @@ const PageFlip = React.memo(function PageFlip({
         <motion.div
           key={pageKey}
           custom={effectiveDirection}
-          variants={flipVariants}
-          initial="enter"
+          variants={reduceMotion ? undefined : flipVariants}
+          initial={reduceMotion ? false : "enter"}
           animate="center"
-          exit="exit"
+          exit={reduceMotion ? undefined : "exit"}
           style={{ transformStyle: "preserve-3d" }}
         >
           {children}

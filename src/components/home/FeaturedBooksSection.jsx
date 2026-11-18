@@ -23,8 +23,8 @@ function BookCardItem({ book, isRTL, t, index = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.07 }}
     >
-      <Card className="overflow-hidden hover:shadow-2xl h-full group border-0 shadow-md">
-        <div className="aspect-square bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 relative overflow-hidden">
+      <Card className="relative overflow-hidden hover:shadow-2xl h-full group border-0 shadow-md">
+        <Link to={book.isSample ? `/samples/${book.id}` : `${createPageUrl("BookView")}?id=${book.id}`} aria-label={book.title} className="block after:absolute after:inset-0 after:z-10 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-amber-600"><div className="aspect-square bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 relative overflow-hidden">
           {book.cover_image ? (
             <img
               src={book.cover_image}
@@ -39,6 +39,7 @@ function BookCardItem({ book, isRTL, t, index = 0 }) {
           {/* Gradient overlay on cover */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
+        </Link>
         <CardContent className={`p-4 ${isRTL ? "text-right" : "text-left"}`}>
           <h3 className="font-bold text-base mb-1 line-clamp-1">{book.title}</h3>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-3 line-clamp-2">{book.description}</p>
@@ -58,10 +59,10 @@ function BookCardItem({ book, isRTL, t, index = 0 }) {
             </div>
 
             {book.isSample ? (
-              <Link to={createPageUrl("BookWizard")}>
+              <Link to={`/samples/${book.id}`}>
                 <Button size="sm" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 hover:from-purple-700 hover:to-indigo-700 gap-1">
                   <Wand2 className="h-3.5 w-3.5" />
-                  {t("home.create.button")}
+                  {t("home.book.read")}
                 </Button>
               </Link>
             ) : (
@@ -142,7 +143,7 @@ const FeaturedBooksSection = React.memo(function FeaturedBooksSection({ featured
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: index * 0.07 }}
                 >
-                  <Card className="overflow-hidden hover:shadow-2xl h-full group border-0 shadow-md">
+                  <Card className="relative overflow-hidden hover:shadow-2xl h-full group border-0 shadow-md">
                     <div className="aspect-[4/3] bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 relative overflow-hidden">
                       {book.cover_image ? (
                         <img

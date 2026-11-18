@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { openCheckout } from "@/lib/creem";
 import { Book } from "@/entities/Book";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { InvokeLLM } from "@/integrations/Core";
@@ -10,9 +10,7 @@ import useGamification from "@/hooks/useGamification";
 import demoBooks from "@/data/demoBooks";
 import { getDailyPrompt } from "@/lib/dailyPrompt";
 import { captureError } from "@/lib/errorTracking";
-import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
 import { useI18n } from "@/components/i18n/i18nProvider";
-import UserWelcomeCard from "@/components/home/UserWelcomeCard";
 import DailyPromptCard from "@/components/home/DailyPromptCard";
 import DraftBooksSection from "@/components/home/DraftBooksSection";
 import FeaturedBooksSection from "@/components/home/FeaturedBooksSection";
@@ -32,27 +30,7 @@ export default function Home() {
   const gamification = useGamification();
   const { language: currentLanguage, isRTL, t } = useI18n();
   const { user: currentUserHook } = useCurrentUser();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  // After landing-page → /sign-up?plan=X → Home, auto-open Creem checkout for paid tiers.
-  // Wave-7: ties pricing CTA selection through to checkout.
-  useEffect(() => {
-    const plan = searchParams.get("plan");
-    if (!plan || plan === "free") return;
-    if (!["lite", "premium", "family"].includes(plan)) return;
-    if (!currentUserHook?.email) return;
-    searchParams.delete("plan");
-    setSearchParams(searchParams, { replace: true });
-    openCheckout(plan, currentUserHook.email).catch((err) => {
-      if (import.meta.env.DEV) console.warn("[Home] auto-checkout failed:", err);
-      navigate("/Settings?tab=billing");
-    });
-  }, [searchParams, currentUserHook?.email, setSearchParams, navigate]);
-
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem("onboarding_complete")
-  );
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [recentBooks, setRecentBooks] = useState([]);
   const [featuredBooks, setFeaturedBooks] = useState([]);
@@ -159,9 +137,7 @@ export default function Home() {
 
         setDraftBooks(drafts.slice(0, 3));
         setRecentBooks(completedBooks.slice(0, 6));
-        setFeaturedBooks(
-          completedBooks.length > 0 ? completedBooks.slice(0, 3) : createSampleFeaturedBooks()
-        );
+        setFeaturedBooks(createSampleFeaturedBooks());
 
         // Award XP on first ever login
         if (!localStorage.getItem("first_login_awarded")) {
@@ -187,7 +163,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto pb-12" dir={isRTL ? "rtl" : "ltr"} aria-busy="true" role="status">
+      <div className="max-w-6xl mx-auto pb-12 rounded-3xl bg-[#f8f1e3] text-[#202b3c]" dir={isRTL ? "rtl" : "ltr"} aria-busy="true" role="status">
         <section className="p-4 md:p-6 lg:p-8">
           {/* Welcome card skeleton */}
           <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-6">
@@ -272,22 +248,13 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-12" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="max-w-6xl mx-auto pb-12 rounded-3xl bg-[#f8f1e3] text-[#202b3c]" dir={isRTL ? "rtl" : "ltr"}>
       {/* Welcome + action bar */}
       <section className="p-4 md:p-6 lg:p-8">
         <div className="flex flex-col gap-4">
-          <UserWelcomeCard userData={userData} />
+          <div className="text-start"><p className="text-sm font-semibold text-[#846445]">{t('spxLibrary.welcome')}</p><p className="mt-1 text-xl font-bold">{userData.full_name || t('spxLibrary.welcomeEmpty')}</p><button type="button" onClick={() => setShowOnboarding(true)} className="mt-2 min-h-11 underline underline-offset-4 focus-visible:outline focus-visible:outline-2">{t('spxLibrary.preferences')}</button></div>
 
-          {/* Create book CTA */}
-          <div className={`flex items-center gap-2 w-full ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
-            <Link to={createPageUrl("BookWizard")} className="flex-shrink-0">
-              <Button className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-lg shadow-purple-500/30 rounded-2xl px-5 overflow-hidden group whitespace-nowrap">
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <Wand2 className={`relative h-4 w-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                <span className="relative">{t("home.create.button")}</span>
-              </Button>
-            </Link>
-          </div>
+
         </div>
 
         {/* Hero banner */}
@@ -299,13 +266,13 @@ export default function Home() {
           <Card className="mt-6 overflow-hidden shadow-xl rounded-2xl">
             <div className="relative min-h-[220px] sm:min-h-[280px] md:min-h-[300px]">
               <img
-                src="/images/home-hero-gemini.jpg"
+                src="/images/spx/hearth.webp"
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover"
                 aria-hidden="true"
               />
               {/* Subtle gradient backdrop — lets content breathe */}
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/40 via-purple-900/25 to-indigo-950/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#172a36]/80 via-[#172a36]/60 to-[#172a36]/25" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
               {/* Subtle decorative elements */}
@@ -391,13 +358,8 @@ export default function Home() {
         <DailyPromptCard dailyPrompt={dailyPrompt} isPromptLoading={isPromptLoading} />
       </motion.div>
 
-      {/* First-time onboarding wizard */}
-      {showOnboarding && (
-        <OnboardingWizard
-          onComplete={() => setShowOnboarding(false)}
-          userName={userData.full_name}
-        />
-      )}
+
+      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} onCancel={() => setShowOnboarding(false)} userName={userData.full_name} />}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 {
-  "total": 288,
+  "total": 270,
   "files": {
     "src/components/ai/AIStudio.jsx": {
       "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
@@ -99,30 +99,15 @@
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 3,
       "TS2741: Property 'variant' is missing in type '{ children: string; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
-    "src/components/home/UserWelcomeCard.jsx": {
-      "TS2322: Type '{ badgeId: any; size: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2339: Property 'userData' does not exist on type '{}'.": 1,
-      "TS2741: Property 'variant' is missing in type '{ children: Element[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 4
-    },
     "src/components/i18n/i18nProvider.jsx": {
       "TS2554: Expected 1 arguments, but got 0.": 1
-    },
-    "src/components/landing/LandingNav.jsx": {
-      "TS2353: Object literal may only specify known properties, and ''--i'' does not exist in type 'Properties<string | number, string & {}>'.": 1
     },
     "src/components/landing/PricingSection.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
-    "src/components/landing/ShowcaseSection.jsx": {
-      "TS2339: Property 'cover_image' does not exist on type '{ displayTitle: string; displayGenre: any; color: string; id: string; title: { he: string; en: string; }; genre: string; art_style: string; age_range: string; language: string; moral: string; cover_gradient: string; pages: { ...; }[]; }'.": 5
-    },
     "src/components/library/BookCard.jsx": {
       "TS2322: Type '{ src: any; alt: any; className: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 2,
       "TS2741: Property 'variant' is missing in type '{ children: Element; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 2
-    },
-    "src/components/onboarding/OnboardingWizard.jsx": {
-      "TS2339: Property 'onComplete' does not exist on type '{}'.": 1,
-      "TS2339: Property 'userName' does not exist on type '{}'.": 1
     },
     "src/components/profile/AchievementList.jsx": {
       "TS2322: Type '{ badgeId: any; size: string; completed: any; inProgress: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
@@ -274,8 +259,6 @@
     "src/pages/BookWizard.jsx": {
       "TS2322: Type '{ title: any; message: any; onRetry: any; onGoBack: () => void; isRTL: any; language: string; }' is not assignable to type 'IntrinsicAttributes & { title: any; message: any; onRetry: any; onGoBack: any; isRTL: any; }'.": 1,
       "TS2322: Type 'string' is not assignable to type '\"english\" | \"hebrew\" | \"yiddish\"'.": 1,
-      "TS2339: Property '__sipurai_last_bible' does not exist on type 'Window & typeof globalThis'.": 1,
-      "TS2345: Argument of type '{ prompt: any; aspectRatio: string; referenceImageBase64: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
       "TS2353: Object literal may only specify known properties, and 'defaultAgeRange' does not exist in type '{ bookData: any; characters?: any[]; scenes?: any[]; topic?: string; useRhyming?: boolean; rhymeSettings?: any; storyBible?: any; pageCount?: number; }'.": 1
     },
     "src/pages/CharacterEditor.jsx": {
@@ -306,9 +289,7 @@
     "src/pages/Home.jsx": {
       "TS2322: Type '{ dailyPrompt: any; isPromptLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
       "TS2322: Type '{ draftBooks: any[]; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ onComplete: () => void; userName: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ userData: { full_name: string; avatar_url: string; level: number; xp: number; nextLevelXp: number; completedBooks: number; streakDays: number; badges: any[]; notifications: number; }; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
+      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
     },
     "src/pages/LandingPage.jsx": {
       "TS2345: Argument of type '{ title: any; description: any; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1

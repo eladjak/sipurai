@@ -43,6 +43,7 @@ import { imageAspectForBook } from "./printSpec";
  */
 
 import { BOOK_STATUS, isPageReady, isPageIllustrated, normalizePages, summarizeBook } from '@/lib/bookProgress';
+import { editedPages } from "@/lib/storyManuscript";
 import { acquireRun } from '@/lib/generationLock';
 
 /** How many pages past the first to work on at once. */
@@ -57,6 +58,11 @@ export const IMAGE_FAILED_PREFIX = '[Image generation failed] ';
  * @property {Object} bookFields             Columns to insert into `books` (no status/total_pages).
  * @property {string} outlinePrompt
  * @property {Object} outlineSchema
+ * @property {(sheet: Array) => void} [applyCastSheet]
+ * @property {(outline: Array, title: string) => Object} [manuscriptRequest]
+ * @property {() => Object} [checkpointInputs]
+ * @property {boolean} [requireReference]
+ * @property {string} [approvedTitle]
  * @property {string} coverPrompt
  * @property {(entry: Object, index: number) => string} pageTextPrompt
  * @property {(index: number) => Object} pageTextSchema
@@ -74,6 +80,10 @@ export const IMAGE_FAILED_PREFIX = '[Image generation failed] ';
  * @param {{InvokeLLM: Function, GenerateImage: Function}} opts.ai
  * @param {GenerationRecipe} opts.recipe
  * @param {string|null} [opts.bookId]        Present ⇒ resume an existing book.
+ * @param {string|null} [opts.newBookId]
+ * @param {boolean} [opts.allowLegacyReservation]
+ * @param {number[]} [opts.repairPages]
+ * @param {boolean} [opts.repairCover]
  * @param {(event: Object) => void} [opts.onEvent]
  * @param {number} [opts.concurrency]
  * @param {AbortSignal} [opts.signal]        Cancels *scheduling*; in-flight calls finish and are saved.
@@ -91,7 +101,16 @@ export async function generateBookIncremental({
   signal,
   lock = acquireRun,
   fetchReference = fetchImageAsBase64,
+  newBookId = null,
+  allowLegacyReservation = false,
+  repairPages = [],
+  repairCover = false,
 }) {
+  if (entities.Book.generationStore) {
+    const { generateDurableBook } = await import('./durableBookRun');
+    return generateDurableBook({ storage: entities.Book.generationStore, entities, ai, recipe, bookId, newBookId,
+      allowLegacyReservation, onEvent, concurrency, signal, lock, repairPages, repairCover, fetchReference });
+  }
   const { Book, Page } = entities;
   const { InvokeLLM, GenerateImage } = ai;
 
@@ -105,6 +124,21 @@ export async function generateBookIncremental({
 
   let book = null;
   let pages = [];
+  let manuscript = null;
+  let servicePaused = false;
+  let fatalError = null;
+  let coverUsable = false;
+
+  function stopOnConflict(error) {
+    if (['lease_lost', 'book_conflict', 'page_conflict', 'storage_unavailable', 'book_not_owned'].includes(error?.code)) {
+      fatalError = error;
+      servicePaused = true;
+      return true;
+    }
+    return false;
+  }
+
+  let storyPlan = [];
   let releaseLock = () => {};
   const imageFailures = [];
 
@@ -160,7 +194,9 @@ export async function generateBookIncremental({
       const outline = await callOutline(InvokeLLM, recipe);
 
       const entries = normalizeOutline(outline?.outline, recipe.pageCount);
-      const title = recipe.sanitize(outline?.title || recipe.bookFields.title);
+      recipe.applyCastSheet?.(outline?.cast);
+      storyPlan = entries;
+      const title = recipe.sanitize(recipe.approvedTitle || outline?.title || recipe.bookFields.title);
 
       // The row is written before any page exists — unavoidable, since pages
       // need a book_id. `total_pages` is set in the same statement so that a
@@ -205,24 +241,32 @@ export async function generateBookIncremental({
     // page one hostage: if it is slow or fails, pages proceed without it.
     let coverWork = Promise.resolve(null);
 
-    if (book.cover_image) {
-      coverWork = fetchReference(book.cover_image).catch(() => null);
-    } else {
-      coverWork = GenerateImage({ prompt: recipe.coverPrompt, aspectRatio: imageAspectForBook(book) })
+    const makeCover = () => GenerateImage({ prompt: recipe.coverPrompt, aspectRatio: imageAspectForBook(book) })
         .then(async (result) => {
           if (!result?.url) return null;
-          await Book.update(book.id, { cover_image: result.url }).catch(() => {});
+          const pixels = recipe.requireReference
+            ? await fetchReference(result.url)
+            : result.base64 || await fetchReference(result.url).catch(() => null);
+          if (recipe.requireReference && !pixels) throw new Error('Cover image could not be read');
+          await Book.update(book.id, { cover_image: result.url });
           book = { ...book, cover_image: result.url };
           // The base64 rides along so a caller that later retries a single
           // illustration can pass the same character reference and keep the
           // child on page 7 looking like the child on page 1.
           emit('cover', { url: result.url, base64: result.base64 || null });
-          return result.base64 || null;
+          return pixels;
         })
         .catch((err) => {
+          stopOnConflict(err);
+          if (shouldPauseGeneration(err)) servicePaused = true;
           emit('cover-failed', { message: messageOf(err) });
           return null;
         });
+    if (book.cover_image && !repairCover) {
+      // A failed fetch cannot replace a family's existing cover on its own.
+      coverWork = fetchReference(book.cover_image).catch(() => null);
+    } else {
+      coverWork = makeCover();
     }
 
     // The character reference, resolved at most once and only ever awaited by
@@ -230,10 +274,25 @@ export async function generateBookIncremental({
     // picture: waiting on the cover before writing any text cost 8 seconds of
     // the parent's first impression, measured against the live API.
     //
-    // `Promise.race` with a short timer means a stalled cover costs seconds
-    // rather than the 90s abort, and a failed one costs nothing at all.
-    const referenceReady = Promise.race([coverWork, delay(8000).then(() => null)])
-      .catch(() => null);
+    // Start writing as soon as the plan exists. Only illustration awaits the
+    // cover, so a slow cover cannot silently discard every character reference.
+    const referenceReady = coverWork.catch(() => null).then(ref => {
+      coverUsable = !!ref;
+      return ref;
+    });
+    if (!bookId && recipe.manuscriptRequest && !signal?.aborted) {
+      emit('phase', { phase: 'editing' });
+      try {
+        const result = await InvokeLLM(recipe.manuscriptRequest(storyPlan, book.title));
+        manuscript = editedPages(result, storyPlan.length);
+      } catch (err) {
+        if (shouldPauseGeneration(err)) servicePaused = true;
+        // The saved outline remains usable by the per-page path after timeout.
+      }
+    }
+    const outlineForContinuity = pages.map((page) =>
+      (page.text_content || page.image_prompt || '').slice(0, 400)
+    );
 
     // ── 3. Page one, alone and first ─────────────────────────────────────────
     // This is the whole user-visible point of the redesign: a parent sees a
@@ -241,11 +300,18 @@ export async function generateBookIncremental({
     const order = pages.map((_, i) => i);
     const first = order[0];
 
-    if (first !== undefined) await buildPage(first, referenceReady);
+    // Persist the edited manuscript before waiting on artwork. Resuming a book
+    // after the tab closes can now use the same words for all completed rows.
+    if (manuscript) {
+      await pool(order, concurrency, (index) => buildPage(index, referenceReady, true), signal);
+    }
+    if (first !== undefined && !signal?.aborted) await buildPage(first, referenceReady);
 
     // ── 4. The rest, in a bounded pool ───────────────────────────────────────
     await pool(order.slice(1), concurrency, (index) => buildPage(index, referenceReady), signal);
 
+    if (recipe.requireReference) await referenceReady;
+    if (fatalError) throw fatalError;
     return await settle();
 
     // ── unit of work ─────────────────────────────────────────────────────────
@@ -255,9 +321,9 @@ export async function generateBookIncremental({
      * must cost one picture, not the book. Each result is written the instant it
      * exists, so an abort between them loses at most the unit in flight.
      */
-    async function buildPage(index, refPromise) {
+    async function buildPage(index, refPromise, textOnly = false) {
       const page = pages[index];
-      if (!page) return;
+      if (!page || servicePaused) return;
 
       // Prompts are addressed by the page's own number, not its position in the
       // array. They coincide for a whole book, but a resume that had to rebuild
@@ -270,7 +336,7 @@ export async function generateBookIncremental({
           // Story Bible fast path writes every page in one upfront call), so
           // the incremental loop still owns persistence and ordering without
           // paying for a second LLM round-trip per page.
-          const precomputed = recipe.pageTextOverride?.(number) || null;
+          const precomputed = manuscript?.[number] || recipe.pageTextOverride?.(number) || null;
           const result = precomputed || await writePageText(number, page);
           const text = recipe.sanitize(recipe.readPageText(result) || '');
           const imagePrompt = recipe.sanitize(result?.image_prompt || page.image_prompt || '');
@@ -286,27 +352,39 @@ export async function generateBookIncremental({
           // promise and starts being a book. Say so immediately — both in the
           // data and to whoever is watching.
           if (book.status !== BOOK_STATUS.PARTIAL && book.status !== BOOK_STATUS.COMPLETE) {
-            await Book.update(book.id, { status: BOOK_STATUS.PARTIAL }).catch(() => {});
+            await Book.update(book.id, { status: BOOK_STATUS.PARTIAL });
             book = { ...book, status: BOOK_STATUS.PARTIAL };
           }
           emit('page-text', { index, bookId: book.id, ...summarizeBook(book, pages) });
         } catch (err) {
+          stopOnConflict(err);
+          if (shouldPauseGeneration(err)) servicePaused = true;
           emit('page-text-failed', { index, message: messageOf(err) });
           return; // No text ⇒ no illustration to draw. Leave it for a resume.
         }
       }
 
-      if (isPageIllustrated(pages[index])) return;
+      if (textOnly) return;
+      if (isPageIllustrated(pages[index]) && !repairPages.includes(number)) {
+        if (!recipe.requireReference || await fetchReference(pages[index].image_url)) return;
+        // Keep the stored artwork until a verified replacement is available.
+      }
 
       // Only now is the cover worth waiting for: it is the character reference,
       // and it matters to the drawing, not to the words.
       const ref = await refPromise;
+      if (servicePaused || (recipe.requireReference && !ref)) return;
 
-      const prompt = recipe.imagePrompt(pages[index], number, { reference: ref });
+      const previousPrompt = pages[index].image_prompt || '';
+      const prompt = previousPrompt.startsWith(IMAGE_FAILED_PREFIX)
+        ? previousPrompt.slice(IMAGE_FAILED_PREFIX.length)
+        : recipe.imagePrompt(pages[index], number, { reference: ref });
       try {
         const result = await GenerateImage({ prompt, aspectRatio: imageAspectForBook(book), referenceImageBase64: ref || null });
         const url = result?.url || '';
-        if (!url) throw new Error('No image was returned');
+        if (!url || (recipe.requireReference && !(await fetchReference(url)))) {
+          throw new Error('Page illustration could not be read');
+        }
         const saved = await Page.update(pages[index].id, { image_url: url, image_prompt: prompt });
         pages[index] = { ...pages[index], ...(saved || {}), image_url: url, image_prompt: prompt };
         emit('page-image', { index, bookId: book.id, ...summarizeBook(book, pages) });
@@ -314,10 +392,12 @@ export async function generateBookIncremental({
         // A failed illustration is recorded on the row so a retry surface can
         // find it later, and reported — but it is emphatically not fatal. A
         // page with words and no picture is still a page.
+        if (stopOnConflict(err)) return;
+        if (shouldPauseGeneration(err)) servicePaused = true;
         imageFailures.push({ pageId: pages[index].id, index, imagePrompt: prompt });
         await Page.update(pages[index].id, {
           image_prompt: `${IMAGE_FAILED_PREFIX}${prompt}`,
-        }).catch(() => {});
+        }).catch(stopOnConflict);
         emit('page-image-failed', { index, message: messageOf(err) });
       }
     }
@@ -334,7 +414,7 @@ export async function generateBookIncremental({
     async function writePageText(number, page) {
       const ask = () =>
         InvokeLLM({
-          prompt: recipe.pageTextPrompt({ description: page.image_prompt || '' }, number),
+          prompt: recipe.pageTextPrompt({ description: page.image_prompt || '', outline: outlineForContinuity }, number),
           response_json_schema: recipe.pageTextSchema(number),
           max_tokens: recipe.pageMaxTokens,
           thinking_budget: recipe.pageThinkingBudget,
@@ -342,6 +422,7 @@ export async function generateBookIncremental({
       try {
         return await ask();
       } catch (first) {
+        if (shouldPauseGeneration(first)) throw first;
         try {
           return await ask();
         } catch {
@@ -359,7 +440,7 @@ export async function generateBookIncremental({
      */
     async function settle() {
       const s = summarizeBook(book, pages);
-      const status = s.isComplete
+      const status = s.isComplete && s.missingImage.length === 0 && (!recipe.requireReference || coverUsable) && !imageFailures.length
         ? BOOK_STATUS.COMPLETE
         : s.isReadable
           ? BOOK_STATUS.PARTIAL
@@ -371,6 +452,7 @@ export async function generateBookIncremental({
           // which is either `generating` (the reader treats a stale run as
           // interrupted and offers Continue) or an earlier truthful value.
           emit('status-write-failed', { message: messageOf(err) });
+          if (recipe.requireReference || stopOnConflict(err)) throw err;
         });
         book = { ...book, status };
       }
@@ -380,7 +462,7 @@ export async function generateBookIncremental({
   } catch (err) {
     // The book exists but the run broke. Record what is genuinely there rather
     // than leaving a row that claims work is still happening.
-    if (book?.id) {
+    if (book?.id && !fatalError) {
       try {
         const s = summarizeBook(book, pages);
         await entities.Book.update(book.id, {
@@ -429,7 +511,7 @@ export function normalizeOutline(outline, pageCount) {
  * So it, and only it, gets one retry. One, not a loop: a persistent failure
  * should surface quickly rather than be hidden behind minutes of retrying.
  */
-async function callOutline(InvokeLLM, recipe) {
+export async function callOutline(InvokeLLM, recipe) {
   try {
     return await InvokeLLM({
       prompt: recipe.outlinePrompt,
@@ -438,6 +520,7 @@ async function callOutline(InvokeLLM, recipe) {
       thinking_budget: recipe.outlineThinkingBudget,
     });
   } catch (first) {
+    if (shouldPauseGeneration(first)) throw first;
     try {
       return await InvokeLLM({
         prompt: recipe.outlinePrompt,
@@ -471,8 +554,8 @@ export async function pool(items, limit, worker, signal) {
   await Promise.all(Array.from({ length: size }, runner));
 }
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function shouldPauseGeneration(err) {
+  return [401, 403, 408, 429, 503, 504].includes(err?.status);
 }
 
 function messageOf(err) {
@@ -487,12 +570,34 @@ function messageOf(err) {
 export async function fetchImageAsBase64(url) {
   if (!url || typeof fetch !== 'function') return null;
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
     if (!response.ok) return null;
-    const buffer = await response.arrayBuffer();
+    const mime = response.headers.get('content-type')?.split(';')[0].toLowerCase();
+    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'].includes(mime)) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > 16 * 1024 * 1024) return null;
+    // The storage proxy can respond with a successful HTTP status even when
+    // an upstream object is corrupt. Decode it before marking a book complete.
+    const blob = new Blob([bytes], { type: mime });
+    if (typeof createImageBitmap === 'function') {
+      const bitmap = await createImageBitmap(blob);
+      bitmap.close();
+    } else if (typeof Image !== 'undefined') {
+      const src = URL.createObjectURL(blob);
+      try {
+        const image = new Image();
+        image.src = src;
+        await image.decode();
+      } finally {
+        URL.revokeObjectURL(src);
+      }
+    } else {
+      return null;
+    }
     let binary = '';
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    for (let start = 0; start < bytes.length; start += 32768) {
+      binary += String.fromCharCode(...bytes.subarray(start, start + 32768));
+    }
     return typeof btoa === 'function' ? btoa(binary) : null;
   } catch {
     return null;

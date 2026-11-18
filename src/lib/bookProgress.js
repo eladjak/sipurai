@@ -113,7 +113,7 @@ export function summarizeBook(book, pages) {
  */
 export function deriveStatus(book, pages) {
   const s = summarizeBook(book, pages);
-  if (s.isComplete) return BOOK_STATUS.COMPLETE;
+  if (s.isComplete && !s.missingImage.length) return BOOK_STATUS.COMPLETE;
   if (s.isReadable) return BOOK_STATUS.PARTIAL;
   return BOOK_STATUS.FAILED;
 }
@@ -147,7 +147,7 @@ export function isResumable(book, pages) {
 export function viewState(book, pages, isRunLive = false) {
   if (!book) return 'missing';
   const s = summarizeBook(book, pages);
-  if (s.isComplete) return 'complete';
+  if (s.isComplete && !s.missingImage.length) return 'complete';
   if (isRunLive) return s.isReadable ? 'building' : 'starting';
   if (s.isReadable) return 'interrupted';
   return 'empty';

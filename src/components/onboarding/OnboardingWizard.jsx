@@ -21,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 // Step order: language → welcome → profile → topics
 const STEPS = [
@@ -121,21 +120,24 @@ const translations = {
   }
 };
 
-const OnboardingWizard = React.memo(function OnboardingWizard({ onComplete, userName }) {
+const OnboardingWizard = React.memo(function OnboardingWizard(/** @type {{onComplete: () => void, onCancel?: () => void, userName?: string}} */ { onComplete, onCancel, userName }) {
   // NOTE: Language is now step 0 so the user immediately sees the UI in their
   // chosen language for all subsequent steps. RTL applies from step 0 onward.
-  const { changeLanguage } = useI18n();
+  const { changeLanguage, language: currentLanguage, t: globalT } = useI18n();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(userName || "");
-  const [ageRange, setAgeRange] = useState("");
+  const [ageRange, setAgeRange] = useState(() => localStorage.getItem("preferredAgeRange") || "");
   const [language, setLanguage] = useState(() => {
-    // Auto-detect from browser language; fallback to English
+    if (['english', 'hebrew', 'yiddish'].includes(currentLanguage)) return currentLanguage;
     const nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
     if (nav.startsWith('he')) return 'hebrew';
     if (nav.startsWith('yi')) return 'yiddish';
     return 'english';
   });
-  const [selectedTopics, setSelectedTopics] = useState([]);
+  const [selectedTopics, setSelectedTopics] = useState(() => {
+    try { const saved = JSON.parse(localStorage.getItem("favoriteTopics") || "[]"); return Array.isArray(saved) ? saved : []; }
+    catch { return []; }
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   // RTL applies as soon as the user picks Hebrew/Yiddish in step 0
@@ -219,6 +221,7 @@ const OnboardingWizard = React.memo(function OnboardingWizard({ onComplete, user
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <Card className="w-full max-w-lg overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
+        {onCancel && <button type="button" onClick={onCancel} className="m-3 min-h-11 rounded-lg px-3 underline focus-visible:outline focus-visible:outline-2">{globalT('spxLibrary.closePreferences')}</button>}
         {/* Progress bar */}
         <div className="flex gap-1 p-3 bg-gray-50 dark:bg-gray-900">
           {STEPS.map((s, i) => (

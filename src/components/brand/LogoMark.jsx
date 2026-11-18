@@ -6,10 +6,10 @@ export function LogoMark({ className = "" }) {
       focusable="false"
       className={className}
     >
-      <rect width="260" height="260" rx="48" fill="var(--sp-night-700)" />
+      <rect width="260" height="260" rx="48" fill="var(--sp-night-700, #263c4c)" />
       <g
         fill="none"
-        stroke="var(--sp-gold-400)"
+        stroke="var(--sp-gold-400, #f4cc8f)"
         strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"

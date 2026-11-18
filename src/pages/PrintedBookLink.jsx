@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { useAuth } from '@/lib/AuthContext';
+import { isNewShell } from '@/lib/flags';
 import { supabase } from '@/lib/supabaseClient';
 import { toAppImageUrl } from '@/lib/imageUrl';
 import { resolvePrintedBook } from '@/lib/printedBookLink';
@@ -30,7 +31,7 @@ export default function PrintedBookLink() {
   const reader = '/BookView?id=' + encodeURIComponent(id);
   if (value.kind === 'owner') return <Navigate replace to={reader} />;
   const shared = value.kind === 'shared';
-  const picture = (shared && toAppImageUrl(value.book.cover_image)) || '/images/reading-magic.jpg';
+  const picture = (shared && toAppImageUrl(value.book.cover_image)) || '/images/spx/hearth.webp';
   const primary = 'inline-flex min-h-12 items-center justify-center rounded-full bg-sp-violet-700 px-6 font-semibold text-white focus-visible:outline focus-visible:outline-offset-4';
   const secondary = 'inline-flex min-h-12 items-center px-2 font-semibold text-sp-violet-700 underline underline-offset-4';
   return <main dir={isRTL ? 'rtl' : 'ltr'} className="sp-shell min-h-screen bg-sp-paper px-5 py-8 font-sp-body text-sp-ink-900 sm:py-14">
@@ -45,7 +46,8 @@ export default function PrintedBookLink() {
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {shared && <Link className={primary} to={reader}>{t('printedLink.read')}</Link>}
               {value.kind === 'error' && <button type="button" className={secondary} onClick={() => setAttempt(n => n + 1)}>{t('printedLink.retry')}</button>}
-              <Link className={shared ? secondary : primary} to={identity ? "/BookWizard" : "/sign-in?redirect_url=%2FBookWizard"}>{t('printedLink.create')}</Link>
+              <Link className={shared ? secondary : primary} to={identity ? (isNewShell() ? '/new' : '/BookWizard') : '/sign-in?redirect_url=' + encodeURIComponent(isNewShell() ? '/new' : '/BookWizard')}>{t('printedLink.create')}</Link>
+              <Link className={secondary} to="/samples/demo-dragons-garden">{t('spxLibrary.readSample')}</Link>
               {!identity && <Link className={secondary} to={'/sign-in?redirect_url=' + encodeURIComponent('/b/print/' + id)}>{t('printedLink.owner')}</Link>}
             </div>
           </>}

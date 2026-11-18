@@ -19,7 +19,7 @@ vi.mock("@/entities/User", () => ({
 // Mock AuthContext (useCurrentUser depends on useAuth)
 vi.mock("@/lib/AuthContext", () => ({
   useAuth: () => ({
-    user: { email: "test@test.com", full_name: "Test User", language: "english" },
+    user: { id: "test-user", email: "test@test.com", full_name: "Test User", language: "english" },
     isAuthenticated: true,
     isLoadingAuth: false,
     navigateToLogin: vi.fn(),
@@ -213,7 +213,7 @@ import {
 } from "@/utils/content-moderation";
 
 // Import the BookWizard page for integration tests
-import BookWizardPage from "@/pages/BookWizard";
+import BookWizardPage, { fillEmptyOutlineFields, getDraftKeys } from "@/pages/BookWizard";
 
 // === WIZARD PROGRESS TESTS ===
 describe("WizardProgress", () => {
@@ -228,7 +228,7 @@ describe("WizardProgress", () => {
     render(
       <WizardProgress steps={steps} currentStep={0} onStepClick={vi.fn()} isRTL={false} />
     );
-    expect(screen.getByText("Choose Topic")).toBeDefined();
+    expect(screen.getAllByText("Choose Topic").length).toBeGreaterThan(0);
     expect(screen.getByText("Characters")).toBeDefined();
     expect(screen.getByText("Preview")).toBeDefined();
     expect(screen.getByText("Create")).toBeDefined();
@@ -309,8 +309,8 @@ describe("TopicStep", () => {
         language="english"
       />
     );
-    const spaceBtn = screen.getByRole("radio", { name: "Space" });
-    expect(spaceBtn.getAttribute("aria-checked")).toBe("true");
+    const spaceBtn = screen.getByRole("button", { name: "Space" });
+    expect(spaceBtn.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("renders topic labels via i18n when language is hebrew", () => {
@@ -464,7 +464,7 @@ describe("PreviewEditStep", () => {
       />
     );
     // Art styles render via t("illustrationStyles.{id}.name") or fall back to style.en
-    const artStyleSection = screen.getByRole("radiogroup");
+    const artStyleSection = screen.getByRole("group", { name: "wizard.preview.selectArtStyle" });
     expect(artStyleSection).toBeDefined();
   });
 });
@@ -485,7 +485,7 @@ describe("SaveStep", () => {
     );
     expect(screen.getByText("My Adventure")).toBeDefined();
     expect(screen.getByText("Hero")).toBeDefined();
-    expect(screen.getByText("adventure")).toBeDefined();
+    expect(screen.getByText("Adventure")).toBeDefined();
   });
 
   it("calls onCreateBook when button is clicked", () => {
@@ -655,7 +655,7 @@ describe("BookWizard Page", () => {
   it("renders all 4 step labels in progress indicator", async () => {
     render(<BookWizardPage />);
     await waitFor(() => {
-      expect(screen.getByText("Choose Topic")).toBeDefined();
+      expect(screen.getAllByText("Choose Topic").length).toBeGreaterThan(0);
       expect(screen.getByText("Characters")).toBeDefined();
       expect(screen.getByText("Preview & Edit")).toBeDefined();
       expect(screen.getByText("Create")).toBeDefined();
@@ -752,5 +752,46 @@ describe("BookWizard Page", () => {
       expect(screen.getByText("Animals")).toBeDefined();
       expect(screen.getByText("Space")).toBeDefined();
     });
+  });
+});
+
+describe("outline autofill", () => {
+  it("preserves typed text and fills only empty fields", () => {
+    expect(fillEmptyOutlineFields({title: "My title", description: "", moral: "My lesson"}, {title: "AI title", description: "AI description", moral: "AI moral"})).toEqual({title: "My title", description: "AI description", moral: "My lesson"});
+  });
+});
+
+describe("draft privacy", () => {
+  it("lists only drafts belonging to the active account and retains old keys", () => {
+    localStorage.clear();
+    localStorage.setItem('sipurai_draft_123', JSON.stringify({_savedAt:1, bookData:{title:'Old private'}}));
+    localStorage.setItem('sipurai_draft_v2_6_user-a_456', JSON.stringify({_savedAt:2}));
+    localStorage.setItem('sipurai_draft_v2_6_user-b_789', JSON.stringify({_savedAt:3}));
+    expect(getDraftKeys('user-a')).toEqual(['sipurai_draft_v2_6_user-a_456']);
+    expect(getDraftKeys('user-b')).toEqual(['sipurai_draft_v2_6_user-b_789']);
+    localStorage.setItem('sipurai_draft_v2_10_user-a_sub_999', JSON.stringify({_savedAt:4}));
+    expect(getDraftKeys('user-a')).toEqual(['sipurai_draft_v2_6_user-a_456']);
+    expect(getDraftKeys(null)).toEqual([]);
+    expect(localStorage.getItem('sipurai_draft_123')).toContain('Old private');
+    localStorage.clear();
+  });
+});
+
+describe("visible private draft restore", () => {
+  beforeEach(() => localStorage.clear());
+  it("offers the matching account's draft and restores its choices", async () => {
+    localStorage.setItem('sipurai_draft_v2_9_test-user_123', JSON.stringify({_savedAt:Date.now(), _attemptId:'attempt-1', currentStep:0, selectedTopic:'space', bookData:{title:'My space book'}}));
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole('button',{name:'wizard.draft.restore'}));
+    expect(screen.getByRole('button',{name:'Space'}).getAttribute('aria-pressed')).toBe('true');
+  });
+  it("does not show a browser-wide or another account's old draft", async () => {
+    localStorage.setItem('sipurai_draft_123',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Old secret'}}));
+    localStorage.setItem('sipurai_draft_v2_5_other_234',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Other secret'}}));
+    render(<BookWizardPage />);
+    await screen.findByText('Book Creation Wizard');
+    expect(screen.queryByText(/Old secret|Other secret/)).toBeNull();
+    expect(screen.queryByRole('button',{name:'wizard.draft.restore'})).toBeNull();
+    expect(localStorage.getItem('sipurai_draft_123')).toContain('Old secret');
   });
 });

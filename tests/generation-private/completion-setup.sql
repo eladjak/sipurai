@@ -1,0 +1,4 @@
+INSERT INTO public.book_quota_reservations(user_id,book_key) VALUES ('owner','66666666-6666-4666-8666-666666666666');
+INSERT INTO public.books(id,created_by,title,status,cover_image,total_pages,is_public) VALUES ('66666666-6666-4666-8666-666666666666','owner','fixture','generating','cover',1,false);
+INSERT INTO sipurai_generation_private.checkpoints(book_id,owner_id,quota_key,quota_book_key,seed,checkpoint,lease_run,fence,lease_expires) VALUES ('66666666-6666-4666-8666-666666666666','owner','66666666-6666-4666-8666-666666666666','66666666-6666-4666-8666-666666666666','{}','{"plan":[{}]}','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',1,clock_timestamp()+interval '90 seconds');
+INSERT INTO public.pages(book_id,created_by,page_number,text_content,image_url,image_prompt,layout_type) VALUES ('66666666-6666-4666-8666-666666666666','owner',0,'text','image','prompt','standard');

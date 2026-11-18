@@ -257,8 +257,8 @@ describe('generateBookIncremental — the failing arm', () => {
     });
 
     const { book, pages } = store.snapshot(result.bookId);
-    expect(result.status).toBe(BOOK_STATUS.COMPLETE);
-    expect(book.status).toBe(BOOK_STATUS.COMPLETE);
+    expect(result.status).toBe(BOOK_STATUS.PARTIAL);
+    expect(book.status).toBe(BOOK_STATUS.PARTIAL);
     expect(readablePages(pages)).toHaveLength(4);
 
     const failed = pages.find((p) => p.page_number === 2);
@@ -552,5 +552,30 @@ describe('print size image generation', () => {
     expect(store.snapshot(result.bookId).book.print_size).toBe('portrait-165x235');
     expect(ai.GenerateImage.mock.calls.length).toBeGreaterThan(1);
     expect(ai.GenerateImage.mock.calls.every(([args]) => args.aspectRatio === '2:3')).toBe(true);
+  });
+});
+
+describe('whole-book editing and locked reference on normal generation', () => {
+  it('uses edited text for every page and retries with the original drawing instructions once', async () => {
+    const store = makeStore();
+    const recipe = makeRecipe(3);
+    recipe.approvedTitle = 'Family title';
+    recipe.manuscriptRequest = (outline, title) => ({ prompt: 'edit all pages', title, outline });
+    const source = makeAi({ failImageAt: [1] });
+    const ai = { ...source, InvokeLLM: vi.fn(opts => opts.prompt === 'edit all pages'
+      ? Promise.resolve({ pages: [0,1,2].map(i => ({ page_number: i, text_content: 'edited ' + i, image_prompt: 'edited scene ' + i })) })
+      : source.InvokeLLM(opts)) };
+    const result = await run({ entities: store, ai, recipe });
+    expect(result.status).toBe(BOOK_STATUS.PARTIAL);
+    expect(store.snapshot(result.bookId).book.title).toBe('Family title');
+    const first = store.snapshot(result.bookId).pages;
+    expect(first.map(p => p.text_content)).toEqual(['edited 0', 'edited 1', 'edited 2']);
+    const retry = makeAi();
+    await run({ entities: store, ai: retry, recipe, bookId: result.bookId, fetchReference: async () => 'COVER64' });
+    expect(retry.GenerateImage.mock.calls).toHaveLength(1);
+    expect(retry.GenerateImage.mock.calls[0][0]).toMatchObject({
+      prompt: first.find(p => p.page_number === 1).image_prompt.replace(IMAGE_FAILED_PREFIX,''),
+      referenceImageBase64: 'COVER64',
+    });
   });
 });

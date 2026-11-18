@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
+import { authLink } from '@/lib/authReturn';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +11,7 @@ import { useI18n } from '@/components/i18n/i18nProvider';
 
 const PricingSection = () => {
   const { t, isRTL } = useI18n();
+  const { user } = useAuth();
 
   const plans = [
     {
@@ -23,7 +26,7 @@ const PricingSection = () => {
       ],
       cta: t('landing.pricing.free.cta'),
       highlighted: false,
-      link: '/sign-up?plan=free',
+      link: user ? '/pricing?plan=free' : authLink('/sign-up', '/pricing?plan=free'),
     },
     {
       name: t('landing.pricing.lite.name'),
@@ -37,7 +40,7 @@ const PricingSection = () => {
       ],
       cta: t('landing.pricing.lite.cta'),
       highlighted: false,
-      link: '/sign-up?plan=lite',
+      link: user ? '/pricing?plan=lite' : authLink('/sign-up', '/pricing?plan=lite'),
     },
     {
       name: t('landing.pricing.premium.name'),
@@ -52,7 +55,7 @@ const PricingSection = () => {
       cta: t('landing.pricing.premium.cta'),
       highlighted: true,
       badge: t('landing.pricing.premium.badge'),
-      link: '/sign-up?plan=premium',
+      link: user ? '/pricing?plan=premium' : authLink('/sign-up', '/pricing?plan=premium'),
     },
     {
       name: t('landing.pricing.family.name'),
@@ -66,7 +69,7 @@ const PricingSection = () => {
       ],
       cta: t('landing.pricing.family.cta'),
       highlighted: false,
-      link: '/sign-up?plan=family',
+      link: user ? '/pricing?plan=family' : authLink('/sign-up', '/pricing?plan=family'),
     },
   ];
 

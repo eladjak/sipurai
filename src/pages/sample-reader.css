@@ -1,0 +1,10 @@
+.sample-page { transform-origin: left center; animation: sample-turn-in 420ms cubic-bezier(.2,.7,.2,1) both; }
+[dir='rtl'] .sample-page { transform-origin: right center; }
+.sample-page--back { transform-origin: right center; }
+[dir='rtl'] .sample-page--back { transform-origin: left center; }
+.sample-page--cover { box-shadow: 0 12px 28px #20304333, inset 6px 0 0 #d3b992; }
+.sample-controls { background: #f8f1e3f2; border-top: 1px solid #d8cdbb; }
+@keyframes sample-turn-in { from { opacity: .55; transform: perspective(1200px) rotateY(-7deg) translateX(12px); } to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); } }
+[dir='rtl'] .sample-page--forward, [dir='ltr'] .sample-page--back { animation-name: sample-turn-in-rtl; }
+@keyframes sample-turn-in-rtl { from { opacity: .55; transform: perspective(1200px) rotateY(7deg) translateX(-12px); } to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); } }
+@media (prefers-reduced-motion: reduce) { [dir] .sample-page { animation: none; } }

@@ -240,13 +240,12 @@ const STYLE_GRADIENTS = {
   chibi: "from-pink-300 to-rose-400",
 };
 
-// Surprise Me auto-fill: picks random art style, length, tone, age range
-const RANDOM_TONES = ["exciting", "funny", "calm", "mysterious", "educational"];
-const RANDOM_LENGTHS = ["short", "medium", "long"];
-const RANDOM_AGES = ["3-5", "5-7", "7-10"];
-
 function getStyleLabel(style, t) {
   return t("illustrationStyles." + style.value + ".name") || style.en;
+}
+
+export function artStyleLabel(value, t) {
+  return getStyleLabel(ART_STYLE_VISUAL.find((style) => style.value === value) || { value, en: value }, t);
 }
 
 function getStyleDesc(style, t) {
@@ -275,14 +274,6 @@ export default function PreviewEditStep({
   const isHebrew = language === "hebrew";
   const isYiddish = language === "yiddish";
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const handleSurpriseMe = () => {
-    const styleValues = ART_STYLE_VISUAL.map((s) => s.value);
-    onBookDataChange("art_style", styleValues[Math.floor(Math.random() * styleValues.length)]);
-    onBookDataChange("length", RANDOM_LENGTHS[Math.floor(Math.random() * RANDOM_LENGTHS.length)]);
-    onBookDataChange("tone", RANDOM_TONES[Math.floor(Math.random() * RANDOM_TONES.length)]);
-    onBookDataChange("age_range", RANDOM_AGES[Math.floor(Math.random() * RANDOM_AGES.length)]);
-  };
 
   // Loading skeleton
   if (isGeneratingOutline) {
@@ -344,42 +335,10 @@ export default function PreviewEditStep({
         </motion.div>
       </div>
 
-      {/* Surprise Me! — auto-fill art style, length, tone */}
-      <div className="flex justify-center">
-        <motion.button
-          onClick={handleSurpriseMe}
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="
-            relative flex items-center gap-3 px-6 py-3 rounded-2xl font-bold text-sm
-            bg-gradient-to-r from-amber-400 via-orange-400 to-pink-400
-            text-white shadow-md shadow-orange-200/50
-            hover:shadow-lg hover:shadow-orange-300/50
-            transition-shadow duration-200 overflow-hidden
-          "
-          aria-label={t("wizard.preview.surpriseMeLabel")}
-        >
-          <motion.div
-            className="absolute inset-0 bg-white/25 skew-x-12"
-            animate={{ x: ["-200%", "300%"] }}
-            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
-            aria-hidden="true"
-          />
-          <Shuffle className="h-4 w-4 relative z-10" aria-hidden="true" />
-          <span className="relative z-10">
-            {t("wizard.preview.surpriseMe")}
-          </span>
-          <Wand2 className="h-4 w-4 relative z-10" aria-hidden="true" />
-        </motion.button>
-      </div>
-
       {/* Story Title */}
       <Card>
         <CardHeader>
-          <CardTitle className={`flex items-center gap-2 text-lg ${isRTL ? "flex-row-reverse" : ""}`}>
+          <CardTitle className={`flex items-center gap-2 text-lg `}>
             <BookOpen className="h-5 w-5 text-purple-600" aria-hidden="true" />
             {t("wizard.preview.storyTitle")}
           </CardTitle>
@@ -400,7 +359,7 @@ export default function PreviewEditStep({
       {/* Story Description */}
       <Card>
         <CardHeader>
-          <CardTitle className={`flex items-center gap-2 text-lg ${isRTL ? "flex-row-reverse" : ""}`}>
+          <CardTitle className={`flex items-center gap-2 text-lg `}>
             <Edit3 className="h-5 w-5 text-blue-600" aria-hidden="true" />
             {t("wizard.preview.storyDescription")}
           </CardTitle>
@@ -437,7 +396,7 @@ export default function PreviewEditStep({
       {/* Language Selector */}
       <Card>
         <CardContent className="p-4">
-          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-4 `}>
             <Globe className="h-5 w-5 text-blue-600 flex-shrink-0" aria-hidden="true" />
             <Label className="text-sm font-medium whitespace-nowrap">
               {t("wizard.preview.storyLanguage")}
@@ -462,7 +421,7 @@ export default function PreviewEditStep({
       {/* Art Style Selection — Visual Preview Cards */}
       <Card>
         <CardHeader>
-          <CardTitle className={`flex items-center gap-2 text-lg ${isRTL ? "flex-row-reverse" : ""}`}>
+          <CardTitle className={`flex items-center gap-2 text-lg `}>
             <Sparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />
             {t("wizard.preview.artStyle")}
           </CardTitle>
@@ -470,7 +429,7 @@ export default function PreviewEditStep({
         <CardContent>
           <div
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
-            role="radiogroup"
+            role="group"
             aria-label={t("wizard.preview.selectArtStyle")}
           >
             {ART_STYLE_VISUAL.map((style, index) => {
@@ -480,8 +439,7 @@ export default function PreviewEditStep({
                 <motion.button
                   key={style.value}
                   onClick={() => onBookDataChange("art_style", style.value)}
-                  role="radio"
-                  aria-checked={isSelected}
+                  aria-pressed={isSelected}
                   aria-label={getStyleLabel(style, t)}
                   whileHover={{ scale: 1.04, y: -2 }}
                   whileTap={{ scale: 0.96 }}
@@ -489,7 +447,7 @@ export default function PreviewEditStep({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
                   className={`
-                    relative p-3 rounded-2xl text-left cursor-pointer overflow-hidden
+                    relative p-3 rounded-2xl text-start cursor-pointer overflow-hidden
                     ${style.bg}
                     transition-all duration-150
                     ${isSelected
@@ -507,21 +465,7 @@ export default function PreviewEditStep({
                   </div>
 
                   <div className="flex flex-col items-start gap-1">
-                    {/* Image preview or gradient swatch fallback */}
-                    {style.image ? (
-                      <img
-                        src={style.image}
-                        alt=""
-                        aria-hidden="true"
-                        className="w-10 h-10 rounded-xl object-cover mb-2 shadow-md"
-                      />
-                    ) : (
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center mb-2 shadow-md`}>
-                        <span className="text-xl leading-none drop-shadow-sm" aria-hidden="true">
-                          {style.emoji}
-                        </span>
-                      </div>
-                    )}
+                    <img src={`/images/spx/styles/${style.value}.webp`} alt="" aria-hidden="true" className="w-full h-32 sm:h-40 rounded-xl object-cover mb-2" />
 
                     {/* Style name */}
                     <span className={`text-xs font-bold leading-tight ${isSelected ? "text-purple-800 dark:text-purple-200" : "text-gray-800 dark:text-gray-200"}`}>
@@ -543,11 +487,11 @@ export default function PreviewEditStep({
       {/* Story Length Selection — visual pill buttons */}
       <Card>
         <CardContent className="p-4">
-          <div className={`flex items-center gap-4 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-4 flex-wrap `}>
             <Label className="text-sm font-semibold whitespace-nowrap">
               {t("wizard.preview.storyLength")}
             </Label>
-            <div className={`flex gap-2 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className={`flex gap-2 flex-wrap `}>
               {[
                 { value: "short", label: t("wizard.preview.lengthShort") },
                 { value: "medium", label: t("wizard.preview.lengthMedium") },
@@ -575,7 +519,7 @@ export default function PreviewEditStep({
       {/* Rhyming Options */}
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-3 `}>
             <Music className="h-5 w-5 text-purple-500 flex-shrink-0" aria-hidden="true" />
             <Label htmlFor="use-rhyming-wizard" className="text-sm font-medium flex-1">
               {t("wizard.preview.rhymingStory")}
@@ -624,7 +568,7 @@ export default function PreviewEditStep({
             {/* Tone */}
             <Card>
               <CardContent className="p-4">
-                <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <div className={`flex items-center gap-4 `}>
                   <Label className="text-sm font-medium whitespace-nowrap">
                     {t("wizard.preview.tone")}
                   </Label>
@@ -650,7 +594,7 @@ export default function PreviewEditStep({
             {/* Age Range */}
             <Card>
               <CardContent className="p-4">
-                <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <div className={`flex items-center gap-4 `}>
                   <Label className="text-sm font-medium whitespace-nowrap">
                     {t("wizard.preview.ageRange")}
                   </Label>
@@ -694,21 +638,6 @@ export default function PreviewEditStep({
         )}
       </AnimatePresence>
 
-      {/* Regenerate button */}
-      {onRegenerateOutline && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={onRegenerateOutline}
-            disabled={isGeneratingOutline}
-            className="gap-2"
-            aria-label={t("wizard.preview.newIdeaLabel")}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            {t("wizard.preview.newIdea")}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

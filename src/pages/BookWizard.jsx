@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
-import { notifyMyFollowers } from "@/lib/profiles";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +17,6 @@ import { moderateInput, buildSafetyPromptPrefix, sanitizeAIOutput } from "@/util
 import { checkAgeAppropriateLanguage, checkContentSafety } from "@/utils/content-moderation";
 import useGamification from "@/hooks/useGamification";
 import { useI18n } from "@/components/i18n/i18nProvider";
-import confetti from "canvas-confetti";
 import { trackEvent } from "@/lib/analytics";
 import { captureError } from "@/lib/errorTracking";
 
@@ -29,24 +27,36 @@ import PreviewEditStep from "@/components/wizard/PreviewEditStep";
 import PrintSizeStep from "@/components/wizard/PrintSizeStep";
 import PrintPreferences from "@/screens/print-edition/PrintPreferences";
 import { initialEditionFields } from "@/lib/printEdition/model";
-import { imageAspectForBook } from "@/lib/printSpec";
 import SaveStep from "@/components/wizard/SaveStep";
 import StoryStructure from "@/components/storyBuilder/StoryStructure";
-import LoadingOverlay from "@/components/shared/LoadingOverlay";
 import FriendlyError from "@/components/shared/FriendlyError";
 import QuotaLimitCard from "@/components/shared/QuotaLimitCard";
 import { reserveBookSlot, clearActiveBookKey, newBookKey, QuotaError } from "@/lib/bookQuota";
 
 
+// Preserve edits made before an asynchronous outline returns.
+export function fillEmptyOutlineFields(previous, outline) {
+  return {
+    title: previous.title?.trim() ? previous.title : outline.title,
+    description: previous.description?.trim() ? previous.description : outline.description,
+    moral: previous.moral?.trim() ? previous.moral : outline.moral,
+  };
+}
+
 // --- Draft auto-save helpers ---
 const DRAFT_PREFIX = "sipurai_draft_";
-const MAX_DRAFTS = 3;
+export function draftOwnerPrefix(ownerId) {
+  const encoded = encodeURIComponent(ownerId);
+  return `${DRAFT_PREFIX}v2_${encoded.length}_${encoded}_`;
+}
 
-function getDraftKeys() {
+export function getDraftKeys(ownerId) {
+  if (!ownerId) return [];
+  const ownerPrefix = draftOwnerPrefix(ownerId);
   const keys = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(DRAFT_PREFIX)) {
+    if (key && key.startsWith(ownerPrefix)) {
       keys.push(key);
     }
   }
@@ -63,8 +73,8 @@ function getDraftKeys() {
   return keys;
 }
 
-function getLatestDraft() {
-  const keys = getDraftKeys();
+function getLatestDraft(ownerId) {
+  const keys = getDraftKeys(ownerId);
   if (keys.length === 0) return null;
   try {
     const data = JSON.parse(localStorage.getItem(keys[0]) || "null");
@@ -75,32 +85,32 @@ function getLatestDraft() {
   }
 }
 
-function pruneOldDrafts() {
-  const keys = getDraftKeys();
-  // Remove drafts beyond the MAX_DRAFTS limit (oldest first)
-  while (keys.length > MAX_DRAFTS) {
-    const oldest = keys.pop();
-    localStorage.removeItem(oldest);
-  }
-}
-
 function clearDraft(key) {
   if (key) {
     localStorage.removeItem(key);
   }
 }
 
-function clearAllDrafts() {
-  const keys = getDraftKeys();
+function clearAllDrafts(ownerId) {
+  const keys = getDraftKeys(ownerId);
   keys.forEach((k) => localStorage.removeItem(k));
 }
 
 export default function BookWizard() {
+  const { user } = useCurrentUser();
+  return <BookWizardSession key={user?.id || "anonymous"} />;
+}
+
+function BookWizardSession() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const gamification = useGamification();
   const { t, language: uiLanguage, isRTL } = useI18n();
   const { user: currentUserData } = useCurrentUser();
+  const ownerId = currentUserData?.id || null;
+  const ownerRef = useRef(ownerId);
+  ownerRef.current = ownerId;
+  const pendingIdeaRef = useRef(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(0);
@@ -126,15 +136,11 @@ export default function BookWizard() {
   // Creation progress
   const [creationProgress, setCreationProgress] = useState(null);
   // Track image generation failures for retry
-  const [imageFailures, setImageFailures] = useState([]);
 
   // Celebration state after book creation
   const [celebrationBook, setCelebrationBook] = useState(null); // { id, title, cover_image }
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTimerRef = useRef(null);
-  // Cover-derived character reference — survives into retryFailedImages so
-  // retried pages keep the same character identity as the original run.
-  const characterReferenceRef = useRef(null);
   // Guards the one-way handover to the reader. Generation continues in this tab
   // after the navigation, so this must not fire twice per run.
   const handedOffRef = useRef(false);
@@ -177,12 +183,13 @@ export default function BookWizard() {
 
   // Draft auto-save
   const [activeDraftKey, setActiveDraftKey] = useState(null);
+  const [pendingDraft, setPendingDraft] = useState(null);
   const draftTimerRef = useRef(null);
 
   // Save draft to localStorage (debounced)
-  const saveDraft = useCallback(() => {
+  const saveDraft = useCallback((attemptId = quotaKeyRef.current) => {
     // Don't save while creating or if book is already being generated
-    if (isCreating) return;
+    if (isCreating || !ownerId) return;
 
     const draftData = {
       currentStep,
@@ -194,20 +201,20 @@ export default function BookWizard() {
       generatedOutline,
       useRhyming,
       rhymeSettings,
+      _attemptId: attemptId || null,
       _savedAt: Date.now(),
     };
 
-    const key = activeDraftKey || `${DRAFT_PREFIX}${Date.now()}`;
+    const ownerPrefix = draftOwnerPrefix(ownerId);
+    const key = activeDraftKey?.startsWith(ownerPrefix) ? activeDraftKey : `${ownerPrefix}${Date.now()}`;
     try {
       localStorage.setItem(key, JSON.stringify(draftData));
-      if (!activeDraftKey) {
-        setActiveDraftKey(key);
-      }
-      pruneOldDrafts();
+      if (activeDraftKey !== key) setActiveDraftKey(key);
+      return true;
     } catch {
-      // localStorage may be full — silently skip
+      return false;
     }
-  }, [currentStep, selectedTopic, customIdea, selectedCharacters, scenes, bookData, generatedOutline, useRhyming, rhymeSettings, isCreating, activeDraftKey]);
+  }, [currentStep, selectedTopic, customIdea, selectedCharacters, scenes, bookData, generatedOutline, useRhyming, rhymeSettings, isCreating, activeDraftKey, ownerId]);
 
   // Debounced auto-save on state changes (2 second delay)
   useEffect(() => {
@@ -233,17 +240,23 @@ export default function BookWizard() {
   // Prefill from a "Use this idea" handoff (set by the Story Ideas page).
   // Runs once on mount, before the draft-restore prompt.
   useEffect(() => {
+    if (!ownerId) return;
     let pending = null;
     try {
       const raw = sessionStorage.getItem("sipurai_pending_idea");
       if (raw) {
-        pending = JSON.parse(raw);
-        sessionStorage.removeItem("sipurai_pending_idea");
+        const candidate = JSON.parse(raw);
+        if (candidate?.ownerId === ownerId) {
+          pending = candidate;
+          sessionStorage.removeItem("sipurai_pending_idea");
+        }
       }
     } catch {
       pending = null;
     }
     if (pending && (pending.title || pending.description)) {
+      pendingIdeaRef.current = true;
+      setSelectedTopic("custom");
       const ideaText = [pending.title, pending.description].filter(Boolean).join(" — ");
       if (ideaText) setCustomIdea(ideaText);
       setBookData((prev) => ({
@@ -257,61 +270,50 @@ export default function BookWizard() {
         className: "bg-purple-100 text-purple-900 dark:bg-purple-900/50 dark:text-purple-100",
       });
     }
-    // Only run on mount
+    // Wait until identity is known before consuming personal handoff data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ownerId]);
 
   // Restore draft on mount
   useEffect(() => {
-    const draft = getLatestDraft();
+    if (!ownerId || pendingIdeaRef.current) return;
+    const draft = getLatestDraft(ownerId);
     if (draft && draft._savedAt) {
       // Only offer restore if draft is less than 7 days old
       const ageMs = Date.now() - draft._savedAt;
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
       if (ageMs < sevenDays) {
-        const draftTitle = draft.bookData?.title || draft.selectedTopic || t("wizard.draft.untitled");
-        toast({
-          title: t("wizard.draft.found"),
-          description: t("wizard.draft.foundDesc", { title: draftTitle }),
-          duration: 8000,
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                // Restore draft state
-                if (draft.currentStep != null) setCurrentStep(draft.currentStep);
-                if (draft.selectedTopic) setSelectedTopic(draft.selectedTopic);
-                if (draft.customIdea) setCustomIdea(draft.customIdea);
-                if (draft.selectedCharacters) setSelectedCharacters(draft.selectedCharacters);
-                if (draft.scenes) setScenes(draft.scenes);
-                if (draft.bookData) setBookData((prev) => ({ ...prev, ...draft.bookData }));
-                if (draft.generatedOutline) setGeneratedOutline(draft.generatedOutline);
-                if (draft.useRhyming != null) setUseRhyming(draft.useRhyming);
-                if (draft.rhymeSettings) setRhymeSettings((prev) => ({ ...prev, ...draft.rhymeSettings }));
-                setActiveDraftKey(draft._draftKey);
-                toast({
-                  title: t("wizard.draft.restored"),
-                  className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100",
-                });
-              }}
-            >
-              {t("wizard.draft.restore")}
-            </Button>
-          ),
-        });
+        setPendingDraft(draft);
       }
     }
     // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ownerId]);
+
+  const restorePendingDraft = () => {
+    const draft = pendingDraft;
+    if (!draft || ownerRef.current !== ownerId) return;
+    if (draft.currentStep != null) setCurrentStep(draft.currentStep);
+    if (draft.selectedTopic) setSelectedTopic(draft.selectedTopic);
+    if (draft.customIdea) setCustomIdea(draft.customIdea);
+    if (draft.selectedCharacters) setSelectedCharacters(draft.selectedCharacters);
+    if (draft.scenes) setScenes(draft.scenes);
+    if (draft.bookData) setBookData((prev) => ({ ...prev, ...draft.bookData }));
+    if (draft.generatedOutline) setGeneratedOutline(draft.generatedOutline);
+    if (draft.useRhyming != null) setUseRhyming(draft.useRhyming);
+    if (draft.rhymeSettings) setRhymeSettings((prev) => ({ ...prev, ...draft.rhymeSettings }));
+    quotaKeyRef.current = draft._attemptId || null;
+    setActiveDraftKey(draft._draftKey);
+    setPendingDraft(null);
+  };
 
   const handleClearDraft = () => {
+    quotaKeyRef.current = null;
     if (activeDraftKey) {
       clearDraft(activeDraftKey);
       setActiveDraftKey(null);
     } else {
-      clearAllDrafts();
+      clearAllDrafts(ownerId);
     }
     toast({
       title: t("wizard.draft.cleared"),
@@ -495,9 +497,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         setGeneratedOutline(sanitizedResult);
         setBookData((prev) => ({
           ...prev,
-          title: sanitizedTitle || prev.title,
-          description: sanitizedDescription || prev.description,
-          moral: sanitizedMoral || prev.moral,
+          ...fillEmptyOutlineFields(prev, { title: sanitizedTitle, description: sanitizedDescription, moral: sanitizedMoral }),
           genre: selectedTopic || prev.genre,
           child_name: selectedCharacters[0]?.name || prev.child_name,
           interests: selectedTopic,
@@ -527,50 +527,6 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       return false;
     } finally {
       setIsGeneratingOutline(false);
-    }
-  };
-
-  // Retry failed images for an already-created book
-  const retryFailedImages = async (bookId, failures) => {
-    if (!failures || failures.length === 0) return;
-
-    toast({
-      title: t("wizard.toast.retryingImages"),
-      description: t("wizard.toast.retryingImagesDesc", { count: failures.length })
-    });
-
-    const retryResults = await Promise.allSettled(
-      failures.map(({ pageId, imagePrompt }) =>
-        GenerateImage({ prompt: imagePrompt, aspectRatio: imageAspectForBook(bookData), referenceImageBase64: characterReferenceRef.current })
-          .then((result) => ({ pageId, url: result?.url || "" }))
-          .catch(() => ({ pageId, url: "" }))
-      )
-    );
-
-    const stillFailed = [];
-    await Promise.allSettled(
-      retryResults.map(async (outcome, idx) => {
-        if (outcome.status === "fulfilled" && outcome.value.url) {
-          await Page.update(outcome.value.pageId, { image_url: outcome.value.url });
-        } else {
-          stillFailed.push(failures[idx]);
-        }
-      })
-    );
-
-    setImageFailures(stillFailed);
-
-    if (stillFailed.length === 0) {
-      toast({
-        title: t("wizard.toast.allImagesGenerated"),
-        className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: t("wizard.toast.imagesFailed", { count: stillFailed.length }),
-        description: t("wizard.toast.imagesFailedRetry")
-      });
     }
   };
 
@@ -637,7 +593,6 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     try {
       setIsCreating(true);
       setError(null);
-      setImageFailures([]);
       setCreationProgress({ label: t("wizard.progress.checkingContent"), percent: 5, step: "" });
 
       // Moderate title and description
@@ -657,9 +612,20 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
       // Server-side quota: take a slot for this book before any AI call. The same key is reused
       // for retries of this creation, so a retry never costs a second book.
-      const quotaKey = resumeBookId || quotaKeyRef.current || (quotaKeyRef.current = newBookKey());
+      const previousKey = resumeBookId || quotaKeyRef.current;
+      const quotaKey = previousKey || newBookKey();
+      quotaKeyRef.current = quotaKey;
+      // Save before the first reservation; a refresh must keep this exact key.
+      if (!saveDraft(quotaKey)) throw new Error(t('spxWizard.saveFailed'));
       try {
-        await reserveBookSlot(quotaKey);
+        if (previousKey && Book.generationStore) {
+          const matches = await Book.filter({ id: quotaKey });
+          resumeBookId = matches.some((book) => book.id === quotaKey && book.created_by === ownerId) ? quotaKey : null;
+        }
+        if (!resumeBookId || !Book.generationStore) {
+          const reservation = await reserveBookSlot(quotaKey);
+          if (Book.generationStore && reservation?.skipped) throw new Error(t('spxWizard.saveFailed'));
+        }
       } catch (qe) {
         if (qe instanceof QuotaError) {
           setQuotaBlock(qe);
@@ -684,7 +650,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         storyBible = await tryStoryBibleFastPath();
         if (storyBible?.pages?.length && storyBible?.title) {
           if (import.meta.env.DEV) console.log("[BookWizard] Story Bible generated:", storyBible.title, "pages:", storyBible.pages.length);
-          window.__sipurai_last_bible = storyBible;
+
         } else {
           storyBible = null;
         }
@@ -730,13 +696,16 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         ai: { InvokeLLM, GenerateImage },
         recipe,
         bookId: resumeBookId,
+        newBookId: quotaKey,
         onEvent: (event) => {
           switch (event.type) {
             case "phase":
               setCreationProgress({
                 label: t("wizard.progress.creatingStory"),
-                percent: 10,
-                step: t("wizard.progress.step1of4")
+                percent: event.phase === "editing" ? 22 : 10,
+                step: event.phase === "editing"
+                  ? t("spxWizard.editing")
+                  : t("wizard.progress.step1of4")
               });
               break;
 
@@ -754,10 +723,6 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
               });
               break;
 
-            case "cover":
-              if (event.base64) characterReferenceRef.current = event.base64;
-              break;
-
             case "plan-saved":
               setCreationProgress({
                 label: t("wizard.progress.writingStory"),
@@ -770,7 +735,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
               setCreationProgress({
                 label: t("wizard.progress.writingStory"),
                 percent: progressPercent(event),
-                step: t("wizard.progress.pagesReady", { ready: event.ready, total: event.total })
+                step: t("spxWizard.writingCount", { ready: event.ready, total: event.total })
               });
               // The first readable page is the handover point: the parent goes
               // to the reader now and watches the rest arrive there, instead of
@@ -782,7 +747,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
               setCreationProgress({
                 label: t("wizard.progress.drawingIllustrations"),
                 percent: progressPercent(event),
-                step: t("wizard.progress.pagesReady", { ready: event.ready, total: event.total })
+                step: t("spxWizard.drawingCount", { ready: event.illustrated, total: event.total })
               });
               break;
 
@@ -793,7 +758,6 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       });
 
       createdBookId = result.bookId;
-      setImageFailures(result.imageFailures || []);
 
       if (result.status === BOOK_STATUS.FAILED) {
         // Nothing readable was produced. Say so plainly rather than dropping the
@@ -803,7 +767,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
       // Everything below is a side effect of the book existing, not of it being
       // finished — a partial book is a real book and earns the same XP, the same
-      // draft cleanup and the same notification.
+      // draft cleanup.
       handOffToReader({ bookId: result.bookId, ready: result.ready, total: result.total });
     } catch (err) {
       const errMessage = err?.message || String(err) || t("wizard.error.createMessage");
@@ -856,12 +820,8 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     if (handedOffRef.current || !event?.bookId) return;
     handedOffRef.current = true;
 
-    if (activeDraftKey) {
-      clearDraft(activeDraftKey);
-      setActiveDraftKey(null);
-    }
+    // Preserve recoverable drafts; generation does not delete stored work.
     trackEvent('book_created', { book_id: event.bookId });
-    announceNewBook(event.bookId, titleForBook());
     gamification.awardXP("book_created").catch(() => {});
     gamification.incrementStat("totalBooks").catch(() => {});
 
@@ -869,39 +829,15 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       id: event.bookId,
       title: titleForBook(),
       cover_image: "",
-      failures: [],
     });
     setShowCelebration(true);
 
-    confetti({
-      particleCount: 160,
-      spread: 80,
-      origin: { y: 0.6 },
-      colors: ["#7c3aed", "#a855f7", "#ec4899", "#f59e0b", "#3b82f6", "#10b981"]
-    });
-
     celebrationTimerRef.current = setTimeout(() => {
-      navigateToBook(event.bookId, []);
+      navigateToBook(event.bookId);
     }, 2500);
   };
 
   const titleForBook = () => createdTitleRef.current || bookData.title;
-
-  /**
-   * Tell followers a new book exists. Fire-and-forget: a notification failure
-   * must never affect the book. Keyed on Clerk ids throughout — no email claim.
-   */
-  const announceNewBook = (bookId, bookTitle) => {
-    if (!currentUserData?.id) return;
-    const authorName = currentUserData.full_name || 'Someone you follow';
-    // Server-side fan-out by id: the browser never sees follower emails.
-    notifyMyFollowers({
-      type: 'new_book',
-      title: 'new_book',
-      message: JSON.stringify({ authorName, bookTitle }),
-      link: `/BookView?id=${bookId}`,
-    }).catch(() => {});
-  };
 
   // Cleanup celebration timer on unmount
   useEffect(() => {
@@ -912,16 +848,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     };
   }, []);
 
-  const navigateToBook = (bookId, failures) => {
+  const navigateToBook = (bookId) => {
     setShowCelebration(false);
     setCelebrationBook(null);
-    navigate(`${createPageUrl("BookView")}?id=${bookId}`);
-    // Retry failed images after navigation (non-blocking)
-    if (failures && failures.length > 0) {
-      setTimeout(() => {
-        retryFailedImages(bookId, failures);
-      }, 2000);
-    }
+    navigate(`${createPageUrl("BookView")}?id=${encodeURIComponent(bookId)}`);
   };
 
   const updateBookField = (field, value) => {
@@ -931,10 +861,9 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   // Loading state
   if (isLoading) {
     return (
-      <LoadingOverlay
-        message={t("wizard.loading")}
-        isRTL={isRTL}
-      />
+      <div className="min-h-[50vh] flex items-center justify-center" role="status" aria-live="polite" dir={isRTL ? "rtl" : "ltr"}>
+        <p className="rounded-2xl bg-purple-50 px-8 py-6 text-lg font-semibold text-purple-900">{t("wizard.loading")}</p>
+      </div>
     );
   }
 
@@ -981,6 +910,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
           <CharacterPicker
             selectedCharacters={selectedCharacters}
             onCharactersChange={setSelectedCharacters}
+            ownerId={ownerId}
             isRTL={isRTL}
             language={currentLanguage}
           />
@@ -1016,7 +946,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         );
       case 4:
         return <>
-          <PrintSizeStep value={bookData.print_size || "square-220"} onChange={(value) => updateBookField("print_size", value)} length={bookData.length} isRTL={isRTL} />
+          <PrintSizeStep artStyle={bookData.art_style} value={bookData.print_size || "square-220"} onChange={(value) => updateBookField("print_size", value)} length={bookData.length} isRTL={isRTL} />
           <PrintPreferences value={bookData.printEdition} onChange={(value) => updateBookField("printEdition", value)} isRTL={isRTL} compact />
         </>;
       case 5:
@@ -1037,116 +967,28 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     }
   };
 
-  // Celebration screen — shown for 3 seconds after book creation
+  // The manuscript can be opened while its illustrations are still being drawn.
   if (showCelebration && celebrationBook) {
-    const celebrationTitle = t("wizard.celebration.title");
-    const readLabel = t("wizard.celebration.readButton");
-
     return (
-      <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-600 via-fuchsia-500 to-indigo-600"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        dir={isRTL ? "rtl" : "ltr"}
-      >
-        <motion.div
-          className="flex flex-col items-center gap-6 p-8 max-w-sm w-full text-center"
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-        >
-          {/* Stars decoration */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute top-8 left-8 text-4xl opacity-50"
-            aria-hidden="true"
-          >
-            ✨
-          </motion.div>
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-            className="absolute top-12 right-12 text-3xl opacity-40"
-            aria-hidden="true"
-          >
-            🌟
-          </motion.div>
-
-          {/* Book cover */}
-          {celebrationBook.cover_image ? (
-            <motion.img
-              src={celebrationBook.cover_image}
-              alt={celebrationBook.title}
-              className="w-40 h-52 object-cover rounded-2xl shadow-2xl border-4 border-white/30"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            />
-          ) : (
-            <motion.div
-              className="w-40 h-52 rounded-2xl shadow-2xl bg-white/20 flex items-center justify-center border-4 border-white/30"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <BookOpen className="h-16 w-16 text-white/70" aria-hidden="true" />
-            </motion.div>
-          )}
-
-          {/* Title */}
-          <motion.h1
-            className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            {celebrationTitle}
-          </motion.h1>
-
-          {/* Book title */}
-          {celebrationBook.title && (
-            <motion.p
-              className="text-lg text-white/90 font-medium"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              {celebrationBook.title}
-            </motion.p>
-          )}
-
-          {/* CTA Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
+      <main dir={isRTL ? "rtl" : "ltr"} className="fixed inset-0 z-50 grid place-items-center overflow-auto bg-[#f8f1e3] p-5 text-[#283c41]">
+        <section className="w-full max-w-md overflow-hidden rounded-3xl bg-[#fffaf0] shadow-xl">
+          <img src="/images/spx/hearth.webp" alt="" className="aspect-[5/3] w-full object-cover" />
+          <div className="space-y-3 p-6 sm:p-8">
+            <h1 className="text-3xl font-bold">{t('spxWizard.firstPages')}</h1>
+            <p className="text-lg">{celebrationBook.title}</p>
             <Button
+              className="min-h-12 rounded-full bg-[#284f51] px-6 text-white hover:bg-[#1d3f42]"
               onClick={() => {
-                if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
-                navigateToBook(celebrationBook.id, celebrationBook.failures);
+                clearTimeout(celebrationTimerRef.current);
+                navigateToBook(celebrationBook.id);
               }}
-              className="bg-white text-purple-700 hover:bg-purple-50 font-bold text-lg px-8 py-4 h-auto rounded-full shadow-xl gap-2"
-              aria-label={readLabel}
             >
-              <Sparkles className="h-5 w-5" aria-hidden="true" />
-              {readLabel}
+              {t('wizard.celebration.readButton')}
             </Button>
-          </motion.div>
-
-          {/* Auto-navigate hint */}
-          <motion.p
-            className="text-sm text-white/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-          >
-            {t("wizard.celebration.autoNavigate")}
-          </motion.p>
-        </motion.div>
-      </motion.div>
+            <p className="text-sm">{t('wizard.celebration.autoNavigate')}</p>
+          </div>
+        </section>
+      </main>
     );
   }
 
@@ -1158,44 +1000,24 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      {/* Gradient Header with Background */}
-      <motion.div
-        className="relative overflow-hidden rounded-2xl mb-8 shadow-md"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 px-6 py-8 text-center">
-          <div
-            className="absolute inset-0 opacity-[0.06] bg-cover bg-center pointer-events-none"
-            style={{ backgroundImage: "url('/images/book-wizard.jpg')" }}
-          />
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_0%,white_0%,transparent_70%)]" />
-          <motion.div className="relative flex items-center justify-center gap-3 mb-2">
-            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-sm">
-              {t("wizard.title")}
-            </h1>
-          </motion.div>
-          <motion.p
-            className="text-white/80 text-lg relative"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            {t("wizard.subtitle")}
-          </motion.p>
-        </div>
-      </motion.div>
+      {pendingDraft && <section role="status" className="mb-4 rounded-2xl border border-sp-line bg-sp-card p-4 text-sp-ink-900">
+        <p className="font-semibold">{t("wizard.draft.found")}</p>
+        <p className="mt-1 text-sm">{t("wizard.draft.foundDesc", { title: pendingDraft.bookData?.title || pendingDraft.selectedTopic || t("wizard.draft.untitled") })}</p>
+        <div className="mt-3 flex flex-wrap gap-2"><Button type="button" onClick={restorePendingDraft} className="min-h-11">{t("wizard.draft.restore")}</Button><Button type="button" variant="outline" onClick={() => setPendingDraft(null)} className="min-h-11">{t("spxWizard.fresh")}</Button></div>
+      </section>}
 
-      {/* Progress Indicator */}
-      <WizardProgress
-        steps={steps}
-        currentStep={currentStep}
-        onStepClick={goToStep}
-        isRTL={isRTL}
-      />
+      <header className="mb-4 flex min-h-24 items-center gap-4 overflow-hidden rounded-2xl border border-amber-100 bg-[#fffaf0] p-3 text-[#231942] shadow-sm sm:mb-6 sm:p-4">
+        <img src="/images/spx/topics/adventure.webp" alt="" aria-hidden="true" className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-purple-700">{t("wizard.title")}</p>
+          <h1 className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{steps[currentStep]?.title}</h1>
+          <p className="mt-1 text-sm text-[#5b5478]" aria-live="polite">{t("spxWizard.step", { current: currentStep + 1, total: steps.length })}</p>
+        </div>
+      </header>
+
+      <div className="hidden sm:block">
+        <WizardProgress steps={steps} currentStep={currentStep} onStepClick={goToStep} isRTL={isRTL} />
+      </div>
 
       {/* Step Content */}
       <AnimatePresence mode="wait">
@@ -1205,7 +1027,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: isRTL ? 30 : -30 }}
           transition={{ duration: 0.3 }}
-          className="mb-8 min-h-[400px] relative bg-white dark:bg-gray-800/50 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 p-6"
+          className="mb-6 min-h-[300px] relative bg-[#fffdf8] dark:bg-gray-800/50 rounded-2xl shadow-sm border border-amber-100 dark:border-gray-700/50 p-4 sm:p-6"
         >
           {renderStep()}
 
@@ -1239,8 +1061,8 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       </AnimatePresence>
 
       {/* Navigation Buttons */}
-      <div className={`flex ${isRTL ? "flex-row-reverse" : "flex-row"} justify-between items-center mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/50`}>
-        <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+      <div className="flex flex-row justify-between items-center mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+        <div className="flex items-center gap-2">
           <motion.div whileHover={currentStep > 0 ? { scale: 1.03 } : {}} whileTap={currentStep > 0 ? { scale: 0.97 } : {}}>
             <Button
               variant="outline"
@@ -1287,14 +1109,6 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
               className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 rounded-xl h-11 px-6 font-bold shadow-md shadow-purple-200/50 border-0 disabled:opacity-50"
               aria-label={t("wizard.nav.next")}
             >
-              {canGoNext() && !isGeneratingOutline && (
-                <motion.div
-                  className="absolute inset-0 bg-white/15 skew-x-12 pointer-events-none"
-                  animate={{ x: ["-200%", "300%"] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
-                  aria-hidden="true"
-                />
-              )}
               {isGeneratingOutline ? (
                 <span className="relative z-10">{t("wizard.nav.generating")}</span>
               ) : isRTL ? (
@@ -1315,11 +1129,13 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
       {/* Creating overlay */}
       {isCreating && (
-        <LoadingOverlay
-          message={t("wizard.creatingBook")}
-          isRTL={isRTL}
-          overlay
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 px-6 dark:bg-gray-900/95" dir={isRTL ? "rtl" : "ltr"} role="status" aria-live="polite">
+          <div className="max-w-md rounded-3xl border border-purple-100 bg-white p-8 text-center shadow-xl dark:bg-gray-800">
+            <BookOpen className="mx-auto mb-4 h-12 w-12 text-purple-600" aria-hidden="true" />
+            <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{t("wizard.creatingBook")}</p>
+            {creationProgress?.step && <p className="mt-3 text-gray-700 dark:text-gray-200">{creationProgress.step}</p>}
+          </div>
+        </div>
       )}
 
     </motion.div>

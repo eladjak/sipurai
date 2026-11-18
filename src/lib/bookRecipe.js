@@ -12,16 +12,13 @@
  * reader would read like a different book from its own first three pages. One
  * builder, two callers.
  *
- * What the row cannot carry (and therefore what a reader-side resume loses):
- * the rhyme scheme and the scene spine are wizard-only state with no column to
- * live in, so pages written during a resume are prose and scene-unaware even if
- * the first pages rhymed. That is a real fidelity cost, accepted deliberately:
- * a book a parent can finish beats a book that stays broken. Persisting either
- * one means adding a column, which is a decision for a human — see
- * docs/INCREMENTAL-GENERATION.md.
+ * New runs recover rhyme, scene order, editorial text and art direction from
+ * a private recipe saved alongside the book. Historical books can reconstruct
+ * their recipe only from fields that existed when the parent made them.
  */
 
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from '@/utils/content-moderation';
+import { manuscriptRequest, cleanStoryText } from "@/lib/storyManuscript";
 import { IMAGE_FAILED_PREFIX } from '@/lib/bookGeneration';
 
 const LAYOUT_TYPES = ['standard', 'image_top', 'image_full', 'text_overlay', 'two_column'];
@@ -68,7 +65,8 @@ export function buildRecipe({
       : 'Create all content in English only. ';
 
   const characterNames = characters.map((c) => c.name).filter(Boolean).join(', ');
-  const characterAppearances = characters
+  let cast = characters;
+  const describeCast = (members) => members
     .map((c) => {
       const parts = [c.name];
       const trait = c.appearance || c.description || c.traits;
@@ -77,6 +75,7 @@ export function buildRecipe({
     })
     .join('. ');
 
+  let characterAppearances = describeCast(cast);
   const topicDescription = topic || bookData?.genre || bookData?.description || '';
   const artStyle = bookData?.art_style || 'watercolor';
 
@@ -91,10 +90,12 @@ export function buildRecipe({
 - Age range: ${ageRange}
 
 Create exactly ${count} pages (including a title page).
-For each page, provide a brief description of what happens.
-The story should have a clear beginning, middle, and end.`;
+Respect this approved sequence of scenes: ${JSON.stringify(scenes.map(({title, description}) => ({title, description})))}.
+For each page, provide a brief description of what happens, why it follows from the previous scene, and what changes for the next one.
+The story should have a clear beginning, middle, and end. For each supplied character, give a short visual reference sheet:
+preserve the name and all supplied traits (${characterAppearances}); specify recurring face, silhouette, outfit, and one distinctive detail.`;
 
-  const coverPrompt = `IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. Pure visual illustration only - no Hebrew letters, no English text, no numbers, no signs with text. Children's book cover art featuring characters ${characterNames} in a ${topicDescription} setting. ${characterAppearances ? `Character appearances: ${characterAppearances}.` : ''} Illustrated in ${artStyle} style. Bright, colorful, child-friendly.`;
+  const getCoverPrompt = () => `Compose faces and the main action above the lower quarter, away from the trim. Leave the bottom quarter pale and quiet for typesetting. IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. Pure visual illustration only - no Hebrew letters, no English text, no numbers, no signs with text. Children's book cover art featuring characters ${characterNames} in a ${topicDescription} setting. ${characterAppearances ? `Character appearances: ${characterAppearances}.` : ''} Illustrated in ${artStyle} style. Bright, colorful, child-friendly.`;
 
   const nikudInstruction = isHebrewBook
     ? '\nהוסף ניקוד מלא לכל הטקסט בעברית. כל מילה חייבת לכלול ניקוד.'
@@ -103,15 +104,40 @@ The story should have a clear beginning, middle, and end.`;
   const rhymingInstruction = useRhyming ? rhymeDirective(rhymeSettings?.pattern, isHebrewBook) : '';
 
   const hasScenes = Array.isArray(scenes) && scenes.length > 0;
-  const charById = Object.fromEntries(characters.map((c) => [c.id, c]));
+  let charById = Object.fromEntries(characters.map((c) => [c.id, c]));
 
   // Updated from the `book-created` event: the outline call renames the book,
   // and later page prompts should quote the title the parent will actually see.
   const titleRef = { current: bookData?.title || '' };
 
+  const bookFields = { ...bookData };
+  function applyCastSheet(sheet) {
+    if (!Array.isArray(sheet) || !characters.length) return;
+    cast = characters.map(character => {
+      const entry = sheet.find(item => item?.name === character.name);
+      if (typeof entry?.description !== 'string' || !entry.description.trim()) return character;
+      const base = character.appearance || character.description || character.traits || '';
+      return { ...character, appearance: [base, entry.description.trim().slice(0, 450)].filter(Boolean).join('. ') };
+    });
+    characterAppearances = describeCast(cast);
+    charById = Object.fromEntries(cast.map(character => [character.id, character]));
+    bookFields.selectedCharacters = cast.map(({id, name, appearance, description, traits}) =>
+      ({id, name, appearance, description, traits})
+    );
+  }
+
   return {
+    checkpointInputs: () => ({
+      bookData: Object.fromEntries(['title', 'description', 'language', 'age_range', 'genre', 'length', 'tone', 'art_style', 'print_size', 'moral']
+        .filter(key => bookData[key] != null).map(key => [key, bookData[key]])),
+      characters: cast.map(({id, name, appearance, description, traits}) => ({id, name, appearance, description, traits})),
+      scenes, topic, useRhyming, rhymeSettings, pageCount: count,
+      ...(storyBible && { storyBible }),
+    }),
     pageCount: count,
-    bookFields: { ...bookData },
+    approvedTitle: bookData.title?.trim(),
+    bookFields,
+    applyCastSheet: sheet => applyCastSheet(storyBible?.characters || sheet),
 
     // Token ceilings, and whether the model is allowed to think first.
     //
@@ -139,6 +165,9 @@ The story should have a clear beginning, middle, and end.`;
       type: 'object',
       properties: {
         title: { type: 'string' },
+        cast: { type: 'array', items: { type: 'object', properties: {
+          name: { type: 'string' }, description: { type: 'string' },
+        } } },
         outline: {
           type: 'array',
           items: {
@@ -151,7 +180,11 @@ The story should have a clear beginning, middle, and end.`;
         },
       },
     },
-    coverPrompt,
+    manuscriptRequest: storyBible ? null : (outline, title) => manuscriptRequest({
+      outline, title, language: bookData.language || 'english', cast: characterAppearances,
+      scenes, tone: bookData.tone, ageRange, rhyme: rhymingInstruction, safety: safetyPrefix,
+    }),
+    get coverPrompt() { return getCoverPrompt(); },
     layoutFor: (i) => (i === 0 ? 'cover' : LAYOUT_TYPES[(i - 1) % LAYOUT_TYPES.length]),
     sanitize: sanitizeAIOutput,
     setTitle: (title) => {
@@ -164,7 +197,7 @@ The story should have a clear beginning, middle, and end.`;
     readPageText: (result) => {
       const plain = result?.text_content || '';
       const nikud = result?.text_with_nikud || '';
-      return isHebrewBook && nikud ? nikud : plain;
+      return cleanStoryText(isHebrewBook && nikud ? nikud : plain, isHebrewBook);
     },
 
     pageTextOverride: (index) => {
@@ -188,6 +221,7 @@ The story should have a clear beginning, middle, and end.`;
 
     pageTextPrompt: (entry, index) => `${safetyPrefix}${langInstruction}Write the text content for page ${index} of a children's story based on this description: "${entry.description}"
 
+Story sequence for continuity: ${JSON.stringify(entry.outline || [])}. Keep the same cast, setting and causal sequence.
 Story details:
 - Title: ${titleRef.current}
 - Main characters: ${characterNames}
@@ -226,7 +260,7 @@ ${isHebrewBook ? '2. text_with_nikud: The exact same page text with full nikud (
 
       const characterContext = sceneAppearances ? `Characters: ${sceneAppearances}. ` : '';
       const consistencyInstruction = 'CRITICAL: Maintain EXACT visual consistency for all characters across every illustration: Same hair color, eye color, skin tone, clothing in every image. Same art style, color palette, and visual mood throughout. Characters must look IDENTICAL in every page - as if drawn by the same artist. Do NOT change character appearance between pages. ';
-      const noTextInstruction = 'IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. The image should contain ONLY visual elements - no Hebrew letters, no English text, no numbers, no signs with text. Pure illustration only. ';
+      const noTextInstruction = 'Compose faces and the main action above the lower quarter, away from the trim. Leave the bottom quarter pale and quiet for typesetting. IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. The image should contain ONLY visual elements - no Hebrew letters, no English text, no numbers, no signs with text. Pure illustration only. ';
       const sceneFraming = sceneForPage
         ? `Scene role: ${sceneForPage.role}. Scene beat: ${sceneForPage.description || sceneForPage.title || ''}. ${sceneForPage.illustration_prompt ? `Scene visual: ${sceneForPage.illustration_prompt}. ` : ''}`
         : '';

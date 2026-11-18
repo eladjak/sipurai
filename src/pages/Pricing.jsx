@@ -6,12 +6,18 @@
  */
 
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
+import { isNewShell } from '@/lib/flags';
 import PricingSection from '@/components/landing/PricingSection';
 import { useI18n } from '@/components/i18n/i18nProvider';
 
 export default function Pricing() {
   const { t, isRTL } = useI18n();
+  const { user } = useAuth();
+  const [params] = useSearchParams();
+  const selected = ['free', 'lite', 'premium', 'family'].includes(params.get('plan')) ? params.get('plan') : null;
+  const names = { free: t('landing.pricing.free.name'), lite: t('landing.pricing.lite.name'), premium: t('landing.pricing.premium.name'), family: t('landing.pricing.family.name') };
 
   useEffect(() => {
     document.title = `${t('landing.pricing.sectionTitle') || 'תמחור'} · Sipurai`;
@@ -44,6 +50,12 @@ export default function Pricing() {
           </p>
         </header>
 
+        {user && selected && <section role="status" className="mb-8 rounded-2xl border border-purple-200 bg-white p-6 text-start shadow-sm">
+          <h2 className="text-xl font-bold">{t('spxLibrary.selectedPlan')}</h2>
+          <p className="mt-2">{names[selected]}</p>
+          <p className="mt-2">{t('spxLibrary.planReview')}</p>
+          <Link className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#263c4c] px-5 font-semibold text-white" to={isNewShell() ? '/parents' : '/Settings?tab=billing'}>{t('spxLibrary.accountSettings')}</Link>
+        </section>}
         <PricingSection />
 
         <section className="mt-12 max-w-2xl mx-auto text-center text-sm text-slate-500">

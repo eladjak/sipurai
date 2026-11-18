@@ -41,6 +41,7 @@ function PreferenceControls({ value, onChange, isRTL, compact = false, allowUpgr
                 return (
                   <label key={option} className={`min-h-11 ${disabled ? '' : 'cursor-pointer'} ${preferenceClass} flex items-start gap-3 focus-within:outline focus-within:outline-2 focus-within:outline-sp-violet-700 ${checked ? 'border-sp-violet-700 bg-sp-violet-50' : ''}`}>
                     <input className="mt-1.5 shrink-0 accent-sp-violet-700" type="radio" name={`${id}-${field}`} value={option} checked={checked} disabled={disabled} onChange={() => onChange({ ...edition, [field]: option })} />
+                    <span aria-hidden="true" className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sp-violet-50 text-sp-violet-700"><Icon size={22} /></span>
                     <span><span className="block text-sm font-semibold">{name}</span>{hint && <span className="block text-xs leading-relaxed text-sp-ink-600">{hint}</span>}</span>
                   </label>
                 );

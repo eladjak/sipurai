@@ -1,0 +1,47 @@
+.family-reader { min-inline-size: 0; }
+.reader-toolbar { min-inline-size: 0; }
+.reader-tools { max-inline-size: 100%; }
+.reader-desk { min-inline-size: 0; color: #30291f; }
+.reader-cover { background: #263f41; color: #fff3db; }
+.reader-cover-art { display: block; max-block-size: 62dvh; margin-inline: auto; }
+.reader-cover-title { background: #263f41; }
+.reader-leaf { margin: 0; color: #342d26; background: #fff8e9; display: grid; align-items: center; }
+.reader-art { min-inline-size: 0; background: #efe5d2; }
+.reader-art img { display: block; inline-size: 100%; block-size: auto; max-block-size: 67dvh; object-fit: contain; }
+.reader-art-pending { display: grid; justify-items: center; gap: 1rem; padding: 3rem 1rem; }
+.reader-leaf figcaption { padding: clamp(1.2rem,4vw,3rem); }
+.reader-prose { margin: 0 auto; max-inline-size: 34ch; text-align: start; white-space: pre-line; overflow-wrap: anywhere; font-size: calc(clamp(1.35rem,2.4vw,1.9rem) * var(--reading-scale,1)); line-height: 1.85; }
+.reader-ending-art { width: 5rem; height: 5rem; margin: 0 auto 1rem; object-fit: contain; border-radius: 50%; }
+.family-reader[data-night="true"] .reader-leaf { color: #f8edda; background: #282d39; }
+.family-reader[data-night="true"] .reader-art { background: #202735; }
+@media (prefers-color-scheme: dark) { .dark .reader-leaf { color: #f8edda; background: #282d39; } }
+@media (min-width: 48rem) {
+  .reader-leaf:is([data-layout="text_left"],[data-layout="text_right"],[data-layout="two_column"]) { grid-template-columns: 1fr 1fr; }
+  .reader-leaf[data-layout="text_right"] figcaption { grid-column: 1; grid-row: 1; }
+  .reader-leaf[data-layout="text_right"] .reader-art { grid-column: 2; }
+}
+.reader-leaf[data-layout="text_top"] figcaption { grid-row: 1; }
+@media (max-width: 47.99rem) {
+  .reader-toolbar { flex-direction: column; align-items: stretch; }
+  .reader-tools { justify-content: center; }
+  .reader-navigation { flex-wrap: wrap; }
+  .reader-navigation > :nth-child(2) { flex: 1 1 30%; flex-wrap: wrap; justify-content: center; }
+}
+.reader-cover, .reader-art { overflow: auto; }
+.reader-art img, .reader-cover-art { inline-size: calc(100% * var(--reading-scale,1)); max-inline-size: none; }
+.reader-cover-art { block-size: calc(min(55dvh, 32rem) * var(--reading-scale,1)); }
+.reader-art img { max-block-size: calc(67dvh * var(--reading-scale,1)); }
+.reader-intro { padding: 1.25rem clamp(1.25rem, 4vw, 3rem); background: #fff8e9; color: #342d26; }
+.family-reader[data-night="true"] .reader-intro { background: #282d39; color: #f8edda; }
+
+/* The illustration is printed to its natural proportions. Long or enlarged
+   text can extend onto the paper below the open illustrated margin. */
+.reader-leaf:is([data-layout="image_full"], [data-layout="text_overlay"]):has(.reader-page-art) figcaption {
+  position: relative;
+  margin-block-start: clamp(-5rem, -10vw, -2.25rem);
+  padding-block-start: clamp(3rem, 7vw, 5rem);
+  background: linear-gradient(to bottom, transparent, #fff8e9 4.5rem);
+}
+.family-reader[data-night="true"] .reader-leaf:is([data-layout="image_full"], [data-layout="text_overlay"]) figcaption {
+  background: linear-gradient(to bottom, transparent, #282d39 4.5rem);
+}

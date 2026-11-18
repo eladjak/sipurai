@@ -3,6 +3,7 @@ export const PRINT_PRESETS = Object.freeze([
   Object.freeze({ id: 'square-220', widthMm: 220, heightMm: 220 }),
   Object.freeze({ id: 'square-200', widthMm: 200, heightMm: 200 }),
   Object.freeze({ id: 'portrait-165x235', widthMm: 165, heightMm: 235 }),
+  Object.freeze({ id: 'landscape-210x170', widthMm: 210, heightMm: 170 }),
 ]);
 
 export const BLEED_MM = 3.2;
@@ -91,6 +92,7 @@ export function printPrice(spec) {
 // Image providers offer discrete ratios; portrait is the closest supported ratio.
 // Legacy books were generated square and must remain square on resume.
 export function imageAspectForBook(book) {
+  if (book?.print_size === 'landscape-210x170') return '4:3';
   return book?.print_size === 'portrait-165x235' ? '2:3' : '1:1';
 }
 

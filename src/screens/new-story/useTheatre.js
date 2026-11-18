@@ -14,7 +14,7 @@ export function useTheatre(bookId, state) {
     if (!bookId) return undefined;
     let alive = true;
     let timer;
-    const final = state === 'success' || state === 'failed';
+    const final = state === 'success' || state === 'failed' || state === 'partial';
     async function load() {
       const before = revision.current;
       let loaded = false;

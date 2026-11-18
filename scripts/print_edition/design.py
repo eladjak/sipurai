@@ -439,7 +439,7 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
                    native_pixels=edition.cover_native_pixels, shade_top=62 * scale_y)
     cover += picture(hero, 0, 0, front_end, height)
     title_x, title_width = 16 * scale_x, front_end - 32 * scale_x
-    text(edition.title, "cover-title", title_x + 5, 12 * scale_y, title_width - 10,
+    text(edition.title, "cover-title", title_x + 5, max(12, 12 * scale_y), title_width - 10,
          31 * scale_y, 42, 32, 2, display=True, color=CREAM)
     _, title_y, _, title_h = sizes[-1]["boxMm"]
     text(edition.creator, "cover-creator", title_x + 5, title_y + title_h + 1.8,

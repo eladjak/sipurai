@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import LandingNav from '@/components/landing/LandingNav';
 import { updateMeta, resetMeta } from '@/lib/seo';
 import HeroSection from '@/components/landing/HeroSection';
@@ -15,6 +16,8 @@ import { useI18n } from '@/components/i18n/i18nProvider';
 
 const LandingPage = () => {
   const { t, isRTL } = useI18n();
+  const { hash } = useLocation();
+  useEffect(() => { if (hash === '#showcase') document.getElementById('showcase')?.scrollIntoView(); }, [hash]);
 
   useEffect(() => {
     updateMeta({
