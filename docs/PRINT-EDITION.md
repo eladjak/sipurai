@@ -37,3 +37,13 @@ The renderer labels the native placed resolution separately from 300 PPI interpo
 .print-venv/bin/python -m unittest discover -s scripts/print_edition -p 'test_*.py'
 node --test tests/print-spec.test.mjs tests/print-export.test.mjs tests/print-edition-model.test.mjs
 ```
+
+## Private on-screen proof
+
+The saved book opens the print editor at `/PrintEdition?id=…`. The viewer reads rasterized pages from the SPB PDFs, including their bleed. Turn a spread, choose a page to edit, and wait for the updated proof. A pending Hebrew review is marked on screen. The primary wrap is the one-page softcover PDF. The illustrated inside cover is a separate two-page alternative. Hardcover dimensions and premium stock still need supplier confirmation.
+
+The approved download packages the exact interior and cover that supplied the on-screen pages. Its receipt identifies the book, saved revision, trim, spine and SHA-256 of each PDF. Each download verifies the source and streams the file through a digest check. A changed source or saved edition requires a fresh proof. The original source bundle remains available for editorial work. For a future fulfillment integration, use the approved PDF pair and verify its receipt before dispatch.
+
+The signed-in proof endpoint runs the bundled compositor in a short-lived Vercel Sandbox in the Sipurai project. Package installation precedes the network shutdown and upload of private art. The sandbox uses no public ports or persistent snapshots. Unfinished work and cached output expire with the session. `PRINT_PROOF_DISABLED=true` disables rendering without disabling manual editing. Set this variable in the affected Sipurai project and redeploy to apply it.
+
+`VITE_PRINT_EDITION_POLICY=open` is the no-charge pilot default. `subscriber-preview` follows the existing plan for advanced controls. Manual text and nikud correction, dedication and binding remain available. The feature policy is in `src/lib/printEdition/policy.js`. AI assistance also requires the parent's explicit choice in the editor and the existing consent and provider quota checks.

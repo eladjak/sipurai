@@ -75,6 +75,8 @@ class Edition:
     brightness: float
     cover_native_pixels: tuple[int, int] | None
     closing_native_pixels: tuple[int, int] | None
+    story_font: Literal["david-libre", "rubik"] = "david-libre"
+    unsaved_draft: bool = False
 
 
 @dataclass(frozen=True)
@@ -226,6 +228,9 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
     about = text_field(data.get("aboutAuthor"), "aboutAuthor", optional=True)
     dedication = text_field(data.get("dedication"), "dedication", optional=True)
     copyright = text_field(data.get("copyright"), "copyright", optional=True)
+    story_font = data.get("storyFont", "david-libre")
+    if story_font not in ("david-libre", "rubik"):
+        raise ValueError("Unknown story font")
     if status == "unpointed" and any(NIKUD.search(value) for value in (title, creator, blurb, about, dedication, copyright)):
         raise ValueError("Pointed front or back matter requires approved nikud or a pending review proof")
     return Edition(
@@ -239,6 +244,8 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         number(data.get("brightness", 1.07), "brightness", 1, 1.15),
         source_pixels(data.get("coverNativePixels"), "coverNativePixels"),
         source_pixels(data.get("closingNativePixels"), "closingNativePixels"),
+        story_font,
+        boolean(data.get("unsavedDraft", False), "unsavedDraft"),
     )
 
 
