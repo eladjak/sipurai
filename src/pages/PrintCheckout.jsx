@@ -17,7 +17,7 @@ import { formatIls, makeIdempotencyKey } from '@/components/checkout/format';
 import { Book } from '@/entities/Book';
 import useSubscription from '@/hooks/useSubscription';
 import { configuredPrintEditionPolicy as policy, printEditionCapabilities } from '@/lib/printEdition/policy';
-import { paperOptions } from '@/screens/print-edition/PaperPreferences';
+import { paperOptions } from '@/screens/print-edition/PrintPreferences';
 
 const draftKey = (bookId) => `sipurai.printDraft.${bookId}`;
 const idemKey = (bookId) => `sipurai.printKey.${bookId}`;
@@ -127,7 +127,7 @@ export function PrintCheckoutView({
 
   const quoteEnabled = config.status === 'ready' && editionStatus === 'ready' && config.data?.enabled !== false && cover === 'softcover' && (allowUpgradedPaper || paper === 'standard') && ['standard', 'chrome-matte-130', 'chrome-matte-170'].includes(paper);
   const q = useQuote(api, { bookId, qty, method: effectiveMethod, paper, enabled: quoteEnabled && paper !== 'premium', debounceMs: quoteDebounceMs });
-  const quoteMatches = q.status === 'ready' && q.quote?.paper === paper && q.quote?.qty === qty && q.quote?.method === effectiveMethod && q.quote?.cover === 'softcover' && Number.isInteger(q.quote?.pageCount) && Boolean(q.quote?.presetId) && Boolean(q.quote?.priceVersion) && Number.isInteger(q.quote?.totalAgorot);
+  const quoteMatches = q.status === 'ready' && q.quote?.verified === true && q.quote?.paper === paper && q.quote?.qty === qty && q.quote?.method === effectiveMethod && q.quote?.cover === 'softcover' && Number.isInteger(q.quote?.pageCount) && Boolean(q.quote?.presetId) && Boolean(q.quote?.priceVersion) && Number.isInteger(q.quote?.totalAgorot);
 
   // Move focus to the step heading so screen readers and keyboard users land in the right place.
   const firstRender = useRef(true);
@@ -170,13 +170,17 @@ export function PrintCheckoutView({
     setStep((s) => Math.min(3, s + 1));
   };
 
-  const ensureKey = (sig) => {
+  const ensureKey = (sig, legacySig) => {
     if (!keyRef.current && persist) {
       try {
         keyRef.current = JSON.parse(window.sessionStorage.getItem(idemKey(bookId)) || 'null');
       } catch {
         keyRef.current = null;
       }
+    }
+    if (keyRef.current?.sig === legacySig && paper === 'standard' && cover === 'softcover') {
+      keyRef.current = { sig, key: keyRef.current.key };
+      if (persist) writeJson('session', idemKey(bookId), keyRef.current);
     }
     if (!keyRef.current || keyRef.current.sig !== sig) {
       keyRef.current = { sig, key: makeIdempotencyKey() };
@@ -191,7 +195,8 @@ export function PrintCheckoutView({
     setCreating(true);
     setCreateError(null);
     const addr = effectiveMethod === 'ship' ? normalizeAddress(address) : null;
-    const sig = JSON.stringify({ bookId, qty, method: effectiveMethod, paper, addr, total: q.quote.totalAgorot, priceVersion: q.quote.priceVersion });
+    const legacySig = JSON.stringify({ bookId, qty, method: effectiveMethod, addr });
+    const sig = JSON.stringify({ bookId, qty, method: effectiveMethod, paper, cover, addr });
     try {
       const res = await api.createOrder({
         bookId,
@@ -206,7 +211,7 @@ export function PrintCheckoutView({
           priceVersion: q.quote.priceVersion,
         },
         address: addr,
-        idempotencyKey: ensureKey(sig),
+        idempotencyKey: ensureKey(sig, legacySig),
       });
       if (!res || !res.checkoutUrl) {
         const e = new Error('no checkout url');
@@ -218,6 +223,7 @@ export function PrintCheckoutView({
       inFlight.current = false;
       setCreating(false);
       setCreateError(error);
+      if (error?.code === 'quote_changed') q.retry();
     }
   };
 
@@ -230,7 +236,7 @@ export function PrintCheckoutView({
   if (step === 3) {
     if (creating) reason = '';
     else if (q.status === 'loading' && !q.quote) reason = t('print.checkoutPage.waitingPrice');
-    else if (q.status === 'error' || !['standard', 'chrome-matte-130', 'chrome-matte-170'].includes(paper) || (q.quote && q.quote.paper !== paper)) reason = t('print.checkoutPage.noPrice');
+    else if (q.status === 'error' || (q.quote && q.quote.verified !== true) || !['standard', 'chrome-matte-130', 'chrome-matte-170'].includes(paper) || (q.quote && q.quote.paper !== paper)) reason = t('print.checkoutPage.noPrice');
   }
   const nextDisabled = config.status !== 'ready' || editionStatus !== 'ready' || cover !== 'softcover' || (!allowUpgradedPaper && paper !== 'standard') || !['standard', 'chrome-matte-130', 'chrome-matte-170'].includes(paper) || (step === 3 && (!quoteMatches)) || creating;
 
@@ -321,6 +327,8 @@ export function PrintCheckoutView({
                     </strong>{' '}
                     {t('print.checkoutPage.final')}
                   </>
+                ) : q.status === 'ready' && q.quote?.verified !== true ? (
+                  t('print.paperChoice.unverified')
                 ) : q.status === 'error' ? (
                   t('print.checkoutPage.priceLater')
                 ) : (
@@ -351,6 +359,7 @@ export function PrintCheckoutView({
 
           {step === 3 && (
             <div className="space-y-4">
+              {q.status === 'ready' && q.quote?.verified !== true && <InlineAlert className="" title={t('print.checkoutPage.quoteError')}>{t('print.paperChoice.unverified')}</InlineAlert>}
               {q.status === 'error' && <InlineAlert title={t('print.checkoutPage.quoteError')} onRetry={q.retry}>{errorText(q.error)}</InlineAlert>}
               {(q.quote || q.status === 'loading') && (
               <Card aria-label={t('print.checkoutPage.priceDetails')}>
@@ -391,10 +400,11 @@ export function PrintCheckoutView({
               </Card>
               {createError && (
                 <div id="create-error">
-                <InlineAlert title={t('print.checkoutPage.createError')} onRetry={submit} retryLabel={t('print.checkoutPage.retry')}>
+                <InlineAlert className="" title={t('print.checkoutPage.createError')} onRetry={createError.code === 'quote_changed' ? q.retry : submit} retryLabel={t('print.checkoutPage.retry')}>
                   {/** @type {any} */ (<>
+                    {createError.code === 'quote_changed' && <p>{t('print.paperChoice.quoteChanged')}</p>}
                     {(createError.code === 'unauthorized' || createError.code === 'network') && <p>{errorText(createError)}</p>}
-                    <p>{/** @type {any} */ (t('print.checkoutPage.createUncertain'))}</p>
+                    {createError.code !== 'quote_changed' && <p>{/** @type {any} */ (t('print.checkoutPage.createUncertain'))}</p>}
                   </>)}
                 </InlineAlert>
                 </div>

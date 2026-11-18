@@ -24,6 +24,10 @@ export function useQuote(api, { bookId, qty, method, paper, enabled = true, debo
     return () => { clearTimeout(timer); if (seq.current === my) seq.current += 1; };
   }, [api, bookId, qty, method, paper, enabled, debounceMs, nonce]);
 
-  const retry = useCallback(() => setNonce((n) => n + 1), []);
+  const retry = useCallback(() => {
+    seq.current += 1;
+    setState({ status: 'loading', quote: null, error: null });
+    setNonce((n) => n + 1);
+  }, []);
   return { ...state, retry };
 }

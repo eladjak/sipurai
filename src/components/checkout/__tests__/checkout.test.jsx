@@ -22,7 +22,7 @@ const t = (key, values = {}) => {
 const wrap = (ui) => render(<I18nContext.Provider value={{ t, language: 'hebrew', direction: 'rtl' }}><MemoryRouter>{ui}</MemoryRouter></I18nContext.Provider>);
 
 const quote = {
-  currency: 'ILS', paper: 'standard', cover: 'softcover', pageCount: 24, priceVersion: 'v1', presetId: 'sq22', qty: 1, method: 'ship', vatIncluded: true,
+  currency: 'ILS', paper: 'standard', cover: 'softcover', pageCount: 24, verified: true, priceVersion: 'v1', presetId: 'sq22', qty: 1, method: 'ship', vatIncluded: true,
   lines: [
     { key: 'book', label_he: 'ספר מודפס', amountAgorot: 7777 },
     { key: 'shipping', label_he: 'משלוח סיפוראי', amountAgorot: 1234 },
@@ -373,4 +373,48 @@ it("honors the subscriber paper restriction in checkout", async () => {
   expect(api.getQuote).not.toHaveBeenCalled();
   fireEvent.click(screen.getByLabelText(/נייר לבן 110 גרם/));
   await waitFor(() => expect(api.getQuote).toHaveBeenCalledWith(expect.objectContaining({ paper: "standard" })));
+});
+
+
+it.each([false, undefined])('unverified quote (%s) never enables payment', async verified => {
+  const api = mkApi({ getQuote: vi.fn(async () => ({ ...quote, verified })) });
+  checkout(api, { initialStep: 3, initialAddress: FILLED });
+  await screen.findByText('המחיר הזה הוא הערכה בלבד ואינו זמין להזמנה כרגע.');
+  expect(screen.getByTestId('pay-button')).toBeDisabled();
+  fireEvent.click(screen.getByTestId('pay-button'));
+  expect(api.createOrder).not.toHaveBeenCalled();
+});
+
+it.each([[true, 'legacy-key-123'], [false, null]])('migrates only unchanged standard legacy key (same=%s)', async (same, expected) => {
+  sessionStorage.clear(); localStorage.clear();
+  const addr = normalizeAddress(FILLED);
+  const oldSig = JSON.stringify({ bookId: 'b1', qty: same ? 1 : 2, method: 'ship', addr });
+  sessionStorage.setItem('sipurai.printKey.b1', JSON.stringify({ sig: oldSig, key: 'legacy-key-123' }));
+  const api = mkApi();
+  checkout(api, { persist: true, initialStep: 3, initialAddress: FILLED });
+  const pay = await screen.findByTestId('pay-button');
+  await waitFor(() => expect(pay).not.toBeDisabled());
+  fireEvent.click(pay);
+  await waitFor(() => expect(api.createOrder).toHaveBeenCalledOnce());
+  if (expected) expect(api.createOrder.mock.calls[0][0].idempotencyKey).toBe(expected);
+  else expect(api.createOrder.mock.calls[0][0].idempotencyKey).not.toBe('legacy-key-123');
+  sessionStorage.clear(); localStorage.clear();
+});
+
+it('refreshes changed quote and reuses the key so a retry cannot open a second checkout', async () => {
+  const createOrder = vi.fn().mockRejectedValueOnce(new PrintOrderApiError({code:'quote_changed'})).mockResolvedValue({ checkoutUrl: 'https://pay.example/x' });
+  const getQuote = vi.fn().mockResolvedValueOnce(quote).mockResolvedValue({ ...quote, totalAgorot: 10999, priceVersion: 'v2' });
+  const api = mkApi({ createOrder, getQuote });
+  checkout(api, { initialStep: 3, initialAddress: FILLED });
+  const pay = await screen.findByTestId('pay-button');
+  await waitFor(() => expect(pay).not.toBeDisabled());
+  fireEvent.click(pay);
+  await screen.findByText('המחיר השתנה. בדקו את המחיר המעודכן לפני שתמשיכו.');
+  await waitFor(() => expect(getQuote).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(pay).not.toBeDisabled());
+  expect(createOrder).toHaveBeenCalledTimes(1);
+  fireEvent.click(pay);
+  await waitFor(() => expect(createOrder).toHaveBeenCalledTimes(2));
+  expect(createOrder.mock.calls[1][0].idempotencyKey).toBe(createOrder.mock.calls[0][0].idempotencyKey);
+  expect(createOrder.mock.calls[1][0].acceptedQuote.totalAgorot).toBe(10999);
 });

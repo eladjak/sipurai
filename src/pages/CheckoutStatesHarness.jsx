@@ -14,7 +14,7 @@ import { PrintOrderApiError } from '@/lib/printOrder/api';
 const quote = {
   currency: 'ILS',
   presetId: 'sq22',
-  pageCount: 24, cover: 'softcover', priceVersion: 'fixture-v1',
+  pageCount: 24, cover: 'softcover', verified: true, priceVersion: 'fixture-v1',
   qty: 1,
   method: 'ship',
   lines: [

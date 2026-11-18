@@ -320,5 +320,29 @@ test('proof request preserves supported stocks and rejects mismatches or ambiguo
   for (const manifest of [
     { ...edition, paper: 'white-110gsm', requestedFinishing: { cover: 'softcover', paper: 'chrome-matte-130' } },
     { ...edition, paper: 'premium', requestedFinishing: { cover: 'softcover', paper: 'premium' } },
+    { ...edition, paper: null },
+    { ...edition, binding: null },
+    { ...edition, requestedFinishing: { cover: 'softcover', paper: ['standard'] } },
   ]) assert.throws(() => proofRequest({ method: 'POST', body: prepare(image, manifest) }, now), /proof_input/);
+});
+
+test('legacy proof request with omitted paper and binding is accepted unchanged', () => {
+  const result = proofRequest({ method: 'POST', body: prepare() }, now);
+  assert.equal(Object.hasOwn(result.spec.manifest, 'paper'), false);
+  assert.equal(Object.hasOwn(result.spec.manifest, 'binding'), false);
+});
+
+test('prepare rejects malformed stock and binding before sandbox use', async () => {
+  let called = false;
+  const provider = { async create() { called = true; throw new Error('unexpected'); } };
+  for (const manifest of [
+    { ...edition, paper: null },
+    { ...edition, binding: null },
+    { ...edition, requestedFinishing: { cover: 'softcover', paper: ['standard'] } },
+  ]) {
+    const response = await call(prepare(image, manifest), { provider });
+    assert.equal(response.code, 422);
+    assert.equal(response.body.error.code, 'proof_input');
+  }
+  assert.equal(called, false);
 });

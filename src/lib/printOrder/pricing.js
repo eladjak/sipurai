@@ -116,14 +116,26 @@ export function computeQuote(input, { env = {} } = {}) {
   }
 
   // quoteRef must identify independently confirmed supplier evidence for this
-  // exact size, pages, stock, cover and one-copy price; cost includes VAT.
+  // exact size, pages, stock, cover, quantity (or evidenced interval) and per-copy price; cost includes VAT.
   // Estimates and interpolation never authorize a sale.
   let quotes = [];
   if (env.PRINT_VERIFIED_QUOTES_JSON) {
     try { quotes = JSON.parse(env.PRINT_VERIFIED_QUOTES_JSON); } catch { throw new PricingError('config_invalid', 'הגדרת מחיר שגויה בשרת'); }
     if (!Array.isArray(quotes)) throw new PricingError('config_invalid', 'הגדרת מחיר שגויה בשרת');
   }
-  const matching = quotes.filter(q => q && q.presetId === presetId && q.pageCount === pageCount && q.paper === paper && q.cover === cover);
+  const candidates = quotes.filter(q => q && q.presetId === presetId && q.pageCount === pageCount && q.paper === paper && q.cover === cover);
+  const matching = candidates.filter(q => {
+    const hasQty = q.qty !== undefined;
+    const hasRange = q.minQty !== undefined || q.maxQty !== undefined;
+    if ((hasQty && hasRange) ||
+        (hasQty && (!Number.isSafeInteger(q.qty) || q.qty < 1)) ||
+        (hasRange && (!Number.isSafeInteger(q.minQty) || !Number.isSafeInteger(q.maxQty) || q.minQty < 1 || q.maxQty < q.minQty))) {
+      throw new PricingError('config_invalid', 'הגדרת מחיר שגויה בשרת');
+    }
+    if (hasQty) return qty === q.qty;
+    if (hasRange) return qty >= q.minQty && qty <= q.maxQty;
+    return qty === 1; // A quote without explicit quantity evidence covers one copy only.
+  });
   if (matching.length > 1) throw new PricingError('config_invalid', 'הגדרת מחיר שגויה בשרת');
   const configured = matching[0];
   if (configured && (!Number.isSafeInteger(configured.costAgorot) || configured.costAgorot < 1 || typeof configured.quoteRef !== 'string' || !configured.quoteRef.trim())) {

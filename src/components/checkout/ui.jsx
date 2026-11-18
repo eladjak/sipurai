@@ -76,7 +76,7 @@ export function SecondaryButton({ className, children, ...props }) {
 }
 
 /** Error / notice block. Announced to screen readers, always says what to do next. */
-export function InlineAlert({ tone = 'error', title, children, onRetry, retryLabel = '', className }) {
+export function InlineAlert({ tone = 'error', title, children, onRetry = undefined, retryLabel = '', className = undefined }) {
   const { t } = useI18n();
   const palette =
     tone === 'error'

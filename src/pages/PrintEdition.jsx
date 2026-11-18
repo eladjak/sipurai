@@ -12,7 +12,7 @@ import { MAX_PAGES } from '@/lib/printSpec';
 import { createEditionManifest, EDIT_INSTRUCTION_LIMIT, editionDraft, editionHasUnsafeText, editionPhysicalPageCount, editionStoryPages, isSafeStoryText, matterReview, pageDraft, printReviewComplete, sameEditionSource, STORY_FONTS, TEXT_LIMITS } from '@/lib/printEdition/model';
 import { editEdition, editionSavePayload, moveEdition, openEditionWorkspace, restoreEdition } from '@/lib/printEdition/history';
 import { configuredPrintEditionPolicy as policy, printEditionCapabilities } from '@/lib/printEdition/policy';
-import PrintPreferences from '@/screens/print-edition/PaperPreferences';
+import PrintPreferences from '@/screens/print-edition/PrintPreferences';
 import ProofWorkspace from '@/screens/print-edition/ProofWorkspace';
 import { EditionDetails } from '@/screens/print-edition/EditionDetails';
 import { EditionArtField } from '@/screens/print-edition/EditionArtField';

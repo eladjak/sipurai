@@ -95,13 +95,13 @@ function preparedSpec({ manifest, assets, bookId }) {
   if (manifest.qrUrl && manifest.qrUrl !== `https://www.sipurai.ai/b/print/${bookId}`
       && manifest.qrUrl !== `https://sipurai.ai/b/print/${bookId}`) throw new ProofError('proof_input');
   const papers = { standard: 'white-110gsm', 'chrome-matte-130': 'chrome-matte-130', 'chrome-matte-170': 'chrome-matte-170' };
-  const actualPaper = manifest.paper ?? 'white-110gsm';
-  if (!Object.values(papers).includes(actualPaper) || (manifest.binding ?? 'soft-matte') !== 'soft-matte') throw new ProofError('proof_input');
+  const actualPaper = Object.hasOwn(manifest, 'paper') ? manifest.paper : 'white-110gsm';
+  if (!Object.values(papers).includes(actualPaper) || (Object.hasOwn(manifest, 'binding') ? manifest.binding : 'soft-matte') !== 'soft-matte') throw new ProofError('proof_input');
   if (manifest.requestedFinishing !== undefined) {
     const finishing = manifest.requestedFinishing;
     if (!fields(finishing, new Set(['cover', 'paper'])) || Object.keys(finishing).length !== 2
         || !['softcover', 'hardcover'].includes(finishing.cover)
-        || !Object.hasOwn(papers, finishing.paper) || papers[finishing.paper] !== actualPaper) throw new ProofError('proof_input');
+        || typeof finishing.paper !== 'string' || !Object.hasOwn(papers, finishing.paper) || papers[finishing.paper] !== actualPaper) throw new ProofError('proof_input');
   }
   if (Object.hasOwn(manifest, 'storyFont') && !['david-libre', 'rubik'].includes(manifest.storyFont)) {
     throw new ProofError('proof_input');

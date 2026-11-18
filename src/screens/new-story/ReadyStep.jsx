@@ -1,4 +1,4 @@
-import PrintPreferences from '@/screens/print-edition/PaperPreferences';
+import PrintPreferences from '@/screens/print-edition/PrintPreferences';
 
 const lengths = ['short','medium','long'];
 const styles = ['disney','watercolor','cartoon','realistic','comic','storybook','anime','impressionist','pixar','minimalist','vintage','fantasy','pop_art','crayon','collage','gouache','chibi'];

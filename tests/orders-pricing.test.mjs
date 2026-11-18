@@ -72,6 +72,23 @@ test('specific verified configuration keeps stock, price and source in snapshot'
   assert.equal(code(() => computeQuote({...base, paper:'chrome-matte-170'}, {env})), 'price_unavailable');
 });
 
+test('supplier price only covers its evidenced quantity or interval', () => {
+  const record = {presetId:'square-220',pageCount:24,paper:'chrome-matte-170',cover:'softcover',costAgorot:3200,quoteRef:'fixture'};
+  const quote = (qty, rows) => computeQuote({...base, paper:record.paper, qty}, {env:{PRINT_VERIFIED_QUOTES_JSON:JSON.stringify(rows)}});
+  assert.equal(quote(1,[record]).verified,true);
+  assert.equal(code(() => quote(2,[record])), 'price_unavailable');
+  assert.equal(quote(3,[{...record,qty:3}]).totalAgorot,2900 + 8700 * 3);
+  assert.equal(code(() => quote(2,[{...record,qty:3}])), 'price_unavailable');
+  assert.equal(quote(2,[{...record,minQty:2,maxQty:4}]).verified,true);
+  assert.equal(quote(4,[{...record,minQty:2,maxQty:4}]).verified,true);
+  assert.equal(code(() => quote(5,[{...record,minQty:2,maxQty:4}])), 'price_unavailable');
+  assert.equal(code(() => quote(2,[{...record,minQty:2,maxQty:4},{...record,qty:2}])), 'config_invalid');
+  assert.equal(code(() => quote(1,[record,record])), 'config_invalid');
+  assert.equal(code(() => quote(1,[{...record,minQty:1}])), 'config_invalid');
+  assert.equal(code(() => quote(1,[{...record,qty:1,minQty:1,maxQty:1}])), 'config_invalid');
+  assert.equal(computeQuote({...base, qty:3}).totalAgorot,26600); // Legacy standard remains unchanged.
+});
+
 test('input validation', () => {
   assert.equal(code(() => computeQuote({ ...base, presetId: 'nope' })), 'unknown_preset');
   assert.equal(code(() => computeQuote({ ...base, qty: 0 })), 'invalid_qty');
