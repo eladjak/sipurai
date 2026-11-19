@@ -38,7 +38,7 @@
 
 .proof-nav {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: .375rem;
   align-items: stretch;
   margin-block-end: .625rem;
@@ -104,6 +104,28 @@
   margin: 0;
   min-inline-size: 0;
 }
+
+.proof-book { position: relative; padding-inline: clamp(1.125rem, 4.3vw, 3.125rem); }
+.proof-book-turn {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  inline-size: clamp(2.75rem, 5.5vw, 3.125rem);
+  aspect-ratio: 1;
+  border: 1px solid #fff6e78c;
+  border-radius: 50%;
+  background: var(--sp-night-900);
+  color: #fff6e7;
+  box-shadow: 0 3px 10px #180d3944;
+}
+.proof-book-turn-left { left: 0; }
+.proof-book-turn-right { right: 0; }
+.proof-book-turn[aria-disabled='true'] { opacity: .55; cursor: default; }
+.proof-book-turn[aria-disabled='false']:is(:hover, :focus-visible) { background: var(--sp-violet-700); }
+.proof-book-turn:focus-visible { outline: 2px solid var(--sp-violet-700); outline-offset: 2px; }
 
 /* Paper sits on a dark mat, with the two printed leaves meeting at the fold. */
 .proof-stage {
@@ -276,12 +298,6 @@
   color: var(--sp-ink-900);
   background: var(--sp-violet-50);
   font-size: .875rem;
-}
-
-@media (max-width: 420px) {
-  .proof-turn { min-inline-size: 44px; }
-  .proof-turn { padding-inline: .375rem; }
-  .proof-turn svg { inline-size: .875rem; }
 }
 
 .proof-header .proof-draft {

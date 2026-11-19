@@ -45,7 +45,8 @@ const flipVariants = {
   })
 };
 
-const PageFlip = React.memo(function PageFlip({
+/** @param {{ pageKey: number, direction: number, isRTL: boolean, onPrev: () => void, onNext: () => void, canGoPrev?: boolean, canGoNext?: boolean, children: React.ReactNode }} props */
+function PageFlip({
   pageKey,
   direction,
   isRTL,
@@ -89,19 +90,18 @@ const PageFlip = React.memo(function PageFlip({
             onClick={prevOnRight ? onNext : onPrev}
             disabled={prevOnRight ? !canGoNext : !canGoPrev}
             aria-label={prevOnRight ? t("bookView.navigation.next") : t("bookView.navigation.previous")}
+            title={prevOnRight ? t("bookView.navigation.next") : t("bookView.navigation.previous")}
             className={[
-              "absolute top-1/2 -translate-y-1/2 -left-5",
+              "reader-turn reader-turn-left absolute top-1/2 -translate-y-1/2",
               "flex items-center justify-center",
-              "min-w-[44px] min-h-[44px] w-11 h-11",
-              "rounded-full bg-white/80 dark:bg-gray-800/80 shadow-md",
-              "text-gray-700 dark:text-gray-200",
-              "transition-opacity duration-150 hover:bg-white dark:hover:bg-gray-700",
+              "rounded-full bg-[#2b1b43] shadow-md text-[#fff4df]",
+              "motion-safe:transition-colors hover:bg-[#4b2f73]",
               "disabled:opacity-30 disabled:pointer-events-none",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-500",
               "z-10"
             ].join(" ")}
           >
-            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            <ChevronLeft className="h-7 w-7" aria-hidden="true" />
           </button>
 
           {/* Right edge button */}
@@ -110,24 +110,23 @@ const PageFlip = React.memo(function PageFlip({
             onClick={prevOnRight ? onPrev : onNext}
             disabled={prevOnRight ? !canGoPrev : !canGoNext}
             aria-label={prevOnRight ? t("bookView.navigation.previous") : t("bookView.navigation.next")}
+            title={prevOnRight ? t("bookView.navigation.previous") : t("bookView.navigation.next")}
             className={[
-              "absolute top-1/2 -translate-y-1/2 -right-5",
+              "reader-turn reader-turn-right absolute top-1/2 -translate-y-1/2",
               "flex items-center justify-center",
-              "min-w-[44px] min-h-[44px] w-11 h-11",
-              "rounded-full bg-white/80 dark:bg-gray-800/80 shadow-md",
-              "text-gray-700 dark:text-gray-200",
-              "transition-opacity duration-150 hover:bg-white dark:hover:bg-gray-700",
+              "rounded-full bg-[#2b1b43] shadow-md text-[#fff4df]",
+              "motion-safe:transition-colors hover:bg-[#4b2f73]",
               "disabled:opacity-30 disabled:pointer-events-none",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-500",
               "z-10"
             ].join(" ")}
           >
-            <ChevronRight className="h-5 w-5" aria-hidden="true" />
+            <ChevronRight className="h-7 w-7" aria-hidden="true" />
           </button>
         </>
       )}
     </div>
   );
-});
+}
 
-export default PageFlip;
+export default React.memo(PageFlip);

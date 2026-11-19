@@ -9,8 +9,6 @@ import { useI18n } from "@/components/i18n/i18nProvider";
 import {
   ArrowLeft,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
   Home,
   Download,
   Maximize,
@@ -35,6 +33,7 @@ import "@/styles/story-reader.css";
 import "@/styles/sp-fonts.css";
 import ReaderIllustration from "@/components/bookReader/ReaderIllustration";
 import PageFlip from "@/components/bookReader/PageFlip";
+import GenerationWaiting from "@/components/bookReader/GenerationWaiting";
 import GiftEditionCTA from "@/components/bookReader/GiftEditionCTA";
 import { exportBookToPDF } from "@/utils/pdfExporter";
 import useGamification from "@/hooks/useGamification";
@@ -50,6 +49,16 @@ import { InvokeLLM, GenerateImage } from "@/integrations/Core";
 import { editionLabels } from "@/screens/print-edition/labels";
 import { printEditionUrl } from "@/lib/printEdition/model";
 import { OrderBookButton } from "@/components/checkout/OrderBookButton";
+
+function claimAutomaticRecovery(key) {
+  try {
+    if (localStorage.getItem(key) !== null) return false;
+    localStorage.setItem(key, "1");
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default function BookView() {
   const { user } = useCurrentUser();
@@ -69,7 +78,9 @@ function BookReader({ bookId, user }) {
   // instead of silently pretending three was the plan.
   const [allPages, setAllPages] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [isResuming, setIsResuming] = useState(false);
+  const [resuming, setResuming] = useState(null);
+  const resumeInFlight = useRef(false);
+  const isResuming = resuming !== null;
   const [resumeError, setResumeError] = useState(null);
   const [legacyConfirmation, setLegacyConfirmation] = useState(false);
   const [failedArt, setFailedArt] = useState(/** @type {Record<string, boolean>} */ ({}));
@@ -87,6 +98,7 @@ function BookReader({ bookId, user }) {
   const [pdfProgress, setPdfProgress] = useState(0);
   // Wave-14: Optional background music toggle
   const [musicOn, setMusicOn] = useState(false);
+  const [musicError, setMusicError] = useState(false);
   const musicRef = useRef(null);
 
   const { toast } = useToast();
@@ -216,6 +228,8 @@ function BookReader({ bookId, user }) {
   const brokenPageNumbers = Object.keys(failedArt).filter(key => key !== 'cover').map(Number);
   const fullyIllustrated = book?.status !== 'partial' && progress.isComplete && !progress.missingImage.length &&
     !Object.keys(failedArt).length && !!book?.cover_image;
+  const missingArtCount = new Set([...progress.missingImage, ...brokenPageNumbers]).size +
+    (failedArt.cover || (book && !book.cover_image) ? 1 : 0);
   function recordArtFailure(key, failed) {
     setFailedArt(previous => {
       if (!!previous[key] === failed) return previous;
@@ -228,6 +242,14 @@ function BookReader({ bookId, user }) {
   const runLive = isRunLive(bookId) || isResuming;
   const state = viewState(book, allPages, runLive);
   const canResume = isOwner && (isResumable(book, allPages) || !fullyIllustrated);
+
+  const generationMessage = resuming === "automatic-checking" ? t("spxReader.automaticChecking")
+    : resuming === "automatic" ? t("spxReader.automaticDrawing")
+    : runLive && progress.isComplete ? t("spxWizard.waiting.artComing")
+    : runLive ? t("spxWizard.waiting.storyComing")
+    : progress.isComplete && missingArtCount === 1 ? t("spxReader.oneMissingIllustration")
+    : progress.isComplete && missingArtCount > 1 ? t("spxReader.missingIllustrations", { count: missingArtCount })
+    : t("spxReader.generationPaused");
 
   // While something is building this book, re-read it every few seconds so each
   // page appears as it lands. The poll stops the moment the run stops
@@ -263,13 +285,15 @@ function BookReader({ bookId, user }) {
    * what is missing — so this never rewrites a page the parent has already read
    * and recovers the original rhyme, scenes and artwork from the private checkpoint.
    */
-  const handleResume = async (confirmLegacy = false) => {
-    if (!canResume || !book?.id || isResuming) return;
-    setIsResuming(true);
+  const handleResume = async (confirmLegacy = false, automatic = false) => {
+    if (!canResume || !book?.id || resumeInFlight.current) return;
+    if (automatic && (!Book.generationStore || book.is_public !== false || !user?.id)) return;
+    resumeInFlight.current = true;
+    setResuming(automatic ? "automatic-checking" : "manual");
     setResumeError(null);
     try {
       if (!Book.generationStore) await reserveBookSlot(book.id);
-      await generateBookIncremental({
+      const result = await generateBookIncremental({
         entities: { Book, Page },
         ai: { InvokeLLM, GenerateImage },
         recipe: buildRecipe({
@@ -281,19 +305,32 @@ function BookReader({ bookId, user }) {
           pageCount: progress.total || undefined,
         }),
         bookId: book.id,
-        allowLegacyReservation: confirmLegacy === true,
-        repairPages: brokenPageNumbers,
-        repairCover: !!failedArt.cover || !book.cover_image,
+        ...(automatic ? { automaticRecoveryOwnerId: user.id } : {
+          allowLegacyReservation: confirmLegacy === true,
+          repairPages: brokenPageNumbers,
+          repairCover: !!failedArt.cover || !book.cover_image,
+        }),
         onEvent: (event) => {
-          if (event.type === 'cover') recordArtFailure('cover', false);
+          if (automatic && event.type === "resumed") setResuming("automatic");
+          if (event.type === 'cover') {
+            recordArtFailure('cover', false);
+            setLiveTick((n) => n + 1);
+          }
           if (event.type === "page-text" || event.type === "page-image") {
             if (event.type === 'page-image') recordArtFailure(event.index, false);
             setLiveTick((n) => n + 1);
           }
         },
       });
+      if (automatic && result.status !== "complete") setResumeError(t("spxReader.automaticStopped"));
       setLegacyConfirmation(false);
     } catch (err) {
+      if (automatic) {
+        if (!['automatic_recovery_unavailable', 'provenance_missing', 'lease_busy', 'book_not_owned'].includes(err?.code)) {
+          setResumeError(t("spxReader.automaticStopped"));
+        }
+        return;
+      }
       if (err?.code === 'provenance_missing') {
         setLegacyConfirmation(true);
         setResumeError(t('spxReader.legacyAllowance'));
@@ -307,11 +344,31 @@ function BookReader({ bookId, user }) {
       setResumeError(err instanceof QuotaError ? err.message : ['lease_busy', 'lease_lost'].includes(err?.code)
         ? t('spxWizard.leaseBusy') : t('bookView.resumeFailed'));
     } finally {
-      clearActiveBookKey();
-      setIsResuming(false);
+      if (!automatic) clearActiveBookKey();
+      resumeInFlight.current = false;
+      setResuming(null);
       setLiveTick((n) => n + 1);
     }
   };
+
+  useEffect(() => {
+    if (import.meta.env.VITE_READER_AUTO_RECOVERY !== "true" || loading || !canResume || runLive ||
+        !Book.generationStore || !user?.id || book?.created_by !== user.id || book.is_public !== false ||
+        !Number.isInteger(book.total_pages) || book.total_pages < 1 || pages.length !== book.total_pages ||
+        pages.some((page, index) => page.page_number !== index) ||
+        (!progress.missingImage.length && book.cover_image?.trim())) return;
+    const key = `book_${book.id}_automatic_recovery_attempted`;
+    let cancelled = false;
+    function start() {
+      if (cancelled || resumeInFlight.current || isRunLive(book.id)) return;
+      if (claimAutomaticRecovery(key)) void handleResume(false, true);
+    }
+    // Serialize the durable browser marker across tabs when available. The
+    // database fence still protects the run across browsers and devices.
+    if (navigator.locks) void navigator.locks.request(key, start).catch(() => {});
+    else start();
+    return () => { cancelled = true; };
+  }, [book, canResume, loading, pages, progress.missingImage.length, runLive, user?.id]);
 
   // Pages arrive while the reader is open, and a resume can only ever add them
   // — but a book read from a stale cache could still leave the index past the
@@ -348,20 +405,20 @@ function BookReader({ bookId, user }) {
   const goToNextPage = useCallback(() => {
     if (currentPageIndex < pages.length - 1) {
       setDirection(1);
-      setCurrentPageIndex((prev) => prev + 1);
+      setCurrentPageIndex((prev) => Math.min(prev + 1, pages.length - 1));
     }
   }, [currentPageIndex, pages.length]);
 
   const goToPreviousPage = useCallback(() => {
     if (currentPageIndex > 0) {
       setDirection(-1);
-      setCurrentPageIndex((prev) => prev - 1);
+      setCurrentPageIndex((prev) => Math.max(0, prev - 1));
     }
   }, [currentPageIndex]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.target.closest?.("input, textarea, select, [contenteditable=true]")) return;
 
       switch (e.key) {
         case "ArrowRight":
@@ -471,7 +528,6 @@ function BookReader({ bookId, user }) {
   const nightBg       = nightMode ? "bg-gray-950" : "bg-[#eee3cd] dark:bg-gray-900";
   const nightCard     = nightMode ? "bg-gray-900 text-amber-50" : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200";
   const nightHeader   = nightMode ? "bg-gray-900/95 border-gray-800" : "bg-white/95 dark:bg-gray-900/95 border-gray-200 dark:border-gray-700";
-  const nightNav      = nightMode ? "bg-gray-900 border-gray-800" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700";
   const nightToolbar  = nightMode ? "text-amber-100 hover:bg-gray-800" : "";
 
   if (loading) {
@@ -500,17 +556,14 @@ function BookReader({ bookId, user }) {
     const starting = state === "starting";
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900" dir={isRTL ? "rtl" : "ltr"}>
-        {starting
-          ? <Loader2 className="h-16 w-16 text-purple-400 mb-4 animate-spin" aria-hidden="true" />
-          : <BookOpen className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" aria-hidden="true" />}
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          {book.title}
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md" role="status" aria-live="polite">
-          {starting
-            ? t("bookView.building.starting")
-            : t("bookView.building.stopped")}
-        </p>
+        <h1 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">{book.title}</h1>
+        <div className="mb-6">
+          <GenerationWaiting
+            t={t}
+            message={starting ? t("spxWizard.waiting.firstWords") : t("bookView.building.stopped")}
+            active={starting}
+          />
+        </div>
 
         {resumeError && (
           <p className="text-sm text-red-600 dark:text-red-400 mb-4 max-w-md">{resumeError}</p>
@@ -586,45 +639,19 @@ function BookReader({ bookId, user }) {
         </div>
       )}
 
-      {/* Still-being-written banner.
-          A book can be opened and read before it is finished — that is the
-          point of incremental generation. This says exactly how much of it is
-          real, and, when nothing is working on it any more, offers to finish
-          it. Never a bare spinner: the parent always knows which of the two
-          situations they are in. */}
       {progress.isReadable && !fullyIllustrated && (
-        <div
-          className={`px-4 py-2 text-sm flex flex-wrap items-center justify-between gap-3 ${
-            state === "building"
-              ? "bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-100"
-              : "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100"
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          <span className="flex items-center gap-2 min-w-0">
-            {state === "building" && <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />}
-            <span className="truncate">
-              {state === "building"
-                ? t("bookView.building.inProgress", { ready: progress.ready, total: progress.total })
-                : progress.isComplete
-                  // Every page has words but some have no picture. The book is
-                  // finished by the only definition that matters for reading it,
-                  // and still visibly missing something a parent can fix.
-                  ? t("bookView.building.missingArt", { count: new Set([...progress.missingImage, ...brokenPageNumbers]).size + (failedArt.cover || !book.cover_image ? 1 : 0) })
-                  : t("bookView.building.paused", { ready: progress.ready, total: progress.total })}
-            </span>
-          </span>
+        <div className={`px-4 py-3 flex flex-wrap items-center justify-between gap-3 ${runLive
+          ? "bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-100"
+          : "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100"}`}>
+          <GenerationWaiting t={t} message={generationMessage} counts={progress} compact active={runLive} />
 
-          {canResume && state !== "building" && (
+          {canResume && !runLive && (
             <button
+              type="button"
               onClick={() => handleResume(legacyConfirmation)}
-              disabled={isResuming}
-              className="shrink-0 flex items-center gap-1.5 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors px-3 py-1 rounded-full font-medium"
+              className="min-h-11 flex items-center gap-2 rounded-full bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800"
             >
-              {isResuming
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                : <PenTool className="h-3.5 w-3.5" aria-hidden="true" />}
+              <PenTool className="h-4 w-4" aria-hidden="true" />
               {legacyConfirmation ? t('spxReader.confirmAllowance') : progress.isComplete
                 ? t("bookView.building.retryArt")
                 : t("bookView.building.continue")}
@@ -664,9 +691,15 @@ function BookReader({ bookId, user }) {
                   {book.title}
                 </h1>
                 {pages.length > 0 && (
-                  <p className={`text-xs ${nightMode ? "text-gray-400" : "text-purple-600 dark:text-purple-400"}`}>
-                    {t('bookView.pageOf', { current: currentPageIndex, total: pages.length })}
-                  </p>
+                  <select className="reader-page-picker" aria-label={t("reader.jumpToPage")} value={currentPageIndex} onChange={event => {
+                    const index = Number(event.target.value);
+                    setDirection(index > currentPageIndex ? 1 : -1);
+                    setCurrentPageIndex(index);
+                  }}>
+                    {pages.map((page, index) => <option key={page.id ?? page.page_number} value={index}>
+                      {page.page_number === 0 ? t("demoBookViewer.cover") : t("bookView.pageAlt", { number: index + 1 })}
+                    </option>)}
+                  </select>
                 )}
               </div>
             )}
@@ -763,8 +796,11 @@ function BookReader({ bookId, user }) {
                   audio.pause();
                   return;
                 }
+                setMusicError(false);
                 audio.volume = 0.25;
-                void audio.play().catch(() => { /* Playback events keep the toggle in sync. */ });
+                void audio.play().catch(error => {
+                  if (error?.name !== 'AbortError') setMusicError(true);
+                });
               }}
             >
               {musicOn ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
@@ -775,11 +811,12 @@ function BookReader({ bookId, user }) {
               src="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3"
               preload="none"
               loop
-              onPlaying={() => setMusicOn(true)}
+              onPlaying={() => { setMusicOn(true); setMusicError(false); }}
               onPause={() => setMusicOn(false)}
-              onError={() => setMusicOn(false)}
+              onError={() => { setMusicOn(false); setMusicError(true); }}
               hidden
             />
+            {musicError && <p className="w-full text-sm" role="status">{t('reader.musicUnavailable')}</p>}
 
             {/* Edit — owner only */}
             {book && !isGuest && book.created_by === user?.id && (
@@ -856,7 +893,7 @@ function BookReader({ bookId, user }) {
         {book && pages.length > 0 ? (
           <div className="flex-1 flex flex-col">
             {/* Book viewer */}
-            <div className={`flex-1 flex flex-col items-center justify-center p-4 md:p-8 ${nightBg}`}>
+            <div className={`flex-1 flex flex-col items-center justify-start p-4 md:justify-center md:p-8 ${nightBg}`}>
               <div
                 className="reader-desk w-full max-w-4xl"
                 style={/** @type {React.CSSProperties} */ ({ "--reading-scale": zoomLevel })}
@@ -865,6 +902,10 @@ function BookReader({ bookId, user }) {
                   pageKey={currentPageIndex}
                   direction={direction}
                   isRTL={isRTL}
+                  onPrev={goToPreviousPage}
+                  onNext={goToNextPage}
+                  canGoPrev={currentPageIndex > 0}
+                  canGoNext={currentPageIndex < pages.length - 1}
                 >
                   <div className={`${nightCard} rounded-2xl shadow-xl overflow-hidden ring-1 ${nightMode ? "ring-gray-700" : "ring-black/5 dark:ring-white/10"} transition-colors duration-300`}>
                     {isCoverPage ? (
@@ -913,11 +954,12 @@ function BookReader({ bookId, user }) {
                       <figure className="reader-leaf" data-layout={currentPage?.layout_type} dir={isHebrewBook || book.language === "yiddish" ? "rtl" : "ltr"}>
                         <div className="reader-art">
                           {currentPage?.image_url ? (
-                            <ReaderIllustration onAvailability={failed => recordArtFailure(currentPage.page_number, failed)} key={currentPage.image_url} className="reader-page-art" src={currentPage.image_url} alt={t('bookView.pageAlt', { number: currentPage.page_number })} />
+                            <ReaderIllustration onAvailability={failed => recordArtFailure(currentPage.page_number, failed)} key={currentPage.image_url} className="reader-page-art" src={currentPage.image_url} alt={t('bookView.pageAlt', { number: currentPageIndex + 1 })} />
                           ) : (
                             <p className="reader-art-pending"><BookOpen aria-hidden="true" />{t('bookView.noIllustration')}</p>
                           )}
                         </div>
+                        <span className="reader-folio" aria-hidden="true">{currentPageIndex + 1}</span>
                         <figcaption>{currentPage?.text_content && <p className="reader-prose" style={{ fontFamily: getBookFontFamily() }}>{currentPage.text_content}</p>}</figcaption>
                       </figure>
                     )}
@@ -996,74 +1038,6 @@ function BookReader({ bookId, user }) {
               )}
             </AnimatePresence>
 
-            {/* Navigation controls */}
-            <div className={`p-3 md:p-4 border-t ${nightNav} transition-colors duration-300`}>
-              <div className="reader-navigation max-w-4xl mx-auto flex justify-between items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={goToPreviousPage}
-                  disabled={currentPageIndex === 0}
-                  className={`flex items-center gap-2 rounded-xl ${nightMode ? "border-gray-700 text-amber-50 hover:bg-gray-800" : ""}`}
-                  aria-label={t('bookView.previous')}
-                >
-                  {isRTL ? (
-                    <>
-                      {t('bookView.previous')}
-                      <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                    </>
-                  ) : (
-                    <>
-                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                      {t('bookView.previous')}
-                    </>
-                  )}
-                </Button>
-
-                {/* Page counter dots */}
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                  {pages.length <= 12 ? (
-                    pages.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setDirection(idx > currentPageIndex ? 1 : -1);
-                          setCurrentPageIndex(idx);
-                        }}
-                        aria-label={`${t('bookView.pageOf', { current: idx, total: pages.length })}`}
-                        className={`rounded-full transition-all duration-200 focus-visible:outline-2 focus-visible:outline-purple-500 ${
-                          idx === currentPageIndex
-                            ? "w-5 h-2 bg-purple-600"
-                            : `w-2 h-2 ${nightMode ? "bg-gray-600 hover:bg-gray-500" : "bg-gray-300 dark:bg-gray-600 hover:bg-purple-400"}`
-                        }`}
-                      />
-                    ))
-                  ) : (
-                    <span className={`text-sm tabular-nums ${nightMode ? "text-gray-400" : "text-gray-500 dark:text-gray-400"}`}>
-                      {t('bookView.pageOf', { current: currentPageIndex + 1, total: pages.length })}
-                    </span>
-                  )}
-                </div>
-
-                <Button
-                  onClick={goToNextPage}
-                  disabled={currentPageIndex === pages.length - 1}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 rounded-xl shadow-sm"
-                  aria-label={t('bookView.next')}
-                >
-                  {isRTL ? (
-                    <>
-                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                      {t('bookView.next')}
-                    </>
-                  ) : (
-                    <>
-                      {t('bookView.next')}
-                      <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
           </div>
         ) : (
           /* No book state */

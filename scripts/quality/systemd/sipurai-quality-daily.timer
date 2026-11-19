@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Sipurai public quality pilot at 06:15 Israel time
+
+[Timer]
+OnCalendar=*-*-* 06:15:00 Asia/Jerusalem
+Persistent=false
+AccuracySec=1s
+Unit=sipurai-quality-daily.service
+
+[Install]
+WantedBy=timers.target

@@ -1,5 +1,6 @@
-import React, { useState, useRef } from "react";
+import { useEffect, useId, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { moderateInput } from "@/utils/content-moderation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -133,7 +134,17 @@ export default function CharacterPicker({
   const isHebrew = language === "hebrew";
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customCharacterName, setCustomCharacterName] = useState("");
+  const [customTraits, setCustomTraits] = useState("");
+  const [customError, setCustomError] = useState("");
+  const [addedName, setAddedName] = useState("");
+  const formId = useId();
+  const addCustomButton = useRef(null);
+  const nameInput = useRef(null);
   const { savedCharacters, isLoading, entityToSelection } = useCharacterSelector(ownerId);
+  useEffect(() => {
+    if (showCustomInput) nameInput.current?.focus();
+  }, [showCustomInput]);
+
   const selectedRef = useRef(selectedCharacters);
   selectedRef.current = selectedCharacters;
   const updateSelection = (next) => { selectedRef.current = next; onCharactersChange(next); };
@@ -163,20 +174,35 @@ export default function CharacterPicker({
     toggleCharacter(charSelection);
   };
 
-  const addCustomCharacter = () => {
-    if (!customCharacterName.trim()) return;
+  const closeCustomInput = () => {
+    setShowCustomInput(false);
+    setCustomCharacterName("");
+    setCustomTraits("");
+    setCustomError("");
+    addCustomButton.current?.focus();
+  };
+
+  const addCustomCharacter = (event) => {
+    event.preventDefault();
+    const name = moderateInput(customCharacterName.trim(), "name");
+    const traits = moderateInput(customTraits.trim(), "description");
+    const blocked = name.blocked || traits.blocked;
+    if (blocked || !name.sanitized?.trim()) {
+      setCustomError(blocked ? t("wizard.error.inappropriateContent") : t("characterPicker.customNameError"));
+      return;
+    }
     const customChar = {
-      id: `custom_${Date.now()}`,
-      name: customCharacterName.trim(),
-      traits: "",
+      id: `custom_${crypto.randomUUID()}`,
+      name: name.sanitized.trim(),
+      traits: traits.sanitized.trim(),
       emoji: "🧑",
       avatar: null,
       isTemplate: false,
       isEntity: false,
     };
     updateSelection([...selectedRef.current, customChar]);
-    setCustomCharacterName("");
-    setShowCustomInput(false);
+    setAddedName(customChar.name);
+    closeCustomInput();
   };
 
   const removeCharacter = (charId) => {
@@ -219,7 +245,7 @@ export default function CharacterPicker({
       </div>
 
       {/* Surprise Me! */}
-      <div className="flex justify-center">
+      <div className="flex flex-wrap justify-center gap-3">
         <motion.button
           onClick={handleSurpriseMe}
           whileHover={{ scale: 1.06, y: -2 }}
@@ -240,7 +266,113 @@ export default function CharacterPicker({
           <span className="relative z-10">{t("characterPicker.surpriseButton")}</span>
           <Wand2 className="h-5 w-5 relative z-10" aria-hidden="true" />
         </motion.button>
+        <Button
+          ref={addCustomButton}
+          type="button"
+          variant="outline"
+          aria-expanded={showCustomInput}
+          aria-controls={formId}
+          onClick={() => {
+            setAddedName("");
+            if (showCustomInput) closeCustomInput();
+            else setShowCustomInput(true);
+          }}
+          className="min-h-11 gap-2 rounded-2xl"
+        >
+          <UserPlus aria-hidden="true" />
+          {t("characterPicker.addCustomButton")}
+        </Button>
       </div>
+      <div id={formId} hidden={!showCustomInput}>
+        {showCustomInput && <form onSubmit={addCustomCharacter} onChange={() => setCustomError("")}
+          aria-label={t("characterPicker.addCustomButton")}
+          className="space-y-4 rounded-2xl bg-purple-50 p-4 dark:bg-purple-950/30">
+          <p className="text-sm text-gray-700 dark:text-gray-300">{t("characterPicker.customHint")}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="min-w-0 space-y-2">
+              <Label htmlFor={`${formId}-name`}>{t("characterPicker.charNameLabel")}</Label>
+              <Input ref={nameInput} id={`${formId}-name`} value={customCharacterName}
+                onChange={(event) => setCustomCharacterName(event.target.value)} dir="auto"
+                placeholder={t("wizard.characters.namePlaceholder")} maxLength={50} required className="min-h-11" />
+            </div>
+            <div className="min-w-0 space-y-2">
+              <Label htmlFor={`${formId}-traits`}>{t("characterPicker.customTraits")}</Label>
+              <Input id={`${formId}-traits`} value={customTraits} onChange={(event) => setCustomTraits(event.target.value)}
+                dir="auto" placeholder={t("characterEditor.personalityPlaceholder")} maxLength={160} className="min-h-11" />
+            </div>
+          </div>
+          {customError && <p role="alert" className="text-sm font-semibold text-red-800 dark:text-red-300">{customError}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={!customCharacterName.trim()} className="min-h-11 rounded-xl bg-purple-700 text-white hover:bg-purple-800">
+              <Plus aria-hidden="true" />{t("characterPicker.addButton")}
+            </Button>
+            <Button type="button" variant="ghost" className="min-h-11" onClick={closeCustomInput}>
+              {t("characterPicker.cancelButton")}
+            </Button>
+          </div>
+        </form>}
+      </div>
+      <span role="status" className="sr-only">{addedName && t("characterPicker.customAdded", { name: addedName })}</span>
+
+      {/* Selected characters display */}
+      {selectedCharacters.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/50"
+        >
+          <p className="text-sm font-semibold mb-3 text-purple-700 dark:text-purple-300">
+            {t("characterPicker.selectedCount", { count: selectedCharacters.length })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <AnimatePresence>
+              {selectedCharacters.map((char) => (
+                <motion.div
+                  key={char.id}
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className={`flex min-w-0 max-w-full items-center gap-2 px-3 py-2 rounded-xl shadow-sm ${
+                    char.isChildSelf
+                      ? "bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/40 dark:to-amber-900/40 ring-2 ring-yellow-400"
+                      : "bg-white dark:bg-gray-800 ring-1 ring-purple-200 dark:ring-purple-800"
+                  }`}
+                >
+                  {char.isChildSelf ? (
+                    <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-400" aria-hidden="true" />
+                  ) : char.avatar ? (
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={char.avatar} alt={char.name} />
+                      <AvatarFallback className="text-[10px]"><User className="h-3 w-3" /></AvatarFallback>
+                    </Avatar>
+                  ) : char.emoji ? (
+                    <span className="text-base leading-none" aria-hidden="true">{char.emoji}</span>
+                  ) : (
+                    <User className="h-3.5 w-3.5 text-purple-600" />
+                  )}
+                  <span className={`min-w-0 break-words text-sm font-semibold ${char.isChildSelf ? "text-yellow-800 dark:text-yellow-200" : "text-gray-800 dark:text-gray-200"}`}>
+                    {char.name}
+                  </span>
+                  {char.isChildSelf && (
+                    <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                      {char.label}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => removeCharacter(char.id)}
+                    type="button"
+                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+                    aria-label={t("characterPicker.removeChar", { name: char.name })}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
 
       {/* My Characters section */}
       {isLoading ? (
@@ -367,124 +499,6 @@ export default function CharacterPicker({
         </div>
       </div>
 
-      {/* Selected characters display */}
-      {selectedCharacters.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/50"
-        >
-          <p className="text-sm font-semibold mb-3 text-purple-700 dark:text-purple-300">
-            {t("characterPicker.selectedCount", { count: selectedCharacters.length })}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <AnimatePresence>
-              {selectedCharacters.map((char) => (
-                <motion.div
-                  key={char.id}
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.7 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm ${
-                    char.isChildSelf
-                      ? "bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/40 dark:to-amber-900/40 ring-2 ring-yellow-400"
-                      : "bg-white dark:bg-gray-800 ring-1 ring-purple-200 dark:ring-purple-800"
-                  }`}
-                >
-                  {char.isChildSelf ? (
-                    <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-400" aria-hidden="true" />
-                  ) : char.avatar ? (
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={char.avatar} alt={char.name} />
-                      <AvatarFallback className="text-[10px]"><User className="h-3 w-3" /></AvatarFallback>
-                    </Avatar>
-                  ) : char.emoji ? (
-                    <span className="text-base leading-none" aria-hidden="true">{char.emoji}</span>
-                  ) : (
-                    <User className="h-3.5 w-3.5 text-purple-600" />
-                  )}
-                  <span className={`text-sm font-semibold ${char.isChildSelf ? "text-yellow-800 dark:text-yellow-200" : "text-gray-800 dark:text-gray-200"}`}>
-                    {char.name}
-                  </span>
-                  {char.isChildSelf && (
-                    <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-                      {char.label}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => removeCharacter(char.id)}
-                    className="ml-1 text-gray-400 hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-red-50 dark:hover:bg-red-950/30"
-                    aria-label={t("characterPicker.removeChar", { name: char.name })}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Add custom character */}
-      <div>
-        {!showCustomInput ? (
-          <Button
-            variant="outline"
-            onClick={() => setShowCustomInput(true)}
-            className="gap-2 rounded-xl border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20"
-            aria-label={t("characterPicker.addCustomLabel")}
-          >
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
-            {t("characterPicker.addCustomButton")}
-          </Button>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="overflow-hidden"
-          >
-            <div className="flex gap-2 items-end p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700">
-              <div className="flex-1">
-                <Label htmlFor="custom-character-name" className="mb-1.5 block text-sm font-medium">
-                  {t("characterPicker.charNameLabel")}
-                </Label>
-                <Input
-                  id="custom-character-name"
-                  value={customCharacterName}
-                  onChange={(e) => setCustomCharacterName(e.target.value)}
-                  placeholder={t("wizard.characters.namePlaceholder")}
-                  dir={isRTL ? "rtl" : "ltr"}
-                  maxLength={50}
-                  className="rounded-xl"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addCustomCharacter();
-                  }}
-                />
-              </div>
-              <Button
-                onClick={addCustomCharacter}
-                disabled={!customCharacterName.trim()}
-                className="bg-purple-600 hover:bg-purple-700 rounded-xl"
-                aria-label={t("characterPicker.addButton")}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowCustomInput(false);
-                  setCustomCharacterName("");
-                }}
-                className="rounded-xl"
-                aria-label={t("characterPicker.cancelButton")}
-              >
-                {t("characterPicker.cancelButton")}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </div>
     </div>
   );
 }

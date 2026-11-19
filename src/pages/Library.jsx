@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Book } from "@/entities/Book";
@@ -11,13 +11,10 @@ import { useToast } from "@/components/ui/use-toast";
 import {
   PlusCircle,
   Search,
-  BookOpen,
   Filter,
   X,
   LayoutGrid,
   List,
-  Sparkles,
-  Wand2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +31,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,10 +41,16 @@ export default function Library() {
   const { t, isRTL } = useI18n();
   const { toast } = useToast();
   const { user: hookUser } = useCurrentUser();
-  const [books, setBooks] = useState([]);
-  const [filteredBooks, setFilteredBooks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const ownerId = hookUser?.id;
+  const owner = useRef(ownerId);
+  owner.current = ownerId;
+  const request = useRef(0);
+  const [snapshot, setSnapshot] = useState({ owner: null, books: [], error: false });
+  const [loading, setLoading] = useState(true);
+  const bookOwnerMatches = snapshot.owner === ownerId;
+  const books = bookOwnerMatches ? snapshot.books : [];
+  const isLoading = loading || (Boolean(ownerId) && !bookOwnerMatches);
+  const loadError = bookOwnerMatches && snapshot.error;
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
     status: "all",
@@ -60,25 +62,28 @@ export default function Library() {
 
   useEffect(() => {
     loadBooks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hookUser]);
-
-  useEffect(() => {
-    filterBooks();
-  }, [books, searchQuery, filters]);
+    return () => { request.current += 1; };
+  }, [ownerId]);
 
   const loadBooks = async () => {
+    if (owner.current !== ownerId) return;
+    const active = ++request.current;
+    if (!ownerId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     try {
-      setIsLoading(true);
-      if (hookUser?.id) {
-        const loadedBooks = await Book.filter({ created_by: hookUser.id });
-        setBooks(loadedBooks);
+      const found = await Book.filter({ created_by: ownerId });
+      if (request.current === active && owner.current === ownerId) {
+        setSnapshot({ owner: ownerId, books: Array.isArray(found) ? found : [], error: false });
       }
-    } catch (error) {
-      setLoadError(true);
-      toast({ variant: "destructive", description: t("common.loadError") });
+    } catch {
+      if (request.current === active && owner.current === ownerId) {
+        setSnapshot({ owner: ownerId, books: [], error: true });
+      }
     } finally {
-      setIsLoading(false);
+      if (request.current === active && owner.current === ownerId) setLoading(false);
     }
   };
 
@@ -106,8 +111,10 @@ export default function Library() {
       results = results.filter(book => book.language === filters.language);
     }
 
-    setFilteredBooks(results);
+    return results;
   };
+
+  const filteredBooks = filterBooks();
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -200,44 +207,38 @@ export default function Library() {
   const hasActiveFilters = filters.status !== "all" || filters.genre !== "all" ||
     filters.age_range !== "all" || filters.language !== "all";
 
-  return (
-    <div className="max-w-6xl mx-auto pb-12" dir={isRTL ? "rtl" : "ltr"}>
-      {/* Gradient header banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative mb-8 rounded-2xl overflow-hidden shadow-xl"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-indigo-600 to-violet-700" />
-        <div className="absolute inset-0 bg-[url('/images/empty-library.jpg')] bg-cover bg-center opacity-10" />
-        {/* Decorative blobs */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
-        <Sparkles className="absolute top-5 left-8 h-5 w-5 text-white/20" />
-        <Sparkles className="absolute bottom-5 right-12 h-4 w-4 text-white/15" />
+  const hasQuery = Boolean(searchQuery || hasActiveFilters);
+  const clearQuery = () => {
+    setSearchQuery("");
+    resetFilters();
+  };
+  const bookState = isLoading ? (
+    <EmptyState title={t("shelf.loading")} status="status" />
+  ) : loadError ? (
+    <EmptyState title={t("shelf.errorTitle")} description={t("shelf.error")} status="alert"
+      actionLabel={t("shelf.retry")} onAction={loadBooks} />
+  ) : hasQuery ? (
+    <EmptyState title={t("shelf.noMatchesTitle")} description={t("library.adjustFilters")}
+      actionLabel={t("shelf.clearFilters")} onAction={clearQuery} />
+  ) : (
+    <EmptyState title={t("library.noBooks")} description={t("library.createFirst")}
+      actionLabel={t("library.createBook")} actionLink={createPageUrl("BookWizard")} />
+  );
 
-        <div className={`relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 md:p-8 ${isRTL ? "md:flex-row-reverse" : ""}`}>
-          <div className={isRTL ? "text-right" : "text-left"}>
-            <h1 className="text-3xl font-bold text-white drop-shadow-sm">{t("library.title")}</h1>
-            <p className="text-purple-100 mt-1 flex items-center gap-2">
-              {t("library.subtitle")}
-              {books.length > 0 && (
-                <Badge className="bg-white/20 text-white border-white/30 text-sm">
-                  {books.length}
-                </Badge>
-              )}
-            </p>
+  return (
+    <div className="sp-shell max-w-6xl mx-auto pb-12" dir={isRTL ? "rtl" : "ltr"}>
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4 px-1 pt-2">
+        <div>
+          <h1 className="font-sp-display text-3xl font-semibold text-gray-950 dark:text-white">{t("library.title")}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+            <p>{t("library.subtitle")}</p>
+            {books.length > 0 && <Badge variant="secondary" className=""><bdi dir="ltr">{books.length}</bdi></Badge>}
           </div>
-          <Link to={createPageUrl("BookWizard")}>
-            <Button className="relative bg-white text-purple-700 hover:bg-purple-50 shadow-lg rounded-2xl px-5 gap-2 overflow-hidden group">
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-100/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <PlusCircle className="relative h-4 w-4" />
-              <span className="relative">{t("library.createNewBook")}</span>
-            </Button>
-          </Link>
         </div>
-      </motion.div>
+        <Button asChild className="min-h-11 rounded-xl bg-purple-700 text-white hover:bg-purple-800">
+          <Link to={createPageUrl("BookWizard")}><PlusCircle aria-hidden="true" />{t("library.createNewBook")}</Link>
+        </Button>
+      </header>
 
       {/* Search + filter bar */}
       <motion.div
@@ -301,7 +302,7 @@ export default function Library() {
             >
               <Card className="border border-purple-100 dark:border-purple-900 shadow-md rounded-2xl bg-purple-50/50 dark:bg-purple-900/10">
                 <CardHeader className="pb-2 pt-4 px-5">
-                  <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <div className="flex justify-between items-center">
                     <CardTitle className="text-base text-gray-800 dark:text-white">{t("library.filters")}</CardTitle>
                     <Button variant="ghost" size="sm" onClick={resetFilters} className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-sm">
                       {t("library.reset")}
@@ -346,11 +347,13 @@ export default function Library() {
       </motion.div>
 
       {/* View toggle + count */}
-      <Tabs defaultValue="grid" className="space-y-4">
-        <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-            <span className="text-purple-600 dark:text-purple-400 font-bold">{filteredBooks.length}</span>
-            {" "}{filteredBooks.length === 1 ? t("library.bookFound") : t("library.booksFound")}
+      <Tabs defaultValue="grid" dir={isRTL ? "rtl" : "ltr"} className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium" aria-live="polite">
+            {!isLoading && !loadError && <>
+              <bdi dir="ltr" className="font-bold text-purple-700 dark:text-purple-300">{filteredBooks.length}</bdi>
+              {" "}{filteredBooks.length === 1 ? t("library.bookFound") : t("library.booksFound")}
+            </>}
           </div>
           {/* Pill-style grid/list toggle */}
           <TabsList className="bg-purple-100 dark:bg-purple-900/30 p-1 rounded-2xl gap-1">
@@ -372,21 +375,7 @@ export default function Library() {
         </div>
 
         <TabsContent value="grid" className="mt-0">
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5" aria-busy="true" aria-label={t("common.loading")}>
-              {Array(8).fill(0).map((_, index) => (
-                <Card key={index} className="overflow-hidden border-0 shadow-md rounded-2xl" aria-hidden="true">
-                  <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-800">
-                    <Skeleton className="h-full w-full" />
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : filteredBooks.length > 0 ? (
+          {!isLoading && !loadError && filteredBooks.length > 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -403,46 +392,11 @@ export default function Library() {
                 </motion.div>
               ))}
             </motion.div>
-          ) : (
-            <div className="relative rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10 rounded-2xl" />
-              <div className="relative">
-                <EmptyState
-                  title={t("library.noBooks")}
-                  description={searchQuery || hasActiveFilters
-                    ? t("library.adjustFilters")
-                    : t("library.createFirst")
-                  }
-                  icon={
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 flex items-center justify-center mx-auto">
-                      <BookOpen className="h-10 w-10 text-purple-400" />
-                    </div>
-                  }
-                  actionLabel={t("library.createBook")}
-                  actionLink={createPageUrl("BookWizard")}
-                />
-              </div>
-            </div>
-          )}
+          ) : bookState}
         </TabsContent>
 
         <TabsContent value="list" className="mt-0">
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array(8).fill(0).map((_, index) => (
-                <Card key={index} className="overflow-hidden border-0 shadow-md rounded-2xl">
-                  <div className="flex items-center gap-4 p-4">
-                    <Skeleton className="h-16 w-12 rounded-xl" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-1/3" />
-                      <Skeleton className="h-4 w-1/4" />
-                    </div>
-                    <Skeleton className="h-8 w-24 rounded-xl" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : filteredBooks.length > 0 ? (
+          {!isLoading && !loadError && filteredBooks.length > 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -459,18 +413,7 @@ export default function Library() {
                 </motion.div>
               ))}
             </motion.div>
-          ) : (
-            <EmptyState
-              title={t("library.noBooks")}
-              description={searchQuery || hasActiveFilters
-                ? t("library.adjustFilters")
-                : t("library.createFirst")
-              }
-              icon={<BookOpen className="h-12 w-12 text-gray-400" />}
-              actionLabel={t("library.createBook")}
-              actionLink={createPageUrl("BookWizard")}
-            />
-          )}
+          ) : bookState}
         </TabsContent>
       </Tabs>
     </div>

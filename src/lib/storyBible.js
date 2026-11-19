@@ -19,6 +19,7 @@
  */
 
 import { InvokeLLM } from '@/integrations/Core';
+import { hebrewTitleInstruction } from '@/lib/storyManuscript';
 
 // ─── Hebrew narration presets ───────────────────────────────────────────────
 // Per GPT-5 advice: OpenAI voices are EN-tuned, so for Hebrew we steer via the
@@ -158,6 +159,7 @@ RULES:
 5. Apply narrative arc: setup → inciting → rising → climax → falling → resolution across the ${pageCount} pages.
 6. Content MUST be wholesome, child-safe, age-appropriate, never scary.
 7. Hebrew/Yiddish: write naturally in target language — no English calques, no AI-tells.
+${language === 'hebrew' ? hebrewTitleInstruction : ''}
 
 Return ONLY the JSON matching the provided schema.`;
 

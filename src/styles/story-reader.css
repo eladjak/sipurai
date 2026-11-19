@@ -1,15 +1,21 @@
 .family-reader { min-inline-size: 0; }
 .reader-toolbar { min-inline-size: 0; }
 .reader-tools { max-inline-size: 100%; }
-.reader-desk { min-inline-size: 0; color: #30291f; }
+.reader-desk { min-inline-size: 0; padding-inline: clamp(1.25rem, 4vw, 3rem); color: #30291f; }
+.reader-turn { inline-size: clamp(2.75rem, 6vw, 3.5rem); aspect-ratio: 1; }
+.reader-turn-left { left: clamp(-3.375rem, -4vw, -1.75rem); }
+.reader-turn-right { right: clamp(-3.375rem, -4vw, -1.75rem); }
+.reader-page-picker { min-block-size: 2.75rem; max-inline-size: 100%; border-radius: .5rem; padding-inline: .5rem; font-size: .875rem; color: inherit; background: transparent; }
+.reader-page-picker option { color: #30291f; background: #fff8e9; }
 .reader-cover { background: #263f41; color: #fff3db; }
 .reader-cover-art { display: block; max-block-size: 62dvh; margin-inline: auto; }
 .reader-cover-title { background: #263f41; }
-.reader-leaf { margin: 0; color: #342d26; background: #fff8e9; display: grid; align-items: center; }
+.reader-leaf { position: relative; margin: 0; color: #342d26; background: #fff8e9; display: grid; align-items: center; }
 .reader-art { min-inline-size: 0; background: #efe5d2; }
 .reader-art img { display: block; inline-size: 100%; block-size: auto; max-block-size: 67dvh; object-fit: contain; }
 .reader-art-pending { display: grid; justify-items: center; gap: 1rem; padding: 3rem 1rem; }
-.reader-leaf figcaption { padding: clamp(1.2rem,4vw,3rem); }
+.reader-leaf figcaption { padding: clamp(1.2rem,4vw,3rem); padding-block-end: max(2rem, 4vw); }
+.reader-folio { position: absolute; z-index: 1; inset-block-end: .45rem; inset-inline-end: .9rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
 .reader-prose { margin: 0 auto; max-inline-size: 34ch; text-align: start; white-space: pre-line; overflow-wrap: anywhere; font-size: calc(clamp(1.35rem,2.4vw,1.9rem) * var(--reading-scale,1)); line-height: 1.85; }
 .reader-ending-art { width: 5rem; height: 5rem; margin: 0 auto 1rem; object-fit: contain; border-radius: 50%; }
 .family-reader[data-night="true"] .reader-leaf { color: #f8edda; background: #282d39; }
@@ -24,8 +30,6 @@
 @media (max-width: 47.99rem) {
   .reader-toolbar { flex-direction: column; align-items: stretch; }
   .reader-tools { justify-content: center; }
-  .reader-navigation { flex-wrap: wrap; }
-  .reader-navigation > :nth-child(2) { flex: 1 1 30%; flex-wrap: wrap; justify-content: center; }
 }
 .reader-cover, .reader-art { overflow: auto; }
 .reader-art img, .reader-cover-art { inline-size: calc(100% * var(--reading-scale,1)); max-inline-size: none; }

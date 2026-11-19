@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { generateDurableBook } from "../durableBookRun";
+import { generateBookIncremental } from "../bookGeneration";
 import { buildRecipe } from "../bookRecipe";
 import { reserveBookSlot } from "../bookQuota";
 
@@ -371,5 +372,90 @@ describe("durable book generation", () => {
     expect([...f.rows.values()].map((p) => p.text_content)).toEqual(before);
     expect(ai.InvokeLLM).not.toHaveBeenCalled();
     expect(reserveBookSlot).toHaveBeenCalledWith(id);
+  });
+});
+
+describe("automatic illustration recovery", () => {
+  const owner = "owner-fixture";
+  async function interrupted() {
+    const f = fixture();
+    await run(f, makeAI());
+    f.setBook({ ...f.book, created_by: owner, cover_image: "https://example.test/saved-cover" });
+    for (const row of f.rows.values()) {
+      row.image_url = row.page_number === 0 ? "https://example.test/saved-art" : null;
+    }
+    vi.clearAllMocks();
+    return f;
+  }
+
+  const recover = (f, ai, options = {}) =>
+    run(f, ai, { bookId: id, automaticRecoveryOwnerId: owner, ...options });
+
+  it("uses an existing fenced reservation to draw only missing illustrations", async () => {
+    const f = await interrupted();
+    const ai = makeAI();
+    const fetchReference = vi.fn(async (url) => {
+      // Existing art cannot be overwritten, even if a fetch would fail.
+      if (url === "https://example.test/saved-art") return null;
+      return "validated pixels";
+    });
+    const result = await recover(f, ai, { fetchReference, repairPages: [0], repairCover: true });
+    expect(result.status).toBe("complete");
+    expect(f.storage.acquire).toHaveBeenCalledWith({
+      bookId: id,
+      runId: expect.any(String),
+    });
+    expect(f.storage.listRows).toHaveBeenCalledOnce();
+    expect(f.storage.renew).toHaveBeenCalledWith({
+      bookId: id, runId: expect.any(String), fence: expect.any(Number),
+    });
+    expect(f.storage.renew.mock.invocationCallOrder[0]).toBeLessThan(ai.GenerateImage.mock.invocationCallOrder[0]);
+    expect(ai.GenerateImage).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      bookKey: id, modelId: "gemini-2-5-flash-image", referenceImageBase64: "validated pixels",
+    }));
+    expect(fetchReference).not.toHaveBeenCalledWith("https://example.test/saved-art");
+    expect(f.rows.get("p1").image_url).toBe("https://example.test/saved-art");
+    expect(f.rows.get("p2").image_url).toBe("https://example.test/image");
+    expect(f.storage.release).toHaveBeenCalledOnce();
+    expect(f.storage.savePlan).not.toHaveBeenCalled();
+    expect(ai.InvokeLLM).not.toHaveBeenCalled();
+    expect(reserveBookSlot).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with no durable generation store", async () => {
+    const f = fixture();
+    const ai = makeAI();
+    await expect(generateBookIncremental({
+      entities: f.entities,
+      ai,
+      recipe: makeRecipe(),
+      bookId: id,
+      automaticRecoveryOwnerId: owner,
+    })).rejects.toMatchObject({ code: "automatic_recovery_unavailable" });
+    expect(f.entities.Book.get).not.toHaveBeenCalled();
+    expect(reserveBookSlot).not.toHaveBeenCalled();
+    expect(ai.InvokeLLM).not.toHaveBeenCalled();
+    expect(ai.GenerateImage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["another owner", (f) => f.setBook({ ...f.book, created_by: "other" }), "automatic_recovery_unavailable"],
+    ["public book", (f) => f.setBook({ ...f.book, is_public: true }), "automatic_recovery_unavailable"],
+    ["missing provenance", (f) => f.storage.acquire.mockRejectedValueOnce(Object.assign(Error(), { code: "provenance_missing" })), "provenance_missing"],
+    ["another live lease", (f) => f.storage.acquire.mockRejectedValueOnce(Object.assign(Error(), { code: "lease_busy" })), "lease_busy"],
+    ["lease lost before drawing", (f) => f.storage.renew.mockRejectedValueOnce(Object.assign(Error(), { code: "lease_lost" })), "lease_lost"],
+    ["page failed to persist", (f) => f.rows.delete("p2"), "automatic_recovery_unavailable"],
+    ["page missing its words", (f) => { f.rows.get("p2").text_content = ""; }, "automatic_recovery_unavailable"],
+    ["page already recovered", (f) => { f.rows.get("p2").image_url = "https://example.test/complete"; }, "automatic_recovery_unavailable"],
+    ["legacy opt-in", () => {}, "automatic_recovery_unavailable"],
+  ])("skips %s with zero provider calls or new reservation", async (label, prepare, code) => {
+    const f = await interrupted();
+    const ai = makeAI();
+    prepare(f);
+    await expect(recover(f, ai, { allowLegacyReservation: label === "legacy opt-in" })).rejects.toMatchObject({ code });
+    expect(reserveBookSlot).not.toHaveBeenCalled();
+    expect(ai.InvokeLLM).not.toHaveBeenCalled();
+    expect(ai.GenerateImage).not.toHaveBeenCalled();
+    expect(f.storage.savePlan).not.toHaveBeenCalled();
   });
 });

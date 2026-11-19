@@ -4,7 +4,6 @@ import { createPageUrl } from "@/utils";
 import LazyImage from "@/components/shared/LazyImage";
 import {
   Card,
-  CardContent,
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,8 @@ import {
   Clock,
   CheckCircle,
   RotateCw,
-  Users,
   Edit,
   MessageSquare,
-  Star,
   Share2,
   Copy,
   Loader2,
@@ -89,7 +86,7 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
         dir={isRTL ? "rtl" : "ltr"}
       >
         <Card
-          className="overflow-hidden transition-all duration-200 shadow-md hover:shadow-2xl border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700"
+          className="group overflow-hidden transition-all duration-200 shadow-md hover:shadow-2xl border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
@@ -100,7 +97,7 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
                   <LazyImage
                     src={book.cover_image}
                     alt={book.title}
-                    className="w-full h-full transition-transform duration-200 hover:scale-105"
+                    className="w-full h-full motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:scale-[1.03]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
                 </>
@@ -213,14 +210,14 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
       transition={{ duration: 0.3 }}
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <Card className={`mb-4 overflow-hidden hover:shadow-md transition-all duration-200 border-gray-200 dark:border-gray-800 hover:border-purple-200 dark:hover:border-purple-800`}>
+      <Card className={`group mb-4 overflow-hidden hover:shadow-md transition-all duration-200 border-gray-200 dark:border-gray-800 hover:border-purple-200 dark:hover:border-purple-800`}>
         <div className="flex flex-col sm:flex-row">
           <div className="sm:w-36 md:w-48 aspect-[4/3] overflow-hidden bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-gray-900">
             {book.cover_image ? (
               <LazyImage
                 src={book.cover_image}
                 alt={book.title}
-                className="w-full h-full transition-transform duration-300 hover:scale-105"
+                className="w-full h-full motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:scale-[1.03]"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

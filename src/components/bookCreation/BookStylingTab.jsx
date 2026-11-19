@@ -73,7 +73,6 @@ export default function BookStylingTab({
             <RhymeOptions
               rhymeSettings={rhymeSettings}
               setRhymeSettings={setRhymeSettings}
-              currentLanguage={isRTL ? "hebrew" : "english"}
             />
           )}
         </CardContent>

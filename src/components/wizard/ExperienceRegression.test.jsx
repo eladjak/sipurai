@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import WizardProgress from "./WizardProgress";
@@ -83,6 +83,37 @@ describe("wizard interaction regressions", () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: "Saved hero" }));
     expect(screen.getByTestId("ids").textContent).toBe("entity_saved-1");
+  });
+
+  it("adds a custom character to the story using the form with a description", () => {
+    const change = vi.fn();
+    render(<CharacterPicker selectedCharacters={[]} onCharactersChange={change} language="hebrew" isRTL />);
+    const open = screen.getByRole("button", { name: "characterPicker.addCustomButton" });
+    fireEvent.click(open);
+    const name = screen.getByLabelText("characterPicker.charNameLabel");
+    expect(document.activeElement).toBe(name);
+    expect(screen.getByRole("button", { name: "characterPicker.addButton" }).disabled).toBe(true);
+    fireEvent.change(name, { target: { value: "  דני הדובי  " } });
+    fireEvent.change(screen.getByLabelText("characterPicker.customTraits"), { target: { value: "סקרן ואוהב כוכבים" } });
+    fireEvent.submit(name.form);
+    expect(change).toHaveBeenCalledOnce();
+    expect(change.mock.calls[0][0][0]).toMatchObject({
+      name: "דני הדובי", traits: "סקרן ואוהב כוכבים", isEntity: false, isTemplate: false,
+    });
+    expect(open.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(open);
+  });
+
+  it("keeps invalid custom character input editable without adding it", () => {
+    const change = vi.fn();
+    render(<CharacterPicker selectedCharacters={[]} onCharactersChange={change} language="english" />);
+    fireEvent.click(screen.getByRole("button", { name: "characterPicker.addCustomButton" }));
+    const name = screen.getByLabelText("characterPicker.charNameLabel");
+    fireEvent.change(name, { target: { value: "<b></b>" } });
+    fireEvent.submit(name.form);
+    expect(change).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(name.value).toBe("<b></b>");
   });
 
   it("does not auto-add a prior browser user name", () => {

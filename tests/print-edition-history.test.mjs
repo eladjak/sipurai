@@ -76,10 +76,20 @@ it('opens optional pilot features for everyone by default and recognizes existin
   assert.ok(Object.values(printEditionCapabilities('manual-only', 'family')).every(value => !value));
 });
 
-it('defaults only newly opened editions to integrated and retains it after save', () => {
+it('defaults only newly opened editions to floating and retains it after save', () => {
   const fresh = openEditionWorkspace(null);
-  assert.equal(active(fresh).defaultPanel, 'integrated');
+  assert.equal(active(fresh).defaultPanel, 'floating');
   assert.equal(fresh.dirty, false);
-  assert.equal(active(save(editEdition(fresh, field('creator', 'משפחה')))).defaultPanel, 'integrated');
+  assert.equal(active(save(editEdition(fresh, field('creator', 'משפחה')))).defaultPanel, 'floating');
   assert.equal(active(openEditionWorkspace({ version: 1, revision: 1 })).defaultPanel, undefined);
+});
+
+it('defaults only a fresh edition to compact and keeps the choice with its saved revision', () => {
+  const fresh = openEditionWorkspace(null);
+  assert.equal(active(fresh).openingLayout, 'compact');
+  const existing = openEditionWorkspace({ version: 1, revision: 3 });
+  assert.equal(active(existing).openingLayout, undefined);
+  const optedIn = save(editEdition(existing, field('openingLayout', 'compact')));
+  assert.equal(active(optedIn).openingLayout, 'compact');
+  assert.equal(active(restoreEdition(optedIn, 3)).openingLayout, undefined);
 });

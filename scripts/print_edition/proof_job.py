@@ -18,7 +18,7 @@ from PIL import Image, ImageCms
 from pikepdf import PdfError
 from weasyprint.urls import FatalURLFetchingError
 
-from layout import MAX_PAGES, load, plan, spine_for
+from layout import MAX_PAGES, OPENING_LAYOUTS, load, plan, scene_caption_style, scene_panel_heights, spine_for
 from render import build, command
 
 
@@ -41,9 +41,9 @@ EDITION_FIELDS = set(TEXT_LIMITS) | ART_FIELDS | {
     "version", "scenes", "qrUrl", "nikudStatus", "widthMm", "heightMm", "bleedMm",
     "gutterMm", "minPages", "signatureMultiple", "spineMm", "binding", "paper",
     "insideCover", "brightness", "coverNativePixels", "closingNativePixels",
-    "requestedFinishing", "storyFont", "unsavedDraft",
+    "requestedFinishing", "storyFont", "unsavedDraft", "openingLayout",
 }
-SCENE_FIELDS = {"layout", "art", "text", "zones", "anchor", "panel", "pointing", "nativePixels", "panelWidthsMm"}
+SCENE_FIELDS = {"layout", "art", "text", "zones", "anchor", "panel", "pointing", "nativePixels", "panelWidthsMm", "panelHeightsMm", "captionStyle"}
 IMAGE_FORMATS = ("JPEG", "PNG", "WEBP")
 QR = re.compile(r"https://(?:www\.)?sipurai\.ai/b/print/[a-zA-Z0-9_-]{1,100}", re.ASCII)
 DIRECTORY_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
@@ -88,7 +88,9 @@ def manifest_assets(data) -> set[str]:
     for field, limit in TEXT_LIMITS.items():
         if data.get(field) is not None:
             check_text(data[field], limit)
-    if "storyFont" in data and data["storyFont"] not in ("david-libre", "rubik"):
+    if "openingLayout" in data and data["openingLayout"] not in OPENING_LAYOUTS:
+        raise InvalidProofInput("Unknown opening layout")
+    if "storyFont" in data and data["storyFont"] not in ("david-libre", "rubik", "fredoka"):
         raise InvalidProofInput("Unknown story font")
     if "unsavedDraft" in data and type(data["unsavedDraft"]) is not bool:
         raise InvalidProofInput("Unsaved draft status must be true or false")
@@ -114,6 +116,11 @@ def manifest_assets(data) -> set[str]:
             raise InvalidProofInput("Invalid scene text blocks")
         for block in blocks:
             check_text(block, STORY_TEXT_LIMIT)
+        try:
+            scene_caption_style(scene)
+            scene_panel_heights(scene)
+        except ValueError as error:
+            raise InvalidProofInput("Invalid caption treatment") from error
         assets.add(asset_name(scene.get("art")))
     if len(assets) > MAX_ASSETS:
         raise InvalidProofInput("Too many artwork files")

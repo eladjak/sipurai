@@ -157,6 +157,30 @@ class ProofJobTest(unittest.TestCase):
             for x, y in ((24, 250), (525, 525), (1000, 900)):
                 self.assertTrue(all(abs(a - b) < 6 for a, b in zip(page.getpixel((x, y)), preview.getpixel((x, y)))))
 
+    def test_compact_proof_metadata_and_pixels_follow_the_interior_pdf(self):
+        # Use the genuine panoramic ratio for the smallest landscape height.
+        self.edition.update({"openingLayout": "compact", "widthMm": 210, "heightMm": 170,
+                             "copyright": "כל הזכויות שמורות למשפחה", "dedicationArt": "art/image-1"})
+        self.write_manifest()
+        output = self.room / "compact"
+        render_proof(self.job, output)
+        metadata = json.loads((output / "proof.json").read_text())
+        self.assertEqual([(page["kind"], page.get("storyIndex")) for page in metadata["pages"][:4]], [
+            ("opening-art", None), ("dedication-art", None), ("title-credits", None), ("story", 0),
+        ])
+        self.assertIsNone(metadata["pages"][0].get("text"))
+        self.assertIsNone(metadata["pages"][1].get("text"))
+        for field in ("title", "creator", "copyright"):
+            self.assertIn(self.edition[field], metadata["pages"][2]["text"])
+        for number, record in enumerate(metadata["pages"][:4], 1):
+            self.assertEqual(record["file"], f"page-{number:02d}.webp")
+            command("pdftoppm", "-f", str(number), "-l", str(number), "-singlefile", "-scale-to", "1050",
+                    output / "interior.pdf", self.room / "actual")
+            with Image.open(self.room / "actual.ppm") as page, Image.open(output / record["file"]) as preview:
+                self.assertEqual(preview.size, page.size)
+                for x, y in ((25, 25), (500, 500), (1000, 700)):
+                    self.assertTrue(all(abs(a - b) < 7 for a, b in zip(page.getpixel((x, y)), preview.getpixel((x, y)))))
+
     def test_render_without_inside_and_refuse_existing_output(self):
         self.edition["insideCover"] = False
         self.edition["storyFont"] = "rubik"

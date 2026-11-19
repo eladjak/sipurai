@@ -11,7 +11,7 @@ import test from 'node:test';
 import { execFile } from 'node:child_process';
 import handler from '../api/books/print-proof.js';
 import { CHUNK_BYTES, SESSION_MS, currentSession, proofRequest } from '../api/_lib/printProofRequest.js';
-import { createPrintProofStore } from '../api/_lib/printProofSource.js';
+import { bindProofSource, createPrintProofStore } from '../api/_lib/printProofSource.js';
 
 const run = promisify(execFile);
 const bookId = 'book-owner-only';
@@ -248,7 +248,11 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
   const { provider, phases, state } = await harness(t, { python: process.env.PRINT_TEST_PYTHON });
   // PNG accepts trailing bytes after its IEND chunk. This forces an upload across the 1 MiB boundary.
   const large = Buffer.concat([image, Buffer.alloc(CHUNK_BYTES, 3)]);
-  const chromeEdition = { ...edition, paper: 'chrome-matte-130', requestedFinishing: { cover: 'softcover', paper: 'chrome-matte-130' } };
+  const chromeEdition = { ...edition, paper: 'chrome-matte-130', requestedFinishing: { cover: 'softcover', paper: 'chrome-matte-130' },
+    scenes: [{ ...edition.scenes[0], panel: 'manual',
+      captionStyle: { textColor: '#123456', backdropColor: '#ffeedd', backdropOpacity: 0.5 },
+      panelWidthsMm: [130], panelHeightsMm: [40] }],
+  };
   const book = { created_by: 'user_private', print_revision: 4, title: 'Original title',
     cover_image: '/cover-original', language: 'hebrew', print_size: 'square-220', total_pages: 24 };
   const pages = [
@@ -310,6 +314,39 @@ test('multipart API verifies checksums, deduplicates revisions and renders actua
   assert.equal((await render()).code, 410);
 });
 
+test('proof request accepts bounded manual caption fields and rejects malformed or misplaced options', () => {
+  const style = { textColor: '#094c90', backdropColor: '#FFEEDD', backdropOpacity: 0 };
+  const make = (panel, captionStyle) => ({ ...edition, scenes: [{ ...edition.scenes[0], panel, captionStyle }] });
+  const request = manifest => proofRequest({ method: 'POST', body: prepare(image, manifest) }, now);
+  assert.deepEqual(request(make('manual', style)).spec.manifest.scenes[0].captionStyle, style);
+  for (const malformed of [
+    { ...style, textColor: '#000000\n' },
+    { ...style, textColor: 'red' },
+    { ...style, backdropColor: '#abcd' },
+    { ...style, backdropOpacity: '0.5' },
+    { ...style, backdropOpacity: -0.01 },
+    { ...style, backdropOpacity: 1.01 },
+    { ...style, backdropOpacity: Infinity },
+    { ...style, width: 120 },
+    { textColor: style.textColor, backdropColor: style.backdropColor },
+    null,
+  ]) assert.throws(() => request(make('manual', malformed)), /proof_input/);
+  assert.throws(() => request(make('floating', style)), /proof_input/);
+  assert.equal(request(edition).spec.manifest.scenes[0].captionStyle, undefined);
+});
+
+test('allows optional bounded per-leaf manual height and rejects invalid or legacy settings', () => {
+  const captionStyle = { textColor: '#004488', backdropColor: '#ffeedd', backdropOpacity: 0 };
+  const make = patch => ({ ...edition, scenes: [{ ...edition.scenes[0], panel: 'manual', captionStyle, ...patch }] });
+  const request = manifest => proofRequest({ method: 'POST', body: prepare(image, manifest) }, now);
+  assert.deepEqual(request(make({ panelHeightsMm: [28] })).spec.manifest.scenes[0].panelHeightsMm, [28]);
+  assert.deepEqual(request(make({ layout: 'spread', panelHeightsMm: [64, null] })).spec.manifest.scenes[0].panelHeightsMm, [64, null]);
+  for (const panelHeightsMm of [null, [], [64.01], [27.99], [true], ['40'], [30, null]]) {
+    assert.throws(() => request(make({ panelHeightsMm })), /proof_input/);
+  }
+  assert.throws(() => request(make({ panel: 'cream', captionStyle: undefined, panelHeightsMm: [40] })), /proof_input/);
+});
+
 test('proof request preserves supported stocks and rejects mismatches or ambiguous legacy stock', () => {
   for (const [choice, paper] of [['standard', 'white-110gsm'], ['chrome-matte-130', 'chrome-matte-130'], ['chrome-matte-170', 'chrome-matte-170']]) {
     const manifest = { ...edition, paper, requestedFinishing: { cover: 'softcover', paper: choice } };
@@ -324,6 +361,19 @@ test('proof request preserves supported stocks and rejects mismatches or ambiguo
     { ...edition, binding: null },
     { ...edition, requestedFinishing: { cover: 'softcover', paper: ['standard'] } },
   ]) assert.throws(() => proofRequest({ method: 'POST', body: prepare(image, manifest) }, now), /proof_input/);
+});
+
+test('accepts compact opening and distinguishes its proof identity from unchanged legacy requests', () => {
+  const request = manifest => proofRequest({ method: 'POST', body: prepare(image, manifest) }, now);
+  const legacy = request(edition);
+  const compact = request({ ...edition, openingLayout: 'compact' });
+  assert.equal(Object.hasOwn(legacy.spec.manifest, 'openingLayout'), false);
+  assert.equal(compact.spec.manifest.openingLayout, 'compact');
+  assert.notEqual(bindProofSource(compact, 'a'.repeat(64)).job, bindProofSource(legacy, 'a'.repeat(64)).job);
+  assert.equal(request({ ...edition, openingLayout: 'legacy' }).spec.manifest.openingLayout, 'legacy');
+  for (const value of [null, ['compact'], 'unknown']) {
+    assert.throws(() => request({ ...edition, openingLayout: value }), /proof_input/);
+  }
 });
 
 test('legacy proof request with omitted paper and binding is accepted unchanged', () => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import { useId } from 'react';
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -7,11 +7,20 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
-export default function RhymeOptions({ rhymeSettings, setRhymeSettings }) {
+export default function RhymeOptions({ rhymeSettings, setRhymeSettings, patternOnly = false }) {
   const { t, isRTL } = useI18n();
+  const patternId = useId();
+  const pattern = rhymeSettings.pattern;
+  const rhymeExample = patternOnly ? {
+    aabb: { hint: t("spxWizard.rhymePatternHint.aabb"), sample: t("spxWizard.rhymeSample.aabb") },
+    abab: { hint: t("spxWizard.rhymePatternHint.abab"), sample: t("spxWizard.rhymeSample.abab") },
+    abcb: { hint: t("spxWizard.rhymePatternHint.abcb") },
+    abba: { hint: t("spxWizard.rhymePatternHint.abba") },
+    monorhyme: { hint: t("spxWizard.rhymePatternHint.monorhyme") },
+  }[pattern] : null;
+  const sample = rhymeExample?.sample;
 
   const handleChange = (field, value) => {
     setRhymeSettings(prev => ({
@@ -23,13 +32,12 @@ export default function RhymeOptions({ rhymeSettings, setRhymeSettings }) {
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
       <div className="space-y-2">
-        <Label htmlFor="rhymePattern">{t("rhyme.pattern.label")}</Label>
+        <Label htmlFor={patternId}>{t("rhyme.pattern.label")}</Label>
         <Select
-          id="rhymePattern"
           value={rhymeSettings.pattern}
           onValueChange={(value) => handleChange("pattern", value)}
         >
-          <SelectTrigger>
+          <SelectTrigger id={patternId} className="min-h-11" aria-describedby={patternOnly ? `${patternId}-hint` : undefined}>
             <SelectValue placeholder={t("rhyme.pattern.label")} />
           </SelectTrigger>
           <SelectContent>
@@ -42,50 +50,64 @@ export default function RhymeOptions({ rhymeSettings, setRhymeSettings }) {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="rhymeMeter">{t("rhyme.meter.label")}</Label>
-        <Select
-          id="rhymeMeter"
-          value={rhymeSettings.meter}
-          onValueChange={(value) => handleChange("meter", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("rhyme.meter.label")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="iambic">{t("rhyme.meter.iambic")}</SelectItem>
-            <SelectItem value="trochaic">{t("rhyme.meter.trochaic")}</SelectItem>
-            <SelectItem value="anapestic">{t("rhyme.meter.anapestic")}</SelectItem>
-            <SelectItem value="dactylic">{t("rhyme.meter.dactylic")}</SelectItem>
-            <SelectItem value="free">{t("rhyme.meter.free")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {patternOnly ? (
+        <>
+          <p id={`${patternId}-hint`} className="text-sm text-gray-600 dark:text-gray-300">
+            {rhymeExample?.hint}
+          </p>
+          {sample && <details className="text-sm">
+            <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t("spxWizard.rhymeSampleTitle")}</summary>
+            <p className="mt-1 whitespace-pre-line" dir="auto">{sample}</p>
+          </details>}
+        </>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="rhymeMeter">{t("rhyme.meter.label")}</Label>
+            <Select
+              id="rhymeMeter"
+              value={rhymeSettings.meter}
+              onValueChange={(value) => handleChange("meter", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("rhyme.meter.label")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="iambic">{t("rhyme.meter.iambic")}</SelectItem>
+                <SelectItem value="trochaic">{t("rhyme.meter.trochaic")}</SelectItem>
+                <SelectItem value="anapestic">{t("rhyme.meter.anapestic")}</SelectItem>
+                <SelectItem value="dactylic">{t("rhyme.meter.dactylic")}</SelectItem>
+                <SelectItem value="free">{t("rhyme.meter.free")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <Label htmlFor="complexity">{t("rhyme.complexity.label")}</Label>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {rhymeSettings.complexity === "simple" ? t("rhyme.complexity.simple") :
-             rhymeSettings.complexity === "moderate" ? t("rhyme.complexity.moderate") :
-             t("rhyme.complexity.complex")}
-          </span>
-        </div>
-        <Select
-          id="complexity"
-          value={rhymeSettings.complexity}
-          onValueChange={(value) => handleChange("complexity", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("rhyme.complexity.label")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="simple">{t("rhyme.complexity.simple")}</SelectItem>
-            <SelectItem value="moderate">{t("rhyme.complexity.moderate")}</SelectItem>
-            <SelectItem value="complex">{t("rhyme.complexity.complex")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label htmlFor="complexity">{t("rhyme.complexity.label")}</Label>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {rhymeSettings.complexity === "simple" ? t("rhyme.complexity.simple") :
+                 rhymeSettings.complexity === "moderate" ? t("rhyme.complexity.moderate") :
+                 t("rhyme.complexity.complex")}
+              </span>
+            </div>
+            <Select
+              id="complexity"
+              value={rhymeSettings.complexity}
+              onValueChange={(value) => handleChange("complexity", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("rhyme.complexity.label")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="simple">{t("rhyme.complexity.simple")}</SelectItem>
+                <SelectItem value="moderate">{t("rhyme.complexity.moderate")}</SelectItem>
+                <SelectItem value="complex">{t("rhyme.complexity.complex")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-11-19",
+  "current": {
+    "sampleBooks": [{"pages": [
+      {"text": "שָׁלוֹם", "illustrated": true},
+      {"text": "שׁלום", "illustrated": false},
+      {"illustrated": true}
+    ]}],
+    "generations": [
+      {"state": "running", "ageMinutes": 31},
+      {"state": "failed", "ageMinutes": 9, "failure": "illustration"},
+      {"state": "completed", "ageMinutes": 100}
+    ],
+    "aggregates": {
+      "visual": {"checkedPages": 3, "qualityIssues": 1, "textOverflow": 1, "faceOverlap": 0},
+      "timing": {"samples": 12, "p95Ms": 930},
+      "funnel": {"started": 12, "manuscriptReady": 10, "bookReady": 9},
+      "errors": {"attempts": 20, "failedAttempts": 2, "repeatedErrorAttempts": 1},
+      "feedback": {"responses": 0, "negative": 0}
+    },
+    "smokePassed": true
+  },
+  "comparison": {
+    "day": "2026-11-12",
+    "sampleBooks": [{"pages": [{"illustrated": false}]}],
+    "generations": [{"state": "queued", "ageMinutes": 40}]
+  }
+}

@@ -5,17 +5,18 @@ from functools import lru_cache
 from hashlib import sha256
 from html import escape
 from io import BytesIO
-from math import ceil
+from math import ceil, floor
 from pathlib import Path
 
 from PIL import Image, ImageCms, ImageDraw, ImageEnhance, ImageFont, ImageOps
 import qrcode
 
-from layout import BINDING_SAFE_MM, DPI, SAFE_MM, Edition, Geometry, Page
+from layout import BINDING_SAFE_MM, DPI, SAFE_MM, CaptionStyle, Edition, Geometry, Page
 
 FONT_DIR = Path(__file__).with_name("fonts")
 BODY = FONT_DIR / "DavidLibre-Medium.ttf"
 DISPLAY = FONT_DIR / "Rubik.ttf"
+FRIENDLY = FONT_DIR / "Fredoka.ttf"
 PT_PER_MM = 72 / 25.4
 INK, CREAM, PAPER = "#24243b", "#fff4e1", "#f5e8d7"
 NIGHT, GOLD = "#262743", "#f7ce89"
@@ -136,9 +137,9 @@ def mm_box(x: float, y: float, w: float, h: float) -> str:
 
 
 def block(box: TextBox, *, color: str = INK, align: str = "center",
-          display: bool = False, extra: str = "") -> str:
+          display: bool = False, extra: str = "", friendly: bool = False) -> str:
     content = "".join(f"<div>{escape(line)}</div>" for line in box.lines)
-    family = "Rubik" if display else "DavidLibre"
+    family = "Fredoka" if friendly else "Rubik" if display else "DavidLibre"
     weight = 650 if display else 500
     return (f'<section class="layer text" dir="rtl" style="{mm_box(box.x, box.y, box.width, box.height)};'
             f'font-family:{family};font-weight:{weight};font-size:{box.size}pt;text-align:{align};color:{color};{extra}">'
@@ -154,8 +155,82 @@ def text_at(value: str, name: str, x: float, y: float, width: float, height: flo
     return block(box, display=display, color=color, align=align), box
 
 
+
+def linear_channel(value: float) -> float:
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+LUMINANCE = tuple(linear_channel(value / 255) for value in range(256))
+LUMINANCE_WEIGHTS = (0.2126, 0.7152, 0.0722)
+MIN_STORY_CONTRAST = 4.5
+
+
+def floating_style(image: Path, box: TextBox, geometry: Geometry) -> tuple[str, float]:
+    # Decode the exact cropped JPEG that will sit under the text, including
+    # brightness adjustment, spread splitting and any chosen crop anchor.
+    w, h = geometry.media
+    with Image.open(image) as final:
+        x_scale, y_scale = final.width / w, final.height / h
+        # Count a one-pixel rim for interpolated edges.
+        sample = final.crop((
+            max(0, floor(box.x * x_scale) - 1),
+            max(0, floor(box.y * y_scale) - 1),
+            min(final.width, ceil((box.x + box.width) * x_scale) + 1),
+            min(final.height, ceil((box.y + box.height) * y_scale) + 1),
+        )).convert("RGB")
+    red, green, blue = (tuple(weight * level for level in LUMINANCE) for weight in LUMINANCE_WEIGHTS)
+    low, high = 1.0, 0.0
+    for r, g, b in sample.get_flattened_data():
+        light = red[r] + green[g] + blue[b]
+        low, high = min(low, light), max(high, light)
+    black, white = (low + 0.05) / 0.05, 1.05 / (high + 0.05)
+    if max(black, white) >= MIN_STORY_CONTRAST:
+        return ("#000000" if black >= white else "#ffffff"), 0.0
+
+    # Simulate the sRGB alpha blend over a conservative lower bound for the
+    # art's RGB channels. Use a little headroom for rasterization and conversion.
+    darkest = tuple(lo / 255 for lo, _ in sample.getextrema())
+    for step in range(1, 101):
+        alpha = step / 100
+        light = sum(weight * linear_channel(channel + alpha * (1 - channel))
+                    for weight, channel in zip(LUMINANCE_WEIGHTS, darkest, strict=True))
+        if (light + 0.05) / 0.05 >= 5.0:
+            return "#000000", alpha
+    raise AssertionError("A white wash must provide contrast against black")
+
+
+def washed_art(image: Path, boundary_mm: float, media_height: float, from_top: bool, alpha: float) -> Path:
+    # Rasterize the wash with the artwork, so flattening transparent PDF
+    # gradients cannot leave a horizontal edge. Glyphs are still drawn later.
+    with Image.open(image) as art:
+        mask = Image.new("L", (1, art.height))
+        row_mm = media_height / art.height
+        distances = ((row * row_mm - boundary_mm) * (1 if from_top else -1) for row in range(art.height))
+        mask.putdata([ceil(255 * alpha * min(1, max(0, 1 - distance / 20))) for distance in distances])
+        white = Image.new("RGB", art.size, "#ffffff")
+        washed = Image.composite(white, art, mask.resize(art.size))
+        result = image.with_name(image.stem + "-washed.jpg")
+        washed.save(result, quality=95, subsampling=0, optimize=True)
+    return result
+
+
+def edge_wash(zone: str, w: float, h: float, y: float, panel_height: float,
+              rgb: str, alpha: float) -> str:
+    feather = 20.0
+    if zone.startswith("top"):
+        wash_y, wash_h, direction = 0, min(h, y + panel_height + feather), "to bottom"
+    else:
+        wash_h = min(h, h - y + feather)
+        wash_y, direction = h - wash_h, "to top"
+    opaque = 100 * (wash_h - feather) / wash_h
+    return (f'<div class="layer" style="{mm_box(0, wash_y, w, wash_h)};'
+            f'background:linear-gradient({direction},rgba({rgb},{alpha}) 0%, '
+            f'rgba({rgb},{alpha}) {opaque:.2f}%, rgba({rgb},0) 100%)"></div>')
+
 def panel(value: str, page: Page, geometry: Geometry, dark: bool,
-          width_cap: float | None = None, *, rubik: bool = False, integrated: bool = False) -> tuple[str, TextBox]:
+          width_cap: float | None = None, *, rubik: bool = False, integrated: bool = False,
+          floating_image: Path | None = None, caption_style: CaptionStyle | None = None,
+          height_mm: float | None = None, friendly: bool = False) -> tuple[str, TextBox]:
     w, h = geometry.media
     inset = geometry.bleed + SAFE_MM + 2
     extra = max(geometry.gutter, BINDING_SAFE_MM - SAFE_MM)
@@ -165,12 +240,14 @@ def panel(value: str, page: Page, geometry: Geometry, dark: bool,
     if width_cap is not None:
         maximum = min(maximum, width_cap)
     padding_x, padding_y = 5.2, 3.1
-    typeface = DISPLAY if rubik else BODY
+    typeface = FRIENDLY if friendly else DISPLAY if rubik else BODY
+    available_height = height_mm - 2 * padding_y if height_mm is not None else h * 0.31
     points, lines, used = fit(value, 27, 22, maximum - 2 * padding_x,
-                              h * 0.31, 4, typeface, f"Page {page.number} story text")
-    text_w = max(text_width(line, points, typeface) for line in lines) + 1.4
+                              available_height, 4, typeface, f"Page {page.number} story text")
+    text_w = (maximum - 2 * padding_x if height_mm is not None
+              else max(text_width(line, points, typeface) for line in lines) + 1.4)
     pnl_w = text_w + 2 * padding_x
-    pnl_h = used + 2 * padding_y
+    pnl_h = height_mm if height_mm is not None else used + 2 * padding_y
     if page.zone.endswith("left"):
         x = left
     elif page.zone.endswith("right"):
@@ -178,26 +255,26 @@ def panel(value: str, page: Page, geometry: Geometry, dark: bool,
     else:
         x = (left + right - pnl_w) / 2
     y = geometry.bleed + 15 if page.zone.startswith("top") else h - geometry.bleed - 24 - pnl_h
-    box = TextBox(x + padding_x, y + padding_y, text_w, used, points, lines, "story")
+    box = TextBox(x + padding_x, y + (pnl_h - used) / 2, text_w, used, points, lines, "story")
     bg = "rgba(28,29,52,0.94)" if dark else "rgba(255,244,225,0.95)"
     colored = (f'<div class="layer" style="{mm_box(x, y, pnl_w, pnl_h)};'
                f'background:{bg};border-radius:4mm"></div>')
-    if integrated:
-        # Full-bleed wash reaches beyond the entire text box, then feathers
-        # into the image. Keep the same measured safe text box and live glyphs.
-        feather = 20.0
-        if page.zone.startswith("top"):
-            wash_h = min(h, y + pnl_h + feather)
-            direction = "to bottom"
-        else:
-            wash_h = min(h, h - y + feather)
-            direction = "to top"
-        wash_y = 0 if page.zone.startswith("top") else h - wash_h
-        opaque = 100 * (wash_h - feather) / wash_h
-        colored = (f'<div class="layer" style="{mm_box(0, wash_y, w, wash_h)};'
-                   f'background:linear-gradient({direction},rgba(255,244,225,0.97) 0%, '
-                   f'rgba(255,244,225,0.97) {opaque:.2f}%, rgba(255,244,225,0) 100%)"></div>')
-    return colored + block(box, color=CREAM if dark else INK, align="right", display=rubik), box
+    color = CREAM if dark else INK
+    if caption_style is not None:
+        color = caption_style.text_color
+        red, green, blue = bytes.fromhex(caption_style.backdrop_color[1:])
+        alpha = caption_style.backdrop_opacity
+        colored = solid(x, y, pnl_w, pnl_h, f"rgba({red},{green},{blue},{alpha})", 4) if alpha else ""
+    elif floating_image is not None:
+        color, wash = floating_style(floating_image, box, geometry)
+        if wash:
+            from_top = page.zone.startswith("top")
+            boundary = y + pnl_h if from_top else y
+            floating_image = washed_art(floating_image, boundary, h, from_top, wash)
+        colored = picture(floating_image, 0, 0, w, h)
+    elif integrated:
+        colored = edge_wash(page.zone, w, h, y, pnl_h, "255,244,225", 0.97)
+    return colored + block(box, color=color, align="right", display=rubik, friendly=friendly), box
 
 
 class Art:
@@ -325,6 +402,7 @@ def document(parts: list[str], width: float, height: float, title: str) -> str:
 <title>{escape(title)}</title><style>
 @font-face {{font-family:DavidLibre;src:url("{BODY.as_uri()}");font-weight:500}}
 @font-face {{font-family:Rubik;src:url("{DISPLAY.as_uri()}");font-weight:300 900}}
+@font-face {{font-family:Fredoka;src:url("{FRIENDLY.as_uri()}");font-weight:500}}
 @page {{size:{width}mm {height}mm;margin:0}}
 html,body {{margin:0;padding:0}}
 .sheet {{width:{width}mm;height:{height}mm;position:relative;overflow:hidden;break-after:page;direction:ltr}}
@@ -368,22 +446,39 @@ def compose_interior(edition: Edition, pages: list[Page], art: Art) -> tuple[lis
                 crop = offset, 0, width, height
             image = art.crop(scene.art, source_w, height, asset_name, anchor=scene.anchor,
                              crop=crop, native_pixels=scene.native_pixels)
-            content += picture(image, 0, 0, width, height)
-            cap = None
-            if scene.panel_widths:
-                index = 1 if scene.layout == "spread" and page.side == "left" else 0
-                cap = scene.panel_widths[index]
+            if scene.panel != "floating":
+                content += picture(image, 0, 0, width, height)
+            index = 1 if scene.layout == "spread" and page.side == "left" else 0
+            cap = scene.panel_widths[index] if scene.panel_widths else None
+            height_mm = scene.panel_heights[index] if scene.panel_heights else None
             pnl, panel_box = panel(page.text, page, geometry, scene.panel == "dark", cap,
-                                   rubik=edition.story_font == "rubik", integrated=scene.panel == "integrated")
+                                   rubik=edition.story_font == "rubik", integrated=scene.panel == "integrated",
+                                   floating_image=image if scene.panel == "floating" else None,
+                                   caption_style=scene.caption_style, height_mm=height_mm,
+                                   friendly=edition.story_font == "fredoka")
             content += pnl
             boxes.append(panel_box)
-            x = width - geometry.bleed - 24 if page.side == "right" else geometry.bleed + 12
+            x = center - 6
             y = height - geometry.bleed - 21
-            content += solid(x, y, 12, 9, "rgba(30,29,50,0.94)", 4)
-            text(str(page.folio), "folio", x + 1, y + 1, 10, 7, 13, 12, 1, display=True, color=CREAM)
+            _, folio_box = text_at(str(page.folio), "folio", x + 1, y + 1, 10, 7, 13, 12, 1, display=True)
+            folio_color, folio_wash = floating_style(image, folio_box, geometry)
+            if folio_wash:
+                content += solid(x, y, 12, 9, f"rgba(255,255,255,{folio_wash})", 4)
+            content += block(folio_box, color=folio_color, display=True)
+            boxes.append(folio_box)
+        elif kind in ("opening-art", "dedication-art"):
+            source = edition.cover_art
+            native = edition.cover_native_pixels
+            if kind == "dedication-art":
+                alternate = edition.dedication_art or edition.endpaper_art
+                if alternate is not None:
+                    source, native = alternate, None
+            asset_name = kind
+            image = art.crop(source, width, height, asset_name, native_pixels=native)
+            content += picture(image, 0, 0, width, height)
         else:
             content += picture(pattern, 0, 0, width, height)
-            if kind in ("title", "dedication", "closing"):
+            if kind in ("title", "title-credits", "dedication", "closing"):
                 card_w, card_h = 178 * scale_x, 178 * scale_y
                 content += solid(center - card_w / 2, (height - card_h)/2, card_w, card_h, PAPER, 7)
             if kind == "title":
@@ -396,6 +491,22 @@ def compose_interior(edition: Edition, pages: list[Page], art: Art) -> tuple[lis
                 image = art.crop(edition.cover_art, vignette_w, vignette_h, asset_name, anchor=(0.5, .63),
                                  native_pixels=edition.cover_native_pixels)
                 content += picture(image, center - vignette_w/2, 99 * scale_y, vignette_w, vignette_h, radius=7)
+            elif kind == "title-credits":
+                # Use the binding clearance on both sides of the centred title.
+                # This also keeps long credits clear of the fold at smaller trims.
+                margin = max(geometry.bleed + max(BINDING_SAFE_MM, SAFE_MM + geometry.gutter) + 2,
+                             25 * scale_x)
+                column = width - 2 * margin
+                text(edition.title, "title", margin, 26 * scale_y, column,
+                     55 * scale_y, 39, 16, 5, display=True)
+                text(edition.creator, "creator", margin, 83 * scale_y, column,
+                     25 * scale_y, 18, 12, 3, display=True)
+                mark = 15 * scale_y
+                logo_y = (117 if edition.copyright else 145) * scale_y
+                content += f'<div class="layer" style="{mm_box(center - mark / 2, logo_y, mark, mark)}">{LOGO}</div>'
+                if edition.copyright:
+                    text(edition.copyright, "copyright", margin, 137 * scale_y,
+                         column, 57 * scale_y, 16, 12, 7, display=True)
             elif kind == "dedication":
                 text(edition.dedication, "dedication", 32 * scale_x, 53 * scale_y,
                      width - 64 * scale_x, 49 * scale_y, 26, 20, 4)

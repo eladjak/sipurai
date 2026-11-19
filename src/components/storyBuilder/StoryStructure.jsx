@@ -1,14 +1,13 @@
-import React, { useState, useCallback, useEffect } from "react";
+import { useId, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Sparkles,
   RefreshCw,
   Wand2,
   Film,
-  Plus,
+  PenLine,
   AlertCircle
 } from "lucide-react";
 import { InvokeLLM } from "@/integrations/Core";
@@ -18,7 +17,9 @@ import {
 } from "@/utils/content-moderation";
 import { captureError } from "@/lib/errorTracking";
 import { useI18n } from "@/components/i18n/i18nProvider";
-import SceneCard from "./SceneCard";
+import StoryBoard from "./StoryBoard";
+import { sceneRoleLabel } from "./SceneCard";
+import { getTopicLabel, TOPIC_CARDS } from "@/components/wizard/TopicStep";
 
 /**
  * Canonical 4-scene structure (beginning / conflict / resolution / end).
@@ -124,7 +125,8 @@ export default function StoryStructure({
 }) {
   const { t } = useI18n();
 
-  const [sceneCount, setSceneCount] = useState(defaultSceneCount);
+  const countId = useId();
+  const [sceneCount, setSceneCount] = useState(() => scenes?.length === 6 ? 6 : defaultSceneCount);
   const [isGenerating, setIsGenerating] = useState(false);
   const [regeneratingIndex, setRegeneratingIndex] = useState(null);
   const [error, setError] = useState(null);
@@ -132,17 +134,20 @@ export default function StoryStructure({
   const allCharIds = selectedCharacters.map((c) => c.id);
 
   const structure = sceneCount === 6 ? STRUCTURE_6 : STRUCTURE_4;
+  const hasScenes = Array.isArray(scenes) && scenes.length > 0;
+  const busy = isGenerating || regeneratingIndex !== null;
+  const theme = TOPIC_CARDS.find(item => item.id === topic);
+  const directionTitle = topic === "custom" ? customIdea : theme && getTopicLabel(theme, t);
+  const themeArt = theme ? `/images/spx/topics/${theme.id}.webp` : "/images/topic-custom.jpg";
 
   const labels = {
     title: t("storyBuilder.structure.title"),
-    subtitle: t("storyBuilder.structure.subtitle"),
+    subtitle: t("spxWizard.stationSubtitle"),
     generate: t("storyBuilder.structure.generate"),
     regenerate: t("storyBuilder.structure.regenerate"),
     countLabel: t("storyBuilder.structure.countLabel"),
     fourLabel: t("storyBuilder.structure.four"),
     sixLabel: t("storyBuilder.structure.six"),
-    empty: t("storyBuilder.structure.empty"),
-    addScene: t("storyBuilder.structure.addScene"),
     errorTitle: t("storyBuilder.structure.errorTitle"),
     unknownError: t("studio.unknownError"),
     errorRetry: t("storyBuilder.structure.errorRetry")
@@ -393,17 +398,6 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
     [scenes, onScenesChange]
   );
 
-  // When the user toggles 4 ↔ 6, if scenes already exist, regenerate so the
-  // role list matches. If no scenes yet, just update the count.
-  useEffect(() => {
-    if (scenes && scenes.length > 0 && scenes.length !== structure.length) {
-      // Don't auto-regenerate — just let the user re-press the button so
-      // they're aware it'll re-call the AI.
-    }
-  }, [structure.length, scenes]);
-
-  const hasScenes = Array.isArray(scenes) && scenes.length > 0;
-
   return (
     <div className="space-y-5" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
@@ -413,9 +407,7 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
           animate={{ opacity: 1, y: 0 }}
         >
           <div
-            className={`flex items-center justify-center gap-2 mb-2 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
+            className="mb-2 flex items-center justify-center gap-2"
           >
             <Film className="h-6 w-6 text-purple-600" aria-hidden="true" />
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
@@ -428,61 +420,49 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
         </motion.div>
       </div>
 
-      {/* Scene-count toggle + Generate button */}
-      <div
-        className={`flex flex-wrap items-center justify-center gap-3 ${
-          isRTL ? "flex-row-reverse" : ""
-        }`}
-      >
-        <div
-          className={`inline-flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
-          role="radiogroup"
-          aria-label={labels.countLabel}
-        >
-          {[
-            { value: 4, label: labels.fourLabel },
-            { value: 6, label: labels.sixLabel }
-          ].map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              role="radio"
-              aria-checked={sceneCount === opt.value}
-              onClick={() => setSceneCount(opt.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
-                sceneCount === opt.value
-                  ? "bg-white dark:bg-gray-900 text-purple-700 dark:text-purple-300 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+      {directionTitle && (
+        <section aria-label={t("spxWizard.storyDirection")} className="relative isolate flex min-h-44 items-end overflow-hidden rounded-2xl bg-slate-900 text-white">
+          <img src={themeArt} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+          <div className="w-full min-w-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent px-5 pb-5 pt-12">
+            <h3 className="text-sm font-semibold text-slate-200">{t("spxWizard.storyDirection")}</h3>
+            <p dir="auto" className="mt-1 break-words text-lg font-bold">{directionTitle}</p>
+            {selectedCharacters.length > 0 && <p dir="auto" className="mt-1 break-words text-sm text-slate-100">{selectedCharacters.map(character => character.name).join(" · ")}</p>}
+          </div>
+        </section>
+      )}
 
-        <motion.div
-          whileHover={!isGenerating ? { scale: 1.03 } : {}}
-          whileTap={!isGenerating ? { scale: 0.97 } : {}}
-        >
-          <Button
-            onClick={generateScenes}
-            disabled={isGenerating}
-            className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white gap-2 rounded-xl h-11 px-6 font-bold shadow-md shadow-purple-200/50 border-0 disabled:opacity-50"
-            aria-label={hasScenes ? labels.regenerate : labels.generate}
-          >
-            {isGenerating ? (
-              <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : hasScenes ? (
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Wand2 className="h-4 w-4" aria-hidden="true" />
-            )}
-            <span>{hasScenes ? labels.regenerate : labels.generate}</span>
-          </Button>
-        </motion.div>
+      <div className="flex flex-wrap items-center gap-3">
+        <fieldset disabled={busy} className="min-w-0 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+          <legend className="sr-only">{labels.countLabel}</legend>
+          <div className="flex flex-wrap">
+            {[{ value: 4, label: labels.fourLabel }, { value: 6, label: labels.sixLabel }].map((opt) => (
+              <label key={opt.value} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-semibold
+                ${sceneCount === opt.value ? "bg-white text-purple-700 shadow-sm dark:bg-gray-900 dark:text-purple-300" : "text-gray-700 dark:text-gray-300"}`}>
+                <input type="radio" name={countId} value={opt.value} checked={sceneCount === opt.value}
+                  onChange={() => setSceneCount(opt.value)} className="accent-purple-700" />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <Button type="button" onClick={generateScenes} disabled={busy}
+          className="min-h-11 rounded-xl bg-purple-700 text-white hover:bg-purple-800">
+          {isGenerating ? <RefreshCw className="motion-safe:animate-spin" aria-hidden="true" /> : <Wand2 aria-hidden="true" />}
+          {hasScenes ? labels.regenerate : labels.generate}
+        </Button>
+        {!hasScenes && <Button type="button" variant="outline" disabled={busy} className="min-h-11 rounded-xl"
+          onClick={() => { setError(null); onScenesChange(buildFallbackScenes(structure, selectedCharacters)); }}>
+          <PenLine aria-hidden="true" />{t("spxWizard.writeStations")}
+        </Button>}
       </div>
+
+      {!hasScenes && !busy && <details
+        className="rounded-xl border border-violet-200 px-4 dark:border-violet-800">
+        <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t("spxWizard.stationPlan")}</summary>
+        <ol className="flex flex-wrap gap-2 pb-4">
+          {structure.map(role => <li key={role} className="rounded-full bg-violet-50 px-3 py-1.5 text-sm dark:bg-violet-950/50">{sceneRoleLabel(role, language)}</li>)}
+        </ol>
+      </details>}
 
       {/* Error banner */}
       <AnimatePresence>
@@ -505,8 +485,8 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
               variant="ghost"
               size="sm"
               onClick={generateScenes}
-              disabled={isGenerating}
-              className="h-7 px-2 text-xs text-red-700 hover:text-red-800 hover:bg-red-100 dark:hover:bg-red-900/30"
+              disabled={busy}
+              className="min-h-11 px-2 text-xs text-red-700 hover:text-red-800 hover:bg-red-100 dark:hover:bg-red-900/30"
             >
               {labels.errorRetry}
             </Button>
@@ -530,42 +510,10 @@ Return JSON with: role, title (max 60), description (max 300), characters (array
         </div>
       )}
 
-      {/* Empty state */}
-      {!isGenerating && !hasScenes && !error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Sparkles
-              className="h-10 w-10 text-purple-300 mx-auto mb-3"
-              aria-hidden="true"
-            />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {labels.empty}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {hasScenes && <StoryBoard scenes={scenes} onChange={onScenesChange} onEdit={updateScene}
+        onRegenerate={regenerateOne} regeneratingIndex={regeneratingIndex} busy={busy} characters={selectedCharacters}
+        language={language} isRTL={isRTL} />}
 
-      {/* Scene cards list */}
-      {hasScenes && (
-        <div className="space-y-3">
-          <AnimatePresence initial={false}>
-            {scenes.map((scene, i) => (
-              <div key={scene.id || i} className="rounded-2xl border border-purple-100 bg-purple-50/40 p-2 dark:border-purple-900 dark:bg-purple-950/20">
-              <SceneCard
-                scene={scene}
-                onSceneChange={(patch) => updateScene(i, patch)}
-                allCharacters={selectedCharacters}
-                onRegenerate={() => regenerateOne(i)}
-                isRegenerating={regeneratingIndex === i}
-                isRTL={isRTL}
-                language={language}
-                sceneNumber={i + 1}
-              />
-              </div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,3 +1,6 @@
+export const hebrewTitleInstruction =
+  'נקד את הכותרת במלואה בעברית ישראלית. בדוק את ה״א הידיעה, דגש, סמיכות ושמות. למשל: הֶחָבֵר הַנִּסְתָּר. שמור על נוסח כותרת שהמשפחה כבר אישרה.';
+
 /** A single editorial pass can revise transitions across page boundaries. */
 export function manuscriptRequest({
   outline,

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import IllustratedChoice from "@/components/wizard/IllustratedChoice";
 import SuggestionChips from "@/screens/suggestions/SuggestionChips";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 export default function TopicStep({ value, change, t }) {
@@ -41,24 +42,19 @@ export default function TopicStep({ value, change, t }) {
         maxLength={500}
         className="mt-6 min-h-32 w-full rounded-sp-md border border-sp-line bg-sp-card p-4 text-sp-ink-900 placeholder:text-sp-ink-600 placeholder:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600"
       />
-      <div className="mt-4 flex flex-wrap gap-2">
+      <fieldset className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <legend className="sr-only">{t("newStory.topicHint")}</legend>
         {[
-          t("newStory.ideas0"),
-          t("newStory.ideas1"),
-          t("newStory.ideas2"),
-          t("newStory.ideas3"),
-          t("newStory.ideas4"),
-        ].map((idea) => (
-          <button
-            key={idea}
-            type="button"
-            onClick={() => change(idea)}
-            className="min-h-11 rounded-full border border-sp-line bg-sp-card px-4 text-sp-violet-700 hover:border-sp-violet-600 active:scale-95 focus-visible:outline focus-visible:outline-2 motion-reduce:transform-none"
-          >
-            {idea}
-          </button>
+          ["animals", t("newStory.ideas0")],
+          ["space", t("newStory.ideas1")],
+          ["family", t("newStory.ideas2")],
+          ["adventure", t("newStory.ideas3")],
+          ["nature", t("newStory.ideas4")],
+        ].map(([id, idea]) => (
+          <IllustratedChoice key={id} group="story-topic-idea" value={idea}
+            checked={value === idea} onSelect={change} src={`/images/spx/topics/${id}.webp`} label={idea} />
         ))}
-      </div>
+      </fieldset>
       <SuggestionChips t={t} onChoose={change} />
     </section>
   );

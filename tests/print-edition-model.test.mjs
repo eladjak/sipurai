@@ -8,7 +8,10 @@ it('uses the new caption treatment even when a family selects paper in the wizar
   const prefs = { ...editionDraft(), paper: 'chrome-matte-170' };
   const { printEdition } = initialEditionFields(prefs);
   assert.equal(printEdition.paper, prefs.paper);
-  assert.equal(printEdition.defaultPanel, 'integrated');
+  assert.equal(printEdition.defaultPanel, 'floating');
+  assert.equal(printEdition.openingLayout, 'compact');
+  assert.equal(initialEditionFields({ ...prefs, openingLayout: 'legacy' }).printEdition.openingLayout, 'legacy');
+  assert.equal(initialEditionFields({ ...prefs, defaultPanel: 'integrated' }).printEdition.defaultPanel, 'integrated');
   assert.deepEqual(initialEditionFields(null), {});
   assert.equal(editionDraft(prefs).defaultPanel, undefined);
 });
@@ -44,6 +47,16 @@ function example() {
   edition.artwork.closingArt = 'ending.png';
   return edition;
 }
+
+it('retains compact opening in both draft and saved render manifests without changing legacy identity', () => {
+  const legacy = example();
+  const compact = editionDraft({ ...legacy, openingLayout: 'compact' });
+  const mapAsset = name => name;
+  assert.equal(Object.hasOwn(createEditionManifest(book, pages, legacy, mapAsset), 'openingLayout'), false);
+  assert.equal(createEditionManifest(book, pages, compact, mapAsset).openingLayout, 'compact');
+  assert.equal(createDraftEditionManifest(book, pages, compact, mapAsset).openingLayout, 'compact');
+  assert.equal(editionPhysicalPageCount(compact, pages), editionPhysicalPageCount(legacy, pages));
+});
 
 describe('owner print-edition review', () => {
   it('preserves Hebrew punctuation and refuses letter or punctuation changes', () => {
@@ -158,6 +171,30 @@ describe('owner print-edition review', () => {
     assert.equal(render().scenes[0].panel, 'cream');
     edition.pages.p1.printSettings.panel = 'dark';
     assert.equal(render().scenes[0].panel, 'dark');
+    edition.defaultPanel = 'floating';
+    assert.equal(pageDraft(edition, pages[1], 1).zone, 'bottom');
+    edition.pages.p1.zone = 'top-right';
+    assert.equal(render().scenes[0].panel, 'dark');
+    assert.equal(render().scenes[0].zones[0], 'top-right');
+    edition.pages.p1.printSettings.panel = 'floating';
+    assert.equal(render().scenes[0].panel, 'floating');
+  });
+
+  it('exports validated manual caption settings only for the explicit manual panel', () => {
+    const edition = example();
+    edition.matterApproval = matterReview(edition, book).snapshot;
+    const captionStyle = { textColor: '#000000', backdropColor: '#F0e1f2', backdropOpacity: 0 };
+    const settings = edition.pages.p1.printSettings = { panel: 'manual', captionStyle, panelWidthsMm: [100, 105], panelHeightsMm: [40, null] };
+    const scene = () => createEditionManifest(book, pages, edition, path => path).scenes[0];
+    assert.deepEqual(scene().captionStyle, captionStyle);
+    assert.deepEqual(scene().panelWidthsMm, [100, 105]);
+    assert.deepEqual(scene().panelHeightsMm, [40, null]);
+    settings.captionStyle = { ...captionStyle, backdropOpacity: '0' };
+    assert.throws(scene, /Invalid manual caption style/);
+    settings.panel = 'floating';
+    assert.equal(scene().panel, 'floating');
+    assert.equal(scene().captionStyle, undefined);
+    assert.equal(scene().panelHeightsMm, undefined);
   });
 
   it('rejects overlapping spreads, unsupported trims and a missing independent closing illustration', () => {

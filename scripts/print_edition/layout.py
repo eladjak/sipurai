@@ -9,7 +9,9 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 Side = Literal["left", "right"]
-Kind = Literal["title", "dedication", "copyright", "endpaper", "story", "closing"]
+Kind = Literal["title", "dedication", "copyright", "endpaper", "story", "closing",
+               "opening-art", "dedication-art", "title-credits"]
+OPENING_LAYOUTS = ("legacy", "compact")
 ZONES = {"top", "bottom", "top-left", "bottom-left", "top-right", "bottom-right"}
 NIKUD = re.compile(r"[\u05b0-\u05bc\u05c1\u05c2\u05c7]")
 BIDI_CONTROLS = re.compile(r"[\u202a-\u202e\u2066-\u2069]")
@@ -23,15 +25,24 @@ MAX_PAGES = 80
 
 
 @dataclass(frozen=True)
+class CaptionStyle:
+    text_color: str
+    backdrop_color: str
+    backdrop_opacity: float
+
+
+@dataclass(frozen=True)
 class Scene:
     layout: Literal["single", "spread"]
     art: Path
     text: tuple[str, ...]
     zones: tuple[str, ...]
     anchor: tuple[float, float] = (0.5, 0.5)
-    panel: Literal["cream", "dark", "integrated"] = "cream"
+    panel: Literal["cream", "dark", "integrated", "floating", "manual"] = "cream"
     native_pixels: tuple[int, int] | None = None
     panel_widths: tuple[float, ...] | None = None
+    caption_style: CaptionStyle | None = None
+    panel_heights: tuple[float | None, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -75,9 +86,10 @@ class Edition:
     brightness: float
     cover_native_pixels: tuple[int, int] | None
     closing_native_pixels: tuple[int, int] | None
-    story_font: Literal["david-libre", "rubik"] = "david-libre"
+    story_font: Literal["david-libre", "rubik", "fredoka"] = "david-libre"
     unsaved_draft: bool = False
     paper: str = "white-110gsm"
+    opening_layout: Literal["legacy", "compact"] = "legacy"
 
 
 @dataclass(frozen=True)
@@ -136,6 +148,37 @@ def boolean(value: object, name: str) -> bool:
     return value
 
 
+
+def scene_caption_style(scene: dict) -> CaptionStyle | None:
+    panel = scene.get("panel", "cream")
+    if panel not in ("cream", "dark", "integrated", "floating", "manual"):
+        raise ValueError("Unknown text panel")
+    if panel != "manual":
+        if "captionStyle" in scene:
+            raise ValueError("Caption style requires the manual panel")
+        return None
+    value = scene.get("captionStyle")
+    if not isinstance(value, dict) or value.keys() != {"textColor", "backdropColor", "backdropOpacity"}:
+        raise ValueError("Invalid manual caption style")
+    text, backdrop = value["textColor"], value["backdropColor"]
+    if any(not isinstance(color, str) or re.fullmatch(r"#[0-9a-fA-F]{6}", color) is None
+           for color in (text, backdrop)):
+        raise ValueError("Invalid manual caption color")
+    alpha = value["backdropOpacity"]
+    if type(alpha) not in (int, float) or not 0 <= alpha <= 1:
+        raise ValueError("Caption opacity must be between 0 and 1")
+    return CaptionStyle(text, backdrop, float(alpha))
+
+
+def scene_panel_heights(scene: dict) -> tuple[float | None, ...] | None:
+    if "panelHeightsMm" not in scene:
+        return None
+    values = scene["panelHeightsMm"]
+    count = 2 if scene.get("layout") == "spread" else 1
+    if scene.get("panel") != "manual" or not isinstance(values, list) or len(values) != count:
+        raise ValueError("Manual panel height needs one entry per leaf")
+    return tuple(None if value is None else number(value, "panel height", 28, 64) for value in values)
+
 def load(path: Path, *, review_pending: bool = False) -> Edition:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] != 1:
@@ -183,8 +226,7 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         if not isinstance(anchor, list) or len(anchor) != 2:
             raise ValueError(f"Scene {ix}: anchor must be an [x, y] pair")
         panel = item.get("panel", "cream")
-        if panel not in ("cream", "dark", "integrated"):
-            raise ValueError(f"Scene {ix}: unknown text panel")
+        caption_style = scene_caption_style(item)
         widths = item.get("panelWidthsMm")
         if widths is not None:
             if not isinstance(widths, list) or len(widths) != length:
@@ -194,7 +236,7 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         assert art is not None
         scenes.append(Scene(item["layout"], art, text, tuple(zones), (
             number(anchor[0], "anchor x", 0, 1), number(anchor[1], "anchor y", 0, 1),
-        ), panel, source_pixels(item.get("nativePixels"), f"Scene {ix} nativePixels"), widths))
+        ), panel, source_pixels(item.get("nativePixels"), f"Scene {ix} nativePixels"), widths, caption_style, scene_panel_heights(item)))
     width = number(data.get("widthMm", 220), "widthMm", 120, 220)
     height = number(data.get("heightMm", 220), "heightMm", 170, 297)
     if (width, height) not in PRINT_SIZES:
@@ -238,8 +280,11 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
     about = text_field(data.get("aboutAuthor"), "aboutAuthor", optional=True)
     dedication = text_field(data.get("dedication"), "dedication", optional=True)
     copyright = text_field(data.get("copyright"), "copyright", optional=True)
+    opening_layout = data.get("openingLayout", "legacy")
+    if opening_layout not in OPENING_LAYOUTS:
+        raise ValueError("Unknown opening layout")
     story_font = data.get("storyFont", "david-libre")
-    if story_font not in ("david-libre", "rubik"):
+    if story_font not in ("david-libre", "rubik", "fredoka"):
         raise ValueError("Unknown story font")
     if status == "unpointed" and any(NIKUD.search(value) for value in (title, creator, blurb, about, dedication, copyright)):
         raise ValueError("Pointed front or back matter requires approved nikud or a pending review proof")
@@ -256,7 +301,7 @@ def load(path: Path, *, review_pending: bool = False) -> Edition:
         source_pixels(data.get("closingNativePixels"), "closingNativePixels"),
         story_font,
         boolean(data.get("unsavedDraft", False), "unsavedDraft"),
-        paper,
+        paper, opening_layout,
     )
 
 
@@ -272,9 +317,16 @@ def plan(edition: Edition) -> list[Page]:
         pages.append(Page(page, kind, "left" if page % 2 else "right", scene,
                           text, zone, folio if kind == "story" else None))
 
-    add("title")
-    add("dedication" if edition.dedication else "endpaper")
-    add("copyright")
+    if edition.opening_layout == "compact":
+        # The first leaf is left of the bound cover. Pages 2 (right) and 3
+        # (left) face one another. Keep the story on the same page as legacy.
+        add("opening-art")
+        add("dedication" if edition.dedication else "dedication-art")
+        add("title-credits")
+    else:
+        add("title")
+        add("dedication" if edition.dedication else "endpaper")
+        add("copyright")
     for index, scene in enumerate(edition.scenes):
         if scene.layout == "spread" and len(pages) % 2 == 0:
             add("endpaper")

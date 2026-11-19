@@ -77,11 +77,15 @@ describe('private resumable attempts',()=>{
  });
 
  it('does not reveal a completed result when the account changes mid-run',async()=>{
-  mocks.reserve.mockResolvedValue({ok:true});let finish;const pending=new Promise(resolve=>{finish=resolve});mocks.generate.mockReturnValue(pending);
+  mocks.reserve.mockResolvedValue({ok:true});let finish, emit;const pending=new Promise(resolve=>{finish=resolve});mocks.generate.mockImplementation(({onEvent})=>{emit=onEvent;return pending});
   const {result,rerender}=renderHook(()=>useNewStory('english','leave'));
   act(()=>{result.current.setHero({id:'h',name:'Private A'});result.current.setTopic('Secret');result.current.setStep(2)});
   await act(async()=>{void result.current.start();await Promise.resolve();await Promise.resolve()});
+  act(()=>emit({type:'page-image',ready:2,illustrated:1,total:2}));
+  expect(result.current.waiting).toMatchObject({stage:'drawing',counts:{ready:2,illustrated:1,total:2}});
   mocks.owner='user-b';rerender();
+  act(()=>emit({type:'page-image',ready:2,illustrated:2,total:2}));
+  expect(result.current.waiting).toBeNull();
   await act(async()=>{finish({bookId:id,status:'complete'});await pending});
   expect(result.current.topic).toBe('');expect(result.current.bookId).toBeNull();expect(result.current.state).toBeNull();
  });

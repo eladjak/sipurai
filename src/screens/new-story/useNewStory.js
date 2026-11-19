@@ -19,6 +19,38 @@ export function newStoryStorageKey(ownerId) {
   return `sipurai_new_story_v2_${encoded.length}_${encoded}`;
 }
 
+function waitingUpdate(event, previous) {
+  let stage;
+  switch (event.type) {
+    case "phase":
+      if (event.phase !== "editing" && event.phase !== "outline") return previous;
+      stage = event.phase;
+      break;
+    case "book-created":
+    case "resumed":
+    case "plan-saved":
+      stage = "pages";
+      break;
+    case "page-text":
+      stage = Number.isInteger(event.total) && event.total > 0 && event.ready === event.total
+        ? "storyWritten"
+        : "writing";
+      break;
+    case "page-image":
+      stage = "drawing";
+      break;
+    default:
+      return previous;
+  }
+  const { ready, illustrated, total } = event;
+  const counts = Number.isInteger(total) && total > 0 &&
+    Number.isInteger(ready) && ready >= 0 && ready <= total &&
+    Number.isInteger(illustrated) && illustrated >= 0 && illustrated <= ready
+    ? { ready, illustrated, total }
+    : previous?.counts;
+  return { stage, counts };
+}
+
 export function useNewStory(language, leaveMessage) {
   const { user } = useCurrentUser();
   const ownerId = user?.id || null;
@@ -33,6 +65,7 @@ export function useNewStory(language, leaveMessage) {
   const [printEdition, setPrintEdition] = useState(null),
     [printSize, setPrintSize] = useState("square-220");
   const [quotaError, setQuotaError] = useState(null);
+  const [waiting, setWaiting] = useState(null);
   const [state, setState] = useState(null),
     [bookId, setBookId] = useState(null),
     [invalid, setInvalid] = useState(false);
@@ -43,6 +76,7 @@ export function useNewStory(language, leaveMessage) {
     key.current = null;
     savedBook.current = null;
     setState(null);
+    setWaiting(null);
     setBookId(null);
     setStep(0);
     setHero(null);
@@ -146,6 +180,7 @@ export function useNewStory(language, leaveMessage) {
     }
     setInvalid(false);
     lock.current = true;
+    setWaiting(null);
     setState("queued");
     const previousKey = key.current || savedBook.current;
     key.current ||= newBookKey();
@@ -218,6 +253,7 @@ export function useNewStory(language, leaveMessage) {
         bookId: savedBook.current,
         onEvent: (event) => {
           if (ownerRef.current !== ownerId) return;
+          setWaiting((previous) => waitingUpdate(event, previous));
           if (
             (event.type === "book-created" || event.type === "resumed") &&
             event.bookId
@@ -274,6 +310,7 @@ export function useNewStory(language, leaveMessage) {
     printSize,
     setPrintSize,
     state,
+    waiting,
     bookId,
     start,
     invalid,

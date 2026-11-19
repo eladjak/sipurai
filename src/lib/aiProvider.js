@@ -24,7 +24,7 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models
  * Whether to use direct Gemini API calls (dev with local key)
  * or the serverless proxy (production / dev without key).
  */
-function useDirectApi() {
+function isDirectApiEnabled() {
   return import.meta.env.DEV && !!import.meta.env.VITE_GEMINI_API_KEY;
 }
 
@@ -77,19 +77,20 @@ function convertSchemaToGemini(schema) {
 
 // ─── Proxy Calls ────────────────────────────────────────────────────────────
 
-async function proxyCall(type, prompt, options = {}) {
+async function proxyCall(type, prompt, options = {}, explicitBookKey) {
   // Wave-12: 60s timeout per call so UI never hangs forever on a stalled AI provider
   const timeoutMs = type === 'image' ? 90_000 : 60_000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const authHeaders = await getApiAuthHeaders();
+    const bookKey = explicitBookKey ?? getActiveBookKey();
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...authHeaders,
-        ...(getActiveBookKey() ? { 'X-Book-Key': getActiveBookKey() } : {}),
+        ...(bookKey ? { 'X-Book-Key': bookKey } : {}),
       },
       body: JSON.stringify({ prompt, type, options }),
       signal: ctrl.signal,
@@ -134,7 +135,7 @@ export async function invokeLLM({
   thinking_budget,
 }) {
   // ── Proxy mode (production) ──
-  if (!useDirectApi()) {
+  if (!isDirectApiEnabled()) {
     const data = await proxyCall('text', prompt, {
       response_json_schema,
       response_format,
@@ -227,9 +228,11 @@ export async function invokeLLM({
  * @param {'gemini'|'gemini-pro'|'openai'} [params.provider] - Image provider override (defaults to env or gemini)
  * @param {string} [params.modelId] - Smart routing: SUPPORTED_MODEL_IDS from smartModelPicker.js.
  *                                    When set, overrides `provider` argument.
+ * @param {string|null} [params.referenceImageBase64] - Optional image used as a reference.
+ * @param {string} [params.bookKey] - Explicit reservation for this request.
  * @returns {{ base64: string, mimeType: string }}
  */
-export async function generateImage({ prompt, aspectRatio = '1:1', provider, modelId, referenceImageBase64 }) {
+export async function generateImage({ prompt, aspectRatio = '1:1', provider, modelId, referenceImageBase64, bookKey }) {
   // ── modelId takes priority over provider when supplied (ModelSelector path) ──
   let resolvedProvider = provider;
   if (modelId) {
@@ -246,8 +249,8 @@ export async function generateImage({ prompt, aspectRatio = '1:1', provider, mod
   // ── Proxy mode (production) — always for OpenAI + gemini-pro since keys are server-only ──
   // referenceImageBase64 rides along to the proxy (Gemini multimodal part /
   // OpenAI image-edit endpoint). In dev-direct mode it is attached below.
-  if (!useDirectApi() || effectiveProvider === 'openai' || effectiveProvider === 'gemini-pro') {
-    return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider, referenceImageBase64 });
+  if (bookKey || !isDirectApiEnabled() || effectiveProvider === 'openai' || effectiveProvider === 'gemini-pro') {
+    return proxyCall('image', prompt, { aspectRatio, provider: effectiveProvider, referenceImageBase64 }, bookKey);
   }
 
   // ── Direct mode (dev with local key) ──
@@ -256,6 +259,7 @@ export async function generateImage({ prompt, aspectRatio = '1:1', provider, mod
   const safePrompt = `${prompt}\n\nIMPORTANT: This image is for a children's book. It must be completely child-friendly, wholesome, and appropriate for young readers.`;
 
   // Character-reference workflow: same multimodal part as the server path.
+  /** @type {Array<{text: string} | {inlineData: {mimeType: string, data: string}}>} */
   const directParts = [{ text: safePrompt }];
   if (referenceImageBase64) {
     directParts.push({ inlineData: { mimeType: 'image/png', data: referenceImageBase64 } });

@@ -1,0 +1,17 @@
+[Unit]
+Description=Sipurai public quality pilot (Elad)
+
+[Service]
+Type=oneshot
+Environment=SIPURAI_QUALITY_DAILY_ENABLED=false
+EnvironmentFile=-%h/.config/sipurai-quality-daily.env
+Environment=STATE_DIRECTORY=%S/sipurai-quality-daily
+UMask=0077
+ExecCondition=/usr/bin/test ${SIPURAI_QUALITY_DAILY_ENABLED} = true
+ExecStart=/usr/bin/flock --nonblock %S/sipurai-quality-daily/run.lock /usr/bin/node %h/.local/share/sipurai-quality-pilot/public-quality-pilot-cli.mjs
+TimeoutStartSec=30s
+CPUQuota=20%
+MemoryMax=128M
+TasksMax=16
+NoNewPrivileges=true
+SuccessExitStatus=2

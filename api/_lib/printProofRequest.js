@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isCaptionStyle, isCaptionHeights } from '../../src/lib/printEdition/captionStyle.js';
 
 export const CHUNK_BYTES = 1024 * 1024;
 export const SESSION_MS = 20 * 60 * 1000;
@@ -11,9 +12,9 @@ const EDITION_FIELDS = new Set([
   'version', 'title', 'creator', 'blurb', 'aboutAuthor', 'dedication', 'copyright',
   ...ART_FIELDS, 'scenes', 'qrUrl', 'nikudStatus', 'widthMm', 'heightMm', 'bleedMm', 'gutterMm',
   'minPages', 'signatureMultiple', 'spineMm', 'binding', 'paper', 'insideCover', 'brightness',
-  'coverNativePixels', 'closingNativePixels', 'requestedFinishing', 'storyFont', 'unsavedDraft',
+  'coverNativePixels', 'closingNativePixels', 'requestedFinishing', 'storyFont', 'unsavedDraft', 'openingLayout',
 ]);
-const SCENE_FIELDS = new Set(['layout', 'art', 'text', 'zones', 'anchor', 'panel', 'pointing', 'nativePixels', 'panelWidthsMm']);
+const SCENE_FIELDS = new Set(['layout', 'art', 'text', 'zones', 'anchor', 'panel', 'pointing', 'nativePixels', 'panelWidthsMm', 'panelHeightsMm', 'captionStyle']);
 const BODY_FIELDS = {
   prepare: ['op', 'bookId', 'manifest', 'assets'],
   upload: ['op', 'bookId', 'session', 'job', 'index', 'part', 'data'],
@@ -90,6 +91,14 @@ function preparedSpec({ manifest, assets, bookId }) {
     if (!fields(scene, SCENE_FIELDS) || typeof scene.art !== 'string' || !ART_PATH.test(scene.art)) {
       throw new ProofError('proof_input');
     }
+    if ((Object.hasOwn(scene, 'panel') && !['cream', 'dark', 'integrated', 'floating', 'manual'].includes(scene.panel))
+        || (scene.panel === 'manual' ? !isCaptionStyle(scene.captionStyle) : Object.hasOwn(scene, 'captionStyle'))) {
+      throw new ProofError('proof_input');
+    }
+    if (Object.hasOwn(scene, 'panelHeightsMm') && (scene.panel !== 'manual'
+        || !isCaptionHeights(scene.panelHeightsMm, scene.layout === 'spread' ? 2 : 1))) {
+      throw new ProofError('proof_input');
+    }
     referenced.add(scene.art);
   }
   if (manifest.qrUrl && manifest.qrUrl !== `https://www.sipurai.ai/b/print/${bookId}`
@@ -103,7 +112,10 @@ function preparedSpec({ manifest, assets, bookId }) {
         || !['softcover', 'hardcover'].includes(finishing.cover)
         || typeof finishing.paper !== 'string' || !Object.hasOwn(papers, finishing.paper) || papers[finishing.paper] !== actualPaper) throw new ProofError('proof_input');
   }
-  if (Object.hasOwn(manifest, 'storyFont') && !['david-libre', 'rubik'].includes(manifest.storyFont)) {
+  if (Object.hasOwn(manifest, 'openingLayout') && !['legacy', 'compact'].includes(manifest.openingLayout)) {
+    throw new ProofError('proof_input');
+  }
+  if (Object.hasOwn(manifest, 'storyFont') && !['david-libre', 'rubik', 'fredoka'].includes(manifest.storyFont)) {
     throw new ProofError('proof_input');
   }
   if (Object.hasOwn(manifest, 'unsavedDraft') && typeof manifest.unsavedDraft !== 'boolean') {

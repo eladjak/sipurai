@@ -5,12 +5,13 @@ import { Page } from "@/entities/Page";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, BookOpen, Sparkles, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { InvokeLLM, GenerateImage } from "@/integrations/Core";
 import { generateBookIncremental } from "@/lib/bookGeneration";
 import { buildRecipe, pageCountFor } from "@/lib/bookRecipe";
+import { hebrewTitleInstruction } from "@/lib/storyManuscript";
 import { BOOK_STATUS } from "@/lib/bookProgress";
 import { generateStoryBible } from "@/lib/storyBible";
 import { moderateInput, buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
@@ -20,6 +21,7 @@ import { useI18n } from "@/components/i18n/i18nProvider";
 import { trackEvent } from "@/lib/analytics";
 import { captureError } from "@/lib/errorTracking";
 
+import GenerationWaiting from "@/components/bookReader/GenerationWaiting";
 import WizardProgress from "@/components/wizard/WizardProgress";
 import TopicStep from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
@@ -436,7 +438,7 @@ function BookWizardSession() {
         : selectedTopic;
 
       const prompt = `${safetyPrefix}${langInstruction}Create a children's story idea about the topic "${topicDescription}" with characters: ${characterNames}. ${characterTraits ? `Character traits: ${characterTraits}.` : ""} Please provide:
-1. A catchy title for the story
+1. A catchy title for the story. ${currentLanguage === 'hebrew' ? hebrewTitleInstruction : ''}
 2. A brief description (2-3 sentences)
 3. A moral lesson
 
@@ -593,7 +595,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     try {
       setIsCreating(true);
       setError(null);
-      setCreationProgress({ label: t("wizard.progress.checkingContent"), percent: 5, step: "" });
+      setCreationProgress({ label: t("wizard.progress.checkingContent"), waitingMessage: t("spxWizard.waiting.preparing"), percent: 5, step: "" });
 
       // Moderate title and description
       const titleCheck = moderateInput(bookData.title, "title");
@@ -702,6 +704,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             case "phase":
               setCreationProgress({
                 label: t("wizard.progress.creatingStory"),
+                waitingMessage: event.phase === "editing" ? t("spxWizard.waiting.editing") : t("spxWizard.waiting.outline"),
                 percent: event.phase === "editing" ? 22 : 10,
                 step: event.phase === "editing"
                   ? t("spxWizard.editing")
@@ -718,6 +721,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
               if (event.title) createdTitleRef.current = event.title;
               setCreationProgress({
                 label: t("wizard.progress.savingBook"),
+                waitingMessage: t("spxWizard.waiting.pages"),
                 percent: 20,
                 step: t("wizard.progress.step2of4")
               });
@@ -726,6 +730,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             case "plan-saved":
               setCreationProgress({
                 label: t("wizard.progress.writingStory"),
+                waitingMessage: t("spxWizard.waiting.pages"),
                 percent: 25,
                 step: t("wizard.progress.step3of4")
               });
@@ -734,8 +739,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             case "page-text":
               setCreationProgress({
                 label: t("wizard.progress.writingStory"),
+                waitingMessage: event.ready === event.total ? t("spxWizard.waiting.storyWritten") : t("spxWizard.waiting.writing"),
                 percent: progressPercent(event),
-                step: t("spxWizard.writingCount", { ready: event.ready, total: event.total })
+                step: t("spxWizard.writingCount", { ready: event.ready, total: event.total }),
+                counts: { ready: event.ready, illustrated: event.illustrated, total: event.total }
               });
               // The first readable page is the handover point: the parent goes
               // to the reader now and watches the rest arrive there, instead of
@@ -746,8 +753,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             case "page-image":
               setCreationProgress({
                 label: t("wizard.progress.drawingIllustrations"),
+                waitingMessage: t("spxWizard.waiting.drawing"),
                 percent: progressPercent(event),
-                step: t("spxWizard.drawingCount", { ready: event.illustrated, total: event.total })
+                step: t("spxWizard.drawingCount", { ready: event.illustrated, total: event.total }),
+                counts: { ready: event.ready, illustrated: event.illustrated, total: event.total }
               });
               break;
 
@@ -1129,12 +1138,13 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
       {/* Creating overlay */}
       {isCreating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 px-6 dark:bg-gray-900/95" dir={isRTL ? "rtl" : "ltr"} role="status" aria-live="polite">
-          <div className="max-w-md rounded-3xl border border-purple-100 bg-white p-8 text-center shadow-xl dark:bg-gray-800">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-purple-600" aria-hidden="true" />
-            <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{t("wizard.creatingBook")}</p>
-            {creationProgress?.step && <p className="mt-3 text-gray-700 dark:text-gray-200">{creationProgress.step}</p>}
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 px-6 dark:bg-gray-900/95" dir={isRTL ? "rtl" : "ltr"}>
+          <GenerationWaiting
+            t={t}
+            title={t("wizard.creatingBook")}
+            message={creationProgress?.waitingMessage ?? t("spxWizard.waiting.preparing")}
+            counts={creationProgress?.counts}
+          />
         </div>
       )}
 
