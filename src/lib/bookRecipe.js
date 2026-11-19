@@ -18,7 +18,7 @@
  */
 
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from '@/utils/content-moderation';
-import { manuscriptRequest, cleanStoryText, hebrewTitleInstruction } from "@/lib/storyManuscript";
+import { manuscriptRequest, cleanStoryText, hebrewTitleInstruction, selectHebrewTitle } from "@/lib/storyManuscript";
 import { IMAGE_FAILED_PREFIX } from '@/lib/bookGeneration';
 
 /** Planned page count for a book's `length` setting. Cover/title page included. */
@@ -80,7 +80,7 @@ export function buildRecipe({
 
   const outlinePrompt = `${safetyPrefix}${langInstruction}Create a detailed outline for a children's book:
 - Title: ${bookData?.title || ''}
-${isHebrewBook ? hebrewTitleInstruction : ''}
+${isHebrewBook ? `${hebrewTitleInstruction} החזר בשדה title את אותה כותרת בדיוק, עם ניקוד בלבד וללא שינוי אותיות או סימני פיסוק.` : ''}
 - Description: ${bookData?.description || ''}
 - Topic: ${topicDescription}
 - Characters: ${characterNames}
@@ -95,9 +95,20 @@ For each page, provide a brief description of what happens, why it follows from 
 The story should have a clear beginning, middle, and end. For each supplied character, give a short visual reference sheet:
 preserve the name and all supplied traits (${characterAppearances}); specify recurring face, silhouette, outfit, and one distinctive detail.`;
 
+  // Stable per-story framing varies compositions without changing cast identity or
+  // introducing random changes when a generation is resumed.
+  const framingOptions = [
+    'a low viewpoint looking toward the action',
+    'an overhead view revealing the setting',
+    'a close foreground object framing the action beyond',
+    'a wide scene with the action off-center',
+    'a view through an architectural or natural opening',
+  ];
+  const framingSeed = JSON.stringify([bookData?.title, topicDescription, scenes.map(s => [s.title, s.description]), characters.map(c => [c.name, c.appearance || c.description])]);
+  const framingIndex = Array.from(framingSeed).reduce((hash, char) => (Math.imul(hash, 31) + char.codePointAt(0)) >>> 0, 0) % framingOptions.length;
   const getCoverPrompt = () => {
     const opening = scenes[0]?.illustration_prompt || scenes[0]?.description || bookData?.description || topicDescription;
-    return `Children's picture-book cover in ${artStyle} style for ${JSON.stringify(titleRef.current)}. Story premise: ${topicDescription}. Opening: ${opening}. Show one distinctive object or action unique to this story. Choose a viewpoint and silhouette that make that moment unmistakable. Cast: ${characterAppearances || characterNames}. Art must reach all four edges. Keep faces and action clear of trim and leave an uninterrupted pale area in the lower quarter for typesetting. No letters, numbers, watermarks or other writing.`;
+    return `Children's picture-book cover in ${artStyle} style for ${JSON.stringify(titleRef.current)}. Story premise: ${topicDescription}. Opening: ${opening}. Show one distinctive object or action unique to this story. Use ${framingOptions[framingIndex]} and a silhouette that make that moment unmistakable. Cast: ${characterAppearances || characterNames}. Art must reach all four edges. Keep faces and action clear of trim and leave an uninterrupted pale area in the lower quarter for typesetting. No letters, numbers, watermarks or other writing.`;
   };
 
   const nikudInstruction = isHebrewBook
@@ -139,6 +150,7 @@ preserve the name and all supplied traits (${characterAppearances}); specify rec
     }),
     pageCount: count,
     approvedTitle: bookData.title?.trim(),
+    selectTitle: (candidate) => isHebrewBook ? selectHebrewTitle(bookData.title?.trim(), candidate) : (bookData.title?.trim() || candidate),
     bookFields,
     applyCastSheet: sheet => applyCastSheet(storyBible?.characters || sheet),
 
@@ -277,7 +289,7 @@ ${isHebrewBook ? '2. text_with_nikud: The exact same page text with full nikud (
       // the text has been written. A previous failure marker is stripped so a
       // retry does not feed "[Image generation failed]" to the image model.
       const beat = String(page?.image_prompt || '').replace(IMAGE_FAILED_PREFIX, '');
-      const openingComposition = index === 1 ? 'Establish the world in a new composition distinct from the cover. Use the concrete setting and visible action of this opening scene. ' : '';
+      const openingComposition = index === 1 ? `Establish the world in a new composition distinct from the cover: use ${framingOptions[(framingIndex + 1) % framingOptions.length]}. Use the concrete setting and visible action of this opening scene. ` : '';
       return `${consistencyInstruction}${referenceInstruction}${noTextInstruction}${openingComposition}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${beat}. Children's book illustration in ${artStyle} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
     },
   };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editedPages, cleanStoryText, manuscriptRequest } from '../storyManuscript';
+import { editedPages, cleanStoryText, manuscriptRequest, selectHebrewTitle } from '../storyManuscript';
 
 describe('whole-story editing', () => {
   const page = { page_number: 0, text_content: 'הָיֹה הָיָה.', image_prompt: 'fox opens the gate' };
@@ -16,5 +16,19 @@ describe('whole-story editing', () => {
     expect(request.prompt).toContain('lost the key');
     expect(request.prompt).toContain('finds the gate');
     expect(request.prompt).toContain('Tamar');
+  });
+});
+
+describe('title and verse safeguards', () => {
+  it('uses a pointed suggestion only when approved wording is identical', () => {
+    expect(selectHebrewTitle('החבר הנסתר', 'הֶחָבֵר הַנִּסְתָּר')).toBe('הֶחָבֵר הַנִּסְתָּר');
+    expect(selectHebrewTitle('החבר הנסתר', 'הַחָבֵר הַסּוֹדִי')).toBe('החבר הנסתר');
+    expect(selectHebrewTitle('הֶחָבֵר', 'הַחָבֵר')).toBe('הֶחָבֵר');
+    expect(selectHebrewTitle('החבר', 'החבר')).toBe('החבר');
+  });
+  it('requests verse lines only when rhyme is enabled', () => {
+    const args = { outline: [{description: 'home'}], language: 'hebrew' };
+    expect(manuscriptRequest({ ...args, rhyme: 'AABB' }).prompt).toContain('four short verse lines');
+    expect(manuscriptRequest(args).prompt).toContain('one to four short sentences');
   });
 });

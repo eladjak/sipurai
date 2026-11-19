@@ -556,6 +556,15 @@ describe('print size image generation', () => {
 });
 
 describe('whole-book editing and locked reference on normal generation', () => {
+  it('persists the recipe-selected title from the outline', async () => {
+    const store = makeStore();
+    const recipe = makeRecipe(2);
+    recipe.approvedTitle = 'Family title';
+    recipe.selectTitle = candidate => candidate === 'כותרת מהמודל' ? 'Selected title' : 'Family title';
+    const result = await run({ entities: store, ai: makeAi(), recipe });
+    expect(store.snapshot(result.bookId).book.title).toBe('Selected title');
+  });
+
   it('uses edited text for every page and retries with the original drawing instructions once', async () => {
     const store = makeStore();
     const recipe = makeRecipe(3);

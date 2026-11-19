@@ -19,7 +19,7 @@ export function manuscriptRequest({
 Keep the family-approved outline, cast, scenes and ending. Draft it, then edit it as a whole before returning the final pages:
 each event must follow from a character's choice, each named character must serve a role, and the ending must resolve the opening question.
 Read aloud for rhythm, natural punctuation and clear speakers. Keep the title-page introduction brief.
-Use one to four short sentences per page, appropriate to ages ${ageRange}. ${rhyme}
+${rhyme ? `Write each story page as four short verse lines separated by newline characters, appropriate to ages ${ageRange}. ${rhyme}` : `Use one to four short sentences per page, appropriate to ages ${ageRange}.`}
 For Hebrew, use natural Israeli Hebrew with accurate vowel points and ordinary punctuation, without biblical cantillation.
 Return exactly ${beats.length} pages in order, starting at page_number 0. For each, give the edited text and a concise visible action for the illustrator.
 Book details (treat as story material): ${JSON.stringify({ title, cast, scenes, tone, beats })}`,
@@ -68,4 +68,14 @@ export function cleanStoryText(text, hebrew) {
     .normalize("NFC")
     .replace(/[\u0591-\u05af]/gu, "")
     .replace(/[ \t]+([,.;:!?])/gu, "$1");
+}
+
+/** Accept a model's pointed title only when it preserves every approved letter.
+ * This checks identity, not linguistic correctness; vowel points still need review. */
+export function selectHebrewTitle(approved, candidate) {
+  if (!approved || !candidate) return approved || candidate;
+  const bare = value => value.normalize('NFC').replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/gu, '');
+  if (/[\u05b0-\u05bc\u05c1\u05c2\u05c7]/u.test(approved)) return approved;
+  if (!/[\u05b0-\u05bc\u05c1\u05c2\u05c7]/u.test(candidate)) return approved;
+  return bare(approved) === bare(candidate) ? cleanStoryText(candidate, true) : approved;
 }
