@@ -4,7 +4,9 @@ from dataclasses import replace
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 from tempfile import TemporaryDirectory
+import unicodedata
 import unittest
 
 from PIL import Image
@@ -234,28 +236,52 @@ class EditionTest(unittest.TestCase):
             self.assertEqual(font["OS/2"].usWeightClass, 500)
             self.assertTrue(set(map(ord, text)).issubset(font.getBestCmap()))
         self.single.update(text=[text], pointing=["approved"], panel="floating")
-        self.edition.update(storyFont="fredoka", nikudStatus="approved", scenes=[self.single])
+        self.edition.update(storyFont="fredoka", nikudStatus="approved", openingLayout="compact",
+                            scenes=[self.single])
         edition = self.parse()
         target = self.root / "fredoka-proof"
         target.mkdir()
         build(edition, self.manifest, target, make_previews=False)
         self.assertEqual(edition.story_font, "fredoka")
-        self.assertTrue((target / "interior.pdf").is_file())
+        with Pdf.open(target / "interior.pdf") as proof:
+            page = proof.pages[3]
+            font_name, font = next(
+                (name, resource) for name, resource in page.Resources.Font.items()
+                if "Fredoka" in str(resource.BaseFont)
+            )
+            self.assertIn("/FontFile2", font.DescendantFonts[0].FontDescriptor)
+            text_font = None
+            uses_embedded_story_font = False
+            for operation in parse_content_stream(page):
+                operator = str(operation.operator)
+                if operator == "Tf":
+                    text_font = str(operation.operands[0])
+                elif operator in ("Tj", "TJ") and text_font == str(font_name):
+                    uses_embedded_story_font = True
+                    break
+            self.assertTrue(uses_embedded_story_font)
+            mappings = re.findall(rb"<[\da-f]+> <([\da-f]+)>", font.ToUnicode.read_bytes())
+            mapped = "".join(bytes.fromhex(value.decode()).decode("utf-16-be") for value in mappings)
+            normalized_expected = set(unicodedata.normalize("NFD", text).replace(" ", ""))
+            self.assertTrue(normalized_expected.issubset(unicodedata.normalize("NFD", mapped)))
 
     def test_compact_opening_records_low_native_resolution_in_both_dedication_modes(self):
         Image.new("RGB", (600, 480), "#ab8054").save(self.root / "small-dedication.png")
-        self.edition.update(widthMm=210, heightMm=170, openingLayout="compact",
-                            dedicationArt="small-dedication.png", scenes=[self.single])
-        for note, artwork in (("הקדשה למשפחה", "dedication-vignette"), ("", "dedication-art")):
-            with self.subTest(artwork=artwork):
-                self.edition["dedication"] = note
-                edition = self.parse()
-                target = self.root / artwork
-                target.mkdir()
-                build(edition, self.manifest, target, make_previews=False)
-                preflight = json.loads((target / "preflight.json").read_text())
-                self.assertLess(preflight["nativeDpiBelow300"][artwork], 300)
-                self.assertIn("Some art is resampled to 300 dpi.", " ".join(preflight["warnings"]))
+        self.edition.update(openingLayout="compact", dedicationArt="small-dedication.png",
+                            scenes=[self.single])
+        dedication_modes = (("הקדשה למשפחה", "dedication-vignette"), ("", "dedication-art"))
+        for width, height in ((165, 235), (210, 170)):
+            for note, artwork in dedication_modes:
+                with self.subTest(width=width, height=height, artwork=artwork):
+                    self.edition.update(widthMm=width, heightMm=height, dedication=note)
+                    edition = self.parse()
+                    target = self.root / f"{width}-{artwork}"
+                    target.mkdir()
+                    build(edition, self.manifest, target, make_previews=False)
+                    preflight = json.loads((target / "preflight.json").read_text())
+                    self.assertTrue(preflight["structuralPass"])
+                    self.assertLess(preflight["nativeDpiBelow300"][artwork], 300)
+                    self.assertIn("Some art is resampled to 300 dpi.", " ".join(preflight["warnings"]))
 
     def test_stock_caliper_and_mismatch_fail_closed(self):
         for paper, expected in (("white-110gsm", 1.8), ("chrome-matte-130", 1.5), ("chrome-matte-170", 1.92)):
