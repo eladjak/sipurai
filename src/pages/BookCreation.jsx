@@ -1,3 +1,4 @@
+import { isUnifiedBookEditor } from "@/lib/flags";
 import { imageAspectForBook } from "@/lib/printSpec";
 
 import { lazy, Suspense, useState, useEffect, useCallback } from "react";
@@ -58,7 +59,7 @@ function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearch
   const { toast } = useToast();
   const { language: uiLanguage, isRTL } = useI18n();
   const gamification = useGamification();
-  const unifiedEditor = import.meta.env.VITE_UNIFIED_BOOK_EDITOR === "true";
+  const unifiedEditor = isUnifiedBookEditor();
   const editorCopy = getBookTranslation(uiLanguage);
 
   // Core state
