@@ -64,6 +64,15 @@ const LANGUAGE_OPTIONS = [
   { value: "yiddish", flag: "🟡" },
 ];
 
+const defaultUserSettings = {
+  language: "english",
+  dark_mode: false,
+  text_density: "medium",
+  font_size: "medium",
+  notifications_enabled: true,
+  default_story_language: "english",
+};
+
 function SettingRow({ label, children, isRTL }) {
   return (
     <div className={`flex items-center justify-between gap-4 py-3 border-b last:border-0 border-purple-50 dark:border-purple-900/30 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -256,15 +265,8 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [user, setUser] = useState(null);
-  const [userData, setUserData] = useState({
-    language: "english",
-    dark_mode: false,
-    text_density: "medium",
-    font_size: "medium",
-    notifications_enabled: true,
-    default_story_language: "english"
-  });
-  const [tempSettings, setTempSettings] = useState({});
+  const [userData, setUserData] = useState(defaultUserSettings);
+  const [tempSettings, setTempSettings] = useState(defaultUserSettings);
 
   // Handle checkout success redirect
   useEffect(() => {

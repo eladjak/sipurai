@@ -1,5 +1,5 @@
 {
-  "total": 254,
+  "total": 233,
   "files": {
     "src/components/ai/AIStudio.jsx": {
       "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
@@ -170,9 +170,6 @@
     "src/hooks/useAutoSave.js": {
       "TS2739: Type '{}' is missing the following properties from type '{ onSaveToDb: Function; delayMs: number; enabled: boolean; }': onSaveToDb, delayMs, enabled": 1
     },
-    "src/hooks/useTTS.js": {
-      "TS2353: Object literal may only specify known properties, and 'notice' does not exist in type '{ speak: any; stop: any; pause: any; resume: any; isSpeaking: any; isPaused: any; currentWordIndex: any; rate: any; setRate: any; engine: any; }'.": 1
-    },
     "src/integrations/Core.js": {
       "TS2353: Object literal may only specify known properties, and 'referenceImageBase64' does not exist in type '{ prompt: string; aspectRatio?: string; provider?: \"gemini\" | \"openai\" | \"gemini-pro\"; modelId?: string; }'.": 1,
       "TS2739: Type '{ base64: string; mimeType: string; }' is missing the following properties from type 'Promise<T>': then, catch, finally, [Symbol.toStringTag]": 1
@@ -245,8 +242,6 @@
     },
     "src/pages/BookView.jsx": {
       "TS2322: Type '{ children: Element; pageKey: number; direction: number; isRTL: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ isSpeaking: any; isPaused: any; rate: any; onPlay: () => void; onPause: any; onResume: any; onStop: any; onRateChange: any; notice: any; isRTL: boolean; isHebrew: boolean; }' is not assignable to type 'IntrinsicAttributes & { isSpeaking: any; isPaused: any; rate: any; onPlay: any; onPause: any; onResume: any; onStop: any; onRateChange: any; isRTL: any; showEngineSelector?: boolean; notice?: string; }'.": 1,
-      "TS2339: Property 'notice' does not exist on type '{ speak: any; stop: any; pause: any; resume: any; isSpeaking: any; isPaused: any; currentWordIndex: any; rate: any; setRate: any; engine: any; }'.": 1,
       "TS2345: Argument of type '{ title: any; description: any; image: any; type: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
     },
     "src/pages/BookWizard.jsx": {
@@ -323,15 +318,6 @@
     },
     "src/pages/Settings.jsx": {
       "TS2322: Type '{ currentLanguage: any; isRTL: any; }' is not assignable to type 'IntrinsicAttributes'.": 1,
-      "TS2339: Property 'audio_enabled' does not exist on type '{}'.": 1,
-      "TS2339: Property 'audio_speed' does not exist on type '{}'.": 1,
-      "TS2339: Property 'dark_mode' does not exist on type '{}'.": 8,
-      "TS2339: Property 'default_story_language' does not exist on type '{}'.": 1,
-      "TS2339: Property 'font_size' does not exist on type '{}'.": 1,
-      "TS2339: Property 'language' does not exist on type '{}'.": 3,
-      "TS2339: Property 'notifications_enabled' does not exist on type '{}'.": 1,
-      "TS2339: Property 'text_density' does not exist on type '{}'.": 1,
-      "TS2345: Argument of type '{}' is not assignable to parameter of type 'SetStateAction<{ language: string; dark_mode: boolean; text_density: string; font_size: string; notifications_enabled: boolean; audio_enabled: boolean; audio_speed: string; default_story_language: string; }>'.": 1,
       "TS2741: Property 'className' is missing in type '{ children: Element[]; }' but required in type '{ [x: string]: any; className: any; }'.": 2,
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 2
     },
