@@ -64,6 +64,7 @@ export const IMAGE_FAILED_PREFIX = '[Image generation failed] ';
  * @property {() => Object} [checkpointInputs]
  * @property {boolean} [requireReference]
  * @property {string} [approvedTitle]
+ * @property {(candidate: string | undefined) => string | undefined} [selectTitle]
  * @property {string} coverPrompt
  * @property {(entry: Object, index: number) => string} pageTextPrompt
  * @property {(index: number) => Object} pageTextSchema
