@@ -73,9 +73,11 @@ export function cleanStoryText(text, hebrew) {
 /** Accept a model's pointed title only when it preserves every approved letter.
  * This checks identity, not linguistic correctness; vowel points still need review. */
 export function selectHebrewTitle(approved, candidate) {
-  if (!approved || !candidate) return approved || candidate;
-  const bare = value => value.normalize('NFC').replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]/gu, '');
-  if (/[\u05b0-\u05bc\u05c1\u05c2\u05c7]/u.test(approved)) return approved;
-  if (!/[\u05b0-\u05bc\u05c1\u05c2\u05c7]/u.test(candidate)) return approved;
-  return bare(approved) === bare(candidate) ? cleanStoryText(candidate, true) : approved;
+  if (typeof candidate !== 'string' || !candidate) return approved;
+  if (!approved) return candidate;
+  const pointing = /[\u05b0-\u05bd\u05bf\u05c1\u05c2\u05c7]/gu;
+  if (approved.match(pointing)) return approved;
+  const pointed = candidate.normalize('NFC').replace(/[\u0591-\u05af]/gu, '');
+  if (!pointed.match(pointing)) return approved;
+  return approved.normalize('NFC') === pointed.replace(pointing, '') ? pointed : approved;
 }

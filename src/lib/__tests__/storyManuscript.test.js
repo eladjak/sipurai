@@ -25,6 +25,9 @@ describe('title and verse safeguards', () => {
     expect(selectHebrewTitle('החבר הנסתר', 'הַחָבֵר הַסּוֹדִי')).toBe('החבר הנסתר');
     expect(selectHebrewTitle('הֶחָבֵר', 'הַחָבֵר')).toBe('הֶחָבֵר');
     expect(selectHebrewTitle('החבר', 'החבר')).toBe('החבר');
+    expect(selectHebrewTitle('שלום !', 'שָׁל֑וֹם !')).toBe('שָׁלוֹם !');
+    expect(selectHebrewTitle('שלום !', 'שָׁלוֹם!')).toBe('שלום !');
+    expect(selectHebrewTitle('שלום !', null)).toBe('שלום !');
   });
   it('requests verse lines only when rhyme is enabled', () => {
     const args = { outline: [{description: 'home'}], language: 'hebrew' };

@@ -1,6 +1,7 @@
 import unittest
 import hashlib
 import json
+import os
 import tempfile
 from pathlib import Path
 from contextlib import redirect_stdout
@@ -59,5 +60,13 @@ class AuditTest(unittest.TestCase):
                 self.assertEqual(output.read_bytes(), before)
                 boxes.write_text('[]')
                 self.assertEqual(run(proof, boxes, output, .02), 'unknown')
+
+    def test_annotations_fifo_is_rejected_without_waiting_for_writer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            boxes = root / 'boxes.json'
+            os.mkfifo(boxes)
+            with redirect_stdout(StringIO()):
+                self.assertEqual(run(root / 'proof.png', boxes, root / 'out.png', .02), 'unknown')
 
 if __name__ == '__main__': unittest.main()

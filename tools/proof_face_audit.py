@@ -4,14 +4,15 @@
 Input rectangles are normalized [left, top, right, bottom] in the same raster
 coordinate system (including bleed, if present). The reviewer must inspect the
 whole image and all caption areas. Never interpret clear as a detection guarantee.
+Use input and output paths inside a trusted, private directory.
 """
 import argparse
 import hashlib
 import json
 import math
 import os
+import stat
 from io import BytesIO
-from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -24,7 +25,7 @@ MAX_BOXES_PER_KIND = 250
 def rectangle(box):
     if not isinstance(box, list) or len(box) != 4:
         raise ValueError('rectangle must contain four numbers')
-    if any(isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) for x in box):
+    if any(isinstance(x, bool) or not isinstance(x, (int, float)) or not 0 <= x <= 1 for x in box):
         raise ValueError('invalid coordinate')
     left, top, right, bottom = box
     if not (0 <= left < right <= 1 and 0 <= top < bottom <= 1):
@@ -58,7 +59,11 @@ def audit(data, margin=0.02):
 
 
 def read_bounded(path, limit):
-    with Path(path).open('rb') as stream:
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    with os.fdopen(fd, 'rb') as stream:
+        file = os.fstat(stream.fileno())
+        if not stat.S_ISREG(file.st_mode) or file.st_size > limit:
+            raise ValueError('input must be a bounded regular file')
         data = stream.read(limit + 1)
     if len(data) > limit:
         raise ValueError('input exceeds limit')
