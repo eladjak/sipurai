@@ -9,9 +9,16 @@ import argparse
 import hashlib
 import json
 import math
+import os
+from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageDraw
+
+MAX_ANNOTATION_BYTES = 128 * 1024
+MAX_RASTER_BYTES = 32 * 1024 * 1024
+MAX_RASTER_PIXELS = 24_000_000
+MAX_BOXES_PER_KIND = 250
 
 
 def rectangle(box):
@@ -34,6 +41,8 @@ def audit(data, margin=0.02):
     faces, captions = data.get('faces'), data.get('captions')
     if not isinstance(faces, list) or not isinstance(captions, list) or not captions:
         return 'unknown', 0
+    if max(len(faces), len(captions)) > MAX_BOXES_PER_KIND:
+        return 'unknown', 0
     try:
         faces = [rectangle(b) for b in faces]
         captions = [rectangle(b) for b in captions]
@@ -48,19 +57,40 @@ def audit(data, margin=0.02):
     return ('overlap' if count else 'clear'), count
 
 
+def read_bounded(path, limit):
+    with Path(path).open('rb') as stream:
+        data = stream.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError('input exceeds limit')
+    return data
+
+
 def run(image, annotations, output, margin):
-    data = json.loads(Path(annotations).read_text())
-    status, count = audit(data, margin)
-    # Bind boxes to the exact reviewed raster, not merely its dimensions.
-    if data.get('image_sha256') != hashlib.sha256(Path(image).read_bytes()).hexdigest():
-        status, count = 'unknown', 0
-    if status != 'unknown':
-        with Image.open(image) as original:
-            pic = original.convert('RGB'); draw = ImageDraw.Draw(pic)
+    try:
+        data = json.loads(read_bounded(annotations, MAX_ANNOTATION_BYTES))
+        status, count = audit(data, margin)
+        if status != 'unknown':
+            raster = read_bounded(image, MAX_RASTER_BYTES)
+            # Validate and render the same snapshot of the reviewed raster.
+            if data.get('image_sha256') != hashlib.sha256(raster).hexdigest():
+                raise ValueError('reviewed raster changed')
+            with Image.open(BytesIO(raster)) as original:
+                if original.width * original.height > MAX_RASTER_PIXELS:
+                    raise ValueError('raster exceeds pixel limit')
+                pic = original.convert('RGB')
+            draw = ImageDraw.Draw(pic)
             for boxes, color in ((data['faces'], '#ff00ff'), (data['captions'], '#00ffff')):
                 for l, t, r, b in boxes:
-                    draw.rectangle((round(l*pic.width), round(t*pic.height), round(r*pic.width), round(b*pic.height)), outline=color, width=max(2, pic.width//300))
-            pic.save(output)
+                    bounds = (round(l * pic.width), round(t * pic.height),
+                              round(r * pic.width), round(b * pic.height))
+                    draw.rectangle(bounds, outline=color, width=max(2, pic.width // 300))
+            with BytesIO() as png:
+                pic.save(png, format='PNG')
+                fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, 'wb') as destination:
+                    destination.write(png.getbuffer())
+    except (OSError, ValueError, Image.DecompressionBombError):
+        status, count = 'unknown', 0
     print(json.dumps({'status': status, 'face_count': len(data.get('faces', [])) if status != 'unknown' else None,
                       'caption_count': len(data.get('captions', [])) if status != 'unknown' else None,
                       'overlap_pairs': count if status != 'unknown' else None,

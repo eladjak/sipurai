@@ -1,4 +1,5 @@
 import unittest
+import hashlib
 import json
 import tempfile
 from pathlib import Path
@@ -38,5 +39,25 @@ class AuditTest(unittest.TestCase):
         self.assertEqual(audit(d), ('clear', 0))
         d['faces'] = [[.2,.2,2,.4]]
         self.assertEqual(audit(d)[0], 'unknown')
+
+    def test_output_is_created_privately_and_never_replaced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proof, boxes, output = (root / name for name in ('proof.png', 'boxes.json', 'out.png'))
+            Image.new('RGB', (30, 30)).save(proof)
+            boxes.write_text(json.dumps({
+                'reviewed_entire_page': True,
+                'image_sha256': hashlib.sha256(proof.read_bytes()).hexdigest(),
+                'faces': [],
+                'captions': [[.1, .1, .2, .2]],
+            }))
+            with redirect_stdout(StringIO()):
+                self.assertEqual(run(proof, boxes, output, .02), 'clear')
+                self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+                before = output.read_bytes()
+                self.assertEqual(run(proof, boxes, output, .02), 'unknown')
+                self.assertEqual(output.read_bytes(), before)
+                boxes.write_text('[]')
+                self.assertEqual(run(proof, boxes, output, .02), 'unknown')
 
 if __name__ == '__main__': unittest.main()
