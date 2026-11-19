@@ -1,5 +1,5 @@
 {
-  "total": 210,
+  "total": 202,
   "files": {
     "src/components/ai/SmartAutoSelector.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
@@ -19,9 +19,6 @@
     },
     "src/components/bookCreation/PageStyler.jsx": {
       "TS2322: Type '{ fontSize: string; fontFamily: any; color: any; fontWeight: any; textAlign: any; lineHeight: any; direction: string; }' is not assignable to type 'CSSProperties'.": 1
-    },
-    "src/components/bookCreation/ScenePlanStep.jsx": {
-      "TS2353: Object literal may only specify known properties, and 'storyIdea' does not exist in type '{ characters?: any[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1
     },
     "src/components/checkout/AddressForm.jsx": {
       "TS2741: Property 'optional' is missing in type '{ children: Element; id: string; label: string; hint: string; error: any; }' but required in type '{ id: any; label: any; optional: any; hint: any; error: any; children: any; }'.": 5
@@ -183,15 +180,6 @@
     "src/lib/resultHelper.js": {
       "TS2304: Cannot find name 'T'.": 1,
       "TS2315: Type 'Result' is not generic.": 1
-    },
-    "src/lib/sceneGenerator.js": {
-      "TS2339: Property 'artStyle' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
-      "TS2339: Property 'artStyle' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
-      "TS2339: Property 'genre' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
-      "TS2339: Property 'scene' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
-      "TS2339: Property 'storyIdea' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
-      "TS2339: Property 'storyIdea' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
-      "TS2339: Property 'tone' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1
     },
     "src/pages/AccessibilityStatement.jsx": {
       "TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
