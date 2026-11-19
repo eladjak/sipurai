@@ -178,12 +178,14 @@ describe('print edition owner editing flow', () => {
   it('shows a PC proofreading suggestion for the reviewed book and opens the matching story field without edits', async () => {
     const text = 'הוּא הִסְתַּכֵּל בְּעֵינַיִים גְּדוֹלוֹת.';
     const source = 'הוא הסתכל בעיניים גדולות.';
-    stored.pages.p3 = { source, text };
-    fixture.rows.mockResolvedValueOnce([...pages, { ...pages[1], id: 'p3', page_number: 3, text_content: source }]);
+    stored.pages.p2 = { source, text };
+    fixture.rows.mockResolvedValueOnce([pages[0], { ...pages[1], text_content: source }]);
     enter('201398c5-7ce0-4e16-98eb-b2be6ba09daf');
     fireEvent.click(await screen.findByText(labels.proofreadingNotes));
     expect(screen.getByText('בְּעֵינַיִם')).toBeVisible();
-    fireEvent.click(button(labels.editProofreadingLocation(3)));
+    expect(screen.getByText('אָזְנַיִם')).toBeVisible();
+    expect(screen.queryByRole('button', { name: labels.editProofreadingLocation(12) })).not.toBeInTheDocument();
+    fireEvent.click(button(labels.editProofreadingLocation(2)));
     const editor = screen.getByLabelText(labels.text);
     await waitFor(() => expect(editor).toHaveFocus());
     expect(editor).toHaveValue(text);

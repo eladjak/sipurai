@@ -400,14 +400,25 @@ function VersionHistory({ workspace, labels, isRTL, restore, authorityStale }) {
 }
 
 function ProofreadingNotes({ pages, edition, labels, openEditor, onUseCredit }) {
-  const notes = proofreadingNotes.flatMap(note => {
-    const index = pages.findIndex(page => !page.extra && page.page_number === note.pageNumber);
-    if (note.pageNumber && index < 0) return [];
-    const text = note.pageNumber ? pageDraft(edition, pages[index], index).text : edition.blurb;
-    if (typeof text !== 'string' || !text.normalize().includes(note.before.normalize())) return [];
-    const target = note.pageNumber ? { kind: 'story', storyIndex: index, field: 'text' } : { field: 'blurb' };
-    return [{ ...note, target }];
-  });
+  const notes = proofreadingNotes.map(note => {
+    const before = note.before.normalize();
+    const containsOriginal = text => typeof text === 'string' && text.normalize().includes(before);
+    const containsCorrection = text => typeof text === 'string' && text.normalize().includes(note.after.normalize());
+    if (!note.pageNumber) {
+      const matches = containsOriginal(edition.blurb);
+      return { ...note, target: matches ? { field: 'blurb' } : null, corrected: !matches && containsCorrection(edition.blurb) };
+    }
+    // The spoken review counted the cover as page one. Confirm the exact
+    // pointed text so an old edition can still use its saved story numbering.
+    const candidates = [note.pageNumber - 1, note.pageNumber]
+      .map(number => pages.findIndex(page => !page.extra && page.page_number === number))
+      .filter(candidate => candidate >= 0)
+      .map(index => ({ index, text: pageDraft(edition, pages[index], index).text }));
+    const index = candidates.find(candidate => containsOriginal(candidate.text))?.index;
+    const target = index === undefined ? null : { kind: 'story', storyIndex: index, field: 'text' };
+    const corrected = index === undefined && candidates.some(candidate => containsCorrection(candidate.text));
+    return { ...note, pageNumber: index === undefined ? note.pageNumber : index + 1, target, corrected };
+  }).filter(note => !note.corrected);
   const showCredit = edition.creator !== sipuraiCredit;
   if (!notes.length && !showCredit) return null;
   return (
@@ -418,7 +429,9 @@ function ProofreadingNotes({ pages, edition, labels, openEditor, onUseCredit }) 
         {notes.map(({ pageNumber, before, after, aboutSock, target }) => (
           <li key={before} className="space-y-2 py-2 text-sm">
             <p>{labels.proofreadingLocation(pageNumber)} · <del dir="rtl">{before}</del>{' → '}<strong dir="rtl">{after}</strong>{aboutSock && <> · {labels.proofreadingSock}</>}</p>
-            <button type="button" className={actionClass} onClick={() => openEditor(target)}>{labels.editProofreadingLocation(pageNumber)}</button>
+            {target
+              ? <button type="button" className={actionClass} onClick={() => openEditor(target)}>{labels.editProofreadingLocation(pageNumber)}</button>
+              : <p className="text-sp-ink-600">{labels.proofreadingNoMatch}</p>}
           </li>
         ))}
       </ul>}
