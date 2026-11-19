@@ -88,8 +88,19 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
   const status = incomplete ? 'incomplete' : ready ? (proof ? 'ready' : 'error') : (proof ? 'updating' : 'loading');
   const stage = progress?.input === input && progress?.attempt === attempt ? progress.stage : 'queued';
   const error = ready ? result.error : null;
-  const failure = ['proof_timeout', 'proof_artwork', 'proof_session_expired'].includes(error)
-    ? t(`print.proofWorkspace.failures.${error}`) : undefined;
+  const failure = {
+    proof_timeout: t('print.proofWorkspace.failures.proof_timeout'),
+    proof_artwork: t('print.proofWorkspace.failures.proof_artwork'),
+    proof_session_expired: t('print.proofWorkspace.failures.proof_session_expired'),
+  }[error];
+  const stageLabel = {
+    queued: t('print.proofWorkspace.stages.queued'),
+    artwork: t('print.proofWorkspace.stages.artwork'),
+    prepare: t('print.proofWorkspace.stages.prepare'),
+    upload: t('print.proofWorkspace.stages.upload'),
+    render: t('print.proofWorkspace.stages.render'),
+    preview: t('print.proofWorkspace.stages.preview'),
+  }[stage];
   const again = () => retry(n => n + 1);
   async function download(key) {
     if (status !== 'ready' || !proof || downloadRequest.current) return;
@@ -110,7 +121,7 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
   return (
     <div className="min-w-0">
       {input.paperChoiceRequired && <p role="alert" className="mb-3 text-sm">{t('print.paperChoice.legacyPaper')}</p>}
-      <ProofViewer proof={proof} status={status} failure={failure} progress={t(`print.proofWorkspace.stages.${stage}`)} onRetry={again} onEdit={onEdit}
+      <ProofViewer proof={proof} status={status} failure={failure} progress={stageLabel} onRetry={again} onEdit={onEdit}
         onDownload={download} isRTL={isRTL} cover={edition.cover} paper={edition.paper} />
       {status === 'ready' && handoffReady && verifyHandoff && (
         <button className="proof-control mt-2" type="button" disabled={downloadStatus === 'busy'} onClick={() => download('handoff')}>

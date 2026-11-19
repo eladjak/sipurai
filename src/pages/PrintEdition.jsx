@@ -17,14 +17,13 @@ import ProofWorkspace from '@/screens/print-edition/ProofWorkspace';
 import { EditionDetails } from '@/screens/print-edition/EditionDetails';
 import { EditionArtField } from '@/screens/print-edition/EditionArtField';
 import { EditionPageReview } from '@/screens/print-edition/EditionPageReview';
-import { actionClass, editionLabels, textClass } from '@/screens/print-edition/labels';
+import { actionClass, editionLabels, sipuraiCredit, textClass } from '@/screens/print-edition/labels';
 import '@/styles/sp-tokens.css';
 import '@/styles/sp-fonts.css';
 import '@/screens/print-edition/edition.css';
 
 // Proofreading notes apply to the story units reviewed in the PC session.
 const reviewedBookId = '201398c5-7ce0-4e16-98eb-b2be6ba09daf';
-const sipuraiCredit = 'נוצר בסיפוראי';
 const proofreadingNotes = [
   { pageNumber: 3, before: 'בְּעֵינַיִים', after: 'בְּעֵינַיִם' },
   { pageNumber: 6, before: 'בָּהּ', after: 'בּוֹ', aboutSock: true },
