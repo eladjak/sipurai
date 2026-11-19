@@ -1,9 +1,6 @@
 {
-  "total": 233,
+  "total": 202,
   "files": {
-    "src/components/ai/AIStudio.jsx": {
-      "TS2345: Argument of type '{ prompt: string; modelId: any; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
-    },
     "src/components/ai/SmartAutoSelector.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
@@ -17,31 +14,11 @@
     "src/components/blog/BlogSidebar.jsx": {
       "TS2322: Type '{ src: any; alt: any; className: string; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
     },
-    "src/components/bookCreation/BookStylingTab.jsx": {
-      "TS2322: Type '{ rhymeSettings: any; setRhymeSettings: any; currentLanguage: string; }' is not assignable to type 'IntrinsicAttributes & { rhymeSettings: any; setRhymeSettings: any; }'.": 1
-    },
-    "src/components/bookCreation/DraftView.jsx": {
-      "TS2322: Type '{ rhymeSettings: any; setRhymeSettings: any; currentLanguage: string; }' is not assignable to type 'IntrinsicAttributes & { rhymeSettings: any; setRhymeSettings: any; }'.": 1
-    },
     "src/components/bookCreation/PagePreview.jsx": {
       "TS2322: Type '{ fontSize: string; fontFamily: any; color: any; fontWeight: any; textAlign: any; lineHeight: any; direction: string; }' is not assignable to type 'CSSProperties'.": 1
     },
     "src/components/bookCreation/PageStyler.jsx": {
       "TS2322: Type '{ fontSize: string; fontFamily: any; color: any; fontWeight: any; textAlign: any; lineHeight: any; direction: string; }' is not assignable to type 'CSSProperties'.": 1
-    },
-    "src/components/bookCreation/ScenePlanStep.jsx": {
-      "TS2345: Argument of type '{ prompt: any; aspectRatio: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
-      "TS2353: Object literal may only specify known properties, and 'storyIdea' does not exist in type '{ characters?: any[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1
-    },
-    "src/components/bookReader/PageFlip.jsx": {
-      "TS2339: Property 'canGoNext' does not exist on type '{}'.": 1,
-      "TS2339: Property 'canGoPrev' does not exist on type '{}'.": 1,
-      "TS2339: Property 'children' does not exist on type '{}'.": 1,
-      "TS2339: Property 'direction' does not exist on type '{}'.": 1,
-      "TS2339: Property 'isRTL' does not exist on type '{}'.": 1,
-      "TS2339: Property 'onNext' does not exist on type '{}'.": 1,
-      "TS2339: Property 'onPrev' does not exist on type '{}'.": 1,
-      "TS2339: Property 'pageKey' does not exist on type '{}'.": 1
     },
     "src/components/checkout/AddressForm.jsx": {
       "TS2741: Property 'optional' is missing in type '{ children: Element; id: string; label: string; hint: string; error: any; }' but required in type '{ id: any; label: any; optional: any; hint: any; error: any; children: any; }'.": 5
@@ -112,7 +89,6 @@
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
     "src/components/profile/AvatarSelector.jsx": {
-      "TS2345: Argument of type '{ prompt: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
       "TS2741: Property 'className' is missing in type '{ children: Element[]; }' but required in type '{ [x: string]: any; className: any; }'.": 1
     },
     "src/components/shared/LazyImage.jsx": {
@@ -161,9 +137,6 @@
       "TS2322: Type 'string' is not assignable to type '\"default\" | \"sm\" | \"lg\" | \"icon\"'.": 1,
       "TS2741: Property 'isActive' is missing in type '{ children: Element[]; \"aria-label\": string; size: string; className: string; }' but required in type '{ [x: string]: any; className: any; isActive: any; size?: string; }'.": 2
     },
-    "src/components/wizard/PreviewEditStep.jsx": {
-      "TS2322: Type '{ rhymeSettings: any; setRhymeSettings: any; currentLanguage: any; }' is not assignable to type 'IntrinsicAttributes & { rhymeSettings: any; setRhymeSettings: any; }'.": 1
-    },
     "src/entities/User.js": {
       "TS2694: Namespace '\"node_modules/@clerk/clerk-react/dist/index\"' has no exported member 'UserResource'.": 1
     },
@@ -171,7 +144,6 @@
       "TS2739: Type '{}' is missing the following properties from type '{ onSaveToDb: Function; delayMs: number; enabled: boolean; }': onSaveToDb, delayMs, enabled": 1
     },
     "src/integrations/Core.js": {
-      "TS2353: Object literal may only specify known properties, and 'referenceImageBase64' does not exist in type '{ prompt: string; aspectRatio?: string; provider?: \"gemini\" | \"openai\" | \"gemini-pro\"; modelId?: string; }'.": 1,
       "TS2739: Type '{ base64: string; mimeType: string; }' is missing the following properties from type 'Promise<T>': then, catch, finally, [Symbol.toStringTag]": 1
     },
     "src/Layout.jsx": {
@@ -183,9 +155,7 @@
     "src/lib/aiProvider.js": {
       "TS1064: The return type of an async function or method must be the global Promise<T> type. Did you mean to write 'Promise<{ base64: string; mimeType: string; }>'?": 1,
       "TS1064: The return type of an async function or method must be the global Promise<T> type. Did you mean to write 'Promise<any>'?": 1,
-      "TS2339: Property 'referenceImageBase64' does not exist on type '{ prompt: string; aspectRatio?: string; provider?: \"gemini\" | \"openai\" | \"gemini-pro\"; modelId?: string; }'.": 1,
-      "TS2339: Property 'thinking_budget' does not exist on type '{ prompt: string; response_json_schema?: any; response_format?: any; temperature?: number; max_tokens?: number; }'.": 1,
-      "TS2345: Argument of type '{ inlineData: { mimeType: string; data: any; }; }' is not assignable to parameter of type '{ text: string; }'.": 1
+      "TS2339: Property 'thinking_budget' does not exist on type '{ prompt: string; response_json_schema?: any; response_format?: any; temperature?: number; max_tokens?: number; }'.": 1
     },
     "src/lib/AuthContext.jsx": {
       "TS2322: Type 'unknown' is not assignable to type 'string'.": 1,
@@ -200,9 +170,6 @@
     "src/lib/bookRecipe.js": {
       "TS2353: Object literal may only specify known properties, and 'outlineMaxTokens' does not exist in type 'GenerationRecipe'.": 1
     },
-    "src/lib/photoToCharacter.js": {
-      "TS2345: Argument of type '{ prompt: string; aspectRatio: string; referenceImageBase64: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1
-    },
     "src/lib/printOrder/api.js": {
       "TS2339: Property 'body' does not exist on type '{ method?: string; auth?: boolean; }'.": 1,
       "TS2353: Object literal may only specify known properties, and 'body' does not exist in type '{ method?: string; auth?: boolean; }'.": 2
@@ -213,15 +180,6 @@
     "src/lib/resultHelper.js": {
       "TS2304: Cannot find name 'T'.": 1,
       "TS2315: Type 'Result' is not generic.": 1
-    },
-    "src/lib/sceneGenerator.js": {
-      "TS2339: Property 'artStyle' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
-      "TS2339: Property 'artStyle' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
-      "TS2339: Property 'genre' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
-      "TS2339: Property 'scene' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
-      "TS2339: Property 'storyIdea' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1,
-      "TS2339: Property 'storyIdea' does not exist on type '{ language?: string; ageRange?: string; }'.": 1,
-      "TS2339: Property 'tone' does not exist on type '{ characters?: undefined[]; language?: string; ageRange?: string; sceneCount?: number; }'.": 1
     },
     "src/pages/AccessibilityStatement.jsx": {
       "TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
@@ -237,11 +195,9 @@
       "TS2345: Argument of type '{ title: any; description: any; image: any; type: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
     },
     "src/pages/BookCreation.jsx": {
-      "TS2345: Argument of type '{ prompt: string; aspectRatio: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 2,
       "TS2554: Expected 0 arguments, but got 1.": 1
     },
     "src/pages/BookView.jsx": {
-      "TS2322: Type '{ children: Element; pageKey: number; direction: number; isRTL: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
       "TS2345: Argument of type '{ title: any; description: any; image: any; type: string; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1
     },
     "src/pages/BookWizard.jsx": {
@@ -249,7 +205,6 @@
       "TS2322: Type 'string' is not assignable to type '\"english\" | \"hebrew\" | \"yiddish\"'.": 1
     },
     "src/pages/CharacterEditor.jsx": {
-      "TS2345: Argument of type '{ prompt: string; quality: string; size: string; }' is not assignable to parameter of type '{ prompt: any; quality: any; size: any; modelId: any; aspectRatio: any; referenceImageBase64: any; }'.": 1,
       "TS2741: Property 'className' is missing in type '{ children: Element[]; }' but required in type '{ [x: string]: any; className: any; }'.": 2
     },
     "src/pages/Community.jsx": {
@@ -285,8 +240,7 @@
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
     "src/pages/Library.jsx": {
-      "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1,
-      "TS2741: Property 'variant' is missing in type '{ children: number; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
+      "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
     "src/pages/MyOrders.jsx": {
       "TS2741: Property 'className' is missing in type '{ children: (string | Element)[]; type: string; onClick: () => Promise<void>; }' but required in type '{ [x: string]: any; className: any; children: any; }'.": 1,

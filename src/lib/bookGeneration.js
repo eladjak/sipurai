@@ -85,6 +85,8 @@ export const IMAGE_FAILED_PREFIX = '[Image generation failed] ';
  * @param {boolean} [opts.allowLegacyReservation]
  * @param {number[]} [opts.repairPages]
  * @param {boolean} [opts.repairCover]
+ * @param {string} [opts.automaticRecoveryOwnerId]
+ * @param {boolean} [opts.keepStoredArt] Internal durable recovery setting.
  * @param {(event: Object) => void} [opts.onEvent]
  * @param {number} [opts.concurrency]
  * @param {AbortSignal} [opts.signal]        Cancels *scheduling*; in-flight calls finish and are saved.
@@ -106,11 +108,16 @@ export async function generateBookIncremental({
   allowLegacyReservation = false,
   repairPages = [],
   repairCover = false,
+  automaticRecoveryOwnerId,
+  keepStoredArt = false,
 }) {
+  if (automaticRecoveryOwnerId && (!bookId || allowLegacyReservation || !entities.Book.generationStore)) {
+    throw Object.assign(new Error("Automatic recovery requires an existing durable book"), { code: "automatic_recovery_unavailable" });
+  }
   if (entities.Book.generationStore) {
     const { generateDurableBook } = await import('./durableBookRun');
     return generateDurableBook({ storage: entities.Book.generationStore, entities, ai, recipe, bookId, newBookId,
-      allowLegacyReservation, onEvent, concurrency, signal, lock, repairPages, repairCover, fetchReference });
+      allowLegacyReservation, onEvent, concurrency, signal, lock, repairPages, repairCover, fetchReference, automaticRecoveryOwnerId });
   }
   const { Book, Page } = entities;
   const { InvokeLLM, GenerateImage } = ai;
@@ -367,7 +374,7 @@ export async function generateBookIncremental({
 
       if (textOnly) return;
       if (isPageIllustrated(pages[index]) && !repairPages.includes(number)) {
-        if (!recipe.requireReference || await fetchReference(pages[index].image_url)) return;
+        if (keepStoredArt || !recipe.requireReference || await fetchReference(pages[index].image_url)) return;
         // Keep the stored artwork until a verified replacement is available.
       }
 

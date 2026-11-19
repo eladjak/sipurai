@@ -1,176 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useId, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Cat,
-  Rocket,
-  Users,
-  Sparkles,
-  TreePine,
-  Crown,
-  Compass,
-  GraduationCap,
-  Heart,
-  Music,
-  Palette,
-  Globe,
-  PenLine,
-  Lightbulb,
-  Shuffle,
-  Wand2
-} from "lucide-react";
+import { Music, Lightbulb, Shuffle, Wand2 } from "lucide-react";
+import IllustratedChoice from "./IllustratedChoice";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { StoryIdea } from "@/entities/StoryIdea";
 import { useI18n } from "@/components/i18n/i18nProvider";
 
-/**
- * Topic cards data with icons, colors, and Hebrew/English labels.
- */
 const TOPIC_CARDS = [
-  {
-    id: "animals",
-    icon: Cat,
-    image: "/images/topic-animals.jpg",
-    gradient: "from-amber-400 via-orange-400 to-red-400",
-    bgCard: "from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40",
-    ring: "ring-amber-400",
-    shadowColor: "shadow-amber-200/60",
-    en: "Animals",
-    he: "חיות",
-    yi: "חיות"
-  },
-  {
-    id: "space",
-    icon: Rocket,
-    image: "/images/topic-space.jpg",
-    gradient: "from-indigo-500 via-purple-500 to-violet-600",
-    bgCard: "from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40",
-    ring: "ring-indigo-400",
-    shadowColor: "shadow-indigo-200/60",
-    en: "Space",
-    he: "חלל",
-    yi: "חלל"
-  },
-  {
-    id: "family",
-    icon: Users,
-    image: "/images/topic-family.jpg",
-    gradient: "from-pink-400 via-rose-400 to-red-400",
-    bgCard: "from-pink-50 to-rose-50 dark:from-pink-950/40 dark:to-rose-950/40",
-    ring: "ring-pink-400",
-    shadowColor: "shadow-pink-200/60",
-    en: "Family",
-    he: "משפחה",
-    yi: "משפּחה"
-  },
-  {
-    id: "fairy_tale",
-    icon: Crown,
-    image: "/images/topic-fairy-tale.jpg",
-    gradient: "from-yellow-400 via-amber-400 to-orange-400",
-    bgCard: "from-yellow-50 to-amber-50 dark:from-yellow-950/40 dark:to-amber-950/40",
-    ring: "ring-yellow-400",
-    shadowColor: "shadow-yellow-200/60",
-    en: "Fairy Tales",
-    he: "אגדות",
-    yi: "מעשׂיות"
-  },
-  {
-    id: "adventure",
-    icon: Compass,
-    image: "/images/topic-adventure.jpg",
-    gradient: "from-emerald-400 via-green-400 to-teal-500",
-    bgCard: "from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40",
-    ring: "ring-emerald-400",
-    shadowColor: "shadow-emerald-200/60",
-    en: "Adventure",
-    he: "הרפתקאות",
-    yi: "אַוואַנטורעס"
-  },
-  {
-    id: "nature",
-    icon: TreePine,
-    image: "/images/topic-nature.jpg",
-    gradient: "from-green-400 via-teal-400 to-cyan-500",
-    bgCard: "from-green-50 to-teal-50 dark:from-green-950/40 dark:to-teal-950/40",
-    ring: "ring-green-400",
-    shadowColor: "shadow-green-200/60",
-    en: "Nature",
-    he: "טבע",
-    yi: "נאַטור"
-  },
-  {
-    id: "science",
-    icon: GraduationCap,
-    image: "/images/topic-science.jpg",
-    gradient: "from-cyan-400 via-blue-400 to-indigo-500",
-    bgCard: "from-cyan-50 to-blue-50 dark:from-cyan-950/40 dark:to-blue-950/40",
-    ring: "ring-cyan-400",
-    shadowColor: "shadow-cyan-200/60",
-    en: "Science",
-    he: "מדע",
-    yi: "וויסנשאַפֿט"
-  },
-  {
-    id: "magic",
-    icon: Sparkles,
-    image: "/images/topic-magic.jpg",
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
-    bgCard: "from-violet-50 to-fuchsia-50 dark:from-violet-950/40 dark:to-fuchsia-950/40",
-    ring: "ring-violet-400",
-    shadowColor: "shadow-violet-200/60",
-    en: "Magic",
-    he: "קסמים",
-    yi: "כּישוף"
-  },
-  {
-    id: "friendship",
-    icon: Heart,
-    image: "/images/topic-friendship.jpg",
-    gradient: "from-rose-400 via-pink-400 to-fuchsia-400",
-    bgCard: "from-rose-50 to-pink-50 dark:from-rose-950/40 dark:to-pink-950/40",
-    ring: "ring-rose-400",
-    shadowColor: "shadow-rose-200/60",
-    en: "Friendship",
-    he: "חברות",
-    yi: "פֿרײַנדשאַפֿט"
-  },
-  {
-    id: "music",
-    icon: Music,
-    image: "/images/topic-music.jpg",
-    gradient: "from-fuchsia-400 via-purple-400 to-violet-500",
-    bgCard: "from-fuchsia-50 to-purple-50 dark:from-fuchsia-950/40 dark:to-purple-950/40",
-    ring: "ring-fuchsia-400",
-    shadowColor: "shadow-fuchsia-200/60",
-    en: "Music",
-    he: "מוזיקה",
-    yi: "מוזיק"
-  },
-  {
-    id: "art",
-    icon: Palette,
-    image: "/images/topic-art.jpg",
-    gradient: "from-orange-400 via-red-400 to-rose-500",
-    bgCard: "from-orange-50 to-red-50 dark:from-orange-950/40 dark:to-red-950/40",
-    ring: "ring-orange-400",
-    shadowColor: "shadow-orange-200/60",
-    en: "Art",
-    he: "אמנות",
-    yi: "קונסט"
-  },
-  {
-    id: "travel",
-    icon: Globe,
-    image: "/images/topic-travel.jpg",
-    gradient: "from-sky-400 via-blue-400 to-indigo-500",
-    bgCard: "from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40",
-    ring: "ring-sky-400",
-    shadowColor: "shadow-sky-200/60",
-    en: "Travel",
-    he: "טיולים",
-    yi: "רײַזן"
-  }
+  { id: "animals", en: "Animals" },
+  { id: "space", en: "Space" },
+  { id: "family", en: "Family" },
+  { id: "fairy_tale", en: "Fairy Tales" },
+  { id: "adventure", en: "Adventure" },
+  { id: "nature", en: "Nature" },
+  { id: "science", en: "Science" },
+  { id: "magic", en: "Magic" },
+  { id: "friendship", en: "Friendship" },
+  { id: "music", en: "Music" },
+  { id: "art", en: "Art" },
+  { id: "travel", en: "Travel" },
 ];
 
 /**
@@ -209,40 +58,21 @@ const SURPRISE_TWISTS = {
   ]
 };
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 24, scale: 0.92 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { delay: i * 0.04, duration: 0.35, ease: "easeOut" }
-  })
-};
-
-const surpriseRevealVariants = {
-  initial: { scale: 0.5, rotate: -15, opacity: 0 },
-  animate: {
-    scale: 1,
-    rotate: 0,
-    opacity: 1,
-    transition: { type: "spring", stiffness: 400, damping: 15 }
-  },
-  exit: { scale: 0.5, rotate: 15, opacity: 0, transition: { duration: 0.15 } }
-};
-
 export function getTopicLabel(topic, t) {
   return t("topicNames." + topic.id) || topic.en;
 }
 
 /**
  * TopicStep - Step 1 of the wizard: Choose a story topic.
- * Visual topic cards with gradients, "Surprise Me!" button, and custom idea input.
+ * Illustrated choices, surprise ideas, and custom ideas.
  */
 export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, isRTL, language }) {
   const { t } = useI18n();
   const isHebrew = language === "hebrew";
   const isYiddish = language === "yiddish";
-  const [showCustomIdea, setShowCustomIdea] = useState(!!customIdea);
+  const group = useId();
+  const customIdeaId = `${group}-idea`;
+  const showCustomIdea = selectedTopic === "custom";
   const [showSavedIdeas, setShowSavedIdeas] = useState(false);
   const [savedIdeas, setSavedIdeas] = useState([]);
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
@@ -296,10 +126,10 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
     }
   };
 
-  const handleSelectCustomIdea = () => {
-    setShowCustomIdea(true);
+  const selectTopic = (topic) => {
     setShowSavedIdeas(false);
-    onSelectTopic("custom");
+    setSurprisedTopicId(null);
+    onSelectTopic(topic);
   };
 
   const handleSelectSavedIdea = (idea) => {
@@ -308,7 +138,6 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
     }
     onSelectTopic("custom");
     setShowSavedIdeas(false);
-    setShowCustomIdea(true);
   };
 
   const handleSurpriseMe = () => {
@@ -335,7 +164,6 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
 
     onSelectTopic("custom");
     if (onCustomIdeaChange) onCustomIdeaChange(ideaText);
-    setShowCustomIdea(true);
     setShowSavedIdeas(false);
   };
 
@@ -393,146 +221,18 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
         )}
       </div>
 
-      {/* Topic Cards Grid */}
-      <div
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4"
-        role="group"
-        aria-label={t("wizard.topic.chooseTopic")}
-      >
-        {TOPIC_CARDS.map((topic, index) => {
-          const Icon = topic.icon;
-          const isSelected = selectedTopic === topic.id || (selectedTopic === "custom" && surprisedTopicId === topic.id);
-          const isSurprised = surprisedTopicId === topic.id;
-
-          return (
-            <motion.button
-              key={topic.id}
-              custom={index}
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              whileHover={{ scale: 1.05, y: -3 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setShowCustomIdea(false);
-                setSurprisedTopicId(null);
-                onSelectTopic(topic.id);
-              }}
-              aria-pressed={selectedTopic === topic.id}
-              aria-label={getTopicLabel(topic, t)}
-              className={`
-                relative flex flex-col items-center justify-center p-4 md:p-5 rounded-2xl
-                transition-all duration-200 cursor-pointer min-h-[130px] md:min-h-[150px]
-                bg-gradient-to-br ${topic.bgCard}
-                ${isSelected
-                  ? `ring-2 ${topic.ring} shadow-lg ${topic.shadowColor}`
-                  : "hover:shadow-md hover:ring-1 hover:ring-gray-200 dark:hover:ring-gray-600 shadow-sm"
-                }
-                overflow-hidden
-              `}
-            >
-              {/* Selected glow overlay */}
-              {isSelected && (
-                <motion.div
-                  className={`absolute inset-0 bg-gradient-to-br ${topic.gradient} opacity-10 rounded-2xl`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.1 }}
-                />
-              )}
-
-              <AnimatePresence mode="wait">
-                {isSurprised ? (
-                  <motion.div
-                    key="surprised"
-                    variants={surpriseRevealVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="mb-3 w-full"
-                  >
-                    <img
-                      src={`/images/spx/topics/${topic.id}.webp`}
-                      alt=""
-                      aria-hidden="true"
-                      className={`w-full h-32 sm:h-40 rounded-xl object-cover`}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="normal"
-                    className="mb-3 w-full"
-                    animate={isSelected ? { scale: [1, 1.08, 1] } : {}}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <img
-                      src={`/images/spx/topics/${topic.id}.webp`}
-                      alt=""
-                      aria-hidden="true"
-                      className={`w-full h-32 sm:h-40 rounded-xl object-cover`}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <span className={`text-sm md:text-base font-bold text-center relative z-10 ${isSelected ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-200"}`}>
-                {getTopicLabel(topic, t)}
-              </span>
-
-              {isSelected && !surprisedTopicId && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className={`mt-1.5 w-2 h-2 rounded-full bg-gradient-to-r ${topic.gradient}`}
-                  aria-hidden="true"
-                />
-              )}
-            </motion.button>
-          );
-        })}
-
-        {/* "I have my own idea" card */}
-        <motion.button
-          custom={TOPIC_CARDS.length}
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          whileHover={{ scale: 1.05, y: -3 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleSelectCustomIdea}
-          aria-pressed={selectedTopic === "custom"}
-          aria-label={t("wizard.topic.customIdea")}
-          className={`
-            relative flex flex-col items-center justify-center p-4 md:p-5 rounded-2xl
-            transition-all duration-200 cursor-pointer min-h-[130px] md:min-h-[150px]
-            bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-800 dark:to-slate-800
-            shadow-sm overflow-hidden
-            ${selectedTopic === "custom"
-              ? "ring-2 ring-purple-500 shadow-lg shadow-purple-200/50"
-              : "hover:shadow-md border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500"
-            }
-          `}
-        >
-          <div className="mb-3">
-            <img
-              src="/images/topic-custom.jpg"
-              alt=""
-              aria-hidden="true"
-              className={`w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shadow-md ring-2 ${selectedTopic === "custom" ? "ring-purple-500" : "ring-white/40"}`}
-            />
-          </div>
-          <span className={`text-sm md:text-base font-bold text-center ${selectedTopic === "custom" ? "text-purple-700 dark:text-purple-300" : "text-gray-700 dark:text-gray-200"}`}>
-            {t("wizard.topic.customIdeaShort")}
-          </span>
-          {selectedTopic === "custom" && !surprisedTopicId && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="mt-1.5 w-2 h-2 rounded-full bg-purple-500"
-              aria-hidden="true"
-            />
-          )}
-        </motion.button>
-      </div>
+      <fieldset>
+        <legend className="sr-only">{t("wizard.topic.chooseTopic")}</legend>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-3">
+          {TOPIC_CARDS.map((topic) => (
+            <IllustratedChoice key={topic.id} group={group} value={topic.id} checked={selectedTopic === topic.id}
+              highlight={surprisedTopicId === topic.id} onSelect={selectTopic}
+              src={`/images/spx/topics/${topic.id}.webp`} label={getTopicLabel(topic, t)} />
+          ))}
+          <IllustratedChoice group={group} value="custom" checked={showCustomIdea} onSelect={selectTopic}
+            src="/images/topic-custom.jpg" label={t("wizard.topic.customIdeaShort")} />
+        </div>
+      </fieldset>
 
       {/* Custom idea text input */}
       <AnimatePresence>
@@ -544,10 +244,11 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
             className="overflow-hidden"
           >
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl p-4 space-y-3 border border-purple-100 dark:border-purple-900/50 shadow-sm">
-              <label className="text-sm font-semibold text-purple-800 dark:text-purple-300 block">
+              <label htmlFor={customIdeaId} className="text-sm font-semibold text-purple-800 dark:text-purple-300 block">
                 {t("wizard.topic.tellUsIdea")}
               </label>
               <Textarea
+                id={customIdeaId}
                 value={customIdea || ""}
                 onChange={(e) => onCustomIdeaChange?.(e.target.value)}
                 placeholder={t("ideaPlaceholder")}
@@ -555,7 +256,6 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
                 rows={3}
                 maxLength={500}
                 className="resize-none bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:border-purple-400 rounded-xl"
-                aria-label={t("wizard.topic.describeIdeaLabel")}
               />
             </div>
           </motion.div>

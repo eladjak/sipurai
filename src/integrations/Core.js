@@ -32,14 +32,24 @@ export async function InvokeLLM(params) {
 //   - 'gemini-2-5-flash-image'→ Gemini 2.5 Flash (default cost tier)
 //   - undefined               → existing default routing (env / localStorage)
 
-export async function GenerateImage({ prompt, quality, size, modelId, aspectRatio, referenceImageBase64 }) {
+/**
+ * @param {Object} params
+ * @param {string} params.prompt
+ * @param {string} [params.quality]
+ * @param {string} [params.size]
+ * @param {string} [params.modelId]
+ * @param {string} [params.aspectRatio]
+ * @param {string|null} [params.referenceImageBase64]
+ * @param {string} [params.bookKey] Existing reservation for this image request.
+ */
+export async function GenerateImage({ prompt, modelId, aspectRatio, referenceImageBase64, bookKey }) {
   if (import.meta.env.DEV) {
     console.log('[Core.GenerateImage] Starting image generation, prompt length:', prompt?.length, 'modelId:', modelId, 'hasReference:', !!referenceImageBase64);
   }
 
   // Wrap 3rd-party AI fetch in Result at the boundary (no try/catch in business logic).
   const genResult = await safeAsync(() =>
-    geminiGenerateImage({ prompt, modelId, aspectRatio, referenceImageBase64 })
+    geminiGenerateImage({ prompt, modelId, aspectRatio, referenceImageBase64, bookKey })
   );
 
   if (genResult.isErr) {

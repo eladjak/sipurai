@@ -10,6 +10,8 @@ const COPY = {
     cover: 'הכריכה מבחוץ', opening: 'פתיחת הספר', closing: 'סוף הספר',
     front: 'כריכה קדמית', back: 'כריכה אחורית', spine: 'שדרה', insideFront: 'צד פנימי קדמי', insideBack: 'צד פנימי אחורי',
     title: 'שער', dedication: 'הקדשה', copyright: 'קרדיט וזכויות', endpaper: 'עמוד רקע', story: 'סיפור', lastPage: 'עמוד הסיום',
+    'opening-art': 'איור פתיחה', 'dedication-art': 'איור מול השער', 'title-credits': 'שער וקרדיטים',
+    editCreator: 'עריכת שם המחבר', editCopyright: 'עריכת זכויות',
     page: n => `עמוד ${n}`, pages: (first, second) => `עמודים \u2066${first}–${second}\u2069`,
     edit: name => `עריכה: ${name}`, editHelp: 'אפשר ללחוץ על עמוד או על צד של הכריכה כדי להגיע לעריכה.',
     pick: 'מעבר לכפולה', next: 'הבא', previous: 'הקודם', bleed: 'גלישה לחיתוך', paper: 'הדמיית גוון נייר',
@@ -39,6 +41,8 @@ const COPY = {
     cover: 'Outside cover', opening: 'Opening spread', closing: 'Closing spread',
     front: 'Front cover', back: 'Back cover', spine: 'Spine', insideFront: 'Inside front cover', insideBack: 'Inside back cover',
     title: 'Title page', dedication: 'Dedication', copyright: 'Credits and copyright', endpaper: 'Patterned page', story: 'Story', lastPage: 'Final page',
+    'opening-art': 'Opening illustration', 'dedication-art': 'Illustration facing the title', 'title-credits': 'Title and credits',
+    editCreator: 'Edit creator name', editCopyright: 'Edit copyright',
     page: n => `Page ${n}`, pages: (first, second) => `Pages ${first}–${second}`,
     edit: name => `Edit ${name}`, editHelp: 'Select a page or cover panel to edit it.',
     pick: 'Go to spread', next: 'Next', previous: 'Previous', bleed: 'Show bleed', paper: 'Simulate paper tone',
@@ -65,14 +69,21 @@ const COPY = {
   },
 };
 
+const storyFolio = leaf => leaf.kind === 'story' && Number.isInteger(leaf.storyIndex) ? leaf.storyIndex + 1 : null;
+
 const leafLabel = (leaf, t) => {
   const label = t[leaf.kind === 'closing' ? 'lastPage' : leaf.kind];
-  if (!leaf.number) return label;
-  return label ? `${t.page(leaf.number)} · ${label}` : t.page(leaf.number);
+  const number = storyFolio(leaf) ?? leaf.number;
+  if (!number) return label;
+  return label ? `${t.page(number)} · ${label}` : t.page(number);
 };
-const spreadLabel = (spread, t) => spread.kind === 'pages'
-  ? t.pages(spread.leaves[0].number, spread.leaves[1].number)
-  : t[spread.kind];
+const spreadLabel = (spread, t) => {
+  if (spread.kind !== 'pages') return t[spread.kind];
+  const folios = spread.leaves.map(storyFolio).filter(number => number !== null);
+  if (folios.length === 1) return t.page(folios[0]);
+  if (folios.length === 2) return t.pages(folios[0], folios[1]);
+  return t.pages(spread.leaves[0].number, spread.leaves[1].number);
+};
 
 function ProofHelp({ label, children, isRTL }) {
   const description = useId();
@@ -231,7 +242,7 @@ export function ProofViewer({ proof, status = 'pending', failure = null, progres
   const canEdit = state === 'ready' ? onEdit : undefined;
   const onKeyDown = event => {
     if (!spread || event.target.closest('select') || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (!event.target.closest('.proof-nav, .proof-leaf-edit') || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    if (!event.target.closest('.proof-nav, .proof-book-turn, .proof-leaf-edit') || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
     event.preventDefault();
     // Keep the direction of the printed Hebrew book in both interface languages.
     const delta = event.key === 'ArrowLeft' ? 1 : -1;
@@ -276,38 +287,40 @@ export function ProofViewer({ proof, status = 'pending', failure = null, progres
         <>
           {state === 'updating' && <p className="proof-update" role="status">{progress || t.updating} {t.stale}</p>}
           <div className="proof-nav" ref={navRef} dir="rtl" role="group" tabIndex={-1} aria-label={t.pick}>
-            <button className="proof-control proof-turn" type="button" aria-disabled={shown === 0} aria-controls={`${id}-stage`} onClick={() => move(-1)}>
-              <ChevronRight aria-hidden="true" size={17} /><span dir={isRTL ? 'rtl' : 'ltr'}>{t.previous}</span>
-            </button>
             <select className="proof-control proof-select" dir={isRTL ? 'rtl' : 'ltr'} value={shown} aria-label={t.pick} aria-controls={`${id}-stage`} onChange={event => show(Number(event.target.value))}>
               {spreads.map((item, index) => <option key={index} value={index}>{spreadLabel(item, t)}</option>)}
             </select>
-            <button className="proof-control proof-turn" type="button" aria-disabled={shown === last} aria-controls={`${id}-stage`} onClick={() => move(1)}>
-              <span dir={isRTL ? 'rtl' : 'ltr'}>{t.next}</span><ChevronLeft aria-hidden="true" size={17} />
-            </button>
           </div>
 
           <figure className="proof-figure">
-            <div
-              className="proof-stage"
-              id={`${id}-stage`}
-              onPointerDown={onTouchStart}
-              onPointerUp={onTouchEnd}
-              onPointerCancel={() => { touch.current = null; }}
-              onClickCapture={suppressSwipeClick}
-            >
-              <div key={shown} className="proof-page-turn" data-turn={turn}>
-                <ProofFrame
-                  key={spread.leaves.map(leaf => leaf.url).join('|')}
-                  spread={spread}
-                  coverText={proof.coverText}
-                  showBleed={showBleed}
-                  paperTone={simulatePaper ? proof.paper || paper || 'standard' : 'off'}
-                  onEdit={canEdit}
-                  onRetry={onRetry}
-                  t={t}
-                />
+            <div className="proof-book">
+              <button className="proof-book-turn proof-book-turn-right" type="button" aria-label={t.previous} title={t.previous} aria-disabled={shown === 0} aria-controls={`${id}-stage`} onClick={() => move(-1)}>
+                <ChevronRight aria-hidden="true" size={26} />
+              </button>
+              <div
+                className="proof-stage"
+                id={`${id}-stage`}
+                onPointerDown={onTouchStart}
+                onPointerUp={onTouchEnd}
+                onPointerCancel={() => { touch.current = null; }}
+                onClickCapture={suppressSwipeClick}
+              >
+                <div key={shown} className="proof-page-turn" data-turn={turn}>
+                  <ProofFrame
+                    key={spread.leaves.map(leaf => leaf.url).join('|')}
+                    spread={spread}
+                    coverText={proof.coverText}
+                    showBleed={showBleed}
+                    paperTone={simulatePaper ? proof.paper || paper || 'standard' : 'off'}
+                    onEdit={canEdit}
+                    onRetry={onRetry}
+                    t={t}
+                  />
+                </div>
               </div>
+              <button className="proof-book-turn proof-book-turn-left" type="button" aria-label={t.next} title={t.next} aria-disabled={shown === last} aria-controls={`${id}-stage`} onClick={() => move(1)}>
+                <ChevronLeft aria-hidden="true" size={26} />
+              </button>
             </div>
             <figcaption className="proof-caption">
               <span className="sr-only" role="status">{spreadLabel(spread, t)}</span>
@@ -317,6 +330,16 @@ export function ProofViewer({ proof, status = 'pending', failure = null, progres
               <div className="proof-caption-copy">
                 {isEndSpread && <p>{insideShown ? t.insideHelp : t.blankInside}</p>}
                 {canEdit && <p>{t.editHelp}</p>}
+                {canEdit && spread.leaves.some(leaf => leaf.kind === 'title-credits') && (
+                  <div className="proof-toggles">
+                    <button type="button" className="proof-control" onClick={() => canEdit({ kind: 'title', field: 'creator' })}>
+                      {t.editCreator}
+                    </button>
+                    <button type="button" className="proof-control" onClick={() => canEdit({ kind: 'title', field: 'copyright' })}>
+                      {t.editCopyright}
+                    </button>
+                  </div>
+                )}
               </div>
             </figcaption>
           </figure>

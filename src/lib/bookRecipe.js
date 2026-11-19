@@ -18,10 +18,8 @@
  */
 
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from '@/utils/content-moderation';
-import { manuscriptRequest, cleanStoryText } from "@/lib/storyManuscript";
+import { manuscriptRequest, cleanStoryText, hebrewTitleInstruction } from "@/lib/storyManuscript";
 import { IMAGE_FAILED_PREFIX } from '@/lib/bookGeneration';
-
-const LAYOUT_TYPES = ['standard', 'image_top', 'image_full', 'text_overlay', 'two_column'];
 
 /** Planned page count for a book's `length` setting. Cover/title page included. */
 export function pageCountFor(length) {
@@ -82,6 +80,7 @@ export function buildRecipe({
 
   const outlinePrompt = `${safetyPrefix}${langInstruction}Create a detailed outline for a children's book:
 - Title: ${bookData?.title || ''}
+${isHebrewBook ? hebrewTitleInstruction : ''}
 - Description: ${bookData?.description || ''}
 - Topic: ${topicDescription}
 - Characters: ${characterNames}
@@ -96,7 +95,10 @@ For each page, provide a brief description of what happens, why it follows from 
 The story should have a clear beginning, middle, and end. For each supplied character, give a short visual reference sheet:
 preserve the name and all supplied traits (${characterAppearances}); specify recurring face, silhouette, outfit, and one distinctive detail.`;
 
-  const getCoverPrompt = () => `Compose faces and the main action above the lower quarter, away from the trim. Leave the bottom quarter pale and quiet for typesetting. IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. Pure visual illustration only - no Hebrew letters, no English text, no numbers, no signs with text. Children's book cover art featuring characters ${characterNames} in a ${topicDescription} setting. ${characterAppearances ? `Character appearances: ${characterAppearances}.` : ''} Illustrated in ${artStyle} style. Bright, colorful, child-friendly.`;
+  const getCoverPrompt = () => {
+    const opening = scenes[0]?.illustration_prompt || scenes[0]?.description || bookData?.description || topicDescription;
+    return `Children's picture-book cover in ${artStyle} style for ${JSON.stringify(titleRef.current)}. Story premise: ${topicDescription}. Opening: ${opening}. Show one distinctive object or action unique to this story. Choose a viewpoint and silhouette that make that moment unmistakable. Cast: ${characterAppearances || characterNames}. Art must reach all four edges. Keep faces and action clear of trim and leave an uninterrupted pale area in the lower quarter for typesetting. No letters, numbers, watermarks or other writing.`;
+  };
 
   const nikudInstruction = isHebrewBook
     ? '\nהוסף ניקוד מלא לכל הטקסט בעברית. כל מילה חייבת לכלול ניקוד.'
@@ -186,7 +188,7 @@ preserve the name and all supplied traits (${characterAppearances}); specify rec
       scenes, tone: bookData.tone, ageRange, rhyme: rhymingInstruction, safety: safetyPrefix,
     }),
     get coverPrompt() { return getCoverPrompt(); },
-    layoutFor: (i) => (i === 0 ? 'cover' : LAYOUT_TYPES[(i - 1) % LAYOUT_TYPES.length]),
+    layoutFor: (i) => (i === 0 ? 'cover' : 'image_full'),
     sanitize: sanitizeAIOutput,
     setTitle: (title) => {
       if (title) titleRef.current = title;
@@ -261,7 +263,7 @@ ${isHebrewBook ? '2. text_with_nikud: The exact same page text with full nikud (
 
       const characterContext = sceneAppearances ? `Characters: ${sceneAppearances}. ` : '';
       const consistencyInstruction = 'CRITICAL: Maintain EXACT visual consistency for all characters across every illustration: Same hair color, eye color, skin tone, clothing in every image. Same art style, color palette, and visual mood throughout. Characters must look IDENTICAL in every page - as if drawn by the same artist. Do NOT change character appearance between pages. ';
-      const noTextInstruction = 'Compose faces and the main action above the lower quarter, away from the trim. Leave the bottom quarter pale and quiet for typesetting. IMPORTANT: Do NOT include any text, letters, words, or writing in the illustration. The image should contain ONLY visual elements - no Hebrew letters, no English text, no numbers, no signs with text. Pure illustration only. ';
+      const noTextInstruction = 'Extend the scene to all four edges with no borders. Keep faces, hands and action clear of the trim and the quiet lower quarter reserved for typesetting. Continue the setting through that quiet area with simple, low-detail scenery. No letters, numbers, signs or other writing. ';
       const sceneFraming = sceneForPage
         ? `Scene role: ${sceneForPage.role}. Scene beat: ${sceneForPage.description || sceneForPage.title || ''}. ${sceneForPage.illustration_prompt ? `Scene visual: ${sceneForPage.illustration_prompt}. ` : ''}`
         : '';
@@ -275,7 +277,8 @@ ${isHebrewBook ? '2. text_with_nikud: The exact same page text with full nikud (
       // the text has been written. A previous failure marker is stripped so a
       // retry does not feed "[Image generation failed]" to the image model.
       const beat = String(page?.image_prompt || '').replace(IMAGE_FAILED_PREFIX, '');
-      return `${consistencyInstruction}${referenceInstruction}${noTextInstruction}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${beat}. Children's book illustration in ${artStyle} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
+      const openingComposition = index === 1 ? 'Establish the world in a new composition distinct from the cover. Use the concrete setting and visible action of this opening scene. ' : '';
+      return `${consistencyInstruction}${referenceInstruction}${noTextInstruction}${openingComposition}${characterContext}${sceneCharLine}${sceneFraming}Scene: ${beat}. Children's book illustration in ${artStyle} style. Bright, colorful, age-appropriate for ${ageRange} year olds.`;
     },
   };
 }

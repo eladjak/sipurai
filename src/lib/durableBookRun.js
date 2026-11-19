@@ -4,7 +4,7 @@ import {
   callOutline,
 } from "./bookGeneration";
 import { buildRecipe } from "./bookRecipe";
-import { normalizePages, isPageReady } from "./bookProgress";
+import { normalizePages, isPageReady, isPageIllustrated } from "./bookProgress";
 import { editedPages } from "./storyManuscript";
 import { newBookKey, reserveBookSlot } from "./bookQuota";
 import { toAppImageUrl } from "./imageUrl";
@@ -56,9 +56,16 @@ export async function generateDurableBook({
   bookId,
   newBookId,
   allowLegacyReservation,
+  automaticRecoveryOwnerId,
   onEvent = (_event) => {},
   ...options
 }) {
+  const automaticRecovery = Boolean(automaticRecoveryOwnerId);
+  const recoveryUnavailable = () => Object.assign(
+    new Error("Automatic recovery requires a private book with a complete durable manuscript and missing art"),
+    { code: "automatic_recovery_unavailable" },
+  );
+  if (automaticRecovery && (!bookId || allowLegacyReservation)) throw recoveryUnavailable();
   const fresh = !bookId;
   const id = bookId || newBookId;
   if (!id) throw new Error("A generation run needs its permanent book key.");
@@ -78,6 +85,9 @@ export async function generateDurableBook({
   } else {
     book = await entities.Book.get(id);
     if (!book) throw new Error("Book unavailable");
+    if (automaticRecovery && (book.is_public !== false || book.created_by !== automaticRecoveryOwnerId)) {
+      throw recoveryUnavailable();
+    }
   }
 
   const claim = { bookId: id, runId };
@@ -131,13 +141,29 @@ export async function generateDurableBook({
         total: book.total_pages,
       });
     const checkpoint = lease.checkpoint || lease.seed || seed || {};
-    if (!fresh && !allowLegacyReservation) {
-      // acquire proves the key before a reservation request can consume a slot.
+    let recoveryRows;
+    if (automaticRecovery) {
+      if (book.id !== id || book.created_by !== automaticRecoveryOwnerId || book.is_public !== false ||
+          lease.quotaKey !== id || !Number.isSafeInteger(lease.fence) || lease.fence < 1 ||
+          !lease.checkpoint || !checkpoint.recipe || checkpoint.manuscriptSaved !== true || !Number.isInteger(book.total_pages) ||
+          book.total_pages < 1 || checkpoint.plan?.length !== book.total_pages) {
+        throw recoveryUnavailable();
+      }
+      recoveryRows = await storage.listRows(fence);
+      const pages = normalizePages(recoveryRows);
+      if (recoveryRows.length !== book.total_pages || pages.length !== book.total_pages ||
+          pages.some((page, i) => page.page_number !== i || !isPageReady(page) ||
+            (!isPageIllustrated(page) && !checkpoint.drawingPrompts?.[i]?.trim())) ||
+          (book.cover_image?.trim() && pages.every(isPageIllustrated))) {
+        throw recoveryUnavailable();
+      }
+    } else if (!fresh && !allowLegacyReservation) {
+      // Manual recovery retains the existing quota confirmation behavior.
       const reservation = await reserveBookSlot(lease.quotaKey);
       if (reservation?.skipped) throw new Error("Reservation unavailable");
     }
     const existing = normalizePages(
-      await entities.Page.filter({ book_id: id }, "page_number"),
+      recoveryRows || await entities.Page.filter({ book_id: id }, "page_number"),
     );
     const lockedRecipe = checkpoint.recipe
       ? buildRecipe({
@@ -230,7 +256,7 @@ export async function generateDurableBook({
     }
     // Raw URLs are retained for conditional updates; the UI-facing entity
     // normally translates historical bucket links to their current proxy.
-    const rows = await storage.listRows(fence);
+    const rows = recoveryRows || await storage.listRows(fence);
     const seen = new Map(rows.map((row) => [row.id, row]));
     // Sequence cover and progress updates from the same worker. An editor in
     // another tab remains protected by the database's conditional update.
@@ -279,13 +305,30 @@ export async function generateDurableBook({
         persisted.drawingPrompts?.[index] ||
         lockedRecipe.imagePrompt(page, index, context),
     };
+    const recoveryAI = automaticRecovery ? {
+      InvokeLLM: async () => { throw recoveryUnavailable(); },
+      GenerateImage: async (params) => {
+        checkLease();
+        // Validate the fence before every paid operation, including after the
+        // cover fetch. Pass the proven reservation without reserving again.
+        await storage.renew(fence);
+        checkLease();
+        return ai.GenerateImage({ ...params, bookKey: lease.quotaKey, modelId: "gemini-2-5-flash-image" });
+      },
+    } : ai;
     return await generateBookIncremental({
       entities: storedEntities,
-      ai,
+      ai: recoveryAI,
       recipe: resolvedRecipe,
       bookId: id,
       onEvent,
       ...options,
+      ...(automaticRecovery && {
+        concurrency: 1,
+        keepStoredArt: true,
+        repairPages: [],
+        repairCover: !book.cover_image?.trim(),
+      }),
       fetchReference: async (url) => {
         const { fetchImageAsBase64 } = await import("./bookGeneration");
         return (options.fetchReference || fetchImageAsBase64)(

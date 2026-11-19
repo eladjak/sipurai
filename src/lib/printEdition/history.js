@@ -1,4 +1,4 @@
-import { editionDraft } from './model.js';
+import { DEFAULT_OPENING_LAYOUT, DEFAULT_STORY_PANEL, editionDraft } from './model.js';
 
 const MAX_EDITS = 30;
 const MAX_VERSIONS = 12;
@@ -33,7 +33,9 @@ function inlineArt(draft) {
 
 export function openEditionWorkspace(raw) {
   // Only a newly opened, unsaved edition opts into the new treatment.
-  const active = snapshot(raw == null ? { version: 1, defaultPanel: 'integrated' } : raw);
+  const active = snapshot(raw == null ? {
+    version: 1, defaultPanel: DEFAULT_STORY_PANEL, openingLayout: DEFAULT_OPENING_LAYOUT,
+  } : raw);
   const { revision } = editionDraft(raw);
   const baseline = {
     entries: [active], cursor: 0, revision, group: null, dirty: false,

@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlignCenter, Check, ChevronLeft, ChevronRight, Sparkles, SpellCheck2 } from 'lucide-react';
+import { DEFAULT_CAPTION_STYLE, isCaptionStyle, isCaptionHeights } from '@/lib/printEdition/captionStyle';
+import { spreadSuggestion } from '@/lib/printEdition/spreadSuggestion';
 import { createNikudClient } from '@/lib/printEdition/localNikudClient';
 import { BLEED_MM, PRINT_PRESETS } from '@/lib/printSpec';
 import {
-  canApproveNikud, editPageText, EDIT_INSTRUCTION_LIMIT, isReviewCurrent, isSafeStoryText,
+  canApproveNikud, editPageText, editionStoryLeaves, EDIT_INSTRUCTION_LIMIT, isReviewCurrent, isSafeStoryText,
   needsPageReview, pageDraft, reviewSource, STORY_TEXT_LIMIT, TEXT_ZONES,
 } from '@/lib/printEdition/model';
 import { EditionArtField } from './EditionArtField';
+import { ManualCaptionPreview } from './ManualCaptionPreview';
 import { actionClass, textClass } from './labels';
 
 const markKeys = ['ְ', 'ֱ', 'ֲ', 'ֳ', 'ִ', 'ֵ', 'ֶ', 'ַ', 'ָ', 'ֹ', 'ֻ', 'ּ', 'ׁ', 'ׂ'];
@@ -14,6 +17,7 @@ const markNames = ['שווא', 'חטף סגול', 'חטף פתח', 'חטף קמ�
 
 export function EditionPageReview({ book, pages, edition, changePage, onBusy, busy, labels, isRTL, index, setIndex, capabilities, basePages, onAddPage, canAddPage, onRemovePage }) {
   const [nikud] = useState(createNikudClient);
+  const layoutPicker = useRef(null);
   useEffect(() => () => nikud.close(), [nikud]);
   const currentIndex = Math.min(index, pages.length - 1);
   const page = pages[currentIndex];
@@ -33,7 +37,11 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
   const scene = isSecond ? previousDraft : draft;
   const sceneId = isSecond ? previous.id : page.id;
   const isWide = scene.layout === 'spread';
+  const suggestedSpread = !isSecond && !isWide && nextDraft && nextDraft.layout !== 'spread'
+    && isSafeStoryText(draft.text) && isSafeStoryText(nextDraft.text)
+    ? spreadSuggestion(page, next, draft.spread) : null;
   const preset = PRINT_PRESETS.find(item => item.id === book.print_size) || PRINT_PRESETS[0];
+  const leafSide = editionStoryLeaves(edition, pages)[currentIndex] % 2 ? 'left' : 'right';
   const spreadRatio = (2 * preset.widthMm + 2 * BLEED_MM) / (preset.heightMm + 2 * BLEED_MM);
   const reference = edition.artwork.characterSheet || book.cover_image || edition.artwork.coverArt;
   const generateArt = capabilities.illustrationGeneration && reference && isSafeStoryText(draft.text) && (!isWide || (next && isSafeStoryText(nextDraft.text))) ? async instruction => {
@@ -70,17 +78,24 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
             </select>
             <p className="mt-1 text-sm text-sp-ink-600">{labels.safeZoneHelp}</p>
           </div>
-          {capabilities.advancedLayout && <Framing scene={scene} isSecond={isSecond} isWide={isWide} maxWidth={Math.round(preset.widthMm * 0.8)} draft={draft} defaultPanel={edition.defaultPanel} aspectRatio={`${preset.widthMm} / ${preset.heightMm}`} artwork={scene.printArt || scene.spread || page.image_url} labels={labels} onChange={(patch, key) => changePage(sceneId, { printSettings: { ...scene.printSettings, ...patch } }, key)} />}
+          {capabilities.advancedLayout && <Framing pageId={page.id} trim={preset} leafSide={leafSide} scene={scene} isSecond={isSecond} isWide={isWide} maxWidth={Math.round(preset.widthMm * 0.8)} draft={draft} defaultPanel={edition.defaultPanel} aspectRatio={`${preset.widthMm} / ${preset.heightMm}`} artwork={scene.printArt || scene.spread || page.image_url} labels={labels} onChange={(patch, key) => changePage(sceneId, { printSettings: { ...scene.printSettings, ...patch } }, key)} />}
           <div>
             {isSecond ? <button id="edition-scene-layout" className={actionClass} type="button" disabled={busy} onClick={() => setIndex(currentIndex - 1)}>{labels.spreadSecond}</button> :
               (isWide || (next && nextDraft?.layout !== 'spread')) && <>
                 <label className="block font-semibold" htmlFor="edition-scene-layout">{labels.layout}</label>
-                <select id="edition-scene-layout" className={textClass} value={draft.layout} onChange={e => changePage(page.id, { layout: e.target.value })}>
+                <select ref={layoutPicker} id="edition-scene-layout" className={textClass} value={draft.layout} onChange={e => changePage(page.id, { layout: e.target.value })}>
                   <option value="single">{labels.single}</option>
                   <option value="spread">{labels.spread}</option>
                 </select>
               </>}
           </div>
+          {suggestedSpread && <div className="space-y-2 rounded-sp-sm border border-sp-line p-3">
+            <p className="text-sm font-semibold">{suggestedSpread === 'saved-panorama' ? labels.reusePanorama : labels.continuousScene}</p>
+            <p className="text-sm text-sp-ink-600">{suggestedSpread === 'saved-panorama' ? labels.reusePanoramaHelp : labels.continuousSceneHelp}</p>
+            <p className="text-sm text-sp-ink-600">{labels.spreadHint}</p>
+            <button type="button" className={actionClass} disabled={busy}
+              onClick={() => { changePage(page.id, { layout: 'spread' }); layoutPicker.current?.focus(); }}>{labels.trySpread}</button>
+          </div>}
           {!isSecond && <SceneArtwork key={`${page.id}:${isWide}`} draft={draft} original={page.image_url} artOptions={page.extra && !isWide ? basePages.filter(item => item.image_url) : []} isWide={isWide} spreadRatio={spreadRatio} labels={labels} busy={busy} onBusy={onBusy} generateArt={generateArt} generationEnabled={capabilities.illustrationGeneration && !reference} onChange={patch => changePage(page.id, patch)} />}
         </div>
       </div>
@@ -182,13 +197,20 @@ function StoryText({ nikud, busy, book, draft, labels, isRTL, rewriteEnabled, on
   );
 }
 
-export function Framing({ scene, isSecond, isWide, maxWidth, draft, defaultPanel, aspectRatio, artwork, labels, onChange }) {
+export function Framing({ pageId, trim, leafSide, scene, isSecond, isWide, maxWidth, draft, defaultPanel, aspectRatio, artwork, labels, onChange }) {
   const settings = scene.printSettings || {};
   const panel = settings.panel || defaultPanel || 'cream';
+  const captionStyle = isCaptionStyle(settings.captionStyle) ? settings.captionStyle : DEFAULT_CAPTION_STYLE;
   const anchor = settings.anchor || [0.5, 0.5];
   const widthCount = isWide ? 2 : 1;
   const widths = settings.panelWidthsMm?.length === widthCount ? settings.panelWidthsMm : Array(widthCount).fill(maxWidth);
+  const heights = isCaptionHeights(settings.panelHeightsMm, widthCount)
+    ? settings.panelHeightsMm : Array(widthCount).fill(null);
   const side = isSecond ? 1 : 0;
+  const changeSize = ({ width, height }) => onChange({
+    panelWidthsMm: widths.map((current, index) => side === index ? width : current),
+    panelHeightsMm: heights.map((current, index) => side === index ? height : current),
+  }, 'captionSize');
   return (
     <details className="rounded-sp-sm border border-sp-line px-3">
       <summary className="min-h-11 cursor-pointer py-3 font-semibold">{labels.advancedLayout}</summary>
@@ -196,12 +218,44 @@ export function Framing({ scene, isSecond, isWide, maxWidth, draft, defaultPanel
         {isWide && <p className="text-sm text-sp-ink-600">{labels.sharedFraming}</p>}
         <div>
           <label htmlFor="edition-panel-style" className="block text-sm font-semibold">{labels.panelStyle}</label>
-          <select id="edition-panel-style" className={textClass} value={panel} onChange={e => onChange({ panel: e.target.value })}>
+          <select id="edition-panel-style" className={textClass} value={panel} aria-describedby={panel === 'floating' ? 'edition-floating-hint' : panel === 'manual' ? 'edition-manual-hint' : undefined} onChange={e => {
+            const next = e.target.value;
+            onChange(next === 'manual' ? { panel: next, captionStyle } : { panel: next });
+          }}>
+            <option value="floating">{labels.floatingPanel}</option>
             <option value="cream">{labels.creamPanel}</option>
             <option value="integrated">{labels.integratedPanel}</option>
             <option value="dark">{labels.darkPanel}</option>
+            <option value="manual">{labels.manualPanel}</option>
           </select>
         </div>
+        {panel === 'floating' && <p id="edition-floating-hint" className="text-sm text-sp-ink-600">{labels.floatingHint}</p>}
+        {panel === 'manual' && <div className="space-y-2">
+          <p id="edition-manual-hint" className="text-sm text-sp-ink-600">{labels.manualPanelHint}</p>
+          <div className="flex flex-wrap gap-4">
+            <label className="block text-sm font-semibold" htmlFor="edition-caption-color">{labels.captionColor}
+              <input id="edition-caption-color" type="color" className="block h-11 w-14 cursor-pointer" value={captionStyle.textColor}
+                onChange={e => onChange({ captionStyle: { ...captionStyle, textColor: e.target.value } }, 'captionColor')} />
+            </label>
+            <label className="block text-sm font-semibold" htmlFor="edition-caption-backdrop">{labels.captionBackdrop}
+              <input id="edition-caption-backdrop" type="color" className="block h-11 w-14 cursor-pointer" value={captionStyle.backdropColor}
+                onChange={e => onChange({ captionStyle: { ...captionStyle, backdropColor: e.target.value } }, 'captionBackdrop')} />
+            </label>
+          </div>
+          <label className="block text-sm font-semibold" htmlFor="edition-caption-opacity">{labels.captionOpacity}
+            <span className="ms-2 font-normal"><bdi>{Math.round(captionStyle.backdropOpacity * 100)}%</bdi></span>
+          </label>
+          <input id="edition-caption-opacity" type="range" min="0" max="100" step="1" dir="ltr" className="block h-11 w-full accent-sp-violet-700"
+            value={Math.round(captionStyle.backdropOpacity * 100)}
+            aria-valuetext={`${Math.round(captionStyle.backdropOpacity * 100)}%`}
+            onChange={e => onChange({ captionStyle: { ...captionStyle, backdropOpacity: e.target.valueAsNumber / 100 } }, 'captionOpacity')} />
+        </div>}
+        {panel === 'manual' && <ManualCaptionPreview key={pageId} art={isWide ? scene.spread : artwork}
+          wide={isWide} leafSide={leafSide} zone={draft.zone} text={draft.text} style={captionStyle} trim={trim}
+          widthMm={Math.min(widths[side], maxWidth)} heightMm={heights[side]} maxWidth={maxWidth} labels={labels}
+          onResize={changeSize} onReset={() => onChange({
+            panelHeightsMm: heights.map((height, index) => side === index ? null : height),
+          })} />}
         {panel === 'integrated' && artwork && <div>
           <p className="text-sm text-sp-ink-600">{labels.integratedPreview}</p>
           <div className="relative mt-2 overflow-hidden" style={{ aspectRatio, background: '#f5e8d7' }}>
@@ -212,9 +266,9 @@ export function Framing({ scene, isSecond, isWide, maxWidth, draft, defaultPanel
         {['anchorX', 'anchorY'].map((axis, n) => <label key={axis} className="block text-sm font-semibold">{labels[axis]}
           <input type="range" min="0" max="100" value={Math.round(anchor[n] * 100)} dir="ltr" className="block h-11 w-full accent-sp-violet-700" onChange={e => onChange({ anchor: anchor.map((value, i) => n === i ? Number(e.target.value) / 100 : value) }, axis)} />
         </label>)}
-        <label className="block text-sm font-semibold">{labels.panelWidth}
+        {panel !== 'manual' && <label className="block text-sm font-semibold">{labels.panelWidth}
           <input type="range" min="55" max={maxWidth} value={Math.min(widths[side], maxWidth)} dir="ltr" className="block h-11 w-full accent-sp-violet-700" onChange={e => onChange({ panelWidthsMm: widths.map((width, i) => side === i ? Number(e.target.value) : width) }, 'panelWidth')} />
-        </label>
+        </label>}
       </div>
     </details>
   );

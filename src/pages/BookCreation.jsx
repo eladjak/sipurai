@@ -1,6 +1,6 @@
 import { imageAspectForBook } from "@/lib/printSpec";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import useGamification from "@/hooks/useGamification";
@@ -10,9 +10,9 @@ import { readablePages } from "@/lib/bookProgress";
 import { GenerateImage, InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { canCreateBook, recordBookCreation } from "@/utils/bookRateLimit";
-import { reserveBookSlot, clearActiveBookKey, QuotaError } from "@/lib/bookQuota";
+import { reserveBookSlot, QuotaError } from "@/lib/bookQuota";
 import { createPageUrl } from "@/utils";
-import { Edit, Eye, Share2, ArrowLeft, Sparkles } from "lucide-react";
+import { Edit, Eye, Printer, Share2, ArrowLeft, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +30,6 @@ import BookEditorTab from "../components/bookCreation/BookEditorTab";
 import BookStylingTab from "../components/bookCreation/BookStylingTab";
 import ShareOptions from "../components/bookCreation/ShareOptions";
 import DraftView from "../components/bookCreation/DraftView";
-import ScenePlanStep from "../components/bookCreation/ScenePlanStep";
 import AutoSaveIndicator from "../components/bookCreation/AutoSaveIndicator";
 
 // Hooks
@@ -39,13 +38,28 @@ import { useAutoSave, loadAutoSaved } from "@/hooks/useAutoSave";
 // Translations
 import { getBookTranslation } from "@/utils/book-translations";
 
+const PrintEdition = lazy(() => import("./PrintEdition"));
 export default function BookCreation() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, isLoading: authLoading } = useCurrentUser();
+  const bookId = searchParams.get("id");
+  return <OwnerBookEditor
+    key={JSON.stringify([user?.id, bookId])}
+    bookId={bookId}
+    ownerId={user?.id}
+    authLoading={authLoading}
+    searchParams={searchParams}
+    setSearchParams={setSearchParams}
+  />;
+}
+
+function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearchParams }) {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { isRTL: uiIsRTL } = useI18n();
+  const { language: uiLanguage, isRTL } = useI18n();
   const gamification = useGamification();
-  const { user: hookUser } = useCurrentUser();
+  const unifiedEditor = import.meta.env.VITE_UNIFIED_BOOK_EDITOR === "true";
+  const editorCopy = getBookTranslation(uiLanguage);
 
   // Core state
   const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +68,39 @@ export default function BookCreation() {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingStep, setGeneratingStep] = useState(0);
-  const [isOwner, setIsOwner] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
-  const [activeTab, setActiveTab] = useState("editor");
+  const [legacyTab, setLegacyTab] = useState("editor");
+  // Story tool translations follow the book language. The tab controls
+  // follow the shell language when the unified editor is enabled.
+  const currentLanguage = book?.language || "english";
+  const t = getBookTranslation(currentLanguage);
+  const editorTabs = [
+    { id: "editor", icon: Edit, label: unifiedEditor ? editorCopy("book.unifiedTab.editor") : t("book.tab.editor") },
+    { id: "preview", icon: Eye, label: unifiedEditor ? editorCopy("book.unifiedTab.preview") : t("book.tab.preview") },
+    { id: "print", icon: Printer, label: editorCopy("book.unifiedTab.print") },
+    { id: "share", icon: Share2, label: unifiedEditor ? editorCopy("book.unifiedTab.share") : t("book.tab.share") },
+  ];
+  const requestedTab = searchParams.get("tab");
+  const queryTab = editorTabs.find(tab => tab.id === requestedTab)?.id ?? "editor";
+  const activeTab = unifiedEditor ? queryTab : legacyTab;
+  const [printOpened, setPrintOpened] = useState(activeTab === "print");
+
+  useEffect(() => {
+    if (activeTab === "print") setPrintOpened(true);
+  }, [activeTab]);
+
+  function changeTab(tab) {
+    if (!editorTabs.some(item => item.id === tab) || (!unifiedEditor && tab === "print")) return;
+    if (!unifiedEditor) {
+      setLegacyTab(tab);
+      return;
+    }
+    const params = new URLSearchParams(searchParams);
+    if (tab === "editor") params.delete("tab");
+    else params.set("tab", tab);
+    setSearchParams(params, { preventScrollReset: true });
+  }
 
   // Rhyming state
   const [useRhyming, setUseRhyming] = useState(false);
@@ -105,16 +149,6 @@ export default function BookCreation() {
   const [wizardPhase, setWizardPhase] = useState("draft");
   const [scenePlan, setScenePlan] = useState([]);
 
-  // Get book ID from URL
-  const bookId = searchParams.get("id");
-
-  // Language / RTL
-  // currentLanguage is the BOOK CONTENT language (for AI-generated content translations)
-  const currentLanguage = book?.language || "english";
-  // isRTL for layout direction uses the UI language (from useI18n), not book content language
-  const isRTL = uiIsRTL;
-  const t = getBookTranslation(currentLanguage);
-
   // Auto-save: track editable state
   const autoSaveData = {
     currentPageIndex,
@@ -149,8 +183,16 @@ export default function BookCreation() {
       navigate(createPageUrl("Library"));
       return;
     }
-    loadBookData();
-  }, [bookId]);
+    if (authLoading) return;
+    if (!ownerId) {
+      setUnavailable(true);
+      setIsLoading(false);
+      return;
+    }
+    let current = true;
+    void loadBookData(() => current);
+    return () => { current = false; };
+  }, [bookId, ownerId, authLoading]);
 
   // Sync current page fields when page changes
   useEffect(() => {
@@ -162,20 +204,23 @@ export default function BookCreation() {
     }
   }, [pages, currentPageIndex]);
 
-  const loadBookData = async () => {
+  const loadBookData = async (isCurrent) => {
     try {
       setIsLoading(true);
 
       const bookData = await Book.get(bookId);
+      if (!isCurrent()) return;
+      if (bookData?.id !== bookId || bookData?.created_by !== ownerId) {
+        setUnavailable(true);
+        setIsLoading(false);
+        return;
+      }
       setBook(bookData);
-
-      // Use hook user for ownership check (no extra network request needed)
-      const currentUser = hookUser;
-      setIsOwner(currentUser ? bookData.created_by === currentUser.id : false);
 
       // Skeleton rows exist to persist the outline while a book is still
       // being written; they carry no text, so there is nothing here to edit.
       const pagesData = readablePages(await Page.filter({ book_id: bookId }, "page_number"));
+      if (!isCurrent()) return;
       setPages(pagesData);
 
       // Initialize character consistency
@@ -206,6 +251,7 @@ export default function BookCreation() {
         book_id: bookId,
         status: "accepted"
       });
+      if (!isCurrent()) return;
       if (collaborationsData.length > 0) {
         const collaboratorsList = await Promise.all(
           collaborationsData.map(async (collab) => {
@@ -217,6 +263,7 @@ export default function BookCreation() {
             }
           })
         );
+        if (!isCurrent()) return;
         setCollaborators(collaboratorsList);
       }
 
@@ -231,6 +278,7 @@ export default function BookCreation() {
 
       setIsLoading(false);
     } catch (error) {
+      if (!isCurrent()) return;
       toast({
         variant: "destructive",
         description: t("book.loadError")
@@ -634,7 +682,7 @@ export default function BookCreation() {
   // --- Render States ---
 
   // Loading - skeleton layout matching the book editor structure
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="max-w-5xl mx-auto py-6 px-4" aria-busy="true" role="status">
         {/* Header skeleton */}
@@ -692,6 +740,17 @@ export default function BookCreation() {
     );
   }
 
+  if (unavailable) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-10 text-center" dir={isRTL ? "rtl" : "ltr"}>
+        <p role="alert">{editorCopy("book.editorUnavailable")}</p>
+        <Button variant="outline" className="min-h-11" onClick={() => navigate(createPageUrl("Library"))}>
+          {editorCopy("book.backToLibrary")}
+        </Button>
+      </div>
+    );
+  }
+
   // Generating
   if (isGenerating && book?.status !== "complete") {
     return (
@@ -727,7 +786,7 @@ export default function BookCreation() {
     );
   }
 
-  // Complete book: 3-tab editor (was 7 tabs)
+  // Complete book editor
   return (
     <div className="max-w-7xl mx-auto py-4" dir={isRTL ? "rtl" : "ltr"}>
       {/* Gradient Header Banner */}
@@ -775,47 +834,36 @@ export default function BookCreation() {
         </div>
       </motion.div>
 
-      {/* Styled 3-tab layout */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.1 }}
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6" dir={isRTL ? "rtl" : "ltr"}>
-          <TabsList className="bg-white dark:bg-gray-800 border border-purple-100 dark:border-purple-800/30 shadow-md p-1.5 rounded-2xl gap-1">
-            <TabsTrigger
-              value="editor"
-              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium
-                text-gray-600 dark:text-gray-400
-                data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600
-                data-[state=active]:text-white data-[state=active]:shadow-md
-                transition-all duration-200"
-            >
-              <Edit className="h-4 w-4" />
-              <span>{t("book.tab.editor")}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="preview"
-              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium
-                text-gray-600 dark:text-gray-400
-                data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600
-                data-[state=active]:text-white data-[state=active]:shadow-md
-                transition-all duration-200"
-            >
-              <Eye className="h-4 w-4" />
-              <span>{t("book.tab.preview")}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="share"
-              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium
-                text-gray-600 dark:text-gray-400
-                data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600
-                data-[state=active]:text-white data-[state=active]:shadow-md
-                transition-all duration-200"
-            >
-              <Share2 className="h-4 w-4" />
-              <span>{t("book.tab.share")}</span>
-            </TabsTrigger>
+        <Tabs
+          value={activeTab}
+          onValueChange={changeTab}
+          activationMode={unifiedEditor ? "manual" : "automatic"}
+          className="mb-6 min-w-0"
+          dir={isRTL ? "rtl" : "ltr"}
+        >
+          <TabsList
+            aria-label={editorCopy("book.editingLabel")}
+            className={unifiedEditor
+              ? "flex h-auto w-full max-w-full justify-start gap-1 overflow-x-auto rounded-2xl border border-purple-100 bg-white p-1.5 shadow-sm dark:border-purple-800/30 dark:bg-gray-800 sm:w-fit"
+              : "gap-1 rounded-2xl border border-purple-100 bg-white p-1.5 shadow-md dark:border-purple-800/30 dark:bg-gray-800"}
+          >
+            {editorTabs.filter(tab => unifiedEditor || tab.id !== "print").map(({ id, icon: Icon, label }) => (
+              <TabsTrigger
+                key={id}
+                value={id}
+                className={unifiedEditor
+                  ? "min-h-11 shrink-0 gap-1.5 rounded-xl px-3 text-sm focus-visible:ring-inset data-[state=active]:bg-purple-700 data-[state=active]:text-white sm:gap-2 sm:px-5"
+                  : "gap-2 rounded-xl px-5 py-2.5 text-sm text-gray-600 dark:text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"}
+              >
+                <Icon className={unifiedEditor ? "hidden h-4 w-4 shrink-0 sm:block" : "h-4 w-4 shrink-0"} aria-hidden="true" />
+                {label}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           {/* Tab 1: Editor */}
@@ -872,15 +920,23 @@ export default function BookCreation() {
                 background: "linear-gradient(135deg, #7c3aed, #6366f1, #4f46e5)"
               }}
             >
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-[14px] p-4">
+              <div className={`rounded-[14px] bg-gray-50 dark:bg-gray-900 ${unifiedEditor ? "p-1 sm:p-4" : "p-4"}`}>
                 <iframe
-                  src={`${createPageUrl("BookView")}?id=${bookId}`}
+                  src={`${createPageUrl("BookView")}?id=${encodeURIComponent(bookId)}`}
                   className="w-full h-[70vh] rounded-xl border-0 bg-white shadow-inner overflow-hidden"
                   title={t("book.previewTitle")}
                 />
               </div>
             </motion.div>
           </TabsContent>
+
+          {unifiedEditor && (activeTab === "print" || printOpened) && (
+            <TabsContent value="print" forceMount hidden={activeTab !== "print"} className="min-w-0">
+              <Suspense fallback={<p className="py-6" role="status">{editorCopy("book.loadingPrint")}</p>}>
+                <PrintEdition key={bookId} />
+              </Suspense>
+            </TabsContent>
+          )}
 
           {/* Tab 3: Share & Export */}
           <TabsContent value="share">

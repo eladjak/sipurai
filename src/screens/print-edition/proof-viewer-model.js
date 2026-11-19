@@ -54,6 +54,11 @@ export function proofEditTarget(leaf) {
       return Number.isInteger(leaf.storyIndex) && leaf.storyIndex >= 0
         ? { kind: 'story', storyIndex: leaf.storyIndex, field: 'text' }
         : null;
+    case 'opening-art':
+      return { kind: 'cover', field: 'coverArt' };
+    case 'dedication-art':
+      return { kind: 'dedication', field: 'dedicationArt' };
+    case 'title-credits':
     case 'title':
       return { kind: 'title', field: 'printTitle' };
     case 'dedication':

@@ -1,3 +1,4 @@
+import { isCaptionStyle, isCaptionHeights } from './captionStyle.js';
 import { MAX_PAGES, MIN_PAGES, PRINT_PRESETS, PRINT_SIGNATURE_PAGES } from '../printSpec.js';
 
 export const TEXT_LIMITS = Object.freeze({
@@ -11,7 +12,11 @@ export const TEXT_LIMITS = Object.freeze({
 
 export const STORY_TEXT_LIMIT = 4000;
 export const EDIT_INSTRUCTION_LIMIT = 300;
-export const STORY_FONTS = ['david-libre', 'rubik'];
+export const STORY_FONTS = ['david-libre', 'rubik', 'fredoka'];
+const OPENING_LAYOUTS = ['legacy', 'compact'];
+export const DEFAULT_OPENING_LAYOUT = 'compact';
+export const DEFAULT_STORY_PANEL = 'floating';
+const supportedPanels = ['cream', 'dark', 'integrated', DEFAULT_STORY_PANEL];
 export const TEXT_ZONES = ['top', 'bottom', 'top-right', 'top-left', 'bottom-right', 'bottom-left'];
 const unsupportedBidi = /[\u202A-\u202E\u2066-\u2069]/;
 export const stripNikud = (text) => String(text || '').normalize('NFC').replace(/\r\n?/g, '\n').replace(/[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g, '');
@@ -24,7 +29,8 @@ export function editionDraft(saved = null) {
   const input = saved?.version === 1 ? saved : {};
   return {
     version: 1,
-    ...(input.defaultPanel === 'integrated' ? { defaultPanel: 'integrated' } : {}),
+    ...(supportedPanels.includes(input.defaultPanel) ? { defaultPanel: input.defaultPanel } : {}),
+    ...(OPENING_LAYOUTS.includes(input.openingLayout) ? { openingLayout: input.openingLayout } : {}),
     revision: Number.isSafeInteger(input.revision) ? input.revision : 0,
     printTitle: input.printTitle || '',
     copyright: input.copyright || '',
@@ -44,7 +50,12 @@ export function editionDraft(saved = null) {
 
 export function initialEditionFields(value) {
   if (!value) return {};
-  return { printEdition: { ...editionDraft(value), defaultPanel: 'integrated' } };
+  const draft = editionDraft(value);
+  return { printEdition: {
+    ...draft,
+    defaultPanel: draft.defaultPanel ?? DEFAULT_STORY_PANEL,
+    openingLayout: draft.openingLayout ?? DEFAULT_OPENING_LAYOUT,
+  } };
 }
 
 export function printEditionUrl(id) {
@@ -59,22 +70,28 @@ export function editionStoryPages(edition, pages) {
   ] : pages;
 }
 
-/** Count the native signature slots, including the blank between an unmatched left page and a spread. */
-export function editionPhysicalPageCount(edition, pages) {
-  let occupied = 3; // Title, dedication/endpaper, and copyright.
+/** Map story indices to the physical leaves of both opening layouts. */
+export function editionStoryLeaves(edition, pages) {
+  let occupied = 3;
+  const leaves = [];
   for (let index = 0; index < pages.length; index += 1) {
     const first = pages[index];
     const next = pages[index + 1];
     const spread = edition.pages[first.id]?.layout === 'spread' && next
       && edition.pages[next.id]?.layout !== 'spread';
+    if (spread && occupied % 2 === 0) occupied += 1;
+    leaves.push(++occupied);
     if (spread) {
-      if (occupied % 2 === 0) occupied += 1;
-      occupied += 2;
+      leaves.push(++occupied);
       index += 1;
-    } else {
-      occupied += 1;
     }
   }
+  return leaves;
+}
+
+/** Count the native signature slots, including the blank between an unmatched left page and a spread. */
+export function editionPhysicalPageCount(edition, pages) {
+  const occupied = editionStoryLeaves(edition, pages).at(-1) ?? 3;
   const withClosing = Math.max(occupied + 1, MIN_PAGES);
   return Math.ceil(withClosing / PRINT_SIGNATURE_PAGES) * PRINT_SIGNATURE_PAGES;
 }
@@ -87,13 +104,14 @@ export function pageDraft(edition, page, index) {
   const source = sourceText(page);
   const stored = edition.pages[page.id];
   const current = stored?.source === source ? stored : {};
+  const newZone = edition.defaultPanel === DEFAULT_STORY_PANEL ? 'bottom' : index % 2 === 0 ? 'bottom-right' : 'top-left';
   return {
     source,
     sourceParagraphs: current.sourceParagraphs,
     ...(typeof current.rewrite === 'string' ? { rewrite: current.rewrite } : {}),
     text: current.text ?? source,
     approval: current.approval,
-    zone: TEXT_ZONES.includes(stored?.zone) ? stored.zone : index % 2 === 0 ? 'bottom-right' : 'top-left',
+    zone: TEXT_ZONES.includes(stored?.zone) ? stored.zone : newZone,
     layout: stored?.layout === 'spread' ? 'spread' : 'single',
     spread: stored?.spread ?? null,
     printArt: stored?.printArt ?? null,
@@ -228,7 +246,12 @@ function buildManifest(book, pages, edition, assetPath, missingInputs) {
       hasApprovedNikud ||= mode === 'approved';
     }
     const settings = draft.printSettings || {};
+    const panel = settings.panel || edition.defaultPanel;
+    const captionStyle = panel === 'manual' ? settings.captionStyle : null;
+    if (panel === 'manual' && !isCaptionStyle(captionStyle)) throw new Error('Invalid manual caption style');
     const widthCount = isSpread ? 2 : 1;
+    const panelHeights = panel === 'manual' && isCaptionHeights(settings.panelHeightsMm, widthCount)
+      ? settings.panelHeightsMm : null;
     const panelWidths = Array.isArray(settings.panelWidthsMm) && settings.panelWidthsMm.length === widthCount
       ? settings.panelWidthsMm : null;
     scenes.push({
@@ -238,8 +261,10 @@ function buildManifest(book, pages, edition, assetPath, missingInputs) {
       zones,
       pointing,
       ...(settings.anchor ? { anchor: settings.anchor } : {}),
-      ...((settings.panel || edition.defaultPanel) ? { panel: settings.panel || edition.defaultPanel } : {}),
+      ...(panel ? { panel } : {}),
+      ...(captionStyle ? { captionStyle } : {}),
       ...(panelWidths ? { panelWidthsMm: panelWidths } : {}),
+      ...(panelHeights?.some(height => height !== null) ? { panelHeightsMm: panelHeights } : {}),
     });
     index += isSpread ? 2 : 1;
   }
@@ -255,6 +280,7 @@ function buildManifest(book, pages, edition, assetPath, missingInputs) {
     blurb: edition.blurb.trim(),
     aboutAuthor: edition.aboutAuthor.trim(),
     dedication: edition.dedication.trim(),
+    ...(edition.openingLayout === 'compact' ? { openingLayout: edition.openingLayout } : {}),
     coverArt: mapArt(edition.artwork.coverArt || book.cover_image, 'coverArt'),
     closingArt: mapArt(edition.artwork.closingArt, 'closingArt'),
     characterSheet: draftProof && !(edition.artwork.characterSheet || book.cover_image)

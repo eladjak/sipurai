@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vitest';
+import { buildRecipe } from '../bookRecipe';
+
+describe('picture-book generation recipe', () => {
+  const bookData = { title: 'הֶחָבֵר הַנִּסְתָּר', language: 'hebrew', genre: 'adventure' };
+
+  it('uses the supplied opening and separates the first illustration from the cover', () => {
+    const recipe = buildRecipe({ bookData, scenes: [{ description: 'A cardboard rocket lands in a pomegranate orchard' }] });
+    const body = recipe.imagePrompt({ image_prompt: 'A child steps out beside the orchard gate' }, 1);
+
+    expect(recipe.coverPrompt).toContain('cardboard rocket');
+    expect(recipe.coverPrompt).toContain('הֶחָבֵר הַנִּסְתָּר');
+    expect(body).toContain('distinct from the cover');
+    expect(body).toContain('orchard gate');
+    expect(body).toContain('quiet lower quarter');
+    expect([0, 1, 2, 3].map(recipe.layoutFor)).toEqual(['cover', 'image_full', 'image_full', 'image_full']);
+  });
+
+  it('asks for contextual vowel points only for generated Hebrew titles', () => {
+    expect(buildRecipe({ bookData }).outlinePrompt).toContain('הֶחָבֵר הַנִּסְתָּר');
+    expect(buildRecipe({ bookData: { title: 'The Hidden Friend', language: 'english' } }).outlinePrompt).not.toContain('נקד');
+    expect(buildRecipe({ bookData }).approvedTitle).toBe(bookData.title);
+  });
+});

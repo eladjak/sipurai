@@ -39,7 +39,7 @@ describe.each([
     render(<I18nContext.Provider value={{ t, language, isRTL }}><MemoryRouter initialEntries={['/BookView?id=demo']}><BookView /></MemoryRouter></I18nContext.Provider>);
     await waitFor(() => expect(screen.getByText(banner)).toBeTruthy());
     expect(screen.getByRole('button', { name: zoom })).toBeTruthy();
-    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: /voice|narration|קול|הקראה/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /read aloud|play narration|הקראה/i })).toBeNull();
     expect(speak).not.toHaveBeenCalled();
     expect(cancel).not.toHaveBeenCalled();
@@ -61,6 +61,9 @@ describe.each([
     fireEvent.click(music);
     expect(pause).toHaveBeenCalledOnce();
     fireEvent.pause(audio);
+    expect(music).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.error(audio);
+    expect(screen.getByText(t('reader.musicUnavailable'))).toBeVisible();
     expect(music).toHaveAttribute('aria-pressed', 'false');
     expect(document.body.textContent).not.toMatch(/\bXP\b/);
   });

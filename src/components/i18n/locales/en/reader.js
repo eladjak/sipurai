@@ -15,6 +15,7 @@ export default {
     "askAdult": "Please ask an adult for help"
 },
   reader: {
+    jumpToPage: 'Go to page',
     guestBanner: 'Want a book like this with your child? Try it free',
     finished: 'What a joy to finish reading together!',
     zoomIn: 'Zoom in',
@@ -23,5 +24,6 @@ export default {
     pdfTitle: 'Home-reading PDF; not a print-ready file',
     print: 'Print',
     music: 'Background music',
+    musicUnavailable: 'The music could not load. Try again.',
   },
 };

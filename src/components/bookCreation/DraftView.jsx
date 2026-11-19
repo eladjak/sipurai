@@ -224,7 +224,6 @@ export default function DraftView({
             <RhymeOptions
               rhymeSettings={rhymeSettings}
               setRhymeSettings={setRhymeSettings}
-              currentLanguage={isRTL ? "hebrew" : "english"}
             />
           )}
         </CardContent>

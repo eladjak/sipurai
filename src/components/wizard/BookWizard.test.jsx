@@ -309,8 +309,8 @@ describe("TopicStep", () => {
         language="english"
       />
     );
-    const spaceBtn = screen.getByRole("button", { name: "Space" });
-    expect(spaceBtn.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("radio", { name: "Space" }).checked).toBe(true);
+    expect(screen.getByRole("radio", { name: "Animals" }).checked).toBe(false);
   });
 
   it("renders topic labels via i18n when language is hebrew", () => {
@@ -451,11 +451,12 @@ describe("PreviewEditStep", () => {
     expect(onChange).toHaveBeenCalledWith("title", "New Title");
   });
 
-  it("renders art style options", () => {
+  it("selects an illustrated art style and uses distinct bundled artwork", () => {
+    const change = vi.fn();
     render(
       <PreviewEditStep
         bookData={defaultBookData}
-        onBookDataChange={vi.fn()}
+        onBookDataChange={change}
         generatedOutline={null}
         isGeneratingOutline={false}
         onRegenerateOutline={vi.fn()}
@@ -466,6 +467,13 @@ describe("PreviewEditStep", () => {
     // Art styles render via t("illustrationStyles.{id}.name") or fall back to style.en
     const artStyleSection = screen.getByRole("group", { name: "wizard.preview.selectArtStyle" });
     expect(artStyleSection).toBeDefined();
+    const animation = screen.getByRole("radio", { name: "Disney Animation" });
+    const watercolor = screen.getByRole("radio", { name: "Watercolor" });
+    expect(animation.checked).toBe(true);
+    expect(animation.parentElement.querySelector("img").getAttribute("src")).toBe("/images/style-disney.jpg");
+    expect(watercolor.parentElement.querySelector("img").getAttribute("src")).toBe("/images/spx/styles/spx4-watercolor.webp");
+    fireEvent.click(watercolor);
+    expect(change).toHaveBeenCalledWith("art_style", "watercolor");
   });
 });
 
@@ -783,7 +791,7 @@ describe("visible private draft restore", () => {
     localStorage.setItem('sipurai_draft_v2_9_test-user_123', JSON.stringify({_savedAt:Date.now(), _attemptId:'attempt-1', currentStep:0, selectedTopic:'space', bookData:{title:'My space book'}}));
     render(<BookWizardPage />);
     fireEvent.click(await screen.findByRole('button',{name:'wizard.draft.restore'}));
-    expect(screen.getByRole('button',{name:'Space'}).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Space' }).checked).toBe(true);
   });
   it("does not show a browser-wide or another account's old draft", async () => {
     localStorage.setItem('sipurai_draft_123',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Old secret'}}));

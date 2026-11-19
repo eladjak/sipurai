@@ -335,7 +335,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
             </section>
             {!complete && <p className="rounded-sp-md bg-sp-violet-50 p-4 text-sm text-sp-ink-900" role="status">{labels.building}</p>}
             {id === reviewedBookId && <ProofreadingNotes pages={pages} edition={edition} labels={labels} openEditor={openEditor} onUseCredit={() => update('creator', sipuraiCredit)} />}
-            <EditionDetails book={book} edition={edition} change={update} changeArtwork={changeArtwork} onBusy={onBusy} busy={busy} labels={labels} />
+            <EditionDetails book={book} edition={edition} change={update} changeArtwork={changeArtwork} onBusy={onBusy} busy={busy} labels={labels} suggestEnabled={capabilities.rewriteSuggestions && !authorityStale} />
             {matter.needsReview && book.language === 'hebrew' && (
               <section className="edition-panel space-y-3">
                 <p>{labels.matterReview}</p>
@@ -353,6 +353,15 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
                 </label>
                 <p id="edition-ai-disclosure" className="pb-2 text-sm leading-relaxed text-sp-ink-600">{labels.aiDisclosure}</p>
               </div>}
+              <div>
+                <label htmlFor="edition-opening-layout" className="block font-semibold">{labels.openingLayout}</label>
+                <p id="edition-opening-layout-hint" className="text-sm text-sp-ink-600">{labels.openingLayoutHint}</p>
+                <select id="edition-opening-layout" aria-describedby="edition-opening-layout-hint" className={textClass}
+                  value={edition.openingLayout ?? 'legacy'} onChange={e => update('openingLayout', e.target.value)}>
+                  <option value="legacy">{labels.legacyOpening}</option>
+                  <option value="compact">{labels.compactOpening}</option>
+                </select>
+              </div>
               {capabilities.storyFont && <div>
                 <label htmlFor="edition-story-font" className="block font-semibold">{labels.storyFont}</label>
                 <select id="edition-story-font" className={textClass} value={edition.storyFont} onChange={e => update('storyFont', e.target.value)}>

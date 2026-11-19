@@ -63,3 +63,19 @@ test('story edit uses content index, while cover and matter target their own fie
   assert.equal(proofEditTarget({ kind: 'story', storyIndex: -1 }), null);
   assert.equal(proofEditTarget(leaves.find(leaf => leaf.kind === 'spine')), null);
 });
+
+test('compact binding keeps opening art left, dedication right of title credits, and story index stable', () => {
+  for (const right of ['dedication', 'dedication-art']) {
+    const compact = { ...proof, pages: proof.pages.map((page, index) => index < 3
+      ? { ...page, kind: ['opening-art', right, 'title-credits'][index] }
+      : page) };
+    const [, opening, matter, story] = proofLeaves(compact);
+    assert.deepEqual(opening.leaves.map(leaf => leaf.kind), ['insideFront', 'opening-art']);
+    assert.deepEqual(matter.leaves.map(leaf => [leaf.number, leaf.kind]), [[2, right], [3, 'title-credits']]);
+    assert.equal(story.leaves[0].number, 4);
+    assert.equal(story.leaves[0].storyIndex, 0);
+    assert.deepEqual(proofEditTarget(opening.leaves[1]), { kind: 'cover', field: 'coverArt' });
+    assert.deepEqual(proofEditTarget(matter.leaves[1]), { kind: 'title', field: 'printTitle' });
+    assert.deepEqual(proofEditTarget(matter.leaves[0]), { kind: 'dedication', field: right === 'dedication' ? 'dedication' : 'dedicationArt' });
+  }
+});

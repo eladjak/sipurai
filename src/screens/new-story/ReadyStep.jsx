@@ -1,3 +1,5 @@
+import IllustratedChoice from "@/components/wizard/IllustratedChoice";
+import { artStylePreviewSource } from "@/components/wizard/artStylePreview";
 import PrintSizeStep from "@/components/wizard/PrintSizeStep";
 import PrintPreferences from "@/screens/print-edition/PrintPreferences";
 
@@ -83,27 +85,15 @@ export default function ReadyStep({
         <legend className="pb-3 font-semibold">{t("newStory.style")}</legend>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {styles.map((value, index) => (
-            <label key={value} className="relative cursor-pointer">
-              <input
-                type="radio"
-                className="peer sr-only"
-                name="illustration-style"
-                value={value}
-                checked={value === style}
-                onChange={() => setStyle(value)}
-              />
-              <span className="block overflow-hidden rounded-xl border-2 border-transparent bg-sp-card peer-checked:border-sp-violet-700 peer-focus-visible:outline peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sp-violet-600">
-                <img
-                  src={`/images/spx/styles/${value}.webp`}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-[4/3] w-full object-cover"
-                />
-                <span className="block p-2 text-center font-semibold">
-                  {labels[index]}
-                </span>
-              </span>
-            </label>
+            <IllustratedChoice
+              key={value}
+              group="illustration-style"
+              value={value}
+              checked={value === style}
+              onSelect={setStyle}
+              src={artStylePreviewSource(value)}
+              label={labels[index]}
+            />
           ))}
         </div>
       </fieldset>

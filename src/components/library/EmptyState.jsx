@@ -1,30 +1,24 @@
-
-import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import "@/styles/sp-tokens.css";
+import "@/styles/sp-fonts.css";
 
-export default function EmptyState({ title, description, icon, actionLabel, actionLink }) {
+const actionClass = "inline-flex min-h-11 max-w-full items-center justify-center rounded-sp-sm bg-sp-violet-700 px-4 py-2 text-center font-semibold text-white hover:bg-purple-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sp-violet-700 motion-safe:transition-colors";
+
+export default function EmptyState({ title, description = undefined, actionLabel = undefined, actionLink = undefined, onAction = undefined, status = undefined }) {
   return (
-    <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-800/50 dark:to-gray-800/30 border-dashed border-purple-200 dark:border-gray-700">
-      <CardContent className="p-10 md:p-16 text-center flex flex-col items-center">
-        <div className="rounded-full bg-purple-100 dark:bg-purple-900/30 p-5 mb-6">
-          {icon}
+    <section className="sp-shell overflow-hidden rounded-sp-lg bg-sp-card text-sp-ink-900 ring-1 ring-sp-line">
+      <div className="grid items-stretch sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <img src="/images/empty-library.jpg" alt="" width="1536" height="1024" decoding="async"
+          className="block aspect-[16/9] h-full w-full object-cover sm:aspect-[3/2]" />
+        <div className="flex min-w-0 flex-col items-start justify-center gap-4 px-5 py-5 sm:px-6 md:px-8 md:py-7">
+          <div role={status} className="min-w-0 space-y-2">
+            <h2 className="break-words font-sp-display text-2xl font-semibold leading-tight">{title}</h2>
+            {description && <p className="max-w-prose leading-relaxed text-sp-ink-600">{description}</p>}
+          </div>
+          {actionLabel && actionLink && <Link className={actionClass} to={actionLink}>{actionLabel}</Link>}
+          {actionLabel && onAction && <button type="button" className={actionClass} onClick={onAction}>{actionLabel}</button>}
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{title}</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto text-base leading-relaxed">
-          {description}
-        </p>
-        {actionLabel && actionLink && (
-          <Link to={actionLink}>
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-base px-8 py-3 h-auto">
-              <PlusCircle className="h-5 w-5 mr-2" />
-              {actionLabel}
-            </Button>
-          </Link>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

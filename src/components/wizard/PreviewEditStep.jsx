@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import { useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import IllustratedChoice from "./IllustratedChoice";
+import { artStylePreviewSource } from "./artStylePreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Sparkles, RefreshCw, Edit3, BookOpen, Globe, ChevronDown, Settings2, Check, Music, Shuffle, Wand2 } from "lucide-react";
+import { Sparkles, RefreshCw, Edit3, BookOpen, Globe, ChevronDown, Settings2, Music } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import RhymeOptions from "@/components/bookCreation/RhymeOptions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +28,6 @@ const ART_STYLE_VISUAL = [
   {
     value: "disney",
     emoji: "🏰",
-    image: "/images/style-disney.jpg",
     color: "#4f46e5",
     gradient: "from-indigo-400 to-violet-500",
     bg: "bg-indigo-50 dark:bg-indigo-950/30",
@@ -39,7 +40,6 @@ const ART_STYLE_VISUAL = [
   {
     value: "watercolor",
     emoji: "🎨",
-    image: "/images/style-watercolor.jpg",
     color: "#06b6d4",
     bg: "bg-cyan-50 dark:bg-cyan-950/30",
     border: "border-cyan-200 dark:border-cyan-700",
@@ -73,7 +73,6 @@ const ART_STYLE_VISUAL = [
   {
     value: "comic",
     emoji: "💥",
-    image: "/images/style-comic.jpg",
     color: "#ef4444",
     bg: "bg-red-50 dark:bg-red-950/30",
     border: "border-red-200 dark:border-red-700",
@@ -85,7 +84,6 @@ const ART_STYLE_VISUAL = [
   {
     value: "storybook",
     emoji: "📖",
-    image: "/images/style-storybook.jpg",
     color: "#8b5cf6",
     bg: "bg-violet-50 dark:bg-violet-950/30",
     border: "border-violet-200 dark:border-violet-700",
@@ -97,7 +95,6 @@ const ART_STYLE_VISUAL = [
   {
     value: "anime",
     emoji: "⭐",
-    image: "/images/style-anime.jpg",
     color: "#ec4899",
     bg: "bg-pink-50 dark:bg-pink-950/30",
     border: "border-pink-200 dark:border-pink-700",
@@ -153,7 +150,6 @@ const ART_STYLE_VISUAL = [
   {
     value: "fantasy",
     emoji: "🧚",
-    image: "/images/style-fantasy.jpg",
     color: "#a855f7",
     bg: "bg-purple-50 dark:bg-purple-950/30",
     border: "border-purple-200 dark:border-purple-700",
@@ -219,27 +215,6 @@ const ART_STYLE_VISUAL = [
   }
 ];
 
-// Gradient swatches for each art style
-const STYLE_GRADIENTS = {
-  disney: "from-indigo-400 to-violet-500",
-  watercolor: "from-cyan-400 to-sky-500",
-  cartoon: "from-yellow-400 to-orange-500",
-  realistic: "from-slate-400 to-gray-500",
-  comic: "from-red-400 to-rose-500",
-  storybook: "from-violet-400 to-purple-500",
-  anime: "from-pink-400 to-fuchsia-500",
-  impressionist: "from-lime-400 to-green-500",
-  pixar: "from-sky-400 to-blue-500",
-  minimalist: "from-gray-300 to-slate-400",
-  vintage: "from-amber-500 to-orange-600",
-  fantasy: "from-purple-400 to-violet-600",
-  pop_art: "from-rose-500 to-red-600",
-  crayon: "from-orange-400 to-amber-500",
-  collage: "from-teal-400 to-cyan-500",
-  gouache: "from-emerald-400 to-green-600",
-  chibi: "from-pink-300 to-rose-400",
-};
-
 function getStyleLabel(style, t) {
   return t("illustrationStyles." + style.value + ".name") || style.en;
 }
@@ -270,6 +245,7 @@ export default function PreviewEditStep({
   rhymeSettings,
   onRhymeSettingsChange
 }) {
+  const artStyleGroup = useId();
   const { t } = useI18n();
   const isHebrew = language === "hebrew";
   const isYiddish = language === "yiddish";
@@ -418,71 +394,24 @@ export default function PreviewEditStep({
         </CardContent>
       </Card>
 
-      {/* Art Style Selection — Visual Preview Cards */}
-      <Card>
-        <CardHeader>
-          <CardTitle className={`flex items-center gap-2 text-lg `}>
-            <Sparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />
-            {t("wizard.preview.artStyle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
-            role="group"
-            aria-label={t("wizard.preview.selectArtStyle")}
-          >
-            {ART_STYLE_VISUAL.map((style, index) => {
-              const isSelected = bookData.art_style === style.value;
-              const grad = STYLE_GRADIENTS[style.value] || "from-gray-400 to-slate-500";
-              return (
-                <motion.button
-                  key={style.value}
-                  onClick={() => onBookDataChange("art_style", style.value)}
-                  aria-pressed={isSelected}
-                  aria-label={getStyleLabel(style, t)}
-                  whileHover={{ scale: 1.04, y: -2 }}
-                  whileTap={{ scale: 0.96 }}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.02 }}
-                  className={`
-                    relative p-3 rounded-2xl text-start cursor-pointer overflow-hidden
-                    ${style.bg}
-                    transition-all duration-150
-                    ${isSelected
-                      ? "ring-2 ring-purple-500 shadow-lg shadow-purple-200/50"
-                      : `border border-transparent hover:border-gray-200 dark:hover:border-gray-600 shadow-sm hover:shadow-md`
-                    }
-                  `}
-                >
-                  {/* Selected checkmark */}
-                  <div
-                    className={`absolute top-2 right-2 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center transition-all duration-150 shadow-sm ${isSelected ? "opacity-100 scale-100" : "opacity-0 scale-50 pointer-events-none"}`}
-                    aria-hidden="true"
-                  >
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
-
-                  <div className="flex flex-col items-start gap-1">
-                    <img src={`/images/spx/styles/${style.value}.webp`} alt="" aria-hidden="true" className="w-full h-32 sm:h-40 rounded-xl object-cover mb-2" />
-
-                    {/* Style name */}
-                    <span className={`text-xs font-bold leading-tight ${isSelected ? "text-purple-800 dark:text-purple-200" : "text-gray-800 dark:text-gray-200"}`}>
-                      {getStyleLabel(style, t)}
-                    </span>
-
-                    {/* Short description */}
-                    <span className={`text-xs leading-tight ${isSelected ? "text-purple-600 dark:text-purple-300" : "text-gray-500 dark:text-gray-400"}`}>
-                      {getStyleDesc(style, t)}
-                    </span>
-                  </div>
-                </motion.button>
-              );
-            })}
+      <section aria-labelledby={`${artStyleGroup}-title`} className="space-y-4">
+        <h3 id={`${artStyleGroup}-title`} className="flex items-center gap-2 text-lg font-semibold">
+          <Sparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />
+          {t("wizard.preview.artStyle")}
+        </h3>
+        <fieldset>
+          <legend className="sr-only">{t("wizard.preview.selectArtStyle")}</legend>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-3">
+            {ART_STYLE_VISUAL.map((style) => (
+              <IllustratedChoice key={style.value} group={artStyleGroup} value={style.value}
+                checked={bookData.art_style === style.value}
+                onSelect={(value) => onBookDataChange("art_style", value)}
+                src={artStylePreviewSource(style.value)} label={getStyleLabel(style, t)}
+                description={getStyleDesc(style, t)} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </fieldset>
+      </section>
 
       {/* Story Length Selection — visual pill buttons */}
       <Card>
@@ -529,14 +458,16 @@ export default function PreviewEditStep({
               checked={useRhyming}
               onCheckedChange={onUseRhymingChange}
               aria-label={t("wizard.preview.enableRhyming")}
+              aria-describedby="wizard-rhyme-hint"
             />
           </div>
+          <p id="wizard-rhyme-hint" className="text-sm text-gray-600 dark:text-gray-300">{t("spxWizard.rhymeHint")}</p>
           {useRhyming && rhymeSettings && onRhymeSettingsChange && (
             <div className="pt-1">
               <RhymeOptions
                 rhymeSettings={rhymeSettings}
                 setRhymeSettings={onRhymeSettingsChange}
-                currentLanguage={language}
+                patternOnly
               />
             </div>
           )}

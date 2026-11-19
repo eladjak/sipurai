@@ -19,7 +19,7 @@ from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher
 
-from design import Art, BODY, DISPLAY, PT_PER_MM, compose_cover, compose_interior, document
+from design import Art, BODY, DISPLAY, FRIENDLY, PT_PER_MM, compose_cover, compose_interior, document
 from layout import BINDING_SAFE_MM, DPI, SAFE_MM, Edition, load, plan, spine_for
 
 RESOLUTION = 120
@@ -39,7 +39,7 @@ def make_pdf(parts: list[str], size: tuple[float, float], edition: Edition,
              target: Path, work: Path) -> None:
     width, height = size
     raw = work / target.name
-    resources = {file.as_uri() for file in (BODY, DISPLAY, *work.glob("*.jpg"), work / "qr.png")}
+    resources = {file.as_uri() for file in (BODY, DISPLAY, FRIENDLY, *work.glob("*.jpg"), work / "qr.png")}
     read_local = URLFetcher(allowed_protocols={"file"}, allow_redirects=False, fail_on_errors=True)
 
     def fetch(url: str):
@@ -179,6 +179,8 @@ def inspect_pdf(file: Path, size: tuple[float, float], expected: int, edition: E
     if not fonts or any(line.split()[-5] != "yes" for line in fonts if line.strip()):
         errors.append(f"{file.name}: missing embedded text fonts")
     intended = ["Rubik"]
+    if file.name == "interior.pdf" and edition.story_font == "fredoka":
+        intended.append("Fredoka")
     if file.name != "interior.pdf" or edition.story_font == "david-libre" or edition.dedication:
         intended.append("DavidLibre")
     if any(not any(family in line for line in fonts) for family in intended):

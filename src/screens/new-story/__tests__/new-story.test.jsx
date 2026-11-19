@@ -1,15 +1,25 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NewStory from '../NewStory';
 import StartStates from '../StartStates';
 import translations from '@/components/i18n/locales/en/newStory';
-const t = key => key.split('.').reduce((x, k) => x?.[k], translations) || key;
+import wizardCopy from '@/components/i18n/locales/en/spxWizard';
+import { MemoryRouter } from 'react-router-dom';
+const copy = { ...translations, spxWizard: {
+  waiting: wizardCopy.spxWizard.waiting,
+  writingCount: wizardCopy.spxWizard.writingCount,
+  drawingCount: wizardCopy.spxWizard.drawingCount,
+} };
+const t = (key, params = {}) => (key.split('.').reduce((x, k) => x?.[k], copy) || key)
+  .replace(/\{(\w+)\}/g, (_, name) => params[name]);
 vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({ t, language: 'english' }), I18nProvider: ({children}) => children }));
 vi.mock('@/screens/heroes/useHeroes', () => ({ useHeroes: () => ({ heroes: [{id: '1', name: 'Maya'}], loading: false }) }));
 vi.mock('react-router-dom', async () => ({ ...(await vi.importActual('react-router-dom')), useNavigate: () => vi.fn(), Link: ({children, to, ...props}) => <a href={to} {...props}>{children}</a> }));
 vi.mock('@/lib/bookQuota', async () => ({ ...(await vi.importActual('@/lib/bookQuota')), newBookKey: () => 'key', reserveBookSlot: vi.fn(() => new Promise(() => {})), clearActiveBookKey: vi.fn() }));
 vi.mock('@/lib/bookGeneration', () => ({ generateBookIncremental: vi.fn() }));
+vi.mock('@/entities/Book', () => ({ Book: { generationStore: {}, get: vi.fn(async () => null), filter: vi.fn(async () => []) } }));
+vi.mock('@/entities/Page', () => ({ Page: { filter: vi.fn(async () => []) } }));
 import { reserveBookSlot, QuotaError } from '@/lib/bookQuota';
 import { generateBookIncremental } from '@/lib/bookGeneration';
 beforeEach(() => { localStorage.clear(); });
@@ -76,8 +86,19 @@ vi.mock('@/lib/NavigationTracker', () => ({default: () => null}));
 vi.mock('@/lib/errorTracking', () => ({initErrorTracking: vi.fn(), captureError: vi.fn()}));
 vi.mock('@/utils/storageCleanup', () => ({cleanupStorage: vi.fn()}));
 vi.mock('@/lib/analytics', () => ({trackPageView: vi.fn(), identifyUser: vi.fn()}));
+vi.mock('@/shell/AppShell', () => ({ default: ({ children }) => <div>{children}</div> }));
 vi.mock('@/lib/PageNotFound', () => ({default: () => <div>Legacy missing</div>}));
-vi.mock('@/pages.config', () => ({pagesConfig: {Pages: {Home: () => <div>Home</div>, LandingPage: () => <div>Landing</div>, BookWizard: () => <div>Old BookWizard</div>, Blog: () => null, BlogPost: () => null, PrivacyPolicy: () => null, TermsOfService: () => null, Accessibility: () => null}, mainPage:'Home', Layout: ({children}) => children}}));
+vi.mock('@/pages.config', () => {
+  const Empty = () => null;
+  const names = ['Blog', 'BlogPost', 'BookCreation', 'BookView', 'CharacterEditor', 'Community', 'CommunityPost',
+    'Contact', 'Feedback', 'Leaderboard', 'Pricing', 'PrintEdition', 'PrivacyPolicy', 'Settings', 'TermsOfService', 'Accessibility'];
+  return { pagesConfig: {
+    Pages: { ...Object.fromEntries(names.map(name => [name, Empty])),
+      Home: () => <div>Home</div>, LandingPage: () => <div>Landing</div>, BookWizard: () => <div>Old BookWizard</div> },
+    mainPage: 'Home',
+    Layout: ({ children }) => children,
+  } };
+});
 
 describe('switch-off routing', () => {
  it('renders the old BookWizard and makes NewStory unreachable', async () => {
@@ -95,4 +116,47 @@ describe('switch-off routing', () => {
    expect(screen.queryByText('Who is the hero?')).toBeNull();
   } finally { vi.unstubAllEnvs(); }
  });
+});
+
+it('shows real waiting stages, counts and slow guidance through the default /new route', async () => {
+  vi.stubEnv('VITE_NEW_SHELL', 'true');
+  let emit;
+  let finish;
+  vi.mocked(reserveBookSlot).mockReset().mockResolvedValue({ ok: true });
+  vi.mocked(generateBookIncremental).mockReset().mockImplementation(({ onEvent }) => {
+    emit = onEvent;
+    return new Promise(resolve => { finish = resolve; });
+  });
+  try {
+    const { NewShellRoutes } = await import('@/App.jsx?new-story-waiting-route');
+    render(<MemoryRouter initialEntries={['/new']}><NewShellRoutes /></MemoryRouter>);
+    fireEvent.click(await screen.findByText('Maya'));
+    fireEvent.click(screen.getByText('Continue'));
+    fireEvent.change(screen.getByLabelText('What is the story about?'), { target: { value: 'Moon' } });
+    fireEvent.click(screen.getByText('Continue'));
+
+    vi.useFakeTimers();
+    await act(async () => fireEvent.click(screen.getByText('Start the story')));
+    expect(screen.getByRole('status')).toHaveTextContent('Starting your story');
+    act(() => emit({ type: 'phase', phase: 'outline' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Sketching the story');
+    expect(screen.queryByText('Starting your story')).toBeNull();
+    act(() => emit({ type: 'page-text', ready: 2, illustrated: 0, total: 2 }));
+    expect(screen.getByRole('status')).toHaveTextContent('2 of 2 pages written');
+    act(() => emit({ type: 'phase', phase: 'unknown' }));
+    expect(screen.getByRole('status')).toHaveTextContent('The story is written');
+    act(() => emit({ type: 'page-image', ready: 2, illustrated: 1, total: 2 }));
+    expect(screen.getByRole('status')).toHaveTextContent('Drawing the story');
+    expect(screen.getByRole('status')).toHaveTextContent('1 of 2 illustrations drawn');
+    act(() => vi.advanceTimersByTime(30000));
+    expect(screen.getByRole('status')).toHaveTextContent('This is taking longer than usual');
+    expect(screen.getByRole('status')).toHaveTextContent('1 of 2 illustrations drawn');
+    expect(screen.getByRole('link', { name: 'Go to my shelf' })).toHaveAttribute('href', '/shelf');
+    expect(screen.getByRole('heading', { name: 'Your story as it is written' })).toBeTruthy();
+    await act(async () => finish({ bookId: 'book-for-fixture', status: 'partial' }));
+    expect(screen.getByRole('link', { name: 'spxWizard.repair' })).toBeTruthy();
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  }
 });

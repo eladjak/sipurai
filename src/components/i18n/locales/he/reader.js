@@ -15,6 +15,7 @@ export default {
     "askAdult": "כדאי לבקש עזרה ממבוגר"
 },
   reader: {
+    jumpToPage: 'מעבר לעמוד',
     guestBanner: 'רוצים ספר כזה עם הילד שלכם? נסו בחינם',
     finished: 'איזה כיף שסיימתם לקרוא יחד!',
     zoomIn: 'הגדלה',
@@ -23,5 +24,6 @@ export default {
     pdfTitle: 'PDF לקריאה ביתית; אינו קובץ מוכן לדפוס מקצועי',
     print: 'הדפסה',
     music: 'מוזיקת רקע',
+    musicUnavailable: 'המוזיקה לא נטענה. אפשר לנסות שוב.',
   },
 };
