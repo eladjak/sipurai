@@ -116,6 +116,41 @@ describe('print edition owner editing flow', () => {
     expect(reopened).toHaveValue('העריכה האחרונה');
   });
 
+  it('restores the last saved version without asking for a duplicate save', async () => {
+    enter();
+    const editor = await screen.findByLabelText(labels.text);
+    fireEvent.change(editor, { target: { value: 'טיוטה מקומית' } });
+    fireEvent.click(screen.getByText(labels.versions));
+    fireEvent.click(button(labels.restoreVersion(stored.revision)));
+    expect(editor).toHaveValue('שלום עולם!');
+    expect(button(labels.save)).toBeDisabled();
+    expect(screen.getByText(labels.restoredSaved)).toBeInTheDocument();
+    expect(screen.getByText(labels.versions).closest('summary')).toHaveFocus();
+    expect(fixture.save).not.toHaveBeenCalled();
+    fireEvent.click(button(labels.undo));
+    expect(editor).toHaveValue('טיוטה מקומית');
+    expect(button(labels.save)).toBeEnabled();
+  });
+
+  it('recognizes content identical to the last save when restoring an earlier version', async () => {
+    enter();
+    const editor = await screen.findByLabelText(labels.text);
+    fireEvent.change(editor, { target: { value: 'גרסה אחרת' } });
+    fireEvent.click(button(labels.save));
+    await screen.findByText(labels.saved);
+    fireEvent.click(screen.getByText(labels.versions));
+    fireEvent.click(button(labels.restoreVersion(3)));
+    fireEvent.click(button(labels.save));
+    await screen.findByText(labels.saved);
+
+    fireEvent.change(editor, { target: { value: 'טיוטה חדשה' } });
+    fireEvent.click(button(labels.restoreVersion(3)));
+    expect(editor).toHaveValue('שלום עולם!');
+    expect(button(labels.save)).toBeDisabled();
+    expect(screen.getByText(labels.versions).closest('summary')).toHaveFocus();
+    expect(fixture.save).toHaveBeenCalledTimes(2);
+  });
+
   it('leaves a restored draft in place when the save detects a newer revision', async () => {
     enter();
     const editor = await screen.findByLabelText(labels.text);

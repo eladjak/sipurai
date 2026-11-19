@@ -120,7 +120,9 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
   }, [id, ownerId]);
 
   useEffect(() => {
-    if (restoredRevision) saveButton.current?.focus({ preventScroll: true });
+    if (!restoredRevision) return;
+    const target = restoredRevision.dirty ? saveButton.current : document.getElementById('edition-versions');
+    target?.focus({ preventScroll: true });
   }, [restoredRevision]);
 
   const coverArt = edition?.artwork.coverArt || loaded?.book.cover_image;
@@ -227,8 +229,10 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
 
   const restoreVersion = revision => {
     if (lock.current || workInProgress.current || authorityStale) return;
-    modifyHistory(prev => restoreEdition(prev, revision));
-    setRestoredRevision(revision);
+    const restored = restoreEdition(workspace, revision);
+    if (restored === workspace) return;
+    modifyHistory(() => restored);
+    setRestoredRevision({ revision, dirty: restored.dirty });
   };
 
   const save = async (event) => {
@@ -322,7 +326,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
                 <button type="button" className={actionClass} disabled={workspace.cursor === 0} onClick={() => modifyHistory(prev => moveEdition(prev, -1))}><Undo2 className="rtl:scale-x-[-1]" aria-hidden="true" size={17} />{labels.undo}</button>
                 <button type="button" className={actionClass} disabled={workspace.cursor + 1 === workspace.entries.length} onClick={() => modifyHistory(prev => moveEdition(prev, 1))}><Redo2 className="rtl:scale-x-[-1]" aria-hidden="true" size={17} />{labels.redo}</button>
               </div>
-              {!authorityStale && (!message || message === 'saved' || message === 'saving') && <p className="text-sm text-sp-ink-600" role="status">{message ? labels[message] : restoredRevision ? labels.restoredDraft(restoredRevision) : dirty ? labels.unsaved : null}</p>}
+              {!authorityStale && (!message || message === 'saved' || message === 'saving') && <p className="text-sm text-sp-ink-600" role="status">{message ? labels[message] : restoredRevision ? (restoredRevision.dirty ? labels.restoredDraft(restoredRevision.revision) : labels.restoredSaved) : dirty ? labels.unsaved : null}</p>}
               {authorityStale && <div className="space-y-2">
                 <p className="text-sm text-sp-danger" role="alert">{labels.conflict}</p>
                 <Link className={actionClass} to={`/PrintEdition?id=${encodeURIComponent(id)}`} target="_blank" rel="noopener">{labels.openLatest}</Link>
@@ -378,7 +382,7 @@ function VersionHistory({ workspace, labels, isRTL, restore, authorityStale }) {
   const draft = workspace.entries[workspace.cursor];
   return (
     <details className="rounded-sp-sm border border-sp-line px-3">
-      <summary className="min-h-11 cursor-pointer py-3 font-semibold"><span className="inline-flex items-center gap-2"><History aria-hidden="true" size={17} />{labels.versions}</span></summary>
+      <summary id="edition-versions" className="min-h-11 cursor-pointer py-3 font-semibold"><span className="inline-flex items-center gap-2"><History aria-hidden="true" size={17} />{labels.versions}</span></summary>
       {!workspace.versions.length ? <p className="pb-3 text-sm text-sp-ink-600">{labels.noVersions}</p> :
         <>
           {workspace.versions.some(version => version.draft !== draft) && <p className="pb-2 text-sm text-sp-ink-600">{labels.restoreHint}</p>}
@@ -401,7 +405,7 @@ function ProofreadingNotes({ pages, edition, labels, openEditor, onUseCredit }) 
     const index = pages.findIndex(page => !page.extra && page.page_number === note.pageNumber);
     if (note.pageNumber && index < 0) return [];
     const text = note.pageNumber ? pageDraft(edition, pages[index], index).text : edition.blurb;
-    if (!text.normalize().includes(note.before.normalize())) return [];
+    if (typeof text !== 'string' || !text.normalize().includes(note.before.normalize())) return [];
     const target = note.pageNumber ? { kind: 'story', storyIndex: index, field: 'text' } : { field: 'blurb' };
     return [{ ...note, target }];
   });

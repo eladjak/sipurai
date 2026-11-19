@@ -8,7 +8,7 @@ const maxImage = 15 * chunkSize;
 const maxBook = 160 * chunkSize;
 
 async function request(url, signal, payload) {
-  const headers = await bounded(signal, 15_000, getApiAuthHeaders);
+  const headers = await bounded(signal, 15_000, () => getApiAuthHeaders());
   signal.throwIfAborted();
   /** @type {RequestInit} */
   const init = { headers, signal, credentials: 'same-origin', cache: 'no-store', redirect: 'error' };
