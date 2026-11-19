@@ -2,6 +2,19 @@ export default {
   "print": {
     "paperChoice": {"pricePending": "Matte coated paper pricing and availability are not yet confirmed for ordering.", "unverified": "This price is an estimate and is not currently available for ordering.", "quoteChanged": "The price changed. Please review the updated price before continuing.", "paper": "Paper", "cover": "Cover", "softcover": "Softcover", "hardSoon": "Hardcover (coming soon)", "legacyCover": "Your previous hardcover choice is unavailable. Select softcover to continue.", "legacyPaper": "Your previous upgraded-paper choice did not specify a stock. Please choose one above.", "unavailablePlan": "Not available on your plan", "hint": "Your choice is saved as a preference. Matte coated paper pricing and availability are not yet confirmed for ordering.", "preferences": "Print preferences", "standard": "White paper, 110 gsm", "standardHint": "Uncoated white paper, best suited to text.", "matte130": "Matte coated, 130 gsm", "matte130Hint": "Recommended for picture books when you prefer lighter pages.", "matte170": "Matte coated, 170 gsm", "matte170Hint": "Recommended for picture books when you prefer thicker pages."},
     "proofWorkspace": {
+      "stages": {
+        "queued": "Waiting for a pause in editing…",
+        "artwork": "Loading the illustrations…",
+        "prepare": "Setting up the print workspace…",
+        "upload": "Uploading the illustrations…",
+        "render": "Creating the interior and cover files…",
+        "preview": "Loading the proof pages…"
+      },
+      "failures": {
+        "proof_timeout": "This step took too long. Try again.",
+        "proof_artwork": "An illustration could not load or was too large. Check the artwork and try again.",
+        "proof_session_expired": "The proof session expired during preparation. Try again."
+      },
       "downloadSaved": "Download print files for this saved edition",
       "missingSummary": "To open the proof, complete {fields}.",
       "workersBusy": "The proof workers are busy. You can keep editing and retry in a few minutes.",

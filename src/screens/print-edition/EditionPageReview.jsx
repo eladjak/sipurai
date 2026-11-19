@@ -60,7 +60,7 @@ export function EditionPageReview({ book, pages, edition, changePage, onBusy, bu
         {page.extra && <button className={actionClass} type="button" disabled={busy} onClick={() => onRemovePage(page.id)}>{labels.removePrintPage}</button>}
       </div>}
       {page.extra && <p className="text-sm text-sp-ink-600">{labels.extraPageHelp}</p>}
-      <div className="grid items-start gap-6 md:grid-cols-2">
+      <div className="grid items-start gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))]">
         <StoryText key={page.id} nikud={nikud} busy={busy} book={book} draft={draft} labels={labels} isRTL={isRTL} rewriteEnabled={capabilities.rewriteSuggestions} onBusy={onBusy} onChange={(patch, key) => changePage(page.id, patch, key)} />
         <div className="min-w-0 space-y-4">
           <div>

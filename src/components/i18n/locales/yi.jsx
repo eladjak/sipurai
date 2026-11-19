@@ -669,9 +669,6 @@ export default {
     language: "שניטשטעל שפּראַך",
     defaultStoryLanguage: "דיפֿאָלט געשיכטע שפּראַך",
     notifications: "נאָטיפֿיקאַציעס",
-    audio: "אודיא אײַנשטעלונגען",
-    audioEnabled: "דערמעגלעכן אודיא דערציילונג",
-    audioSpeed: "דערציילונג געשווינדיקייט",
     darkMode: "טונקל מאָדע",
     textDensity: "טעקסט געדיכטקייַט",
     fontSize: "שריפֿט גרייס",
@@ -740,21 +737,12 @@ export default {
     accessibility: {
       title: "אַקסעסאַביליטי",
       description: "צופּאַסן אײַנשטעלונגען צו מאַכן די אַפּ מער אַקסעסאַבל",
-      audioNarration: "אודיא דערציילונג",
-      audioDescription: "דערמעגלעכן אוטאָמאַטיש דערציילונג פֿון ביכער",
       fontSize: "שריפֿט גרייס",
-      audioSpeed: "אודיא געשווינדיקייט",
       fontSizes: {
         small: "קליין",
         medium: "מיטל",
         large: "גרויס",
         xlarge: "עקסטרע גרויס"
-      },
-      audioSpeeds: {
-        slow: "פּאַמעלעך (0.75x)",
-        normal: "נאָרמאַל (1x)",
-        fast: "שנעל (1.25x)",
-        veryFast: "זייער שנעל (1.5x)"
       }
     }
   },
@@ -1909,15 +1897,6 @@ export default {
       image: "בילד שאַפֿונג",
       video: "ווידעאָ שאַפֿונג",
       audio: "אַודיאָ שאַפֿונג"
-    },
-    audio: {
-      narration: "נאַראַציע",
-      music: "מוזיק און עפֿעקטן",
-      selectVoice: "קלײַבט אַ קול",
-      voiceCloning: "קול קלאָנירונג (פּראָפֿעסיאָנעל)",
-      voiceCloningDesc: "לאָדט אַרויף אַ מוסטער און ניצט אײַער אייגן קול!",
-      uploadVoiceSample: "אַרויפֿלאָדן קול מוסטער",
-      poweredBy: "ההקראה מופקת על ידי OpenAI או Google, לפי הקול שנבחר"
     },
     model: {
       free: "אומזיסט",

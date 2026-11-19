@@ -22,6 +22,17 @@ import '@/styles/sp-tokens.css';
 import '@/styles/sp-fonts.css';
 import '@/screens/print-edition/edition.css';
 
+// Proofreading notes apply to the story units reviewed in the PC session.
+const reviewedBookId = '201398c5-7ce0-4e16-98eb-b2be6ba09daf';
+const sipuraiCredit = 'נוצר בסיפוראי';
+const proofreadingNotes = [
+  { pageNumber: 3, before: 'בְּעֵינַיִים', after: 'בְּעֵינַיִם' },
+  { pageNumber: 6, before: 'בָּהּ', after: 'בּוֹ', aboutSock: true },
+  { pageNumber: 12, before: 'אוֹזְנַיִים', after: 'אָזְנַיִם' },
+  { pageNumber: 18, before: 'הִתְיַישֵּׁב', after: 'הִתְיַשֵּׁב' },
+  { before: 'אַחַת', after: 'אֶחָד', aboutSock: true },
+];
+
 const fields = {
   printTitle: 'edition-print-title', creator: 'edition-creator', blurb: 'edition-blurb',
   aboutAuthor: 'edition-author', copyright: 'edition-copyright', dedication: 'edition-dedication',
@@ -43,7 +54,7 @@ export default function PrintEdition() {
   const labels = editionLabels(isRTL);
   const Wizard = policy === 'subscriber-preview' ? SubscribedEdition : OwnerEdition;
   return (
-    <main className="sp-shell mx-auto max-w-6xl px-4 py-6 text-sp-ink-900 sm:px-8 sm:py-10" dir={isRTL ? 'rtl' : 'ltr'}>
+    <main className="sp-shell mx-auto max-w-[74rem] px-4 py-6 text-sp-ink-900 sm:px-8 sm:py-10" dir={isRTL ? 'rtl' : 'ltr'}>
       {isLoading ? <p role="status">{labels.loading}</p> : !user?.id || !isPrintBookId(id) ? <p role="status">{labels.unavailable}</p> :
         <Wizard key={`${user.id}:${id}`} id={id} ownerId={user.id} labels={labels} isRTL={isRTL} />}
     </main>
@@ -59,6 +70,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
   const [loaded, setLoaded] = useState(null);
   const [workspace, setWorkspace] = useState(null);
   const [message, setMessage] = useState('');
+  const [restoredRevision, setRestoredRevision] = useState(null);
   const [error, setError] = useState('');
   const [authorityStale, setAuthorityStale] = useState(false);
   const aiPreference = `sipurai-print-ai:${ownerId}`;
@@ -70,6 +82,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
   const [storyIndex, setStoryIndex] = useState(0);
   const [editTarget, setEditTarget] = useState(null);
   const [fromProof, setFromProof] = useState(false);
+  const saveButton = useRef(null);
   const lock = useRef(false);
   const workInProgress = useRef(false);
   const permittedCapabilities = printEditionCapabilities(policy, plan);
@@ -106,6 +119,10 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
     return () => { current = false; };
   }, [id, ownerId]);
 
+  useEffect(() => {
+    if (restoredRevision) saveButton.current?.focus({ preventScroll: true });
+  }, [restoredRevision]);
+
   const coverArt = edition?.artwork.coverArt || loaded?.book.cover_image;
   useEffect(() => {
     if (!editTarget || busy || locked) return;
@@ -131,6 +148,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
   const modifyHistory = updater => {
     if (lock.current) return;
     setWorkspace(updater);
+    setRestoredRevision(null);
     setError('');
     setMessage('');
   };
@@ -207,6 +225,12 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
     }
   };
 
+  const restoreVersion = revision => {
+    if (lock.current || workInProgress.current || authorityStale) return;
+    modifyHistory(prev => restoreEdition(prev, revision));
+    setRestoredRevision(revision);
+  };
+
   const save = async (event) => {
     event.preventDefault();
     if (authorityStale || lock.current || workInProgress.current || !dirty) return;
@@ -217,6 +241,7 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
       const next = await savePrintEdition(id, ownerId, editionSavePayload(workspace));
       setWorkspace(openEditionWorkspace(next));
       setLoaded(prev => ({ ...prev, book: { ...prev.book, printEdition: next } }));
+      setRestoredRevision(null);
       setMessage('saved');
     } catch (err) {
       setMessage('');
@@ -286,80 +311,121 @@ function OwnerEdition({ id, ownerId, labels, isRTL, plan }) {
         (viewer?.querySelector('select') || viewer)?.focus({ preventScroll: true });
         setFromProof(false);
       }}><BookOpen size={17} aria-hidden="true" />{labels.returnToProof}</button>}
-      <ProofWorkspace book={book} pages={pages} edition={edition} unsaved={dirty || !edition.revision} isRTL={isRTL} onEdit={openEditor} complete={complete} handoffReady={proofReady && !busy && !locked} verifyHandoff={verifyHandoff} />
-      <form onSubmit={save} className="mt-4" aria-labelledby="print-edition-title">
-        <fieldset className="min-w-0 space-y-4" disabled={locked || busy}>
-          <legend className="sr-only">{labels.title}</legend>
-          <section className="edition-panel space-y-3">
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" disabled={!dirty || authorityStale} className={`${actionClass} border-sp-violet-700 bg-sp-violet-700 text-white hover:bg-sp-violet-600`}><Save aria-hidden="true" size={17} />{labels.save}</button>
-              <button type="button" className={actionClass} disabled={workspace.cursor === 0} onClick={() => modifyHistory(prev => moveEdition(prev, -1))}><Undo2 className="rtl:scale-x-[-1]" aria-hidden="true" size={17} />{labels.undo}</button>
-              <button type="button" className={actionClass} disabled={workspace.cursor + 1 === workspace.entries.length} onClick={() => modifyHistory(prev => moveEdition(prev, 1))}><Redo2 className="rtl:scale-x-[-1]" aria-hidden="true" size={17} />{labels.redo}</button>
-            </div>
-            {(!message || message === 'saved' || message === 'saving') && <p className="text-sm text-sp-ink-600" role="status">{message ? labels[message] : dirty ? labels.unsaved : null}</p>}
-            {authorityStale && <div className="space-y-2">
-              <p className="text-sm text-sp-danger" role="alert">{labels.conflict}</p>
-              <Link className={actionClass} to={`/PrintEdition?id=${encodeURIComponent(id)}`} target="_blank" rel="noopener">{labels.openLatest}</Link>
-            </div>}
-            {!authorityStale && error === 'saveFailed' && <p className="text-sm text-sp-danger" role="alert">{labels.saveFailed}</p>}
-            <VersionHistory workspace={workspace} labels={labels} isRTL={isRTL} restore={rev => modifyHistory(prev => restoreEdition(prev, rev))} />
-          </section>
-          {!complete && <p className="rounded-sp-md bg-sp-violet-50 p-4 text-sm text-sp-ink-900" role="status">{labels.building}</p>}
-          <EditionDetails book={book} edition={edition} change={update} changeArtwork={changeArtwork} onBusy={onBusy} busy={busy} labels={labels} />
-          {matter.needsReview && book.language === 'hebrew' && (
+      <div className="edition-workspace">
+        <ProofWorkspace book={book} pages={pages} edition={edition} unsaved={dirty || !edition.revision} isRTL={isRTL} onEdit={openEditor} complete={complete} handoffReady={proofReady && !busy && !locked} verifyHandoff={verifyHandoff} />
+        <form onSubmit={save} className="min-w-0" aria-labelledby="print-edition-title">
+          <fieldset className="min-w-0 space-y-4" disabled={locked || busy}>
+            <legend className="sr-only">{labels.title}</legend>
             <section className="edition-panel space-y-3">
-              <p>{labels.matterReview}</p>
-              <button type="button" className={actionClass} disabled={matter.approved} onClick={() => update('matterApproval', matter.snapshot)}>
-                {matter.approved ? labels.reviewed : labels.approveMatter}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button ref={saveButton} type="submit" disabled={!dirty || authorityStale} className={`${actionClass} border-sp-violet-700 bg-sp-violet-700 text-white hover:bg-sp-violet-600`}><Save aria-hidden="true" size={17} />{labels.save}</button>
+                <button type="button" className={actionClass} disabled={workspace.cursor === 0} onClick={() => modifyHistory(prev => moveEdition(prev, -1))}><Undo2 className="rtl:scale-x-[-1]" aria-hidden="true" size={17} />{labels.undo}</button>
+                <button type="button" className={actionClass} disabled={workspace.cursor + 1 === workspace.entries.length} onClick={() => modifyHistory(prev => moveEdition(prev, 1))}><Redo2 className="rtl:scale-x-[-1]" aria-hidden="true" size={17} />{labels.redo}</button>
+              </div>
+              {!authorityStale && (!message || message === 'saved' || message === 'saving') && <p className="text-sm text-sp-ink-600" role="status">{message ? labels[message] : restoredRevision ? labels.restoredDraft(restoredRevision) : dirty ? labels.unsaved : null}</p>}
+              {authorityStale && <div className="space-y-2">
+                <p className="text-sm text-sp-danger" role="alert">{labels.conflict}</p>
+                <Link className={actionClass} to={`/PrintEdition?id=${encodeURIComponent(id)}`} target="_blank" rel="noopener">{labels.openLatest}</Link>
+              </div>}
+              {!authorityStale && error === 'saveFailed' && <p className="text-sm text-sp-danger" role="alert">{labels.saveFailed}</p>}
+              <VersionHistory workspace={workspace} labels={labels} isRTL={isRTL} restore={restoreVersion} authorityStale={authorityStale} />
             </section>
-          )}
-          <section className="edition-panel space-y-4">
-            <PrintPreferences value={edition} allowUpgradedPaper={capabilities.upgradedPaper} onChange={next => modify(prev => ({ ...prev, cover: next.cover, paper: next.paper }))} isRTL={isRTL} />
-            {(permittedCapabilities.rewriteSuggestions || permittedCapabilities.illustrationGeneration) && <div className="rounded-sp-sm border border-sp-line px-3 py-2">
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold" htmlFor="edition-ai-consent">
-                <input id="edition-ai-consent" type="checkbox" checked={allowAI} aria-describedby="edition-ai-disclosure" className="h-5 w-5 shrink-0 accent-sp-violet-700" onChange={e => updateAIPreference(e.target.checked)} />
-                {labels.allowAI}
-              </label>
-              <p id="edition-ai-disclosure" className="pb-2 text-sm leading-relaxed text-sp-ink-600">{labels.aiDisclosure}</p>
-            </div>}
-            {capabilities.storyFont && <div>
-              <label htmlFor="edition-story-font" className="block font-semibold">{labels.storyFont}</label>
-              <select id="edition-story-font" className={textClass} value={edition.storyFont} onChange={e => update('storyFont', e.target.value)}>
-                {STORY_FONTS.map((font, n) => <option key={font} value={font}>{labels.storyFonts[n]}</option>)}
-              </select>
-            </div>}
-          </section>
-          <EditionPageReview book={book} pages={pages} edition={edition} changePage={changePage} onBusy={onBusy} busy={busy} labels={labels} isRTL={isRTL} index={storyIndex} setIndex={setStoryIndex} capabilities={capabilities} basePages={basePages} onAddPage={complete && capabilities.extraPages ? appendPrintPage : null} canAddPage={canAddPage} onRemovePage={removePrintPage} />
-          <EditionArtwork book={book} pages={pages} edition={edition} complete={complete} labels={labels} onBusy={onBusy} busy={busy} changeArtwork={changeArtwork} capability={capabilities.illustrationGeneration} />
-          <section className="edition-panel space-y-3">
-            <button type="button" className={actionClass} onClick={download} disabled={!proofReady}><Download aria-hidden="true" size={17} />{labels.export}</button>
-            <p className="text-sm leading-relaxed text-sp-ink-600">{proofReady ? labels.proofOnly : labels.exportDisabled}</p>
-            {unsafeText && <p className="text-sm text-sp-danger" role="alert">{labels.unsafeText}</p>}
-            {(message === 'exporting' || message === 'exported') && <p className="text-sm font-semibold" role="status">{labels[message]}</p>}
-            {(error === 'exportFailed' || (error === 'exportConflict' && !authorityStale)) && <p className="text-sm text-sp-danger" role="alert">{labels[error]}</p>}
-          </section>
-        </fieldset>
-      </form>
+            {!complete && <p className="rounded-sp-md bg-sp-violet-50 p-4 text-sm text-sp-ink-900" role="status">{labels.building}</p>}
+            {id === reviewedBookId && <ProofreadingNotes pages={pages} edition={edition} labels={labels} openEditor={openEditor} onUseCredit={() => update('creator', sipuraiCredit)} />}
+            <EditionDetails book={book} edition={edition} change={update} changeArtwork={changeArtwork} onBusy={onBusy} busy={busy} labels={labels} />
+            {matter.needsReview && book.language === 'hebrew' && (
+              <section className="edition-panel space-y-3">
+                <p>{labels.matterReview}</p>
+                <button type="button" className={actionClass} disabled={matter.approved} onClick={() => update('matterApproval', matter.snapshot)}>
+                  {matter.approved ? labels.reviewed : labels.approveMatter}
+                </button>
+              </section>
+            )}
+            <section className="edition-panel space-y-4">
+              <PrintPreferences value={edition} allowUpgradedPaper={capabilities.upgradedPaper} onChange={next => modify(prev => ({ ...prev, cover: next.cover, paper: next.paper }))} isRTL={isRTL} />
+              {(permittedCapabilities.rewriteSuggestions || permittedCapabilities.illustrationGeneration) && <div className="rounded-sp-sm border border-sp-line px-3 py-2">
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold" htmlFor="edition-ai-consent">
+                  <input id="edition-ai-consent" type="checkbox" checked={allowAI} aria-describedby="edition-ai-disclosure" className="h-5 w-5 shrink-0 accent-sp-violet-700" onChange={e => updateAIPreference(e.target.checked)} />
+                  {labels.allowAI}
+                </label>
+                <p id="edition-ai-disclosure" className="pb-2 text-sm leading-relaxed text-sp-ink-600">{labels.aiDisclosure}</p>
+              </div>}
+              {capabilities.storyFont && <div>
+                <label htmlFor="edition-story-font" className="block font-semibold">{labels.storyFont}</label>
+                <select id="edition-story-font" className={textClass} value={edition.storyFont} onChange={e => update('storyFont', e.target.value)}>
+                  {STORY_FONTS.map((font, n) => <option key={font} value={font}>{labels.storyFonts[n]}</option>)}
+                </select>
+              </div>}
+            </section>
+            <EditionPageReview book={book} pages={pages} edition={edition} changePage={changePage} onBusy={onBusy} busy={busy} labels={labels} isRTL={isRTL} index={storyIndex} setIndex={setStoryIndex} capabilities={capabilities} basePages={basePages} onAddPage={complete && capabilities.extraPages ? appendPrintPage : null} canAddPage={canAddPage} onRemovePage={removePrintPage} />
+            <EditionArtwork book={book} pages={pages} edition={edition} complete={complete} labels={labels} onBusy={onBusy} busy={busy} changeArtwork={changeArtwork} capability={capabilities.illustrationGeneration} />
+            <section className="edition-panel space-y-3">
+              <button type="button" className={actionClass} onClick={download} disabled={!proofReady}><Download aria-hidden="true" size={17} />{labels.export}</button>
+              <p className="text-sm leading-relaxed text-sp-ink-600">{proofReady ? labels.proofOnly : labels.exportDisabled}</p>
+              {unsafeText && <p className="text-sm text-sp-danger" role="alert">{labels.unsafeText}</p>}
+              {(message === 'exporting' || message === 'exported') && <p className="text-sm font-semibold" role="status">{labels[message]}</p>}
+              {(error === 'exportFailed' || (error === 'exportConflict' && !authorityStale)) && <p className="text-sm text-sp-danger" role="alert">{labels[error]}</p>}
+            </section>
+          </fieldset>
+        </form>
+      </div>
     </>
   );
 }
 
-function VersionHistory({ workspace, labels, isRTL, restore }) {
+function VersionHistory({ workspace, labels, isRTL, restore, authorityStale }) {
   const date = useMemo(() => new Intl.DateTimeFormat(isRTL ? 'he-IL' : 'en', { dateStyle: 'medium', timeStyle: 'short' }), [isRTL]);
   const draft = workspace.entries[workspace.cursor];
   return (
     <details className="rounded-sp-sm border border-sp-line px-3">
       <summary className="min-h-11 cursor-pointer py-3 font-semibold"><span className="inline-flex items-center gap-2"><History aria-hidden="true" size={17} />{labels.versions}</span></summary>
       {!workspace.versions.length ? <p className="pb-3 text-sm text-sp-ink-600">{labels.noVersions}</p> :
-        <ul className="mb-3 divide-y divide-sp-line">
-          {[...workspace.versions].reverse().map(version => (
-            <li key={version.revision} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-              <span><strong>{labels.versionLabel(version.revision)}</strong>{version.savedAt && <> · <time dateTime={version.savedAt}>{date.format(new Date(version.savedAt))}</time></>}</span>
-              <button type="button" className={actionClass} disabled={version.draft === draft} onClick={() => restore(version.revision)} aria-label={labels.restoreVersion(version.revision)}>{labels.restore}</button>
-            </li>
-          ))}
-        </ul>}
+        <>
+          {workspace.versions.some(version => version.draft !== draft) && <p className="pb-2 text-sm text-sp-ink-600">{labels.restoreHint}</p>}
+          <ul className="mb-3 divide-y divide-sp-line">
+            {[...workspace.versions].reverse().map(version => (
+              <li key={version.revision} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <span><strong>{labels.versionLabel(version.revision)}</strong>{version.revision === workspace.revision && <> · {labels.latestSaved}</>}{version.savedAt && <> · <time dateTime={version.savedAt}>{date.format(new Date(version.savedAt))}</time></>}</span>
+                {version.draft === draft ? <span className="text-sp-ink-600">{labels.activeVersion}</span> :
+                  <button type="button" className={actionClass} disabled={authorityStale} onClick={() => restore(version.revision)}>{labels.restoreVersion(version.revision)}</button>}
+              </li>
+            ))}
+          </ul>
+        </>}
+    </details>
+  );
+}
+
+function ProofreadingNotes({ pages, edition, labels, openEditor, onUseCredit }) {
+  const notes = proofreadingNotes.flatMap(note => {
+    const index = pages.findIndex(page => !page.extra && page.page_number === note.pageNumber);
+    if (note.pageNumber && index < 0) return [];
+    const text = note.pageNumber ? pageDraft(edition, pages[index], index).text : edition.blurb;
+    if (!text.normalize().includes(note.before.normalize())) return [];
+    const target = note.pageNumber ? { kind: 'story', storyIndex: index, field: 'text' } : { field: 'blurb' };
+    return [{ ...note, target }];
+  });
+  const showCredit = edition.creator !== sipuraiCredit;
+  if (!notes.length && !showCredit) return null;
+  return (
+    <details className="edition-panel">
+      <summary className="min-h-11 cursor-pointer py-3 font-semibold">{labels.proofreadingNotes}</summary>
+      <p className="text-sm text-sp-ink-600">{labels.proofreadingHint}</p>
+      {!!notes.length && <ul className="mt-2 divide-y divide-sp-line">
+        {notes.map(({ pageNumber, before, after, aboutSock, target }) => (
+          <li key={before} className="space-y-2 py-2 text-sm">
+            <p>{labels.proofreadingLocation(pageNumber)} · <del dir="rtl">{before}</del>{' → '}<strong dir="rtl">{after}</strong>{aboutSock && <> · {labels.proofreadingSock}</>}</p>
+            <button type="button" className={actionClass} onClick={() => openEditor(target)}>{labels.editProofreadingLocation(pageNumber)}</button>
+          </li>
+        ))}
+      </ul>}
+      {showCredit && <div className="mt-3 space-y-2">
+        <p className="text-sm">{labels.creatorCreditSuggestion} <strong lang="he" dir="rtl">{sipuraiCredit}</strong></p>
+        <button type="button" className={actionClass} onClick={() => {
+          onUseCredit();
+          openEditor({ field: 'creator' });
+        }}>{labels.useCreatorCredit}</button>
+      </div>}
     </details>
   );
 }
@@ -390,7 +456,7 @@ function EditionArtwork({ book, pages, edition, complete, labels, onBusy, busy, 
     <section className="edition-panel space-y-3">
       <h2 className="edition-heading"><ImagePlus aria-hidden="true" size={22} />{labels.closing}</h2>
       <p className="text-sm leading-relaxed text-sp-ink-600">{labels.closingHelp}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
         <EditionArtField inputId="edition-closing-art" label={labels.closingArt} labels={labels} src={edition.artwork.closingArt} onChange={src => changeArtwork('closingArt', src)} onBusy={onBusy} disabled={busy} />
         <EditionArtField label={labels.characterSheet} labels={labels} src={edition.artwork.characterSheet} onChange={src => changeArtwork('characterSheet', src)} onBusy={onBusy} disabled={busy} />
       </div>
@@ -408,7 +474,7 @@ function EditionArtwork({ book, pages, edition, complete, labels, onBusy, busy, 
       <details className="mt-3">
         <summary className="min-h-11 cursor-pointer py-3 font-semibold">{labels.artwork}</summary>
         <p className="mb-3 text-sm leading-relaxed text-sp-ink-600">{labels.artworkHelp}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
           {['dedicationArt', 'endpaperArt'].map(kind => <EditionArtField key={kind} inputId={fields[kind]} label={labels[kind]} labels={labels} src={edition.artwork[kind]} onChange={src => changeArtwork(kind, src)} onBusy={onBusy} disabled={busy} />)}
         </div>
       </details>

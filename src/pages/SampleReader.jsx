@@ -15,7 +15,6 @@ export default function SampleReader() {
   const { language, isRTL, t } = useI18n();
   const english = language === 'english' || language === 'en';
   const book = books.find(item => item.id === id);
-  const [voice, setVoice] = useState(null);
   const [direction, setDirection] = useState('forward');
   const raw = Number(params.get('page') || 0);
   const page = Number.isInteger(raw) ? Math.max(0, Math.min(book?.pages.length || 0, raw)) : 0;
@@ -23,15 +22,6 @@ export default function SampleReader() {
   const title = english ? book?.title.en : book?.title.he;
 
   useEffect(() => {
-    const synth = window.speechSynthesis;
-    if (!synth || !window.SpeechSynthesisUtterance) return;
-    const update = () => setVoice(synth.getVoices().find(v => v.localService === true && v.lang.toLowerCase().split('-')[0] === (english ? 'en' : 'he')) || null);
-    update();
-    synth.addEventListener('voiceschanged', update);
-    return () => { synth.removeEventListener('voiceschanged', update); synth.cancel(); };
-  }, [english]);
-  useEffect(() => {
-    window.speechSynthesis?.cancel();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [id, page]);
 
@@ -49,15 +39,6 @@ export default function SampleReader() {
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [book, page, isRTL]);
-
-  function narrate() {
-    if (!voice || !text) return;
-    const utterance = new SpeechSynthesisUtterance(english ? text.textEn : text.text);
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  }
 
   return (
     <main dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-[#f8f1e3] text-[#202b3c]">
@@ -90,7 +71,6 @@ export default function SampleReader() {
             </article>
             <nav aria-label={t('spxLibrary.pageNav')} className="sample-controls sticky bottom-0 z-10 mt-5 flex flex-wrap items-center justify-between gap-2 py-3">
               <button type="button" onClick={() => go(page - 1)} disabled={page === 0} className={`${button} border border-[#73818a] bg-[#f8f1e3] disabled:opacity-40`}>{t('spxLibrary.previous')}</button>
-              {page > 0 && voice && <div className="flex items-center gap-1"><button type="button" onClick={narrate} className={`${button} underline`}>{t('spxLibrary.narration')}</button><button type="button" onClick={() => window.speechSynthesis.cancel()} className={`${button} underline`}>{t('spxLibrary.stopNarration')}</button></div>}
               {page < book.pages.length ? (
                 <button type="button" onClick={() => go(page + 1)} className={`${button} bg-[#263c4c] text-white`}>{page === 0 ? t('spxLibrary.open') : t('spxLibrary.next')}</button>
               ) : <Link to={isNewShell() ? '/new' : '/BookWizard'} className={`${button} bg-[#263c4c] text-white`}>{t('spxLibrary.create')}</Link>}

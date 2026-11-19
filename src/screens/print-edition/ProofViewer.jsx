@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { BookOpen, ChevronLeft, ChevronRight, Crop, FileDown, Layers, Pencil, RotateCcw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { proofEditTarget, proofLeaves } from './proof-viewer-model';
 import './proof-viewer.css';
 
@@ -12,6 +13,10 @@ const COPY = {
     page: n => `עמוד ${n}`, pages: (first, second) => `עמודים \u2066${first}–${second}\u2069`,
     edit: name => `עריכה: ${name}`, editHelp: 'אפשר ללחוץ על עמוד או על צד של הכריכה כדי להגיע לעריכה.',
     pick: 'מעבר לכפולה', next: 'הבא', previous: 'הקודם', bleed: 'גלישה לחיתוך', paper: 'הדמיית גוון נייר',
+    help: label => `הסבר על ${label}`,
+    paperHelp: 'אפשר לראות איך האיורים נראים על הנייר שבחרתם. הגוון שמופיע כאן לא משנה את קובצי ההדפסה.',
+    printFiles: 'קובצי ההדפסה',
+    filesHelp: 'קובץ התוכן כולל את הדפים שבפנים. קובץ הכריכה כולל את החזית, השדרה והגב. להדפסה צריך את שניהם.',
     bleedHelp: 'הקו המקווקו מסמן את גבול החיתוך. השוליים שמעבר לו מיועדים לחיתוך.',
     screen: 'זו הדמיה למסך. צבע, חיתוך ומגע בודקים בעותק מודפס.',
     soft: 'ההגהה הראשית משתמשת בתבנית לכריכה רכה שמודפסת מבחוץ.',
@@ -25,7 +30,7 @@ const COPY = {
     interiorPdf: 'קובץ תוכן', coverPdf: 'קובץ כריכה', insidePdf: 'קובץ כריכה עם צד פנימי', retry: 'ניסיון נוסף', generate: 'הכנת הגהה',
     pending: 'עוד לא הוכנה הגהה. אפשר להכין אותה כדי לבדוק את הספר לפני הדפוס.',
     incomplete: 'אפשר להכין הגהת דפוס אחרי השלמת הספר והפרטים הדרושים.',
-    loading: 'מכינים את קובצי ההגהה…', updating: 'מעדכנים את קובצי ההגהה…', stale: 'מעדכנים את קובצי ההגהה. בינתיים מוצגת הגרסה הקודמת.',
+    loading: 'מכינים את קובצי ההגהה…', updating: 'מעדכנים את קובצי ההגהה…', stale: 'בינתיים מוצגת ההגהה הקודמת.',
     error: 'לא הצלחנו להכין את ההגהה. אפשר לנסות שוב.',
     imageError: 'אחד מדפי ההגהה לא נטען.',
   },
@@ -37,6 +42,10 @@ const COPY = {
     page: n => `Page ${n}`, pages: (first, second) => `Pages ${first}–${second}`,
     edit: name => `Edit ${name}`, editHelp: 'Select a page or cover panel to edit it.',
     pick: 'Go to spread', next: 'Next', previous: 'Previous', bleed: 'Show bleed', paper: 'Simulate paper tone',
+    help: label => `About ${label}`,
+    paperHelp: 'See how the artwork looks on your chosen paper. This preview leaves the print files as they are.',
+    printFiles: 'print files',
+    filesHelp: 'The interior file contains the pages. The cover file contains the front, spine, and back. Printing requires both files.',
     bleedHelp: 'Dashed lines mark the trim. The area outside them is cut away.',
     screen: 'Screen preview. Check color, trim, and paper feel on a printed copy.',
     soft: 'The main proof uses a softcover template printed on the outside.',
@@ -50,7 +59,7 @@ const COPY = {
     interiorPdf: 'Interior PDF', coverPdf: 'Cover PDF', insidePdf: 'Cover PDF with illustrated inside', retry: 'Try again', generate: 'Prepare proof',
     pending: 'Prepare a proof to review the book before printing.',
     incomplete: 'Complete the book and required details to prepare a print proof.',
-    loading: 'Preparing the print proof…', updating: 'Updating the print proof…', stale: 'Updating the print proof. The previous version is on screen.',
+    loading: 'Preparing the print proof…', updating: 'Updating the print proof…', stale: 'The previous proof is still on screen.',
     error: 'We couldn’t prepare the print proof. Try again.',
     imageError: 'A proof page couldn’t load.',
   },
@@ -64,6 +73,21 @@ const leafLabel = (leaf, t) => {
 const spreadLabel = (spread, t) => spread.kind === 'pages'
   ? t.pages(spread.leaves[0].number, spread.leaves[1].number)
   : t[spread.kind];
+
+function ProofHelp({ label, children, isRTL }) {
+  const description = useId();
+  return (
+    <Popover>
+      <span id={description} className="sr-only">{children}</span>
+      <PopoverTrigger asChild>
+        <button type="button" className="proof-control proof-help-trigger" aria-label={label} aria-describedby={description}>?</button>
+      </PopoverTrigger>
+      <PopoverContent className="sp-shell proof-help" dir={isRTL ? 'rtl' : 'ltr'} collisionPadding={12} sideOffset={8} aria-label={label}>
+        {children}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function ProofLeaf({ leaf, text, showBleed, t, onEdit, onError }) {
   const textId = useId();
@@ -152,7 +176,7 @@ function ProofFrame({ spread, coverText, showBleed, paperTone, onEdit, onRetry, 
   );
 }
 
-export function ProofViewer({ proof, status = 'pending', error = null, onRetry, onEdit, onDownload = null, isRTL, cover, paper }) {
+export function ProofViewer({ proof, status = 'pending', failure = null, progress = null, onRetry, onEdit, onDownload = null, isRTL, cover, paper }) {
   const id = useId();
   const navRef = useRef(null);
   const touch = useRef(null);
@@ -240,7 +264,7 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
 
       {!spread ? (
         <div className="proof-placeholder">
-          <p role={state === 'error' ? 'alert' : 'status'}>{t[state] || (error ? t.error : t.pending)}</p>
+          <p role={state === 'error' ? 'alert' : 'status'}>{(state === 'error' ? failure : state === 'loading' || state === 'updating' ? progress : null) || t[state] || t.pending}</p>
           {canRetry && (
             <button type="button" className="proof-control" onClick={onRetry}>
               {state === 'pending' ? <BookOpen aria-hidden="true" size={16} /> : <RotateCcw aria-hidden="true" size={16} />}
@@ -250,7 +274,7 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
         </div>
       ) : (
         <>
-          {state === 'updating' && <p className="proof-update" role="status">{t.stale}</p>}
+          {state === 'updating' && <p className="proof-update" role="status">{progress || t.updating} {t.stale}</p>}
           <div className="proof-nav" ref={navRef} dir="rtl" role="group" tabIndex={-1} aria-label={t.pick}>
             <button className="proof-control proof-turn" type="button" aria-disabled={shown === 0} aria-controls={`${id}-stage`} onClick={() => move(-1)}>
               <ChevronRight aria-hidden="true" size={17} /><span dir={isRTL ? 'rtl' : 'ltr'}>{t.previous}</span>
@@ -278,7 +302,7 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
                   spread={spread}
                   coverText={proof.coverText}
                   showBleed={showBleed}
-                  paperTone={simulatePaper ? paper || 'standard' : 'off'}
+                  paperTone={simulatePaper ? proof.paper || paper || 'standard' : 'off'}
                   onEdit={canEdit}
                   onRetry={onRetry}
                   t={t}
@@ -300,13 +324,19 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
           <div className="proof-tools">
             <div className="proof-toggles">
               {proof.bleedMm > 0 && (
-                <button type="button" className="proof-control" aria-pressed={showBleed} aria-controls={`${id}-stage`} onClick={() => setShowBleed(value => !value)}>
-                  <Crop aria-hidden="true" size={17} />{t.bleed}
-                </button>
+                <div className="proof-option">
+                  <button type="button" className="proof-control" aria-pressed={showBleed} aria-controls={`${id}-stage`} onClick={() => setShowBleed(value => !value)}>
+                    <Crop aria-hidden="true" size={17} />{t.bleed}
+                  </button>
+                  <ProofHelp label={t.help(t.bleed)} isRTL={isRTL}>{t.bleedHelp}</ProofHelp>
+                </div>
               )}
-              <button type="button" className="proof-control" aria-pressed={simulatePaper} aria-controls={`${id}-stage`} onClick={() => setSimulatePaper(value => !value)}>
-                <Layers aria-hidden="true" size={17} />{t.paper}
-              </button>
+              <div className="proof-option">
+                <button type="button" className="proof-control" aria-pressed={simulatePaper} aria-controls={`${id}-stage`} onClick={() => setSimulatePaper(value => !value)}>
+                  <Layers aria-hidden="true" size={17} />{t.paper}
+                </button>
+                <ProofHelp label={t.help(t.paper)} isRTL={isRTL}>{t.paperHelp}</ProofHelp>
+              </div>
               {isEndSpread && insideAvailable && (
                 <button type="button" className="proof-control" aria-pressed={insideShown} aria-controls={`${id}-stage`} onClick={() => setInspectInside(value => !value)}>
                   <BookOpen aria-hidden="true" size={17} />{t.inside}
@@ -328,6 +358,7 @@ export function ProofViewer({ proof, status = 'pending', error = null, onRetry, 
                     ? <a key={key} className="proof-control" href={file} download={key === 'inside' ? 'cover-with-inside.pdf' : `${key}.pdf`}>{contents}</a>
                     : null;
                 })}
+                <ProofHelp label={t.help(t.printFiles)} isRTL={isRTL}>{t.filesHelp}</ProofHelp>
               </div>
             )}
           </div>

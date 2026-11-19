@@ -31,20 +31,20 @@ function PreferenceControls({ value, onChange, isRTL, compact = false, allowUpgr
   const { t } = useI18n();
   const edition = value || editionDraft();
   const options = [
-    { field: 'cover', icon: BookOpen, items: [['softcover', labels.softcover], ['hardcover', t('print.paperChoice.hardSoon')]] },
+    { field: 'cover', icon: BookOpen, items: [['softcover', labels.softcover]] },
     { field: 'paper', icon: Layers, items: paperOptions(t) },
   ];
 
   const controls = (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
         {options.map(({ field, icon: Icon, items }) => (
           <fieldset key={field} className="min-w-0">
             <legend className="mb-2 flex items-center gap-2 font-semibold text-sp-ink-900"><Icon aria-hidden="true" size={17} />{labels[field]}</legend>
             <div className="grid gap-2">
               {items.map(([option, name, hint]) => {
                 const checked = edition[field] === option;
-                const disabled = (field === 'cover' && option === 'hardcover') || (field === 'paper' && option !== 'standard' && !allowUpgradedPaper);
+                const disabled = field === 'paper' && option !== 'standard' && !allowUpgradedPaper;
                 const detail = field === 'paper' && option !== 'standard' && !allowUpgradedPaper ? t('print.paperChoice.unavailablePlan') : hint;
                 return (
                   <label key={option} className={`min-h-11 ${disabled ? '' : 'cursor-pointer'} ${preferenceClass} flex items-start gap-3 focus-within:outline focus-within:outline-2 focus-within:outline-sp-violet-700 ${checked ? 'border-sp-violet-700 bg-sp-violet-50' : ''}`}>

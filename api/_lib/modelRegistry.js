@@ -4,7 +4,7 @@
  * Why this exists (4.11.2026): model ids were hardcoded in 8 files; Google is retiring
  * several of them (see `retireAfter`) and nothing tied the FAQ bot to the generation model.
  * Handlers must call `getModel(capability)`; a unit test fails the build if a model id
- * appears anywhere else under api/ or in src/lib/aiProvider.js / ttsProvider.js.
+ * appears anywhere else under api/ or in src/lib/aiProvider.js.
  *
  * Pure ESM, no top-level access to process.env, so the browser bundle (dev-direct mode in
  * aiProvider.js) can import it too. Env is read at call time (testable, no cold-start capture).
@@ -55,25 +55,6 @@ export const MODELS = Object.freeze({
     provider: 'openai',
     default: 'gpt-image-1',
     envVar: 'OPENAI_IMAGE_MODEL',
-    status: 'ga',
-    retireAfter: null,
-    fallbacks: [],
-  },
-  ttsOpenai: {
-    provider: 'openai',
-    default: 'gpt-4o-mini-tts',
-    envVar: 'OPENAI_TTS_MODEL',
-    status: 'ga',
-    retireAfter: null,
-    fallbacks: [],
-  },
-  // gemini-2.5-flash-preview-tts shuts down 2026-11-17 (earliest). Listed replacements:
-  // gemini-3.8-flash-tts or gemini-3.8-flash-lite-tts (verified on Google's speech page 2026-11-04).
-  // Not verified by a live call (no paid probe was authorised); the handler falls back to OpenAI TTS.
-  ttsGemini: {
-    provider: 'gemini',
-    default: 'gemini-3.8-flash-tts',
-    envVar: 'GEMINI_TTS_MODEL',
     status: 'ga',
     retireAfter: null,
     fallbacks: [],

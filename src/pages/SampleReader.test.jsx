@@ -19,15 +19,24 @@ describe('public sample catalogue', () => {
     expect(screen.getByRole('link', { name: 'יוצרים סיפור משלכם' }).getAttribute('href')).toBe('/BookWizard');
     view.unmount();
   });
-  it('only offers narration for a matching voice and speaks on request', () => {
-    const speak = vi.fn(); const cancel = vi.fn();
-    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { getVoices: () => [{ lang: 'he-IL', localService: true }], addEventListener: vi.fn(), removeEventListener: vi.fn(), speak, cancel } });
-    Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: class { constructor(text) { this.text = text; } } });
-    const view = open(`/samples/${books[0].id}?page=1`);
-    expect(speak).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'הקראה' }));
-    expect(speak.mock.calls[0][0].text).toBe(books[0].pages[0].text);
-    view.unmount(); delete window.speechSynthesis; delete window.SpeechSynthesisUtterance;
+  it('reads and turns pages without touching browser speech even when a matching voice exists', () => {
+    const speak = vi.fn(), cancel = vi.fn();
+    const getVoices = vi.fn(() => [{ lang: 'he-IL', localService: true }]);
+    vi.stubGlobal('speechSynthesis', { getVoices, speak, cancel, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    vi.stubGlobal('SpeechSynthesisUtterance', vi.fn());
+    try {
+      const view = open(`/samples/${books[0].id}?page=1`);
+      expect(screen.getByText(books[0].pages[0].text)).toBeTruthy();
+      expect(screen.getAllByRole('button')).toHaveLength(2);
+      fireEvent.click(screen.getByRole('button', { name: 'לעמוד הבא' }));
+      expect(screen.getByText(books[0].pages[1].text)).toBeTruthy();
+      view.unmount();
+      expect(getVoices).not.toHaveBeenCalled();
+      expect(speak).not.toHaveBeenCalled();
+      expect(cancel).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
   it('moves forward and back with RTL arrow keys', () => {
     const view = open(`/samples/${books[0].id}?page=1`);
@@ -36,13 +45,6 @@ describe('public sample catalogue', () => {
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByText(books[0].pages[0].text)).toBeTruthy();
     view.unmount();
-  });
-  it('hides narration when the device has no matching voice', () => {
-    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { getVoices: () => [{ lang: 'en-US', localService: true }], addEventListener: vi.fn(), removeEventListener: vi.fn(), cancel: vi.fn() } });
-    Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: class {} });
-    const view = open(`/samples/${books[0].id}?page=1`);
-    expect(screen.queryByRole('button', { name: 'הקראה' })).toBeNull();
-    view.unmount(); delete window.speechSynthesis; delete window.SpeechSynthesisUtterance;
   });
   it('opens a linked page and rejects unknown books', () => {
     const view = open(`/samples/${books[0].id}?page=3`);

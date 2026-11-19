@@ -461,7 +461,7 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
 
     back_x = back_start + 19 * scale_x
     back_w = geometry.width - 38 * scale_x
-    # Warm text on a dark matte back with a coordinated framed visual.
+    # A single ink field carries the blurb, the creator note and the imprint.
     text(edition.blurb, "back-blurb", back_x, 22 * scale_y, back_w, 71 * scale_y,
          23, 18, 7, color=CREAM)
     if edition.about_author:
@@ -470,23 +470,23 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
         text(edition.about_author, "back-about-author", back_x, 107 * scale_y, back_w, 33 * scale_y,
              17, 14, 4, color=CREAM)
 
-    row_y = (150 if edition.about_author else 129) * scale_y
-    thumb_w, thumb_h = 80 * scale_x, 57 * scale_y
-    thumb = art.crop(edition.closing_art, thumb_w, thumb_h, "back-vignette",
-                    native_pixels=edition.closing_native_pixels)
-    cover += picture(thumb, back_x, row_y, thumb_w, thumb_h, radius=5)
-    logo_x = back_x + thumb_w + 8 * scale_x
-    logo_y = row_y + (thumb_h - 14) / 2
+    rule_y = 155 * scale_y
+    cover += solid(back_x, rule_y, back_w, .35, GOLD)
+    logo_x = back_x
+    logo_y = 178 * scale_y
     cover += f'<div class="layer" style="{mm_box(logo_x, logo_y, 14, 14)}">{LOGO}</div>'
     text("סיפוראי", "back-logo-text", logo_x + 14, logo_y, 29 * scale_x, 14,
          15, 12, 1, display=True, color=GOLD)
 
     if edition.qr_url:
         qr_size = 38 * scale_x
-        qr_x = back_start + geometry.width - 18 * scale_x - qr_size
+        qr_x = back_x + back_w - qr_size
+        row_y = 162 * scale_y
         cover += picture(qr_image(edition.qr_url, art.folder), qr_x, row_y, qr_size, qr_size)
-        text("לספר שלכם", "qr-label", qr_x - 5, row_y + qr_size + 4,
-             qr_size + 10, 11 * scale_y, 14, 12, 1, display=True, color=CREAM)
+        label_w = 42 * scale_x
+        label_h = 11 * scale_y
+        text("לספר שלכם", "qr-label", qr_x - label_w - 4, row_y + (qr_size - label_h) / 2,
+             label_w, label_h, 14, 12, 1, display=True, color=CREAM)
     parts = [cover]
 
     if edition.inside_cover:

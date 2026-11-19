@@ -26,7 +26,8 @@ import {
   Share2,
   Plus,
   LogIn,
-  Volume2
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -34,9 +35,7 @@ import "@/styles/story-reader.css";
 import "@/styles/sp-fonts.css";
 import ReaderIllustration from "@/components/bookReader/ReaderIllustration";
 import PageFlip from "@/components/bookReader/PageFlip";
-import TTSControls, { getStoredTTSEngine } from "@/components/bookReader/TTSControls";
 import GiftEditionCTA from "@/components/bookReader/GiftEditionCTA";
-import { useTTS } from "@/hooks/useTTS";
 import { exportBookToPDF } from "@/utils/pdfExporter";
 import useGamification from "@/hooks/useGamification";
 import { updateMeta, resetMeta } from "@/lib/seo";
@@ -98,14 +97,8 @@ function BookReader({ bookId, user }) {
   const gamification = useGamification();
 
   const isRTL = currentLanguage === "hebrew" || currentLanguage === "yiddish";
-  const isHebrew = currentLanguage === "hebrew";
   const isHebrewBook = currentLanguage === "hebrew" || currentLanguage === "yiddish";
   const isGuest = !user;
-
-  const tts = useTTS({ language: currentLanguage, engine: getStoredTTSEngine() });
-  // Auto-narrate effect must not re-run when tts state (notice, isSpeaking) changes.
-  const ttsSpeakRef = useRef(tts.speak);
-  ttsSpeakRef.current = tts.speak;
 
   useEffect(() => {
     if (!bookId) {
@@ -340,29 +333,6 @@ function BookReader({ bookId, user }) {
   }, [bookId, currentPageIndex, pages.length]);
 
   useEffect(() => {
-    tts.stop();
-  }, [currentPageIndex]);
-
-  // Wave-12: Auto-play TTS when user toggles "auto-narrate" via localStorage flag.
-  // Stays opt-in (UI control wires this); page change triggers next chunk.
-  useEffect(() => {
-    let cancelled = false;
-    const autoNarrate = (() => {
-      try { return window.localStorage?.getItem("sipurai_tts_auto") === "1"; }
-      catch { return false; }
-    })();
-    if (!autoNarrate) return;
-    const text = isCoverPage
-      ? [book?.title, currentPage?.text_content || book?.description].filter(Boolean).join(". ")
-      : pages[currentPageIndex]?.text_content;
-    if (!text) return;
-    const timer = setTimeout(() => {
-      if (!cancelled) ttsSpeakRef.current(text);
-    }, 250);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [currentPageIndex, isCoverPage, currentPage?.text_content, book?.title, book?.description, pages]);
-
-  useEffect(() => {
     if (
       !isGuest && fullyIllustrated &&
       pages.length > 1 &&
@@ -475,11 +445,6 @@ function BookReader({ bookId, user }) {
     }
   };
 
-  const handleTTSPlay = () => {
-    const text = currentPage?.text_content;
-    if (text) tts.speak(text);
-  };
-
   // Map art styles to child-friendly font families
   const getBookFontFamily = () => {
     const style = book?.art_style;
@@ -502,68 +467,12 @@ function BookReader({ bookId, user }) {
     }
   };
 
-  // Render text with word highlighting for TTS + child-friendly fonts
-  const renderHighlightedText = (text, extraClass = "") => {
-    if (!text) return null;
-
-    const bookFontStyle = { fontFamily: getBookFontFamily() };
-
-    if (!tts.isSpeaking || tts.currentWordIndex < 0) {
-      return (
-        <p
-          className={`reader-prose ${extraClass}`}
-          style={bookFontStyle}
-        >
-          {text}
-        </p>
-      );
-    }
-
-    const words = text.split(/(\s+)/);
-    let wordIdx = 0;
-
-    return (
-      <p
-        className={`reader-prose ${extraClass}`}
-        style={bookFontStyle}
-      >
-        {words.map((segment, i) => {
-          if (/^\s+$/.test(segment)) return segment;
-
-          const isHighlighted = wordIdx === tts.currentWordIndex;
-          wordIdx++;
-
-          return (
-            <span
-              key={i}
-              className={isHighlighted
-                ? "bg-yellow-200 dark:bg-yellow-700 rounded px-0.5 transition-colors duration-100"
-                : "transition-colors duration-100"
-              }
-            >
-              {segment}
-            </span>
-          );
-        })}
-      </p>
-    );
-  };
-
   // Night mode color helpers — consistent throughout
   const nightBg       = nightMode ? "bg-gray-950" : "bg-[#eee3cd] dark:bg-gray-900";
   const nightCard     = nightMode ? "bg-gray-900 text-amber-50" : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200";
   const nightHeader   = nightMode ? "bg-gray-900/95 border-gray-800" : "bg-white/95 dark:bg-gray-900/95 border-gray-200 dark:border-gray-700";
   const nightNav      = nightMode ? "bg-gray-900 border-gray-800" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700";
   const nightToolbar  = nightMode ? "text-amber-100 hover:bg-gray-800" : "";
-
-  // Whether TTS should show — cover page included now
-  const ttsText = isCoverPage
-    ? [book?.title, currentPage?.text_content].filter(Boolean).join(". ")
-    : currentPage?.text_content;
-
-  const handleTTSPlayCover = () => {
-    if (ttsText) tts.speak(ttsText);
-  };
 
   if (loading) {
     return (
@@ -765,23 +674,6 @@ function BookReader({ bookId, user }) {
 
           {/* Right: controls */}
           <div className="reader-tools flex flex-wrap items-center gap-0.5">
-            {/* TTS Controls — show on ALL pages including cover */}
-            {ttsText && (
-              <TTSControls
-                isSpeaking={tts.isSpeaking}
-                isPaused={tts.isPaused}
-                rate={tts.rate}
-                onPlay={isCoverPage ? handleTTSPlayCover : handleTTSPlay}
-                onPause={tts.pause}
-                onResume={tts.resume}
-                onStop={tts.stop}
-                onRateChange={tts.setRate}
-                notice={tts.notice}
-                isRTL={isRTL}
-                isHebrew={isHebrew}
-              />
-            )}
-
             {/* Zoom out */}
             <Button
               variant="ghost"
@@ -859,36 +751,34 @@ function BookReader({ bookId, user }) {
               <span className="text-base" aria-hidden="true">🖨️</span>
             </Button>
 
-            {/* Background music toggle — Wave-14 */}
             <Button
-              variant="ghost"
-              size="icon"
+              type="button"
+              variant="outline"
+              className={`min-h-11 rounded-xl px-3 ${musicOn ? "border-amber-300 bg-amber-100 text-gray-900 hover:bg-amber-200 hover:text-gray-900" : nightMode ? "border-gray-600 bg-gray-900 text-amber-100 hover:bg-gray-800 hover:text-amber-50" : ""}`}
+              aria-pressed={musicOn}
               onClick={() => {
-                const next = !musicOn;
-                setMusicOn(next);
-                const el = musicRef.current;
-                if (!el) return;
-                if (next) {
-                  el.volume = 0.25;
-                  el.loop = true;
-                  el.play().catch(() => { /* user gesture required, will retry on next click */ });
-                } else {
-                  el.pause();
+                const audio = musicRef.current;
+                if (!audio) return;
+                if (!audio.paused) {
+                  audio.pause();
+                  return;
                 }
+                audio.volume = 0.25;
+                void audio.play().catch(() => { /* Playback events keep the toggle in sync. */ });
               }}
-              className={`rounded-xl hidden sm:flex ${nightToolbar}`}
-              aria-label={musicOn ? t('reader.musicOff') : t('reader.musicOn')}
-              title={musicOn ? t('reader.musicOff') : t('reader.musicOn')}
             >
-              <span className="text-base" aria-hidden="true">{musicOn ? "🎵" : "🔈"}</span>
+              {musicOn ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+              {t('reader.music')}
             </Button>
-
-            {/* Hidden audio element — uses a free royalty-free lullaby track from public domain CDN */}
             <audio
               ref={musicRef}
               src="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3"
               preload="none"
-              style={{ display: "none" }}
+              loop
+              onPlaying={() => setMusicOn(true)}
+              onPause={() => setMusicOn(false)}
+              onError={() => setMusicOn(false)}
+              hidden
             />
 
             {/* Edit — owner only */}
@@ -1016,7 +906,7 @@ function BookReader({ bookId, user }) {
                           </div>
                         )}
                         {currentPage?.text_content && currentPage.text_content.trim() !== book.title && (
-                          <div className="reader-intro" dir="auto">{renderHighlightedText(currentPage.text_content)}</div>
+                          <div className="reader-intro" dir="auto"><p className="reader-prose" style={{ fontFamily: getBookFontFamily() }}>{currentPage.text_content}</p></div>
                         )}
                       </div>
                     ) : (
@@ -1028,7 +918,7 @@ function BookReader({ bookId, user }) {
                             <p className="reader-art-pending"><BookOpen aria-hidden="true" />{t('bookView.noIllustration')}</p>
                           )}
                         </div>
-                        <figcaption>{renderHighlightedText(currentPage?.text_content)}</figcaption>
+                        <figcaption>{currentPage?.text_content && <p className="reader-prose" style={{ fontFamily: getBookFontFamily() }}>{currentPage.text_content}</p>}</figcaption>
                       </figure>
                     )}
                   </div>

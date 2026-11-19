@@ -730,9 +730,6 @@ export default {
     language: "Interface Language",
     defaultStoryLanguage: "Default Story Language",
     notifications: "Notifications",
-    audio: "Audio Settings",
-    audioEnabled: "Enable Audio Narration",
-    audioSpeed: "Narration Speed",
     darkMode: "Dark Mode",
     textDensity: "Text Density",
     fontSize: "Font Size",
@@ -820,30 +817,15 @@ export default {
     logoutConfirmDesc: "You will be signed out of your account. You can sign back in at any time.",
     logoutCancel: "Cancel",
     logoutConfirmBtn: "Log out",
-    audioSpeeds: {
-      slow: "Slow",
-      normal: "Normal",
-      fast: "Fast",
-      veryFast: "Very Fast"
-    },
     accessibility: {
       title: "Accessibility",
       description: "Adjust settings to make the app more accessible",
-      audioNarration: "Audio Narration",
-      audioDescription: "Enable automatic narration of books",
       fontSize: "Font Size",
-      audioSpeed: "Audio Speed",
       fontSizes: {
         small: "Small",
         medium: "Medium",
         large: "Large",
         xlarge: "Extra Large"
-      },
-      audioSpeeds: {
-        slow: "Slow (0.75x)",
-        normal: "Normal (1x)",
-        fast: "Fast (1.25x)",
-        veryFast: "Very Fast (1.5x)"
       }
     }
   },
@@ -891,18 +873,6 @@ export default {
       title: "Book not found",
       description: "The book you're looking for might have been removed or doesn't exist.",
       goToLibrary: "Go to Library"
-    },
-    tts: {
-      readAloud: "Read aloud",
-      read: "Read",
-      resume: "Resume",
-      pause: "Pause",
-      stop: "Stop",
-      slower: "Slower",
-      faster: "Faster",
-      slow: "Slow",
-      normal: "Normal",
-      fast: "Fast"
     },
     navigation: {
       previous: "Previous",
@@ -2047,15 +2017,6 @@ export default {
       image: "Image Generation",
       video: "Video Generation",
       audio: "Audio Generation"
-    },
-    audio: {
-      narration: "Narration",
-      music: "Music & SFX",
-      selectVoice: "Select Voice",
-      voiceCloning: "Voice Cloning (Pro)",
-      voiceCloningDesc: "Upload a sample and use your own voice!",
-      uploadVoiceSample: "Upload Voice Sample",
-      poweredBy: "Narration is produced by OpenAI or Google, depending on the voice chosen"
     },
     model: {
       free: "Free",

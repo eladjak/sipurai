@@ -41,7 +41,7 @@ const draft = {
   }])),
 };
 const book = { id, title: 'ספר המשפחה', language: 'hebrew', created_by: 'owner-1', total_pages: 2, cover_image: '/art/cover.png' };
-const enter = () => render(<MemoryRouter initialEntries={[`/PrintEdition?id=${id}`]}><PrintEdition /></MemoryRouter>);
+const enter = (bookId = id) => render(<MemoryRouter initialEntries={[`/PrintEdition?id=${bookId}`]}><PrintEdition /></MemoryRouter>);
 const button = name => screen.getByRole('button', { name });
 
 let stored;
@@ -84,6 +84,82 @@ describe('print edition owner editing flow', () => {
     expect(screen.getByLabelText(labels.text)).toHaveValue('איך הולך?');
     fireEvent.click(button(labels.redo));
     expect(screen.getByLabelText(labels.text)).toHaveValue('איך הולך לך?');
+  });
+
+  it('restores a saved version as a draft, saves it as a new revision and keeps undo after reopening', async () => {
+    const view = enter();
+    const editor = await screen.findByLabelText(labels.text);
+    fireEvent.change(editor, { target: { value: 'העריכה האחרונה' } });
+    fireEvent.click(button(labels.save));
+    await screen.findByText(labels.saved);
+
+    fireEvent.click(screen.getByText(labels.versions));
+    fireEvent.click(button(labels.restoreVersion(3)));
+    expect(editor).toHaveValue('שלום עולם!');
+    expect(screen.getByText(labels.restoredDraft(3))).toBeInTheDocument();
+    expect(fixture.save).toHaveBeenCalledOnce();
+
+    fireEvent.click(button(labels.undo));
+    expect(editor).toHaveValue('העריכה האחרונה');
+    fireEvent.click(button(labels.redo));
+    expect(editor).toHaveValue('שלום עולם!');
+    fireEvent.click(button(labels.save));
+    await screen.findByText(labels.saved);
+    expect(stored.revision).toBe(5);
+    expect(stored.history.versions.map(version => version.revision)).toEqual([3, 4, 5]);
+
+    view.unmount();
+    enter();
+    const reopened = await screen.findByLabelText(labels.text);
+    expect(reopened).toHaveValue('שלום עולם!');
+    fireEvent.click(button(labels.undo));
+    expect(reopened).toHaveValue('העריכה האחרונה');
+  });
+
+  it('leaves a restored draft in place when the save detects a newer revision', async () => {
+    enter();
+    const editor = await screen.findByLabelText(labels.text);
+    fireEvent.change(editor, { target: { value: 'העריכה האחרונה' } });
+    fireEvent.click(button(labels.save));
+    await screen.findByText(labels.saved);
+
+    fireEvent.click(screen.getByText(labels.versions));
+    fireEvent.click(button(labels.restoreVersion(3)));
+    stored = { ...stored, revision: 5 };
+    fixture.save.mockImplementationOnce(async (_id, _owner, next) => {
+      if (next.revision !== stored.revision) throw new Error('conflict');
+      throw new Error('expected a stale revision');
+    });
+    fireEvent.click(button(labels.save));
+    expect(await screen.findByRole('alert')).toHaveTextContent(labels.conflict);
+    expect(editor).toHaveValue('שלום עולם!');
+    expect(stored.revision).toBe(5);
+    expect(stored.pages.p1.rewrite).toBe('העריכה האחרונה');
+    expect(button(labels.save)).toBeDisabled();
+    fireEvent.click(button(labels.undo));
+    expect(editor).toHaveValue('העריכה האחרונה');
+  });
+
+  it('shows a PC proofreading suggestion for the reviewed book and opens the matching story field without edits', async () => {
+    const text = 'הוּא הִסְתַּכֵּל בְּעֵינַיִים גְּדוֹלוֹת.';
+    const source = 'הוא הסתכל בעיניים גדולות.';
+    stored.pages.p3 = { source, text };
+    fixture.rows.mockResolvedValueOnce([...pages, { ...pages[1], id: 'p3', page_number: 3, text_content: source }]);
+    enter('201398c5-7ce0-4e16-98eb-b2be6ba09daf');
+    fireEvent.click(await screen.findByText(labels.proofreadingNotes));
+    expect(screen.getByText('בְּעֵינַיִם')).toBeVisible();
+    fireEvent.click(button(labels.editProofreadingLocation(3)));
+    const editor = screen.getByLabelText(labels.text);
+    await waitFor(() => expect(editor).toHaveFocus());
+    expect(editor).toHaveValue(text);
+    expect(button(labels.save)).toBeDisabled();
+    expect(fixture.save).not.toHaveBeenCalled();
+    const creator = screen.getByLabelText(labels.creator);
+    expect(creator).toHaveValue('המשפחה');
+    fireEvent.click(button(labels.useCreatorCredit));
+    await waitFor(() => expect(creator).toHaveFocus());
+    expect(creator).toHaveValue('נוצר בסיפוראי');
+    expect(fixture.save).not.toHaveBeenCalled();
   });
 
   it('holds the old text while AI is pending and applies only an explicitly accepted rewrite', async () => {

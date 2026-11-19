@@ -15,13 +15,7 @@ describe('modelRegistry', () => {
     expect(MODELS.text.retireAfter).toBe('2026-12-01');
   });
 
-  it('defaults TTS to the Google-listed replacement, not the retiring preview id', () => {
-    expect(getModel('ttsGemini', {})).toBe('gemini-3.8-flash-tts');
-    expect(getModel('ttsGemini', {})).not.toContain('2.5-flash-preview-tts');
-  });
-
   it('applies env overrides and ignores blank ones', () => {
-    expect(getModel('ttsGemini', { GEMINI_TTS_MODEL: 'gemini-3.8-flash-lite-tts' })).toBe('gemini-3.8-flash-lite-tts');
     expect(getModel('text', { GEMINI_TEXT_MODEL: '  gemini-x  ' })).toBe('gemini-x');
     expect(getModel('text', { GEMINI_TEXT_MODEL: '   ' })).toBe('gemini-2.5-flash');
     expect(getModel('text', { GEMINI_TEXT_MODEL: undefined })).toBe('gemini-2.5-flash');
@@ -68,7 +62,6 @@ describe('model ids stay inside the registry', () => {
   const files = [
     ...walk(path.join(ROOT, 'api')).filter((f) => !f.endsWith('modelRegistry.js')),
     path.join(ROOT, 'src/lib/aiProvider.js'),
-    path.join(ROOT, 'src/lib/ttsProvider.js'),
   ];
 
   it('scans a non-trivial file set', () => {

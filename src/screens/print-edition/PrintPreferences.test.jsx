@@ -12,15 +12,17 @@ function Fixture({ allowUpgradedPaper = true }) {
     <PrintPreferences compact isRTL value={value} onChange={onChange} allowUpgradedPaper={allowUpgradedPaper} />
   </I18nContext.Provider>;
 }
-it("lets a legacy selection be explicitly replaced and keeps hardcover unavailable", () => {
+it("lets a legacy selection be explicitly replaced and hides the unavailable hardcover input", () => {
   render(<Fixture />);
   fireEvent.click(screen.getByText("מכינים גם מהדורה מודפסת?"));
-  expect(screen.getByLabelText(/כריכה קשה/).disabled).toBe(true);
+  expect(screen.queryByRole("radio", { name: /כריכה קשה/ })).toBeNull();
+  expect(screen.getByText(/הבחירה הקודמת בכריכה קשה/)).toBeTruthy();
   expect(screen.getByText(/הבחירה הקודמת בנייר משודרג/)).toBeTruthy();
   fireEvent.click(screen.getByLabelText(/כרומו מט 130 גרם/));
   expect(screen.getByLabelText(/כרומו מט 130 גרם/).checked).toBe(true);
   fireEvent.click(screen.getByLabelText(/כריכה רכה/));
   expect(screen.getByLabelText(/כריכה רכה/).checked).toBe(true);
+  expect(screen.queryByText(/הבחירה הקודמת בכריכה קשה/)).toBeNull();
 });
 it("respects the subscriber restriction for both upgraded stocks", () => {
   render(<Fixture allowUpgradedPaper={false} />);

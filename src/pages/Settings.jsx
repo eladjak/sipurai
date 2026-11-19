@@ -34,7 +34,6 @@ import {
   User as UserIcon,
   Palette,
   Globe,
-  Volume2,
   Sparkles,
   CreditCard,
   Shield,
@@ -43,7 +42,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  Clock,
   Check,
   Crown,
   Type,
@@ -264,8 +262,6 @@ export default function Settings() {
     text_density: "medium",
     font_size: "medium",
     notifications_enabled: true,
-    audio_enabled: true,
-    audio_speed: "1",
     default_story_language: "english"
   });
   const [tempSettings, setTempSettings] = useState({});
@@ -303,8 +299,6 @@ export default function Settings() {
         text_density: currentUser.text_density || "medium",
         font_size: currentUser.font_size || "medium",
         notifications_enabled: currentUser.notifications_enabled !== false,
-        audio_enabled: currentUser.audio_enabled !== false,
-        audio_speed: currentUser.audio_speed || "1",
         default_story_language: currentUser.default_story_language || "english"
       };
 
@@ -506,48 +500,6 @@ export default function Settings() {
                       >
                         <span className="text-base">{opt.flag}</span>
                         <span>{t(`common.languageNames.${opt.value}`)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </SettingCard>
-
-            {/* Audio card */}
-            <SettingCard
-              title={t("settings.audio")}
-              icon={<Volume2 className="h-5 w-5 text-green-500" />}
-              isRTL={isRTL}
-            >
-              <div className="space-y-1 pt-2">
-                <SettingRow label={t("settings.audioEnabled")} isRTL={isRTL}>
-                  <Switch
-                    checked={tempSettings.audio_enabled}
-                    onCheckedChange={(checked) => updateTempSetting("audio_enabled", checked)}
-                    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-600 data-[state=checked]:to-indigo-600"
-                  />
-                </SettingRow>
-
-                <div className="space-y-2 pt-2">
-                  <Label className={`text-xs font-semibold text-gray-500 uppercase tracking-wide ${isRTL ? "text-right block" : ""}`}>{t("settings.audioSpeed")}</Label>
-                  <div className={`flex gap-2 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
-                    {[
-                      { value: "0.75", label: t("settings.audioSpeeds.slow") },
-                      { value: "1", label: t("settings.audioSpeeds.normal") },
-                      { value: "1.25", label: t("settings.audioSpeeds.fast") },
-                      { value: "1.5", label: t("settings.audioSpeeds.veryFast") },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => updateTempSetting("audio_speed", opt.value)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium border transition-all ${
-                          tempSettings.audio_speed === opt.value
-                            ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-transparent shadow-md"
-                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-green-400"
-                        }`}
-                      >
-                        <Clock className="h-3 w-3" />
-                        {opt.label}
                       </button>
                     ))}
                   </div>

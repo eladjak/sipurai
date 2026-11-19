@@ -4,7 +4,6 @@ import { createMemoryConsentStore, requireConsent, recordConsent, hasConsent, va
 import { CURRENT_POLICY_VERSION, PREVIOUS_POLICY_VERSION, PREVIOUS_VERSION_ACCEPTED_UNTIL, CONSENT_ITEMS } from '../api/_lib/policyVersion.js';
 import consentHandler from '../api/privacy/consent.js';
 import generateHandler from '../api/ai/generate.js';
-import ttsHandler from '../api/ai/tts.js';
 
 const mkRes = () => {
   const r = { code: 200, body: null, headers: {} };
@@ -103,25 +102,21 @@ test('consent endpoint: needs login; user comes from the token, never from the b
   assert.equal(getA.body.hasConsent, true);
 });
 
-test('AI routes: generate and tts answer 403 consent_required when the parent has not accepted', async () => {
-  for (const [name, handler] of [['generate', generateHandler], ['tts', ttsHandler]]) {
-    const store = createMemoryConsentStore();
-    const res = mkRes();
-    await handler({ method: 'POST', headers: {}, body: { prompt: 'שלום', type: 'text', text: 'שלום', provider: 'openai' } }, res, { auth: asUser('user_A'), consentStore: store });
-    assert.equal(res.code, 403, `${name} should refuse without consent`);
-    assert.equal(res.body.code, 'consent_required', name);
-  }
+test('AI generation answers 403 consent_required when the parent has not accepted', async () => {
+  const store = createMemoryConsentStore();
+  const res = mkRes();
+  await generateHandler({ method: 'POST', headers: {}, body: { prompt: 'שלום', type: 'text' } }, res, { auth: asUser('user_A'), consentStore: store });
+  assert.equal(res.code, 403);
+  assert.equal(res.body.code, 'consent_required');
 });
 
-test('AI routes: with consent the request goes past the privacy gate', async () => {
-  for (const [name, handler] of [['generate', generateHandler], ['tts', ttsHandler]]) {
-    const store = createMemoryConsentStore();
-    await accept(store, 'user_A');
-    const res = mkRes();
-    await handler({ method: 'POST', headers: {}, body: {} }, res, { auth: asUser('user_A'), consentStore: store });
-    assert.ok(![401, 403, 503].includes(res.code), `${name} got ${res.code}; it should be past the gate (400/500 from later checks)`);
-    assert.notEqual(res.body?.code, 'consent_required', name);
-  }
+test('AI generation with consent goes past the privacy gate', async () => {
+  const store = createMemoryConsentStore();
+  await accept(store, 'user_A');
+  const res = mkRes();
+  await generateHandler({ method: 'POST', headers: {}, body: {} }, res, { auth: asUser('user_A'), consentStore: store });
+  assert.ok(![401, 403, 503].includes(res.code), `got ${res.code}; it should be past the gate (400/500 from later checks)`);
+  assert.notEqual(res.body?.code, 'consent_required');
 });
 
 test('AI routes: another user\'s consent does not open the gate for this user', async () => {
