@@ -1,6 +1,7 @@
 export default {
   spxWizard: {
     waiting: {
+      narrator: "The story dragon says",
       preparing: "Getting your story ready",
       outline: "Sketching the story’s beginning, middle and end",
       editing: "Polishing the story so the pages flow together",

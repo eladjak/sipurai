@@ -65,6 +65,22 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+describe("owner workspace navigation", () => {
+  it("links the owner to the unified print tab when enabled, and the standalone proof otherwise", async () => {
+    vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
+    vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "true");
+    const view = open();
+    const edit = await screen.findByRole("link", { name: "bookView.editAdvanced" });
+    expect(edit).toHaveAttribute("href", "/BookCreation?id=demo");
+    expect(edit.querySelector("button")).toHaveClass("flex", "min-h-11");
+    expect(screen.getByRole("link", { name: /print/i })).toHaveAttribute("href", "/BookCreation?id=demo&tab=print");
+    view.unmount();
+    vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
+    open();
+    expect(await screen.findByRole("link", { name: /print/i })).toHaveAttribute("href", "/PrintEdition?id=demo");
+  });
+});
+
 describe("reader recovery", () => {
   it("starts once, reports verified progress, and keeps manual retry after a failure and fresh visit", async () => {
     let previousRun;

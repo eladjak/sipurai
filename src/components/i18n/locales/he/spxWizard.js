@@ -1,6 +1,7 @@
 export default {
   spxWizard: {
     waiting: {
+      narrator: "דרקון הסיפורים מספר",
       preparing: "מתכוננים לכתוב את הסיפור",
       outline: "מתכננים את ההתחלה, האמצע והסוף",
       editing: "מלטשים את הסיפור כדי שהעמודים יתחברו",
