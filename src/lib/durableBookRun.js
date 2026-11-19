@@ -2,6 +2,7 @@ import {
   normalizeOutline,
   generateBookIncremental,
   callOutline,
+  resolveBookTitle,
 } from "./bookGeneration";
 import { buildRecipe } from "./bookRecipe";
 import { normalizePages, isPageReady, isPageIllustrated } from "./bookProgress";
@@ -76,9 +77,7 @@ export async function generateDurableBook({
   if (fresh) {
     const outline = await callOutline(ai.InvokeLLM, recipe);
     recipe.applyCastSheet?.(outline.cast);
-    const title = recipe.sanitize(
-      recipe.approvedTitle || outline.title || recipe.bookFields.title,
-    );
+    const title = resolveBookTitle(recipe, outline.title);
     const plan = normalizeOutline(outline.outline, recipe.pageCount);
     seed = { recipe: recipe.checkpointInputs(), plan };
     createBook = { ...recipe.bookFields, title, total_pages: plan.length };

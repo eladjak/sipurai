@@ -203,6 +203,22 @@ describe("durable book generation", () => {
     });
     expect(reserveBookSlot).not.toHaveBeenCalled();
   });
+  it("publishes an outline's pointed title only when the family wording matches", async () => {
+    const f = fixture();
+    const ai = makeAI();
+    const pointed = "הֶחָבֵר הַנִּסְתָּר";
+    ai.InvokeLLM.mockResolvedValueOnce({
+      title: pointed,
+      outline: [{ description: "Beginning" }, { description: "Ending" }],
+      cast: [],
+    });
+    const draft = structuredClone(inputs);
+    draft.bookData.language = "hebrew";
+    draft.bookData.title = "החבר הנסתר";
+    await run(f, ai, { recipe: buildRecipe(draft) });
+    expect(f.storage.acquire.mock.calls[0][0].createBook.title.normalize("NFC")).toBe(pointed.normalize("NFC"));
+    expect(f.book.title.normalize("NFC")).toBe(pointed.normalize("NFC"));
+  });
   it("fences an overlapping second device while first device is editing", async () => {
     const f = fixture(),
       ai = makeAI();

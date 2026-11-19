@@ -840,7 +840,7 @@ function BookReader({ bookId, user }) {
 
         {isOwner && (
           <div className="mx-auto flex max-w-7xl px-4">
-            <Link className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:underline focus-visible:outline focus-visible:outline-2 ${nightMode ? "text-purple-200" : "text-purple-700"}`} to={isUnifiedBookEditor() ? `${createPageUrl("BookCreation")}?id=${encodeURIComponent(book.id)}&tab=print` : printEditionUrl(book.id)}>
+            <Link className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:underline focus-visible:outline focus-visible:outline-2 ${nightMode ? "text-purple-200" : "text-purple-700"}`} to={isUnifiedBookEditor() && book.status === "complete" ? `${createPageUrl("BookCreation")}?id=${encodeURIComponent(book.id)}&tab=print` : printEditionUrl(book.id)}>
               <Printer aria-hidden="true" className="h-4 w-4" />{editionLabels(i18nIsRTL).title}
             </Link>
           </div>

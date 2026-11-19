@@ -69,6 +69,7 @@ describe("owner workspace navigation", () => {
   it("links the owner to the unified print tab when enabled, and the standalone proof otherwise", async () => {
     vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
     vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
+    mocks.getBook.mockResolvedValue({ ...privateBook, status: "complete" });
     const view = open();
     const edit = await screen.findByRole("link", { name: "bookView.editAdvanced" });
     expect(edit).toHaveAttribute("href", "/BookCreation?id=demo");
@@ -76,6 +77,13 @@ describe("owner workspace navigation", () => {
     expect(screen.getByRole("link", { name: /print/i })).toHaveAttribute("href", "/BookCreation?id=demo&tab=print");
     view.unmount();
     vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "false");
+    open();
+    expect(await screen.findByRole("link", { name: /print/i })).toHaveAttribute("href", "/PrintEdition?id=demo");
+  });
+
+  it("keeps the standalone print building state available for partial books", async () => {
+    vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
+    vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
     open();
     expect(await screen.findByRole("link", { name: /print/i })).toHaveAttribute("href", "/PrintEdition?id=demo");
   });

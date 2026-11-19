@@ -74,6 +74,11 @@ export const IMAGE_FAILED_PREFIX = '[Image generation failed] ';
  * @property {(result: Object) => string} readPageText  Pull display text out of an LLM result.
  */
 
+/** @param {GenerationRecipe} recipe @param {string | undefined} candidate */
+export function resolveBookTitle(recipe, candidate) {
+  return recipe.sanitize(recipe.selectTitle?.(candidate) || recipe.approvedTitle || candidate || recipe.bookFields.title);
+}
+
 /**
  * Build or continue a book.
  *
@@ -205,7 +210,7 @@ export async function generateBookIncremental({
       const entries = normalizeOutline(outline?.outline, recipe.pageCount);
       recipe.applyCastSheet?.(outline?.cast);
       storyPlan = entries;
-      const title = recipe.sanitize(recipe.selectTitle?.(outline?.title) || recipe.approvedTitle || outline?.title || recipe.bookFields.title);
+      const title = resolveBookTitle(recipe, outline?.title);
 
       // The row is written before any page exists — unavoidable, since pages
       // need a book_id. `total_pages` is set in the same statement so that a
