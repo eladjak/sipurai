@@ -730,9 +730,6 @@ export default {
     language: "שפת הממשק",
     defaultStoryLanguage: "שפת ברירת מחדל לסיפורים",
     notifications: "התראות",
-    audio: "הגדרות אודיו",
-    audioEnabled: "הפעל קריינות אודיו",
-    audioSpeed: "מהירות קריינות",
     darkMode: "מצב כהה",
     textDensity: "צפיפות טקסט",
     fontSize: "גודל גופן",
@@ -820,30 +817,15 @@ export default {
     logoutConfirmDesc: "תצא מהחשבון שלך. תוכל להתחבר מחדש בכל עת.",
     logoutCancel: "ביטול",
     logoutConfirmBtn: "יציאה",
-    audioSpeeds: {
-      slow: "איטי",
-      normal: "רגיל",
-      fast: "מהיר",
-      veryFast: "מהיר מאוד"
-    },
     accessibility: {
       title: "נגישות",
       description: "התאם הגדרות כדי להפוך את האפליקציה לנגישה יותר",
-      audioNarration: "הקראה קולית",
-      audioDescription: "אפשר הקראה אוטומטית של ספרים",
       fontSize: "גודל גופן",
-      audioSpeed: "מהירות שמע",
       fontSizes: {
         small: "קטן",
         medium: "בינוני",
         large: "גדול",
         xlarge: "גדול במיוחד"
-      },
-      audioSpeeds: {
-        slow: "איטי (0.75x)",
-        normal: "רגיל (1x)",
-        fast: "מהיר (1.25x)",
-        veryFast: "מהיר מאוד (1.5x)"
       }
     }
   },
@@ -891,18 +873,6 @@ export default {
       title: "ספר לא נמצא",
       description: "הספר שאתה מחפש אולי הוסר או לא קיים.",
       goToLibrary: "עבור לספרייה"
-    },
-    tts: {
-      readAloud: "הקרא בקול",
-      read: "הקרא",
-      resume: "המשך",
-      pause: "השהה",
-      stop: "עצור",
-      slower: "האט",
-      faster: "מהר",
-      slow: "איטי",
-      normal: "רגיל",
-      fast: "מהיר"
     },
     navigation: {
       previous: "הקודם",
@@ -2049,15 +2019,6 @@ export default {
       image: "יצירת תמונות",
       video: "יצירת וידאו",
       audio: "יצירת אודיו"
-    },
-    audio: {
-      narration: "קריינות",
-      music: "מוזיקה ואפקטים",
-      selectVoice: "בחר קול",
-      voiceCloning: "שיבוט קולי (מקצועי)",
-      voiceCloningDesc: "העלה דגימה והשתמש בקול שלך!",
-      uploadVoiceSample: "העלה דגימת קול",
-      poweredBy: "ההקראה מופקת על ידי OpenAI או Google, לפי הקול שנבחר"
     },
     model: {
       free: "חינם",

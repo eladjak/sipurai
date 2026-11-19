@@ -8,7 +8,8 @@ const maxImage = 15 * chunkSize;
 const maxBook = 160 * chunkSize;
 
 async function request(url, signal, payload) {
-  const headers = await getApiAuthHeaders();
+  const headers = await bounded(signal, 15_000, () => getApiAuthHeaders());
+  signal.throwIfAborted();
   /** @type {RequestInit} */
   const init = { headers, signal, credentials: 'same-origin', cache: 'no-store', redirect: 'error' };
   if (payload) {
@@ -54,6 +55,28 @@ function pause(ms, signal) {
   });
 }
 
+// Abort transport and settle even when an SDK call (such as auth) ignores abort.
+function bounded(parent, ms, action) {
+  parent.throwIfAborted();
+  const controller = new AbortController();
+  const cancel = () => controller.abort(parent.reason);
+  const timeout = setTimeout(() => controller.abort(Object.assign(new Error('Proof request timed out'), {
+    code: 'proof_timeout',
+  })), ms);
+  parent.addEventListener('abort', cancel, { once: true });
+  const signal = controller.signal;
+  const aborted = new Promise((_, reject) => {
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+  });
+  return Promise.race([Promise.resolve().then(() => {
+    signal.throwIfAborted();
+    return action(signal);
+  }), aborted]).finally(() => {
+    clearTimeout(timeout);
+    parent.removeEventListener('abort', cancel);
+  });
+}
+
 async function whenAvailable(operation, signal) {
   const deadline = Date.now() + 120000;
   for (;;) {
@@ -73,19 +96,39 @@ async function digestBlob(blob) {
 export function createProofClient() {
   // Scope cached private bytes to this open owner/book. Keep only the current artwork.
   const cache = new Map();
-  return async function renderProof(bookId, manifest, sources, signal, expectedRevision = 0) {
+  return async function renderProof(bookId, manifest, sources, parent, expectedRevision = 0, onStage = () => {}) {
+    parent.throwIfAborted();
+    const controller = new AbortController();
+    const cancel = () => controller.abort(parent.reason);
+    parent.addEventListener('abort', cancel, { once: true });
+    try {
+      return await compose(bookId, manifest, sources, controller, expectedRevision, onStage);
+    } finally {
+      controller.abort();
+      parent.removeEventListener('abort', cancel);
+    }
+  };
+
+  async function compose(bookId, manifest, sources, controller, expectedRevision, onStage) {
+    const { signal } = controller;
     const current = new Set(sources);
     for (const key of cache.keys()) if (!current.has(key)) cache.delete(key);
+    onStage('artwork');
     const assets = [];
     let total = 0;
     for (const source of sources) {
       signal.throwIfAborted();
       let asset = cache.get(source);
       if (!asset) {
-        const blob = await readEditionArt(source, signal);
-        if (!blob.size || blob.size > maxImage || total + blob.size > maxBook) throw new Error('Artwork too large');
-        const sha256 = await digestBlob(blob);
-        asset = { blob, sha256, size: blob.size };
+        asset = await bounded(signal, 45_000, async requestSignal => {
+          const blob = await readEditionArt(source, requestSignal);
+          requestSignal.throwIfAborted();
+          if (!blob.size || blob.size > maxImage || total + blob.size > maxBook) throw new Error('Artwork too large');
+          return { blob, sha256: await digestBlob(blob), size: blob.size };
+        }).catch(error => {
+          if (signal.aborted || error.code === 'proof_timeout') throw error;
+          throw Object.assign(new Error('Illustration unavailable', { cause: error }), { code: 'proof_artwork' });
+        });
         signal.throwIfAborted();
         if (source.startsWith('data:')) cache.set(source, asset);
       }
@@ -93,37 +136,39 @@ export function createProofClient() {
       if (total > maxBook) throw new Error('Book too large');
       assets.push(asset);
     }
-    const post = async body => (await request(endpoint, signal, { ...body, bookId })).json();
+    const post = (body, timeout) => bounded(signal, timeout,
+      async requestSignal => (await request(endpoint, requestSignal, { ...body, bookId })).json());
     const descriptors = assets.map(({ sha256, size }) => ({ sha256, size }));
-    const { job, session, missing } = await whenAvailable(() => post({ op: 'prepare', manifest, expectedRevision, assets: descriptors }), signal);
+    onStage('prepare');
+    const { job, session, missing } = await whenAvailable(() => post({ op: 'prepare', manifest, expectedRevision, assets: descriptors }, 305_000), signal);
+    if (missing.length) onStage('upload');
     await workers(missing, 2, async index => {
       const { blob } = assets[index - 1];
       for (let start = 0, part = 0; start < blob.size; start += chunkSize, part++) {
         signal.throwIfAborted();
-        const data = await base64(blob.slice(start, start + chunkSize));
-        await post({ op: 'upload', job, session, index, part, data });
+        const data = await bounded(signal, 15_000, () => base64(blob.slice(start, start + chunkSize)));
+        await post({ op: 'upload', job, session, index, part, data }, 45_000);
       }
     });
     assets.length = 0;
-    const { proof } = await whenAvailable(() => post({ op: 'render', job, session }), signal);
+    onStage('render');
+    const { proof } = await whenAvailable(() => post({ op: 'render', job, session }, 155_000), signal);
+    onStage('preview');
     const fileUrl = file => endpoint + '?' + new URLSearchParams({ bookId, job, session, file });
     const urls = new Map();
     const revoke = () => { for (const url of urls.values()) URL.revokeObjectURL(url); };
     try {
       const files = [proof.coverFile, proof.insideFile, ...proof.pages.map(page => page.file)].filter(Boolean);
-      // Fail together: a late image fetch cannot leak a blob URL after cleanup.
-      const results = await Promise.allSettled(Array.from({ length: Math.min(4, files.length) }, async () => {
-        while (files.length) {
-          const file = files.shift();
-          const response = await request(fileUrl(file), signal);
-          const blob = await response.blob();
-          signal.throwIfAborted();
-          if (!blob.size || !blob.type.startsWith('image/')) throw new Error('Invalid proof page');
-          urls.set(file, URL.createObjectURL(blob));
-        }
-      }));
-      const failure = results.find(result => result.status === 'rejected');
-      if (failure) throw failure.reason;
+      // Each worker checks the attempt signal before creating an object URL.
+      await workers(files, 4, async file => {
+        const blob = await bounded(signal, 45_000, async requestSignal => {
+          const response = await request(fileUrl(file), requestSignal);
+          return response.blob();
+        });
+        signal.throwIfAborted();
+        if (!blob.size || !blob.type.startsWith('image/')) throw new Error('Invalid proof page');
+        urls.set(file, URL.createObjectURL(blob));
+      });
       const pdfs = { ...proof.pdfs };
       if (proof.insideFile && proof.pdfSha256['cover-with-inside.pdf']) pdfs.inside = 'cover-with-inside.pdf';
       async function* open(file, signal) {
@@ -164,8 +209,9 @@ export function createProofClient() {
         },
       };
     } catch (error) {
+      controller.abort();
       revoke();
       throw error;
     }
-  };
+  }
 }

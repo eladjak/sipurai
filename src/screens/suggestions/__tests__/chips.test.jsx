@@ -26,8 +26,6 @@ it('consumes a reader idea into the editable topic without starting', async () =
 const readerNavigation = vi.hoisted(() => vi.fn());
 vi.mock('@/components/i18n/i18nProvider', () => ({useI18n: () => ({t:key => key,language:'english',isRTL:false})}));
 vi.mock('react-router-dom', () => ({useParams: () => ({id:'1'}),useNavigate: () => readerNavigation}));
-vi.mock('@/hooks/useTTS', () => ({useTTS: () => ({stop:vi.fn()})}));
-vi.mock('@/components/bookReader/TTSControls', () => ({getStoredTTSEngine: () => 'fixture'}));
 vi.mock('@/screens/reader/useNightReader', () => ({useNightReader: () => ({book:{status:'complete',title:'Moon'},pages:[{text_content:'A page'}],index:0,setIndex:vi.fn(),state:'complete'})}));
 it('keeps the last page inside the reader with no suggestion or outgoing link', async () => {
  localStorage.clear(); readerNavigation.mockClear();

@@ -83,7 +83,20 @@ export function moveEdition(workspace, offset) {
 
 export function restoreEdition(workspace, revision) {
   const match = workspace.versions.find(item => item.revision === revision);
-  return match ? editEdition(workspace, () => match.draft) : workspace;
+  if (!match) return workspace;
+  const restored = editEdition(workspace, () => match.draft);
+  if (restored === workspace) return workspace;
+  const saved = workspace.versions.find(item => item.revision === workspace.revision);
+  return { ...restored, dirty: !saved || !sameDraft(match.draft, saved.draft) };
+}
+
+function sameDraft(left, right) {
+  if (Object.is(left, right)) return true;
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object'
+      || Array.isArray(left) !== Array.isArray(right)) return false;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length
+    && keys.every(key => Object.hasOwn(right, key) && sameDraft(left[key], right[key]));
 }
 
 /** The existing owner+revision compare-and-swap persists one editor and history together. */

@@ -34,6 +34,7 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
   const client = useMemo(() => createProofClient(), [book.id]);
   const [attempt, retry] = useState(0);
   const [result, setResult] = useState(null);
+  const [progress, setProgress] = useState(null);
   const [downloadStatus, setDownloadStatus] = useState('');
   const downloadRequest = useRef(null);
   const lastProof = useRef(null);
@@ -61,7 +62,9 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
     // Edits invalidate the old proof immediately. Compose after the parent pauses typing.
     const timer = setTimeout(async () => {
       try {
-        current = await client(book.id, input.manifest, input.sources, controller.signal, input.revision);
+        current = await client(book.id, input.manifest, input.sources, controller.signal, input.revision, stage => {
+          if (!controller.signal.aborted) setProgress({ input, attempt, stage });
+        });
         if (controller.signal.aborted) current.revoke();
         else {
           lastProof.current?.revoke();
@@ -76,31 +79,49 @@ export default function ProofWorkspace({ book, pages, edition, unsaved = false, 
       clearTimeout(timer);
       controller.abort();
       downloadRequest.current?.abort();
+      downloadRequest.current = null;
     };
   }, [book.id, complete, input, client, attempt]);
   const ready = result?.input === input && result?.attempt === attempt;
   const proof = (ready ? result.proof : lastProof.current) || null;
   const incomplete = !complete || input.invalid || input.missing?.length > 0;
-  const status = incomplete ? 'incomplete' : ready ? (proof ? 'ready' : 'error') : (result ? 'updating' : 'loading');
+  const status = incomplete ? 'incomplete' : ready ? (proof ? 'ready' : 'error') : (proof ? 'updating' : 'loading');
+  const stage = progress?.input === input && progress?.attempt === attempt ? progress.stage : 'queued';
+  const error = ready ? result.error : null;
+  const failure = {
+    proof_timeout: t('print.proofWorkspace.failures.proof_timeout'),
+    proof_artwork: t('print.proofWorkspace.failures.proof_artwork'),
+    proof_session_expired: t('print.proofWorkspace.failures.proof_session_expired'),
+  }[error];
+  const stageLabel = {
+    queued: t('print.proofWorkspace.stages.queued'),
+    artwork: t('print.proofWorkspace.stages.artwork'),
+    prepare: t('print.proofWorkspace.stages.prepare'),
+    upload: t('print.proofWorkspace.stages.upload'),
+    render: t('print.proofWorkspace.stages.render'),
+    preview: t('print.proofWorkspace.stages.preview'),
+  }[stage];
   const again = () => retry(n => n + 1);
   async function download(key) {
-    if (status !== 'ready' || !proof || downloadStatus === 'busy') return;
+    if (status !== 'ready' || !proof || downloadRequest.current) return;
     const controller = new AbortController();
     downloadRequest.current = controller;
     setDownloadStatus('busy');
     try {
       if (!verifyHandoff || (key === 'handoff' && !handoffReady)) throw new Error('Review required');
       await proof.download(key, edition.revision, handoffReady, verifyHandoff, controller.signal);
-      setDownloadStatus('');
+      if (!controller.signal.aborted) setDownloadStatus('');
     }
     catch (error) {
       if (!controller.signal.aborted) setDownloadStatus(error.name === 'AbortError' ? '' : error.message === 'conflict' ? 'conflict' : 'error');
+    } finally {
+      if (downloadRequest.current === controller) downloadRequest.current = null;
     }
   }
   return (
-    <div>
+    <div className="min-w-0">
       {input.paperChoiceRequired && <p role="alert" className="mb-3 text-sm">{t('print.paperChoice.legacyPaper')}</p>}
-      <ProofViewer proof={proof} status={status} error={ready ? result.error : null} onRetry={again} onEdit={onEdit}
+      <ProofViewer proof={proof} status={status} failure={failure} progress={stageLabel} onRetry={again} onEdit={onEdit}
         onDownload={download} isRTL={isRTL} cover={edition.cover} paper={edition.paper} />
       {status === 'ready' && handoffReady && verifyHandoff && (
         <button className="proof-control mt-2" type="button" disabled={downloadStatus === 'busy'} onClick={() => download('handoff')}>

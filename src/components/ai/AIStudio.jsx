@@ -18,13 +18,11 @@ import {
   Wand2,
   Rocket,
   Type,
-  Plus,
   RotateCw // New import for spinner icon
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input'; // New import for Input component
 import ModelSelector, { getRoutingIdForUiModel, isUiModelWired } from './ModelSelector';
 import SmartAutoSelector from './SmartAutoSelector';
@@ -32,9 +30,6 @@ import TextOverlay from './TextOverlay'; // Import the new component
 import { GenerateImage, UploadFile } from '@/integrations/Core'; // New imports for integrations
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { pickBestModel } from '@/lib/smartModelPicker';
-
-// The "voice cloning" card has no working feature behind it. Off by default so the UI does not promise it.
-const VOICE_CLONING_ENABLED = import.meta.env.VITE_VOICE_CLONING_ENABLED === 'true';
 
 const LS_KEY_MANUAL_PICK = 'sipurai_last_manual_model';
 const LS_KEY_AUTO_MODE = 'sipurai_ai_auto_mode';
@@ -48,7 +43,6 @@ export default function AIStudio({
 }) {
   const [selectedCategory, setSelectedCategory] = useState("image");
   const [mode, setMode] = useState('simple');
-  const [selectedVoice, setSelectedVoice] = useState('adam');
   const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
   const [showOverlay, setShowOverlay] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false); // New state for loading
@@ -95,21 +89,6 @@ export default function AIStudio({
       </CardContent>
     </Card>
   );
-
-  const voices = [
-    { id: 'adam', name: 'Adam (Male, Calm)', tier: 'free' },
-    { id: 'rachel', name: 'Rachel (Female, Expressive)', tier: 'free' },
-    { id: 'david', name: 'David (Male, Deep)', tier: 'creator' },
-    { id: 'sarah', name: 'Sarah (Female, Storyteller)', tier: 'creator' },
-    { id: 'liam', name: 'Liam (Male, Professional)', tier: 'pro' }
-  ];
-
-  const canAccessVoice = (voice) => {
-    const tierHierarchy = { free: 0, creator: 1, pro: 2, premium: 3 };
-    const userTierLevel = tierHierarchy[userTier] || 0;
-    const voiceTierLevel = tierHierarchy[voice.tier] || 0;
-    return userTierLevel >= voiceTierLevel;
-  }
 
   // Wrap onModelChange so manual picks persist as "smart-default" for next session.
   const handleManualModelChange = (model) => {
@@ -399,60 +378,14 @@ export default function AIStudio({
         </TabsContent>
 
         <TabsContent value="audio" className="mt-6">
-          <Tabs defaultValue="narration" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="narration">{t("aiStudio.audio.narration")}</TabsTrigger>
-              <TabsTrigger value="music">{t("aiStudio.audio.music")}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="narration" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("aiStudio.audio.selectVoice")}</CardTitle>
-                  <CardDescription>{t("aiStudio.audio.poweredBy")}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("aiStudio.audio.selectVoice")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {voices.map(voice => (
-                        <SelectItem key={voice.id} value={voice.id} disabled={!canAccessVoice(voice)}>
-                          {voice.name} {!canAccessVoice(voice) && `(${t(`aiStudio.model.${voice.tier}`)})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {/* Voice cloning is not built. The card stays hidden until it is (VITE_VOICE_CLONING_ENABLED=true). */}
-                  {VOICE_CLONING_ENABLED && (
-                  <Card className="bg-gray-50 dark:bg-gray-800/50">
-                    <CardHeader>
-                      <CardTitle className="text-base">{t("aiStudio.audio.voiceCloning")}</CardTitle>
-                      <CardDescription>{t("aiStudio.audio.voiceCloningDesc")}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button disabled={userTier !== 'pro' && userTier !== 'premium'}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        {t("aiStudio.audio.uploadVoiceSample")}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="music" className="mt-4">
-               <ModelSelector
-                category="music"
-                selectedModel={currentModel}
-                onModelChange={onModelChange}
-                userTier={userTier}
-                credits={credits}
-                currentLanguage={currentLanguage}
-              />
-            </TabsContent>
-          </Tabs>
+          <ModelSelector
+            category="music"
+            selectedModel={currentModel}
+            onModelChange={onModelChange}
+            userTier={userTier}
+            credits={credits}
+            currentLanguage={currentLanguage}
+          />
         </TabsContent>
       </Tabs>
     </div>
