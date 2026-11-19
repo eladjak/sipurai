@@ -20,5 +20,17 @@ describe('picture-book generation recipe', () => {
     expect(buildRecipe({ bookData }).outlinePrompt).toContain('הֶחָבֵר הַנִּסְתָּר');
     expect(buildRecipe({ bookData: { title: 'The Hidden Friend', language: 'english' } }).outlinePrompt).not.toContain('נקד');
     expect(buildRecipe({ bookData }).approvedTitle).toBe(bookData.title);
+    expect(buildRecipe({ bookData: { title: 'החבר הנסתר', language: 'hebrew' } }).selectTitle('הֶחָבֵר הַנִּסְתָּר')).toBe('הֶחָבֵר הַנִּסְתָּר');
+    expect(buildRecipe({ bookData: { title: 'The Friend', language: 'english' } }).selectTitle('Another title')).toBe('The Friend');
   });
+});
+
+it('uses stable story-specific cover framing and a different opening framing', () => {
+  const inputs = { bookData: { title: 'אורי והדרקון', language: 'hebrew' }, scenes: [{ description: 'A dragon hides under a bridge' }] };
+  const first = buildRecipe(inputs);
+  const resumed = buildRecipe(inputs);
+  expect(first.coverPrompt).toBe(resumed.coverPrompt);
+  expect(first.imagePrompt({ image_prompt: 'bridge' }, 1)).toBe(resumed.imagePrompt({ image_prompt: 'bridge' }, 1));
+  const covers = Array.from({ length: 20 }, (_, i) => buildRecipe({ ...inputs, bookData: { ...inputs.bookData, title: `Story ${i}` } }).coverPrompt.match(/Use (.*?) and a silhouette/)[1]);
+  expect(new Set(covers).size).toBeGreaterThan(1);
 });

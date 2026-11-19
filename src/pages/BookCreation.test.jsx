@@ -69,14 +69,14 @@ beforeEach(() => {
   mocks.book.mockImplementation(async (id) => book(id));
   mocks.pages.mockResolvedValue([]);
   mocks.collaborators.mockResolvedValue([]);
-  vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "true");
+  vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
 });
 
 afterEach(() => { cleanup(); vi.unstubAllEnvs(); });
 
 describe("unified owner editor", () => {
   it("leaves the legacy editor and URL alone when the flag is off", async () => {
-    vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
+    vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "false");
     open("/BookCreation?id=first&tab=print");
     expect(await screen.findByText("Editor tools")).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "Print proof" })).toBeNull();

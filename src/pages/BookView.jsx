@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Book } from "@/entities/Book";
+import { isUnifiedBookEditor } from "@/lib/flags";
 import { Page } from "@/entities/Page";
 import { PublicBook, PublicPage } from "@/entities/PublicBook";
 import { createPageUrl } from "@/utils";
@@ -824,7 +825,7 @@ function BookReader({ bookId, user }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className={`hidden md:flex items-center gap-2 rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-300`}
+                  className={`${isUnifiedBookEditor() ? "flex min-h-11" : "hidden md:flex"} items-center gap-2 rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-300`}
                 >
                   <PenTool className="h-4 w-4" />
                   {t('bookView.editAdvanced')}
@@ -839,7 +840,7 @@ function BookReader({ bookId, user }) {
 
         {isOwner && (
           <div className="mx-auto flex max-w-7xl px-4">
-            <Link className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:underline focus-visible:outline focus-visible:outline-2 ${nightMode ? "text-purple-200" : "text-purple-700"}`} to={printEditionUrl(book.id)}>
+            <Link className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:underline focus-visible:outline focus-visible:outline-2 ${nightMode ? "text-purple-200" : "text-purple-700"}`} to={isUnifiedBookEditor() && book.status === "complete" ? `${createPageUrl("BookCreation")}?id=${encodeURIComponent(book.id)}&tab=print` : printEditionUrl(book.id)}>
               <Printer aria-hidden="true" className="h-4 w-4" />{editionLabels(i18nIsRTL).title}
             </Link>
           </div>

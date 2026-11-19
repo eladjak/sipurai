@@ -7,3 +7,6 @@ export const NEW_SHELL_ENV_NAME = "VITE_NEW_SHELL";
 const NEW_SHELL = import.meta.env.VITE_NEW_SHELL === "true";
 
 export const isNewShell = () => NEW_SHELL;
+
+// The owner workspace is on by default. Set exactly "false" to roll back.
+export const isUnifiedBookEditor = () => import.meta.env.VITE_UNIFIED_BOOK_EDITOR !== "false";

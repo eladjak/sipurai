@@ -18,6 +18,7 @@ describe.each([
     const view = render(<GenerationWaiting t={t} compact message={t("spxWizard.waiting.drawing")} counts={counts} />);
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent(drawing);
+    expect(status).toHaveTextContent(t("spxWizard.waiting.narrator"));
     expect(status).toHaveTextContent(words);
     expect(status).toHaveTextContent(artwork);
     expect(status.querySelector("svg")).toHaveClass("motion-safe:animate-pulse");
@@ -26,6 +27,7 @@ describe.each([
     view.rerender(<GenerationWaiting t={t} compact message="Paused" counts={counts} active={false} />);
     expect(status).toHaveTextContent("Paused");
     expect(status.querySelector("svg")).toBeNull();
+    expect(status).not.toHaveTextContent(t("spxWizard.waiting.narrator"));
   });
 
   it("announces the stage before counts exist", () => {

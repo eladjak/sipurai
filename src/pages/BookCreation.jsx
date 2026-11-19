@@ -1,3 +1,4 @@
+import { isUnifiedBookEditor } from "@/lib/flags";
 import { imageAspectForBook } from "@/lib/printSpec";
 
 import { lazy, Suspense, useState, useEffect, useCallback } from "react";
@@ -58,7 +59,7 @@ function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearch
   const { toast } = useToast();
   const { language: uiLanguage, isRTL } = useI18n();
   const gamification = useGamification();
-  const unifiedEditor = import.meta.env.VITE_UNIFIED_BOOK_EDITOR === "true";
+  const unifiedEditor = isUnifiedBookEditor();
   const editorCopy = getBookTranslation(uiLanguage);
 
   // Core state
@@ -857,7 +858,7 @@ function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearch
                 key={id}
                 value={id}
                 className={unifiedEditor
-                  ? "min-h-11 shrink-0 gap-1.5 rounded-xl px-3 text-sm focus-visible:ring-inset data-[state=active]:bg-purple-700 data-[state=active]:text-white sm:gap-2 sm:px-5"
+                  ? "min-h-11 shrink-0 gap-1.5 rounded-xl px-3 text-sm focus-visible:ring-inset data-[state=active]:bg-purple-700 data-[state=active]:text-white data-[state=active]:underline data-[state=active]:decoration-2 data-[state=active]:underline-offset-4 sm:gap-2 sm:px-5"
                   : "gap-2 rounded-xl px-5 py-2.5 text-sm text-gray-600 dark:text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"}
               >
                 <Icon className={unifiedEditor ? "hidden h-4 w-4 shrink-0 sm:block" : "h-4 w-4 shrink-0"} aria-hidden="true" />

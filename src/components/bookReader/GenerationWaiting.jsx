@@ -21,6 +21,7 @@ export default function GenerationWaiting({ t, message, title = "", counts = nul
       </div>
       <div className="min-w-0">
         {title && <p className="mb-2 text-xl font-bold">{title}</p>}
+        {active && <p className="mb-1 text-xs font-bold text-purple-700 dark:text-purple-200">{t("spxWizard.waiting.narrator")}</p>}
         <p className={compact ? "text-sm font-semibold" : "text-base font-medium"}>{message}</p>
         {counts && (
           <div className={compact ? "" : "mt-3 flex justify-center"}>
