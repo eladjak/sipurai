@@ -10,6 +10,7 @@ const VENV = '/vercel/sandbox/print-proof-venv';
 const PYTHON = `${VENV}/bin/python`;
 const ENGINE = [
   'bootstrap.sh', 'proof_session.py', 'proof_job.py', 'layout.py', 'design.py', 'render.py', 'requirements.txt',
+  'brand/moon-book-light-symbol.svg', 'brand/moon-book-dark-symbol.svg',
   'fonts/DavidLibre-Medium.ttf', 'fonts/Rubik.ttf', 'fonts/Fredoka.ttf',
 ];
 const PACKAGE_NETWORK = { allow: ['archive.ubuntu.com', 'security.ubuntu.com', 'pypi.org', 'files.pythonhosted.org'] };

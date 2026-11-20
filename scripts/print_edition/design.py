@@ -20,11 +20,10 @@ FRIENDLY = FONT_DIR / "Fredoka.ttf"
 PT_PER_MM = 72 / 25.4
 INK, CREAM, PAPER = "#24243b", "#fff4e1", "#f5e8d7"
 NIGHT, GOLD = "#262743", "#f7ce89"
-LOGO = """<svg viewBox="0 0 260 260" aria-label="סיפוראי">
-<rect width="260" height="260" rx="48" fill="#262743" />
-<g fill="none" stroke="#f7ce89" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 42)">
-<path d="M130 30C158 22 194 24 214 33V141C194 132 158 130 130 138ZM130 30C102 22 66 24 46 33V141C66 132 102 130 130 138ZM203 58L150 55M203 76L141 74M203 94L158 93M110 55L57 58M119 74L57 76M102 93L57 94"/>
-</g></svg>"""
+# Reuse the approved vector artwork in both proof previews and PDF output.
+BRAND_DIR = Path(__file__).with_name("brand")
+LOGO = (BRAND_DIR / "moon-book-light-symbol.svg").read_text(encoding="utf-8")
+DARK_LOGO = (BRAND_DIR / "moon-book-dark-symbol.svg").read_text(encoding="utf-8")
 
 
 @dataclass(frozen=True)
@@ -568,7 +567,9 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
     _, title_y, _, title_h = sizes[-1]["boxMm"]
     text(edition.creator, "cover-creator", title_x + 5, title_y + title_h + 1.8,
          title_width - 10, 9 * scale_y, 17, 14, 1, display=True, color=GOLD)
-    cover += f'<div class="layer" style="{mm_box(15, height - 29, 13, 13)}">{LOGO}</div>'
+    # A dark plate keeps the transparent mark legible over arbitrary cover art.
+    cover += solid(13, height - 31, 17, 17, NIGHT, 2)
+    cover += f'<div class="layer" style="{mm_box(15, height - 29, 13, 13)}">{DARK_LOGO}</div>'
 
     back_x = back_start + 19 * scale_x
     back_w = geometry.width - 38 * scale_x
@@ -585,7 +586,7 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
     cover += solid(back_x, rule_y, back_w, .35, GOLD)
     logo_x = back_x
     logo_y = 178 * scale_y
-    cover += f'<div class="layer" style="{mm_box(logo_x, logo_y, 14, 14)}">{LOGO}</div>'
+    cover += f'<div class="layer" style="{mm_box(logo_x, logo_y, 14, 14)}">{DARK_LOGO}</div>'
     text("סיפוראי", "back-logo-text", logo_x + 14, logo_y, 29 * scale_x, 14,
          15, 12, 1, display=True, color=GOLD)
 

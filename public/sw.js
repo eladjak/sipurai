@@ -20,7 +20,7 @@
  * Bump CACHE_VERSION to make every device drop the caches of older versions on activation.
  */
 
-const CACHE_VERSION = 'sipurai-v2';
+const CACHE_VERSION = 'sipurai-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 

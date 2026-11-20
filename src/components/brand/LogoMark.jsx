@@ -1,28 +1,10 @@
-export function LogoMark({ className = "" }) {
+// The paths are the approved moon/book symbol; the lighter book is for dark surfaces.
+export function LogoMark({ className = "", variant = "light" }) {
   return (
-    <svg
-      viewBox="0 0 260 260"
-      aria-hidden="true"
-      focusable="false"
-      className={className}
-    >
-      <rect width="260" height="260" rx="48" fill="var(--sp-night-700, #263c4c)" />
-      <g
-        fill="none"
-        stroke="var(--sp-gold-400, #f4cc8f)"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        transform="translate(0 42)"
-      >
-        <path d="M130 30 C158 22 194 24 214 33 L214 141 C194 132 158 130 130 138 Z" />
-        <path d="M130 30 C102 22 66 24 46 33 L46 141 C66 132 102 130 130 138 Z" />
-        <path d="M130 30 L130 138" />
-        <path
-          opacity=".55"
-          d="M203 58 L150 55 M203 76 L141 74 M203 94 L158 93 M110 55 L57 58 M119 74 L57 76 M102 93 L57 94"
-        />
-      </g>
+    <svg viewBox="0 0 200 180" aria-hidden="true" focusable="false" className={className}>
+      <path fill="#ff9748" d="M100 94 C47 66 65 13 112 12 C88 29 87 55 107 65 C123 73 140 68 150 57 C151 75 143 86 136 96 L118 125Z" />
+      <path fill={variant === "dark" ? "#d993b6" : "#602046"} d="M13 103 C40 91 74 98 100 121 C126 98 160 91 187 103 L190 161 C153 150 123 150 100 171 C77 150 47 150 10 161Z" />
+      <path fill="none" stroke="#fff7eb" strokeWidth="8" strokeLinecap="round" d="M25 108 C58 102 86 116 100 140 C114 116 142 102 175 108" />
     </svg>
   );
 }
