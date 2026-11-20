@@ -1,5 +1,6 @@
+import { Wordmark } from "@/components/brand/Wordmark";
 import { Link } from 'react-router-dom';
-import { BookOpen, Heart, Mail } from 'lucide-react';
+import { Heart, Mail } from 'lucide-react';
 import { useI18n } from '@/components/i18n/i18nProvider';
 
 const FooterSection = () => {
@@ -28,8 +29,7 @@ const FooterSection = () => {
           {/* Logo + Description */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="h-7 w-7 text-purple-400" />
-              <span className="text-xl font-bold text-white">Sipurai</span>
+              <Wordmark language={isRTL ? "he" : "en"} variant="dark" />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
               {t('landing.footer.description')}
