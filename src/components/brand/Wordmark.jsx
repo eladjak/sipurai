@@ -9,7 +9,7 @@ export function Wordmark({ language = "he", size = "md", variant = "light" }) {
     <span
       role="img"
       aria-label={word}
-      className={`inline-flex items-center gap-2 font-sp-display font-semibold ${variant === "dark" ? "text-white" : "text-sp-ink-900"} ${sizes[size] || sizes.md}`}
+      className={`inline-flex items-center gap-2 font-sp-display font-semibold ${variant === "dark" ? "text-white" : variant === "plate" ? "text-[#602046]" : "text-sp-ink-900"} ${sizes[size] || sizes.md}`}
     >
       <LogoMark variant={variant} className={marks[size] || marks.md} />
       <span aria-hidden="true" dir={language === "en" ? "ltr" : "rtl"}>

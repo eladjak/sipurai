@@ -13,7 +13,7 @@ from PIL import Image
 from fontTools.ttLib import TTFont
 from pikepdf import ContentStreamInstruction, Name, Pdf, Rectangle, parse_content_stream, unparse_content_stream
 
-from design import BODY, FRIENDLY, balanced_lines, document, floating_style, panel
+from design import BODY, FRIENDLY, Art, DARK_LOGO, NIGHT, balanced_lines, compose_cover, document, floating_style, panel, solid
 from layout import load, normalize_quotes, plan, spine_for
 from render import build, verify_existing
 from weasyprint import HTML
@@ -210,6 +210,15 @@ class EditionTest(unittest.TestCase):
         self.single["panel"] = "cream"
         with self.assertRaises(ValueError):
             self.parse()
+
+    def test_front_cover_mark_has_backing_over_light_art(self):
+        edition = self.parse()
+        height = edition.geometry.cover_media(1.8)[1]
+        cover, _ = compose_cover(edition, 1.8, Art(self.root, 1))
+        html = cover[0]
+        plate = solid(13, height - 31, 17, 17, NIGHT, 2)
+        self.assertIn(plate, html)
+        self.assertLess(html.index(plate), html.index(DARK_LOGO))
 
     def test_parity_signature_folios_and_cover_spine(self):
         self.edition.update(scenes=[self.single, self.spread])

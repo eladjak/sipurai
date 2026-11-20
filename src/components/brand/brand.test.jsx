@@ -15,6 +15,15 @@ describe('moon and book identity', () => {
       expect(approved).toContain(`"${path.getAttribute('fill')}"`);
     }
   });
+  it('keeps the navigation wordmark dark on its light plate even in dark mode', () => {
+    render(<Wordmark variant="plate" />);
+    expect(screen.getByRole('img').className).toContain('text-[#602046]');
+  });
+  it('gives the favicon a light backing for dark browser tabs', () => {
+    const svg = readFileSync('public/favicon.svg', 'utf8');
+    expect(svg).toContain('<rect x="-2" y="-2" width="20" height="20" rx="4" fill="#fff7eb"/>');
+    expect(svg).toContain('fill="#602046"');
+  });
   it('keeps a single accessible name on the wordmark', () => {
     render(<Wordmark language="he" />);
     expect(screen.getByRole('img', { name: 'סיפוראי' })).toBeTruthy();

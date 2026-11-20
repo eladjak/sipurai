@@ -567,6 +567,8 @@ def compose_cover(edition: Edition, spine: float, art: Art) -> tuple[list[str], 
     _, title_y, _, title_h = sizes[-1]["boxMm"]
     text(edition.creator, "cover-creator", title_x + 5, title_y + title_h + 1.8,
          title_width - 10, 9 * scale_y, 17, 14, 1, display=True, color=GOLD)
+    # A dark plate keeps the transparent mark legible over arbitrary cover art.
+    cover += solid(13, height - 31, 17, 17, NIGHT, 2)
     cover += f'<div class="layer" style="{mm_box(15, height - 29, 13, 13)}">{DARK_LOGO}</div>'
 
     back_x = back_start + 19 * scale_x

@@ -78,8 +78,8 @@ const LandingNav = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="inline-flex min-h-12 items-center" aria-label="Sipurai">
-            <Wordmark language={language === 'english' || language === 'en' ? 'en' : 'he'} />
+          <Link to="/" className="inline-flex min-h-12 items-center rounded-xl bg-[#f8f1e3] px-2" aria-label="Sipurai">
+            <Wordmark language={language === 'english' || language === 'en' ? 'en' : 'he'} variant="plate" />
           </Link>
 
           {/* Desktop Nav Links */}
