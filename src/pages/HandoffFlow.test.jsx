@@ -1,3 +1,4 @@
+vi.mock("@/components/auth/AuthFeedback", () => ({ AuthFeedback: ({ children }) => children }));
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
