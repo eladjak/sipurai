@@ -71,7 +71,7 @@ export function getSelectedTopicLabel(selectedTopic, t) {
  * TopicStep - Step 1 of the wizard: Choose a story topic.
  * Illustrated choices, surprise ideas, and custom ideas.
  */
-export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, isRTL, language }) {
+export default function TopicStep({ ownerId, selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, isRTL, language }) {
   const { t } = useI18n();
   const isHebrew = language === "hebrew";
   const isYiddish = language === "yiddish";
@@ -112,11 +112,11 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
   }
 
   useEffect(() => {
-    if (!showSavedIdeas) return;
+    if (!showSavedIdeas || !ownerId) return;
     let ignore = false;
     async function loadSavedIdeas() {
       try {
-        const ideas = await StoryIdea.list("-created_date", 10);
+        const ideas = await StoryIdea.filter({ created_by: ownerId }, "-created_date", 10);
         if (ignore) return;
         setSavedIdeas(ideas);
         setSavedStatus("ready");
@@ -126,7 +126,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
     }
     void loadSavedIdeas();
     return () => { ignore = true; };
-  }, [showSavedIdeas, retryCount]);
+  }, [ownerId, showSavedIdeas, retryCount]);
 
   useEffect(() => {
     if (showCustomIdea && focusIdeaRef.current) {
@@ -205,7 +205,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
               <Shuffle size={16} aria-hidden="true" />
               {t("surpriseMe")}
             </Button>
-            <Button type="button" variant="outline" aria-expanded={showSavedIdeas} aria-controls={savedIdeasId}
+            <Button type="button" variant="outline" disabled={!ownerId} aria-expanded={showSavedIdeas} aria-controls={savedIdeasId}
               onClick={() => {
                 if (!showSavedIdeas) setSavedStatus("loading");
                 setReplacement(null);

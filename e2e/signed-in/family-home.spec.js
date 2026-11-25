@@ -3,7 +3,7 @@ import { clerk } from '@clerk/testing/playwright';
 import { CURRENT_POLICY_VERSION as policyVersion } from '../../api/_lib/policyVersion.js';
 import { hasCredentials, SKIP_REASON } from './credentials.js';
 
-// Authentication is real Clerk development. Book, page and consent responses are
+// Authentication is real Clerk development. Book, page, saved idea and consent responses are
 // synthetic, so the session cannot read or write a production family library.
 test.skip(!hasCredentials, SKIP_REASON);
 test.setTimeout(75_000);
@@ -19,7 +19,7 @@ const fixtureBook = {
 };
 
 async function installFixtures(page) {
-  const data = { books: [], fail: false, owner: null };
+  const data = { books: [], fail: false, owner: null, ideas: [], ideasFail: false, ideaOwners: [] };
   await page.addInitScript(() => {
     // XP is outside these journeys. Keep the shared dev family's metadata steady.
     const read = Storage.prototype.getItem;
@@ -48,6 +48,12 @@ async function installFixtures(page) {
       if (owner && data.fail) return route.fulfill({ status: 503, headers: cors, json: { message: 'Fixture outage' } });
       const books = data.books.map(book => ({ ...book, created_by: owner || data.owner }));
       return route.fulfill({ headers: cors, json: owner ? books : books[0] || null });
+    }
+    if (url.pathname.endsWith('/story_ideas')) {
+      expect(request.method()).toBe('GET');
+      data.ideaOwners.push(url.searchParams.get('created_by'));
+      if (data.ideasFail) return route.fulfill({ status: 503, headers: cors, json: { message: 'Fixture outage' } });
+      return route.fulfill({ headers: cors, json: data.ideas });
     }
     if (url.pathname.endsWith('/pages')) {
       return route.fulfill({ headers: cors, json: [1, 2, 3, 4].map(page_number => ({
@@ -112,5 +118,52 @@ for (const width of [375, 1280]) {
     await expect(page).toHaveURL(/\/BookWizard$/);
     await expect(page.locator('textarea').first()).toHaveValue(`${ideaTitle} — ${ideaBody}`);
     await snapshot(page, testInfo, `home-idea-in-wizard-${width}`);
+  });
+}
+
+for (const width of [375, 1280]) {
+  test(`family wizard scopes saved ideas and preserves typed words at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    const data = await installFixtures(page);
+    await page.goto('/');
+    await expect.poll(() => data.owner).toMatch(/^user_/);
+    await page.getByRole('link', { name: 'יוצרים סיפור ראשון' }).click();
+    await expect(page).toHaveURL(/\/BookWizard$/);
+
+    const customTopic = page.getByRole('radio', { name: 'רעיון משלי', exact: true });
+    await customTopic.locator('..').click();
+    const idea = page.getByRole('textbox', { name: 'ספר לנו על הרעיון שלך:' });
+    const typedIdea = 'שועלה מוצאת מפה בדרך לירח';
+    await idea.fill(typedIdea);
+    const animals = page.getByRole('radio', { name: 'חיות', exact: true });
+    await animals.locator('..').click();
+    await expect(animals).toBeChecked();
+    await customTopic.locator('..').click();
+    await expect(idea).toHaveValue(typedIdea);
+
+    const savedIdeas = page.getByRole('button', { name: 'השתמש ברעיון שמור' });
+    data.ideasFail = true;
+    await savedIdeas.click();
+    const savedError = page.getByRole('alert').filter({ hasText: 'לא הצלחנו לפתוח את הרעיונות ששמרתם.' });
+    await expect(savedError).toBeVisible();
+    data.ideasFail = false;
+    await page.getByRole('button', { name: 'לנסות שוב', exact: true }).click();
+    await expect(page.getByText(/עוד אין כאן רעיונות שמורים/)).toBeVisible();
+    await expect(savedError).toHaveCount(0);
+    expect(data.ideaOwners).toEqual([`eq.${data.owner}`, `eq.${data.owner}`]);
+
+    data.ideas = [{ id: 'fixture-idea', title: 'הדרקון בספרייה', created_by: data.owner }];
+    await savedIdeas.click();
+    await savedIdeas.click();
+    const savedIdea = page.getByRole('button', { name: 'הדרקון בספרייה' });
+    await savedIdea.click();
+    const replacePrompt = page.getByText('להחליף את הרעיון שלכם ברעיון הזה?', { exact: true });
+    await expect(replacePrompt).toBeVisible();
+    await page.getByRole('button', { name: 'להשאיר את הרעיון שלי' }).click();
+    await expect(replacePrompt).toHaveCount(0);
+    await expect(idea).toHaveValue(typedIdea);
+    await expect(savedIdea).toBeFocused();
+    expect(data.ideaOwners).toEqual(Array(3).fill(`eq.${data.owner}`));
+    await snapshot(page, testInfo, `wizard-topic-${width}`);
   });
 }

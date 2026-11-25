@@ -16,10 +16,12 @@ vi.mock("@/entities/User", () => ({
   },
 }));
 
+const authFixture = vi.hoisted(() => ({ ownerId: "test-user" }));
+
 // Mock AuthContext (useCurrentUser depends on useAuth)
 vi.mock("@/lib/AuthContext", () => ({
   useAuth: () => ({
-    user: { id: "test-user", email: "test@test.com", full_name: "Test User", language: "english", preferred_age_range: "8-10" },
+    user: { id: authFixture.ownerId, email: "test@test.com", full_name: "Test User", language: "english", preferred_age_range: "8-10" },
     isAuthenticated: true,
     isLoadingAuth: false,
     navigateToLogin: vi.fn(),
@@ -31,7 +33,7 @@ vi.mock("@/lib/AuthContext", () => ({
 }));
 
 vi.mock("@/entities/StoryIdea", () => ({
-  StoryIdea: { list: vi.fn() },
+  StoryIdea: { filter: vi.fn() },
 }));
 
 // Mock dependencies
@@ -273,18 +275,19 @@ describe("WizardProgress", () => {
 // === TOPIC STEP TESTS ===
 describe("TopicStep", () => {
   it("distinguishes a failed request from an empty list and retries in place", async () => {
-    StoryIdea.list.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([]);
-    render(<TopicStep onSelectTopic={vi.fn()} language="english" />);
+    StoryIdea.filter.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([]);
+    render(<TopicStep ownerId="test-user" onSelectTopic={vi.fn()} language="english" />);
     fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
     expect((await screen.findByRole("alert")).textContent).toContain("spxWizard.topic.savedError");
     fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.retry" }));
     expect(await screen.findByText("wizard.topic.noSavedIdeas")).toBeDefined();
+    expect(StoryIdea.filter).toHaveBeenLastCalledWith({ created_by: "test-user" }, "-created_date", 10);
   });
 
   it("asks before replacing typed words with a saved idea", async () => {
-    StoryIdea.list.mockResolvedValueOnce([{ id: "moon", title: "Moon", description: "A fox trips on a star." }]);
+    StoryIdea.filter.mockResolvedValueOnce([{ id: "moon", title: "Moon", description: "A fox trips on a star." }]);
     const change = vi.fn();
-    render(<TopicStep selectedTopic="custom" customIdea="Our original idea" onSelectTopic={vi.fn()}
+    render(<TopicStep ownerId="test-user" selectedTopic="custom" customIdea="Our original idea" onSelectTopic={vi.fn()}
       onCustomIdeaChange={change} language="english" />);
     fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
     fireEvent.click(await screen.findByRole("button", { name: /Moon/ }));
@@ -684,6 +687,33 @@ describe("Content Filtering for Wizard", () => {
 
 // === BOOK WIZARD PAGE INTEGRATION TESTS (10 new tests) ===
 describe("BookWizard Page", () => {
+  it("clears saved ideas and replacement prompts on account changes", async () => {
+    StoryIdea.filter
+      .mockResolvedValueOnce([{ id: "first-idea", title: "First family idea" }])
+      .mockResolvedValueOnce([{ id: "second-idea", title: "Second family idea" }]);
+    const { rerender } = render(<BookWizardPage />);
+    const savedIdeas = () => screen.getByRole("button", { name: "wizard.topic.useSavedIdea" });
+
+    try {
+      fireEvent.click(screen.getByRole("radio", { name: "wizard.topic.customIdeaShort" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "wizard.topic.tellUsIdea" }), { target: { value: "Typed story" } });
+      fireEvent.click(savedIdeas());
+      fireEvent.click(await screen.findByRole("button", { name: "First family idea" }));
+      expect(screen.getByText("spxWizard.topic.replacePrompt")).toBeDefined();
+
+      authFixture.ownerId = "test-user-2";
+      rerender(<BookWizardPage />);
+      expect(screen.queryByText("First family idea")).toBeNull();
+      expect(screen.queryByText("spxWizard.topic.replacePrompt")).toBeNull();
+      expect(savedIdeas()).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(savedIdeas());
+      expect(await screen.findByRole("button", { name: "Second family idea" })).toBeDefined();
+      expect(StoryIdea.filter).toHaveBeenLastCalledWith({ created_by: "test-user-2" }, "-created_date", 10);
+    } finally {
+      authFixture.ownerId = "test-user";
+    }
+  });
+
   it("renders wizard title after user loads", async () => {
     render(<BookWizardPage />);
     await waitFor(() => {
@@ -873,7 +903,7 @@ describe("visible private draft restore", () => {
     sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
       ownerId: "test-user", title: "Old Moon", description: "Moon explorers", moral: "Old moon lesson",
     }));
-    StoryIdea.list.mockResolvedValue([{ id: "forest", title: "New Forest", description: "Foxes find a map" }]);
+    StoryIdea.filter.mockResolvedValue([{ id: "forest", title: "New Forest", description: "Foxes find a map" }]);
     const next = () => fireEvent.click(screen.getByLabelText("Next step"));
     const back = () => fireEvent.click(screen.getByLabelText("Back"));
     const openReplacement = async () => {

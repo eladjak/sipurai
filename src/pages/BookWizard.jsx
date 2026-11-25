@@ -916,6 +916,8 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       case 0:
         return (
           <TopicStep
+            key={ownerId}
+            ownerId={ownerId}
             selectedTopic={selectedTopic}
             onSelectTopic={setSelectedTopic}
             customIdea={customIdea}
