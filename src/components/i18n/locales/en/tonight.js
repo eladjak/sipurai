@@ -12,7 +12,7 @@ export default {
     subtitle: 'Time for a story together',
     continue: 'Continue from page {page}',
     readAgain: 'Read again',
-    favourites: 'More from the shelf',
+    moreBooks: 'More from the shelf',
     newStory: 'Create a new story',
     firstTitle: 'What story shall we make today?',
     firstBody: 'Let’s create a story that is yours alone.',

@@ -4,7 +4,7 @@ import InstallPrompt from '@/components/shared/InstallPrompt';
 export default function Tonight() {
   return (
     <>
-      <FamilyHome createUrl="/new" shelfUrl="/shelf" />
+      <FamilyHome showMoreBooks createUrl="/new" shelfUrl="/shelf" />
       <InstallPrompt />
     </>
   );

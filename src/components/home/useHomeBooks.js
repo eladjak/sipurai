@@ -17,7 +17,9 @@ export function useHomeBooks(identityReady) {
   const ready = identityReady && !shelf.loading && !shelf.error && !shelf.offline;
   const books = useMemo(() => ready ? [...shelf.books].sort((a, b) =>
     (b.created_date || '').localeCompare(a.created_date || '')) : [], [ready, shelf.books]);
-  const featured = books.find(book => book.status === 'complete') || books.find(book => book.status === 'partial');
+  const completed = books.filter(book => book.status === 'complete');
+  const featured = completed[0] || books.find(book => book.status === 'partial');
+  const moreBooks = completed.slice(1, 3);
   const inProgress = books.filter(book => book !== featured && book.status !== 'complete').slice(0, 3);
   const partialIds = JSON.stringify(inProgress.filter(book => book.status === 'partial').map(book => book.id));
   const featuredId = featured?.id;
@@ -54,5 +56,5 @@ export function useHomeBooks(identityReady) {
     return { ...summary, page };
   };
 
-  return { ...shelf, loading: !identityReady || shelf.loading, featured, inProgress, details, empty: ready && books.length === 0 };
+  return { ...shelf, loading: !identityReady || shelf.loading, featured, moreBooks, inProgress, details, empty: ready && books.length === 0 };
 }

@@ -107,6 +107,7 @@
 
 .family-home__action:focus-visible,
 .family-home__samples a:focus-visible,
+.family-home__more a:focus-visible,
 .family-home__progress a:focus-visible {
   outline: 3px solid currentColor;
   outline-offset: 3px;
@@ -168,6 +169,7 @@
 }
 
 .family-home__samples h2,
+.family-home__more h2,
 .family-home__progress h2 {
   margin-block-end: 1rem;
   font-weight: 750;
@@ -288,8 +290,48 @@
   background: #dfcee8;
 }
 
+.family-home__more,
 .family-home__progress {
   padding: 1.7rem clamp(1rem, 4vw, 3.4rem) 0;
+}
+
+.family-home__more ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 16rem));
+  gap: .75rem;
+}
+
+.family-home__more a {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  block-size: 100%;
+  padding: .65rem;
+  border: 1px solid #dfcebc;
+  border-radius: .7rem;
+  background: #fff8ed;
+  font-weight: 680;
+  text-align: start;
+}
+
+.family-home__more a > span {
+  min-inline-size: 0;
+}
+
+.family-home__more a:hover {
+  background: #f3e6f4;
+}
+
+.family-home__more .family-home__cover {
+  flex: none;
+  inline-size: clamp(2.65rem, 7vw, 4rem);
+  box-shadow: 0 4px 8px -4px #35233d82;
+}
+
+.family-home__more .family-home__cover svg {
+  inline-size: 1.5rem;
 }
 
 .family-home__progress ul {

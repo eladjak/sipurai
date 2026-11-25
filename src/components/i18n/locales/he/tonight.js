@@ -12,7 +12,7 @@ export default {
     subtitle: 'זמן לסיפור ביחד',
     continue: 'ממשיכים מעמוד {page}',
     readAgain: 'לקרוא שוב',
-    favourites: 'עוד מהמדף',
+    moreBooks: 'עוד מהמדף',
     newStory: 'יוצרים סיפור חדש',
     firstTitle: 'איזה סיפור ניצור היום?',
     firstBody: 'בואו ניצור יחד סיפור שיהיה רק שלכם.',

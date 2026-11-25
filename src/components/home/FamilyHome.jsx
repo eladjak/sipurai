@@ -91,6 +91,24 @@ function ProgressBooks({ books, details, t }) {
   );
 }
 
+function MoreBooks({ books, t }) {
+  return (
+    <section className="family-home__more" aria-labelledby="home-more-title">
+      <h2 id="home-more-title">{t('tonight.moreBooks')}</h2>
+      <ul>
+        {books.map(book => (
+          <li key={book.id}>
+            <Link to={openBook(book)}>
+              <Cover key={book.cover_image} src={book.cover_image} />
+              <span dir="auto">{book.title || t('tonight.untitled')}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function SampleShelf({ language, t }) {
   const english = language === 'english' || language === 'en';
   return (
@@ -112,9 +130,9 @@ function SampleShelf({ language, t }) {
   );
 }
 
-function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirstLogin }) {
+function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirstLogin, showMoreBooks }) {
   const { language, isRTL, t } = useI18n();
-  const { featured, inProgress, loading, error, offline, retry, empty, details } = useHomeBooks(identityReady);
+  const { featured, moreBooks, inProgress, loading, error, offline, retry, empty, details } = useHomeBooks(identityReady);
   useFirstLoginReward(awardFirstLogin && !loading && !error && !offline ? user?.id : undefined);
   const [savedProfile, setSavedProfile] = useState(null);
   const profile = savedProfile?.updated && savedProfile.base === user ? savedProfile.updated : user;
@@ -158,6 +176,7 @@ function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirs
         </div>
       </section>
 
+      {showMoreBooks && moreBooks.length > 0 && <MoreBooks books={moreBooks} t={t} />}
       {inProgress.length > 0 && <ProgressBooks books={inProgress} details={details} t={t} />}
 
       <div className="family-home__extras">
@@ -169,7 +188,7 @@ function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirs
   );
 }
 
-export default function FamilyHome({ createUrl, shelfUrl, awardFirstLogin = false }) {
+export default function FamilyHome({ createUrl, shelfUrl, awardFirstLogin = false, showMoreBooks = false }) {
   const { user, isLoading } = useCurrentUser();
   const identityReady = !isLoading && Boolean(user?.id);
   return (
@@ -180,6 +199,7 @@ export default function FamilyHome({ createUrl, shelfUrl, awardFirstLogin = fals
       createUrl={createUrl}
       shelfUrl={shelfUrl}
       awardFirstLogin={awardFirstLogin}
+      showMoreBooks={showMoreBooks}
     />
   );
 }
