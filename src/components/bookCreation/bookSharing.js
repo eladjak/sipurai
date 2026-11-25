@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabaseClient";
+
 function visibilityFrom(row, bookId, ownerId) {
   if (row?.id !== bookId || row?.created_by !== ownerId || typeof row.is_public !== "boolean") {
     return null;
@@ -35,7 +37,7 @@ export async function readOwnerSharingState({ Book, Community, bookId, ownerId }
   }
 }
 
-/** @returns {Promise<{ visibility: boolean | null, error?: string, cleanupRequired?: boolean, listingReadFailed?: boolean }>} */
+/** @returns {Promise<{ visibility: boolean | null, error?: string, cleanupRequired?: boolean, listingReadFailed?: boolean, listingCreated?: boolean }>} */
 export async function publishBookShare({ Book, Community, bookId, ownerId, post, isCurrent }) {
   const state = await readOwnerSharingState({ Book, Community, bookId, ownerId });
   let { visibility } = state;
@@ -45,33 +47,46 @@ export async function publishBookShare({ Book, Community, bookId, ownerId, post,
   if (state.cleanupRequired || state.listingReadFailed) {
     return { ...state, error: state.cleanupRequired ? "sharing.cleanupPending" : "sharing.listingCheckFailed" };
   }
-  if (visibility === false) {
-    try {
-      visibility = visibilityFrom(await Book.update(bookId, { is_public: true }), bookId, ownerId);
-    } catch {
-      visibility = null;
+  let rejected = false;
+  try {
+    const { data, error, status } = await supabase.rpc("sipurai_publish_book", {
+      p_book: bookId,
+      p_expected_public: visibility,
+      p_listing: post ? { title: post.title, description: post.description, tags: post.tags } : null
+    });
+    if (!error && data?.is_public === true && typeof data.listing_created === "boolean" && isCurrent()) {
+      return { visibility: true, listingCreated: data.listing_created };
     }
-    if (visibility === null) visibility = await readOwnerVisibility(Book, bookId, ownerId);
-    if (visibility !== true) {
-      return { visibility, error: visibility === null ? "sharing.visibilityUnavailable" : "sharing.shareErrorDesc" };
+    if (isCurrent() && error?.message === "sipurai_cleanup_required") {
+      return { visibility: false, cleanupRequired: true, error: "sharing.cleanupPending" };
     }
+    rejected = Boolean(error && status >= 400 && status < 500 && status !== 408);
+  } catch {
+    // A lost response may still mean the transaction committed.
   }
-
-  if (post && isCurrent()) {
-    const hasListing = () => hasOwnerListing(Community, bookId, ownerId, "public");
+  if (!isCurrent()) return { visibility: null, error: "sharing.visibilityUnavailable" };
+  visibility = await readOwnerVisibility(Book, bookId, ownerId);
+  if (!isCurrent()) return { visibility: null, error: "sharing.visibilityUnavailable" };
+  if (rejected) {
+    return { visibility, error: visibility === null ? "sharing.visibilityUnavailable" : "sharing.shareErrorDesc" };
+  }
+  if (visibility === true && post) {
     try {
-      if (!await hasListing() && isCurrent()) {
-        const row = await Community.create({ ...post, id: bookId, book_id: bookId, user_id: ownerId, visibility: "public" });
-        if (!matchesOwnerListing(row, bookId, ownerId) || row.visibility !== "public") throw new Error("Listing creation not confirmed");
+      const rows = await Community.filter({ book_id: bookId, created_by: ownerId, visibility: "public" });
+      const exact = rows.some((row) => matchesOwnerListing(row, bookId, ownerId)
+        && row.visibility === "public" && row.title === post.title && row.description === post.description
+        && JSON.stringify(row.tags) === JSON.stringify(post.tags));
+      if (exact && isCurrent()) {
+        visibility = await readOwnerVisibility(Book, bookId, ownerId);
+        if (!isCurrent() || visibility === null) return { visibility: null, error: "sharing.visibilityUnavailable" };
+        if (!visibility) return { visibility: false, error: "sharing.shareErrorDesc" };
+        return { visibility: true };
       }
     } catch {
-      try {
-        if (await hasListing()) return { visibility: true };
-      } catch {
-        // The current listing state remains unknown.
-      }
-      return { visibility: true, error: "sharing.listingIncomplete" };
+      // Do not claim success when listing verification fails.
     }
+    return { visibility: true, error: "sharing.listingIncomplete" };
   }
-  return { visibility: true };
+  if (visibility === true && !post) return { visibility: true };
+  return { visibility, error: visibility === null ? "sharing.visibilityUnavailable" : "sharing.shareErrorDesc" };
 }

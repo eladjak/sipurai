@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { BookOpen, Copy, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
+import { Copy, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { BookControlButton } from "@/components/bookControls/BookControls";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -220,20 +220,25 @@ function BookSharing({ book, bookId }) {
   return (
     <div className="grid min-w-0 gap-5" dir={isRTL ? "rtl" : "ltr"}>
       <Card className="min-w-0">
-        <CardHeader>
-          <CardTitle ref={heading} tabIndex={-1} className="flex min-w-0 items-center gap-3 break-words">
-            {book?.cover_image && !coverFailed
-              ? <img src={book.cover_image} onError={() => setCoverFailed(true)} alt="" className="size-12 shrink-0 rounded-md object-cover" />
-              : <BookOpen aria-hidden="true" className="size-5 shrink-0" />}
-            <span className="min-w-0 [overflow-wrap:anywhere]">{book?.title || t("bookControls.untitled")}</span>
-          </CardTitle>
-          <CardDescription role="status">
-            {checking ? t("sharing.checkingVisibility")
-              : readFailed ? t("sharing.visibilityUnavailable")
-              : t(isShared ? "sharing.publicStatus" : "sharing.privateStatus")}
-          </CardDescription>
+        <CardHeader className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 space-y-0 rounded-t-xl border-b border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-amber-50">
+          <img
+            src={book?.cover_image && !coverFailed ? book.cover_image : "/icons/moon-book-192.png"}
+            onError={book?.cover_image && !coverFailed ? () => setCoverFailed(true) : undefined}
+            alt=""
+            className="size-16 rounded-xl border border-white bg-indigo-950 object-cover shadow-sm sm:size-20"
+          />
+          <div className="min-w-0 space-y-2">
+            <CardTitle ref={heading} tabIndex={-1} className="[overflow-wrap:anywhere]">
+              {book?.title || t("bookControls.untitled")}
+            </CardTitle>
+            <CardDescription role="status">
+              {checking ? t("sharing.checkingVisibility")
+                : readFailed ? t("sharing.visibilityUnavailable")
+                : t(isShared ? "sharing.publicStatus" : "sharing.privateStatus")}
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-4">
+        <CardContent className="grid gap-4 pt-5">
           {listingReadFailed && !checking && <p role="status">{t("sharing.listingCheckFailed")}</p>}
           {(readFailed || listingReadFailed) && (
             <Button type="button" variant="outline" className="min-h-11 justify-self-start" disabled={checking || busy}

@@ -58,18 +58,14 @@ export function createSupabaseBookStore(db) {
       const { data } = must(await db.from('books').select('id,created_by,cover_image,is_public').eq('id', bookId).limit(1), 'book');
       return data[0] || null;
     },
-    async setPrivate(bookId) {
-      must(await db.from('books').update({ is_public: false }).eq('id', bookId), 'book update');
-    },
-    /** Removes the book's community posts and the comments on them. Returns how many posts went. */
-    async removePosts(bookId) {
-      const posts = must(await db.from('community').select('id').eq('book_id', bookId), 'community').data;
-      const ids = posts.map((p) => p.id);
-      if (ids.length) {
-        must(await db.from('comments').delete().in('community_id', ids), 'comments');
-        must(await db.from('community').delete().in('id', ids), 'community delete');
+    async unshareBookAtomic(bookId, userId) {
+      const { data, error } = await db.rpc('sipurai_unshare_book', { p_book: bookId, p_user: userId });
+      if (error) {
+        if (String(error.message || '').includes('sipurai_not_found')) throw new DeleteRefused('not_found');
+        throw new Error(`unshare rpc: ${error.message}`);
       }
-      return ids.length;
+      if (!Number.isInteger(data) || data < 0) throw new Error('unshare rpc: invalid result');
+      return data;
     },
     /**
      * One transaction in the database. Returns the object paths that may now be removed from storage.
@@ -112,12 +108,11 @@ export async function unshareBook({ userId, bookId, store }) {
   try {
     const { book, err } = await ownedBook(store, userId, bookId);
     if (err) return err;
-    stage = 'private';
-    await store.setPrivate(book.id); // first: from this moment the book is no longer readable by visitors
-    stage = 'posts';
-    const removedPosts = await store.removePosts(book.id);
+    stage = 'database';
+    const removedPosts = await store.unshareBookAtomic(book.id, userId);
     return { http: 200, body: { ok: true, removedPosts } };
   } catch (e) {
+    if (e instanceof DeleteRefused && e.reason === 'not_found') return fail(404, 'not_found', BOOK_MESSAGES.notFound);
     console.error(`[books/unshare] failed at ${stage}:`, String(e?.message).slice(0, 160));
     return fail(500, `unshare_failed_${stage}`, BOOK_MESSAGES.failed);
   }

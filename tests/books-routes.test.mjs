@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import unshareHandler from '../api/books/unshare.js';
 import deleteHandler from '../api/books/delete.js';
-import { deleteBook, unshareBook, storagePathFromUrl, DeleteRefused } from '../api/_lib/bookControls.js';
+import { deleteBook, unshareBook, storagePathFromUrl, DeleteRefused, createSupabaseBookStore } from '../api/_lib/bookControls.js';
 
 const mkRes = () => {
   const r = { code: 200, body: null, headers: {} };
@@ -50,8 +50,10 @@ function world({ orders = [] } = {}) {
   const store = {
     rpcCalls: [], failAt: null,
     async findBook(id) { return db.books.find((b) => b.id === id) || null; },
-    async setPrivate(id) { db.books.find((b) => b.id === id).is_public = false; },
-    async removePosts(id) {
+    async unshareBookAtomic(id, uid) {
+      const book = db.books.find((b) => b.id === id);
+      if (!book || book.created_by !== uid) throw new DeleteRefused('not_found');
+      book.is_public = false;
       const ids = db.community.filter((c) => c.book_id === id).map((c) => c.id);
       db.comments = db.comments.filter((m) => !ids.includes(m.community_id));
       db.community = db.community.filter((c) => !ids.includes(c.id));
@@ -235,7 +237,34 @@ test('delete: a storage failure after the rows are gone reports success with a w
 
 test('unshare: failure is reported, not swallowed', async () => {
   const w = world();
-  w.store.removePosts = async () => { throw new Error('boom'); };
+  w.store.unshareBookAtomic = async () => { throw new Error('boom'); };
   const r = await unshareBook({ userId: 'user_A', bookId: 'b1', store: w.store });
   assert.equal(r.http, 500);
+});
+
+test('unshare: RPC rechecks ownership and failures never fall back to separate writes', async () => {
+  const w = world();
+  let calls = 0;
+  w.store.unshareBookAtomic = async (id, user) => {
+    calls++;
+    assert.deepEqual([id, user], ['b1', 'user_A']);
+    throw new DeleteRefused('not_found');
+  };
+  const r = await unshareBook({ userId: 'user_A', bookId: 'b1', store: w.store });
+  assert.equal(r.http, 404);
+  assert.equal(calls, 1);
+  assert.equal(w.db.books[0].is_public, true);
+  assert.equal(w.db.community.length, 2);
+});
+
+test('unshare store invokes only the atomic RPC and rejects an unavailable or malformed result', async () => {
+  let result = { data: 2, error: null };
+  const calls = [];
+  const store = createSupabaseBookStore({ rpc: async (...args) => { calls.push(args); return result; } });
+  assert.equal(await store.unshareBookAtomic('b1', 'user_A'), 2);
+  assert.deepEqual(calls, [['sipurai_unshare_book', { p_book: 'b1', p_user: 'user_A' }]]);
+  result = { data: null, error: { message: 'function missing' } };
+  await assert.rejects(store.unshareBookAtomic('b1', 'user_A'));
+  result = { data: null, error: null };
+  await assert.rejects(store.unshareBookAtomic('b1', 'user_A'));
 });
