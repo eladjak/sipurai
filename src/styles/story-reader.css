@@ -1,4 +1,7 @@
 .family-reader { min-inline-size: 0; }
+.family-reader :is(button, .reader-page-picker) { min-inline-size: 44px; min-block-size: 44px; }
+.family-reader:fullscreen { overflow: auto; }
+.reader-page-picker:focus-visible { outline: 2px solid #a855f7; outline-offset: 2px; }
 .reader-toolbar { min-inline-size: 0; }
 .reader-tools { max-inline-size: 100%; }
 .reader-desk { min-inline-size: 0; padding-inline: clamp(1.25rem, 4vw, 3rem); color: #30291f; }
