@@ -50,6 +50,17 @@ CREATE POLICY public_comments ON comments FOR SELECT TO authenticated, anon USIN
         assert json.loads(call(owner+pub(expected,val)).splitlines()[-1]) == {
             'is_public': True, 'listing_created': listing_created
         }
+    for invalid in (
+        {'title':'', 'description':'text', 'tags':[]},
+        {'title':'title', 'description':'\t\n\u200b\ufeff', 'tags':[]},
+        {'title':'title', 'description':'text', 'tags':{}},
+        {'title':'title', 'description':'text', 'tags':[123]},
+    ):
+        malformed = "'" + json.dumps(invalid) + "'::jsonb"
+        refused = sql(owner + pub('false', malformed), check=False)
+        assert refused.returncode != 0 and 'sipurai_invalid_listing' in refused.stderr
+    assert call(f"SELECT NOT is_public FROM books WHERE id='{a}';") == 't'
+    assert call('SELECT count(*) FROM community;') == '0'
     published('false', True)
     published('true', False)
     assert call('SELECT count(*) FROM community;') == '1'
@@ -107,6 +118,17 @@ CREATE POLICY public_comments ON comments FOR SELECT TO authenticated, anon USIN
          f"INSERT INTO community(book_id,created_by) VALUES ('{a}','other');",False)
     published('false', False, 'NULL')
     assert call("SET ROLE anon; SELECT count(*) FROM public.community;").endswith('0')
+    legacy = "SET ROLE authenticated; SET request.sub='other'; "
+    call(legacy + f"INSERT INTO community(book_id,created_by,visibility) VALUES ('{b}','other','public');")
+    assert call("SET ROLE anon; SELECT count(*) FROM public.community;").endswith('0')
+    call(legacy + f"UPDATE books SET is_public=true WHERE id='{b}';")
+    assert call("SET ROLE anon; SELECT count(*) FROM public.community;").endswith('1')
     print('PASS: inherited privacy RLS, historical foreign listing, and ownership on new listings')
+    sql(Path('scripts/migrations/2026-11-25-sharing-transactions.rollback.sql').read_text())
+    assert call("SELECT to_regproc('public.sipurai_publish_book') IS NULL;") == 't'
+    assert call("SELECT to_regproc('public.sipurai_unshare_book') IS NULL;") == 't'
+    assert call("SELECT to_regnamespace('sipurai_private') IS NULL;") == 't'
+    assert call("SELECT count(*) FROM pg_policies WHERE policyname IN ('community_live_public_book_guard','comments_live_public_book_guard');") == '2'
+    print('PASS: blank and malformed metadata rejected; rollback preserves SELECT privacy guards')
 finally:
     run('docker','rm','-f',name,check=False)

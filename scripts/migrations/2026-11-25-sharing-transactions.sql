@@ -50,8 +50,8 @@ BEGIN
       OR jsonb_typeof(p_listing->'title') IS DISTINCT FROM 'string'
       OR jsonb_typeof(p_listing->'description') IS DISTINCT FROM 'string'
       OR jsonb_typeof(p_listing->'tags') IS DISTINCT FROM 'array'
-      OR btrim(p_listing->>'title') = ''
-      OR btrim(p_listing->>'description') = '' THEN
+      OR translate(p_listing->>'title', chr(8203) || chr(65279), '') !~ '[^[:space:]]'
+      OR translate(p_listing->>'description', chr(8203) || chr(65279), '') !~ '[^[:space:]]' THEN
       RAISE EXCEPTION 'sipurai_invalid_listing';
     END IF;
     IF EXISTS (SELECT 1 FROM jsonb_array_elements(p_listing->'tags') tag WHERE jsonb_typeof(tag) <> 'string') THEN
