@@ -96,7 +96,7 @@ function PageFlip({
             aria-label={prevOnRight ? t("bookView.navigation.next") : t("bookView.navigation.previous")}
             title={prevOnRight ? t("bookView.navigation.next") : t("bookView.navigation.previous")}
             className={[
-              "reader-turn reader-turn-left absolute top-1/2 -translate-y-1/2",
+              "reader-turn reader-turn-left absolute -translate-y-1/2",
               "flex items-center justify-center",
               "rounded-full bg-[#2b1b43] shadow-md text-[#fff4df]",
               "motion-safe:transition-colors hover:bg-[#4b2f73]",
@@ -116,7 +116,7 @@ function PageFlip({
             aria-label={prevOnRight ? t("bookView.navigation.previous") : t("bookView.navigation.next")}
             title={prevOnRight ? t("bookView.navigation.previous") : t("bookView.navigation.next")}
             className={[
-              "reader-turn reader-turn-right absolute top-1/2 -translate-y-1/2",
+              "reader-turn reader-turn-right absolute -translate-y-1/2",
               "flex items-center justify-center",
               "rounded-full bg-[#2b1b43] shadow-md text-[#fff4df]",
               "motion-safe:transition-colors hover:bg-[#4b2f73]",
