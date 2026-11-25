@@ -68,7 +68,7 @@ describe('family home', () => {
 
   it('validates a zero-based bookmark against readable pages and keeps one reading link', async () => {
     Book.filter.mockResolvedValue([row('ready', 'complete')]);
-    Page.filter.mockResolvedValue([textPage(0), textPage(2), textPage(3), { page_number: 1 }]);
+    Page.filter.mockResolvedValue([textPage(3), textPage(1), textPage(0), { page_number: 2 }]);
     localStorage.setItem('book_ready_page', '2');
     render(home());
     const read = await screen.findByRole('link', { name: 'ממשיכים מעמוד 3' });
@@ -76,6 +76,24 @@ describe('family home', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Story ready');
     expect(screen.getByRole('link', { name: 'כל הספרים' })).toHaveAttribute('href', '/Library');
     expect(screen.getAllByRole('link')[0]).toBe(read);
+  });
+
+  it.each([
+    { folios: [0, 1, 3], index: 1, label: 'ממשיכים מעמוד 1' },
+    { folios: [0, 1, 3], index: 0, label: 'פותחים את הספר' },
+    { folios: [0, 1, 2, 3], index: 2, anchor: [3, 2], label: 'ממשיכים מעמוד 3' },
+    { folios: [0, 1, 2, 3], index: 1, anchor: [3, 2], label: 'ממשיכים מעמוד 1' },
+    { folios: [0, 1, 2], index: 2, anchor: [3, 2], label: 'פותחים את הספר' },
+  ])('uses the saved folio with index $index and anchor $anchor', async ({ folios, index, anchor, label }) => {
+    Book.filter.mockResolvedValue([row('ready', 'complete')]);
+    let finishInspection;
+    Page.filter.mockReturnValue(new Promise(resolve => { finishInspection = resolve; }));
+    localStorage.setItem('book_ready_page', String(index));
+    if (anchor) localStorage.setItem('book_ready_page_anchor', JSON.stringify(anchor));
+    render(home());
+    await waitFor(() => expect(Page.filter).toHaveBeenCalledTimes(1));
+    await act(async () => finishInspection(folios.map(folio => textPage(folio))));
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', '/BookView?id=ready');
   });
 
   it('shows generic reading and a fallback when a bookmark is out of range and cover breaks', async () => {

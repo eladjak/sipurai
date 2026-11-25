@@ -1,8 +1,11 @@
 .family-reader { min-inline-size: 0; }
+.family-reader :is(button, .reader-page-picker) { min-inline-size: 44px; min-block-size: 44px; }
+.family-reader:fullscreen { overflow: auto; }
+.reader-page-picker:focus-visible { outline: 2px solid #a855f7; outline-offset: 2px; }
 .reader-toolbar { min-inline-size: 0; }
 .reader-tools { max-inline-size: 100%; }
 .reader-desk { min-inline-size: 0; padding-inline: clamp(1.25rem, 4vw, 3rem); color: #30291f; }
-.reader-turn { inline-size: clamp(2.75rem, 6vw, 3.5rem); aspect-ratio: 1; }
+.reader-turn { inset-block-start: min(50%, 34dvh); inline-size: clamp(2.75rem, 6vw, 3.5rem); aspect-ratio: 1; }
 .reader-turn-left { left: clamp(-3.375rem, -4vw, -1.75rem); }
 .reader-turn-right { right: clamp(-3.375rem, -4vw, -1.75rem); }
 .reader-page-picker { min-block-size: 2.75rem; max-inline-size: 100%; border-radius: .5rem; padding-inline: .5rem; font-size: .875rem; color: inherit; background: transparent; }

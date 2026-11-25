@@ -46,7 +46,7 @@ describe('tonight', () => {
     ]);
   });
 
-  it('validates the newest completed book’s saved index against readable pages', async () => {
+  it('labels the restored folio of the newest completed book', async () => {
     data.books = [book('old', 'complete', '2025-01-01'), book('new')];
     data.pages.mockResolvedValue([
       { page_number: 0, text_content: 'Cover' },
@@ -55,7 +55,7 @@ describe('tonight', () => {
     ]);
     localStorage.setItem('book_new_page', '2');
     await show();
-    const reading = await screen.findByRole('link', { name: 'Continue from page 3' });
+    const reading = await screen.findByRole('link', { name: 'Continue from page 4' });
     expect(reading).toHaveAttribute('href', '/BookView?id=new');
     expect(screen.getAllByRole('link')[0]).toBe(reading);
     expect(data.pages).toHaveBeenCalledWith({ book_id: 'new' }, 'page_number');

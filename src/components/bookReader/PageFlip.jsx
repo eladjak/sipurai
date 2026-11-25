@@ -64,22 +64,26 @@ function PageFlip({
 
   // In RTL: "previous" is on the right, "next" is on the left
   const prevOnRight = isRTL;
+  const canGoLeft = prevOnRight ? canGoNext : canGoPrev;
+  const canGoRight = prevOnRight ? canGoPrev : canGoNext;
 
   return (
     <div className="relative" style={{ perspective: "1200px" }}>
-      <AnimatePresence mode="wait" custom={effectiveDirection}>
-        <motion.div
-          key={pageKey}
-          custom={effectiveDirection}
-          variants={reduceMotion ? undefined : flipVariants}
-          initial={reduceMotion ? false : "enter"}
-          animate="center"
-          exit={reduceMotion ? undefined : "exit"}
-          style={{ transformStyle: "preserve-3d" }}
-        >
-          {children}
-        </motion.div>
-      </AnimatePresence>
+      {reduceMotion ? <div key={pageKey}>{children}</div> : (
+        <AnimatePresence mode="wait" custom={effectiveDirection}>
+          <motion.div
+            key={pageKey}
+            custom={effectiveDirection}
+            variants={flipVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* Touch-target navigation buttons overlaid on the page edges */}
       {(onPrev || onNext) && (
@@ -87,16 +91,16 @@ function PageFlip({
           {/* Left edge button */}
           <button
             type="button"
-            onClick={prevOnRight ? onNext : onPrev}
-            disabled={prevOnRight ? !canGoNext : !canGoPrev}
+            onClick={canGoLeft ? (prevOnRight ? onNext : onPrev) : undefined}
+            aria-disabled={!canGoLeft}
             aria-label={prevOnRight ? t("bookView.navigation.next") : t("bookView.navigation.previous")}
             title={prevOnRight ? t("bookView.navigation.next") : t("bookView.navigation.previous")}
             className={[
-              "reader-turn reader-turn-left absolute top-1/2 -translate-y-1/2",
+              "reader-turn reader-turn-left absolute -translate-y-1/2",
               "flex items-center justify-center",
               "rounded-full bg-[#2b1b43] shadow-md text-[#fff4df]",
               "motion-safe:transition-colors hover:bg-[#4b2f73]",
-              "disabled:opacity-30 disabled:pointer-events-none",
+              "aria-disabled:opacity-30",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-500",
               "z-10"
             ].join(" ")}
@@ -107,16 +111,16 @@ function PageFlip({
           {/* Right edge button */}
           <button
             type="button"
-            onClick={prevOnRight ? onPrev : onNext}
-            disabled={prevOnRight ? !canGoPrev : !canGoNext}
+            onClick={canGoRight ? (prevOnRight ? onPrev : onNext) : undefined}
+            aria-disabled={!canGoRight}
             aria-label={prevOnRight ? t("bookView.navigation.previous") : t("bookView.navigation.next")}
             title={prevOnRight ? t("bookView.navigation.previous") : t("bookView.navigation.next")}
             className={[
-              "reader-turn reader-turn-right absolute top-1/2 -translate-y-1/2",
+              "reader-turn reader-turn-right absolute -translate-y-1/2",
               "flex items-center justify-center",
               "rounded-full bg-[#2b1b43] shadow-md text-[#fff4df]",
               "motion-safe:transition-colors hover:bg-[#4b2f73]",
-              "disabled:opacity-30 disabled:pointer-events-none",
+              "aria-disabled:opacity-30",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-500",
               "z-10"
             ].join(" ")}

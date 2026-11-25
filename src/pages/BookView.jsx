@@ -6,7 +6,7 @@ import { Page } from "@/entities/Page";
 import { PublicBook, PublicPage } from "@/entities/PublicBook";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useI18n } from "@/components/i18n/i18nProvider";
+import { LANGUAGES, useI18n } from "@/components/i18n/i18nProvider";
 import {
   ArrowLeft,
   ArrowRight,
@@ -40,8 +40,9 @@ import { exportBookToPDF } from "@/utils/pdfExporter";
 import useGamification from "@/hooks/useGamification";
 import { updateMeta, resetMeta } from "@/lib/seo";
 import { useAuth } from "@/lib/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { readablePages, summarizeBook, viewState, isResumable } from "@/lib/bookProgress";
+import { readReaderPosition, writeReaderPosition } from "@/lib/readerPosition";
 import { isRunLive } from "@/lib/generationLock";
 import { generateBookIncremental } from "@/lib/bookGeneration";
 import { reserveBookSlot, clearActiveBookKey, QuotaError } from "@/lib/bookQuota";
@@ -69,7 +70,7 @@ export default function BookView() {
 }
 
 function BookReader({ bookId, user }) {
-  const { t, language: i18nLanguage, isRTL: i18nIsRTL } = useI18n();
+  const { t, language: interfaceLanguage, isRTL } = useI18n();
   const { navigateToLogin } = useAuth();
   const [book, setBook] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -78,7 +79,7 @@ function BookReader({ bookId, user }) {
   // src/lib/bookProgress.js. Keeping both means the reader can say "3 of 10"
   // instead of silently pretending three was the plan.
   const [allPages, setAllPages] = useState([]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [pageNumber, setPageNumber] = useState(undefined);
   const [resuming, setResuming] = useState(null);
   const resumeInFlight = useRef(false);
   const isResuming = resuming !== null;
@@ -88,8 +89,9 @@ function BookReader({ bookId, user }) {
   // Re-read on a timer while a run is heartbeating, so pages appear as they land.
   const [liveTick, setLiveTick] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [direction, setDirection] = useState(1);
-  const [currentLanguage, setCurrentLanguage] = useState(i18nLanguage);
+  const reduceMotion = useReducedMotion();
 
   // Enhanced reader state
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -104,13 +106,16 @@ function BookReader({ bookId, user }) {
 
   const { toast } = useToast();
   const containerRef = useRef(null);
+  const fullscreenTrigger = useRef(null);
   const touchStartRef = useRef(null);
+  const verifiedOwnerRef = useRef(false);
+  const positionRestoredRef = useRef(false);
   const bookReadAwardedRef = useRef(false);
 
   const gamification = useGamification();
 
-  const isRTL = currentLanguage === "hebrew" || currentLanguage === "yiddish";
-  const isHebrewBook = currentLanguage === "hebrew" || currentLanguage === "yiddish";
+  const bookLocale = LANGUAGES[book?.language];
+  const bookIsRTL = bookLocale ? bookLocale.direction === "rtl" : isRTL;
   const isGuest = !user;
 
   useEffect(() => {
@@ -131,45 +136,36 @@ function BookReader({ bookId, user }) {
     const loadBook = async () => {
       try {
         if (!isRefresh) setLoading(true);
-        const lang = user?.language || i18nLanguage || "english";
-        setCurrentLanguage(lang);
 
-        // Owner reads the full book (RLS scopes the base tables to the owner).
-        // Guests / non-owners cannot read the base books/pages tables (they
-        // carry child PII and anon has no grant) — fall back to the sanitized,
-        // PII-free public views (public_books / public_pages), which only return
-        // rows where is_public = true. See entities/PublicBook.js + migration
-        // 2026-05-25-public-pii-safe-views.sql.
-        // Resolved independently on purpose. These used to share one try/catch
-        // over a Promise.all, so a failure fetching PAGES sent the BOOK to the
-        // public-view fallback too — and public_books only returns is_public
-        // rows, so a private book the owner had every right to see resolved to
-        // null and rendered as "book not found". A book that loads must be
-        // shown even when its pages cannot be.
-        let bookData = null;
+        // A successful empty result confirms absence under RLS. A rejected
+        // query leaves the last verified reader snapshot intact.
+        const ownerRows = user?.id ? await Book.filter({ id: bookId, created_by: user.id }) : [];
+        if (!current) return;
+        const ownedBook = ownerRows.find(row => row.created_by === user?.id);
+        const ownerLoaded = Boolean(ownedBook);
+        if (verifiedOwnerRef.current && !ownerLoaded) {
+          setBook(null);
+          setAllPages([]);
+          setIsOwner(false);
+          resetMeta();
+        }
+        verifiedOwnerRef.current = ownerLoaded;
+
+        // Public views contain only sanitized rows and pages for public books.
+        const bookData = ownedBook ?? (await PublicBook.filter({ id: bookId }))[0] ?? null;
+        if (!current) return;
         let pagesData = [];
-
-        try {
-          bookData = user?.id ? await Book.get(bookId) : null;
-          if (bookData?.created_by !== user?.id) bookData = null;
-        } catch {
-          bookData = null;
-        }
-        const ownerLoaded = Boolean(bookData);
-        if (!bookData) {
-          try {
-            bookData = await PublicBook.get(bookId);
-          } catch {
-            bookData = null;
-          }
-        }
 
         try {
           if (bookData) {
             pagesData = await (ownerLoaded ? Page : PublicPage).filter({ book_id: bookId }, "page_number");
           }
         } catch {
-          pagesData = [];
+          if (!current) return;
+          setBook(bookData);
+          setIsOwner(ownerLoaded);
+          setLoadError(true);
+          return;
         }
         pagesData = Array.isArray(pagesData) ? pagesData : [];
 
@@ -177,24 +173,18 @@ function BookReader({ bookId, user }) {
         setBook(bookData);
         setIsOwner(ownerLoaded);
         setAllPages(pagesData);
+        setLoadError(false);
 
-        // Restoring the saved position is a first-load concern. On a refresh
-        // during generation the reader must stay exactly where the parent is —
-        // yanking them to a remembered page while they read would be worse
-        // than any loading state.
-        if (!isRefresh) {
-          const readable = readablePages(pagesData);
-          const savedPage = localStorage.getItem(`book_${bookId}_page`);
-          if (savedPage) {
-            const pageIdx = parseInt(savedPage, 10);
-            if (pageIdx >= 0 && pageIdx < readable.length) {
-              setCurrentPageIndex(pageIdx);
-            }
+        const readable = readablePages(pagesData);
+        if (readable.length && !positionRestoredRef.current) {
+          positionRestoredRef.current = true;
+          let savedPosition = readable[0].page_number;
+          try {
+            savedPosition = readReaderPosition(localStorage, bookId, readable);
+          } catch {
+            // Reading is available even when browser storage is blocked.
           }
-        }
-
-        if (bookData?.language) {
-          setCurrentLanguage(bookData.language);
+          setPageNumber(savedPosition);
         }
 
         if (bookData) {
@@ -204,12 +194,11 @@ function BookReader({ bookId, user }) {
             image: bookData.cover_image,
             type: 'article',
           });
+        } else {
+          resetMeta();
         }
       } catch {
-        if (current) toast({
-          variant: "destructive",
-          description: t('bookView.loadError'),
-        });
+        if (current) setLoadError(true);
       } finally {
         if (current) setLoading(false);
       }
@@ -222,7 +211,12 @@ function BookReader({ bookId, user }) {
   // Pages a reader may be shown, in order. Skeleton rows written to persist the
   // outline are excluded until they have words.
   const pages = useMemo(() => readablePages(allPages), [allPages]);
+  const anchoredIndex = pageNumber === undefined ? -1 : pages.findIndex(page => page.page_number === pageNumber);
+  const currentPageIndex = Math.max(0, anchoredIndex);
   const currentPage = pages[currentPageIndex];
+  const pageLabel = page => page.page_number === 0
+    ? t("demoBookViewer.cover")
+    : t("bookView.pageAlt", { number: page.page_number });
   const isCoverPage = currentPage?.page_number === 0;
   const coverImage = book?.cover_image || (isCoverPage ? currentPage?.image_url : null);
   const progress = summarizeBook(book, allPages);
@@ -261,6 +255,14 @@ function BookReader({ bookId, user }) {
     const timer = setInterval(() => setLiveTick((n) => n + 1), 4000);
     return () => clearInterval(timer);
   }, [bookId, runLive, fullyIllustrated]);
+
+  const refresh = useCallback(() => setLiveTick(tick => tick + 1), []);
+
+  useEffect(() => {
+    if (!bookId) return;
+    window.addEventListener("online", refresh);
+    return () => window.removeEventListener("online", refresh);
+  }, [bookId, refresh]);
 
   /**
    * The characters a book was built with, as stored on the row. `jsonb` returns
@@ -371,24 +373,18 @@ function BookReader({ bookId, user }) {
     return () => { cancelled = true; };
   }, [book, canResume, loading, pages, progress.missingImage.length, runLive, user?.id]);
 
-  // Pages arrive while the reader is open, and a resume can only ever add them
-  // — but a book read from a stale cache could still leave the index past the
-  // end. Clamp rather than render `undefined` as a blank page.
-  useEffect(() => {
-    if (pages.length > 0 && currentPageIndex > pages.length - 1) {
-      setCurrentPageIndex(pages.length - 1);
-    }
-  }, [pages.length, currentPageIndex]);
-
   useEffect(() => {
     return () => resetMeta();
   }, []);
 
   useEffect(() => {
-    if (bookId && pages.length > 0) {
-      localStorage.setItem(`book_${bookId}_page`, String(currentPageIndex));
+    if (!bookId || anchoredIndex < 0) return;
+    try {
+      writeReaderPosition(localStorage, bookId, pageNumber, anchoredIndex);
+    } catch {
+      // Reading is available even when browser storage is blocked.
     }
-  }, [bookId, currentPageIndex, pages.length]);
+  }, [bookId, pageNumber, anchoredIndex]);
 
   useEffect(() => {
     if (
@@ -403,77 +399,88 @@ function BookReader({ bookId, user }) {
     }
   }, [currentPageIndex, pages.length, fullyIllustrated, isGuest]);
 
+  const goToPage = useCallback((index) => {
+    if (!pages[index] || pages[index].page_number === pageNumber) return;
+    setDirection(index > currentPageIndex ? 1 : -1);
+    setPageNumber(pages[index].page_number);
+  }, [pages, pageNumber, currentPageIndex]);
+
   const goToNextPage = useCallback(() => {
-    if (currentPageIndex < pages.length - 1) {
-      setDirection(1);
-      setCurrentPageIndex((prev) => Math.min(prev + 1, pages.length - 1));
-    }
-  }, [currentPageIndex, pages.length]);
+    goToPage(currentPageIndex + 1);
+  }, [goToPage, currentPageIndex]);
 
   const goToPreviousPage = useCallback(() => {
-    if (currentPageIndex > 0) {
-      setDirection(-1);
-      setCurrentPageIndex((prev) => Math.max(0, prev - 1));
+    goToPage(currentPageIndex - 1);
+  }, [goToPage, currentPageIndex]);
+
+  const toggleFullscreen = useCallback(async (event) => {
+    try {
+      if (document.fullscreenElement === containerRef.current) {
+        await document.exitFullscreen();
+      } else {
+        const trigger = event?.currentTarget;
+        await containerRef.current?.requestFullscreen?.();
+        if (document.fullscreenElement === containerRef.current) fullscreenTrigger.current = trigger;
+      }
+    } catch {
+      // The reader can still be used if fullscreen is denied.
     }
-  }, [currentPageIndex]);
+  }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.target.closest?.("input, textarea, select, [contenteditable=true]")) return;
+    const handleFullscreenChange = () => {
+      const active = document.fullscreenElement === containerRef.current;
+      setIsFullscreen(active);
+      if (!active) {
+        fullscreenTrigger.current?.focus();
+        fullscreenTrigger.current = null;
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
-      switch (e.key) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+          event.target.closest?.("input, textarea, select, [contenteditable=true]")) return;
+
+      switch (event.key) {
         case "ArrowRight":
-          isRTL ? goToPreviousPage() : goToNextPage();
+          bookIsRTL ? goToPreviousPage() : goToNextPage();
           break;
         case "ArrowLeft":
-          isRTL ? goToNextPage() : goToPreviousPage();
+          bookIsRTL ? goToNextPage() : goToPreviousPage();
           break;
         case "Escape":
-          if (isFullscreen) toggleFullscreen();
+          if (isFullscreen) void toggleFullscreen();
           break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [goToNextPage, goToPreviousPage, isRTL, isFullscreen]);
+  }, [goToNextPage, goToPreviousPage, bookIsRTL, isFullscreen, toggleFullscreen]);
 
-  const handleTouchStart = (e) => {
-    touchStartRef.current = e.touches[0].clientX;
+  const handleTouchStart = (event) => {
+    const touch = event.touches[0];
+    touchStartRef.current = event.touches.length === 1
+      ? { identifier: touch.identifier, x: touch.clientX, y: touch.clientY }
+      : null;
   };
 
-  const handleTouchEnd = (e) => {
-    if (touchStartRef.current === null) return;
-    const diff = touchStartRef.current - e.changedTouches[0].clientX;
-    const threshold = 50;
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        isRTL ? goToPreviousPage() : goToNextPage();
-      } else {
-        isRTL ? goToNextPage() : goToPreviousPage();
-      }
-    }
+  const handleTouchEnd = (event) => {
+    const start = touchStartRef.current;
     touchStartRef.current = null;
+    if (!start) return;
+    const touch = Array.from(event.changedTouches).find(item => item.identifier === start.identifier);
+    if (!touch) return;
+    const x = touch.clientX - start.x;
+    const y = touch.clientY - start.y;
+    if (Math.abs(x) < 50 || Math.abs(x) <= Math.abs(y)) return;
+    if ((x > 0) === bookIsRTL) goToNextPage();
+    else goToPreviousPage();
   };
-
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen?.();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
-      setIsFullscreen(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
 
   const zoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.25, 2));
   const zoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.25, 0.75));
@@ -508,7 +515,7 @@ function BookReader({ bookId, user }) {
     const style = book?.art_style;
     // For Hebrew books, use Fredoka (playful, supports Hebrew) for all styles
     // For English, vary by art style
-    if (isHebrewBook) {
+    if (bookIsRTL) {
       return "'SP Rubik', Rubik, sans-serif";
     }
     switch (style) {
@@ -544,6 +551,24 @@ function BookReader({ bookId, user }) {
     );
   }
 
+  const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+  const backLink = (
+    <Button asChild variant="outline" className="min-h-11 gap-2">
+      <Link to={createPageUrl(isGuest ? "Home" : "Library")}>
+        <BackIcon aria-hidden="true" />
+        {isGuest ? t("pageNotFound.goHome") : t("bookView.backToLibrary")}
+      </Link>
+    </Button>
+  );
+  const readerError = loadError && (
+    <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-3 text-center text-sm" dir={isRTL ? "rtl" : "ltr"}>
+      <p role="status">{t("bookView.loadError")}</p>
+      <Button variant="outline" className="min-h-11" onClick={refresh}>{t("common.retry")}</Button>
+      {pages.length === 0 && backLink}
+    </div>
+  );
+  if (loadError && pages.length === 0) return readerError;
+
   // A book that exists but has no readable page yet is NOT "not found". Creation
   // writes the book row, then its outline, then each page — so there is a real
   // window in which a real book has nothing to show. Telling the owner it does
@@ -575,7 +600,7 @@ function BookReader({ bookId, user }) {
             <Button
               onClick={() => handleResume(legacyConfirmation)}
               disabled={isResuming}
-              className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              className="min-h-11 gap-2 bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isResuming
                 ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -583,12 +608,7 @@ function BookReader({ bookId, user }) {
               {legacyConfirmation ? t("spxReader.confirmAllowance") : t("bookView.building.continue")}
             </Button>
           )}
-          <Link to={createPageUrl("Library")}>
-            <Button variant={canResume && !starting ? "outline" : "default"} className="gap-2">
-              {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-              {t('bookView.backToLibrary')}
-            </Button>
-          </Link>
+          {backLink}
         </div>
       </div>
     );
@@ -605,12 +625,7 @@ function BookReader({ bookId, user }) {
         <p className="text-gray-500 dark:text-gray-400 mb-6">
           {t('bookView.noBook.description')}
         </p>
-        <Link to={createPageUrl("Library")}>
-          <Button className="gap-2 bg-purple-600 hover:bg-purple-700 text-white">
-            {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-            {t('bookView.backToLibrary')}
-          </Button>
-        </Link>
+        {backLink}
       </div>
     );
   }
@@ -619,10 +634,8 @@ function BookReader({ bookId, user }) {
     <div
       ref={containerRef}
       data-night={nightMode}
-      className={`family-reader min-h-dvh flex flex-col ${nightBg} transition-colors duration-300`}
+      className={`family-reader min-h-dvh flex flex-col ${nightBg} transition-colors motion-safe:duration-300`}
       dir={isRTL ? "rtl" : "ltr"}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Guest sign-in banner */}
       {isGuest && book && (
@@ -661,6 +674,8 @@ function BookReader({ bookId, user }) {
         </div>
       )}
 
+      {readerError}
+
       {resumeError && (
         <div className="px-4 py-2 text-sm bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200" role="alert">
           {resumeError}
@@ -668,7 +683,7 @@ function BookReader({ bookId, user }) {
       )}
 
       {/* Gradient header matching app design */}
-      <header className={`sticky top-0 z-30 backdrop-blur-sm border-b transition-colors duration-300 ${nightHeader} shadow-sm`}>
+      <header className={`sticky top-0 z-30 backdrop-blur-sm border-b transition-colors motion-safe:duration-300 ${nightHeader} shadow-sm`}>
         {/* Subtle gradient strip at very top */}
         {!nightMode && (
           <div className="h-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-violet-500" />
@@ -692,13 +707,9 @@ function BookReader({ bookId, user }) {
                   {book.title}
                 </h1>
                 {pages.length > 0 && (
-                  <select className="reader-page-picker" aria-label={t("reader.jumpToPage")} value={currentPageIndex} onChange={event => {
-                    const index = Number(event.target.value);
-                    setDirection(index > currentPageIndex ? 1 : -1);
-                    setCurrentPageIndex(index);
-                  }}>
+                  <select className="reader-page-picker" aria-label={t("reader.jumpToPage")} value={currentPageIndex} onChange={event => goToPage(Number(event.target.value))}>
                     {pages.map((page, index) => <option key={page.id ?? page.page_number} value={index}>
-                      {page.page_number === 0 ? t("demoBookViewer.cover") : t("bookView.pageAlt", { number: index + 1 })}
+                      {pageLabel(page)}
                     </option>)}
                   </select>
                 )}
@@ -753,6 +764,7 @@ function BookReader({ bookId, user }) {
               onClick={toggleFullscreen}
               className={`rounded-xl hidden sm:flex ${nightToolbar}`}
               aria-label={t('bookView.fullscreen')}
+              aria-pressed={isFullscreen}
             >
               {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
             </Button>
@@ -841,7 +853,7 @@ function BookReader({ bookId, user }) {
         {isOwner && (
           <div className="mx-auto flex max-w-7xl px-4">
             <Link className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold hover:underline focus-visible:outline focus-visible:outline-2 ${nightMode ? "text-purple-200" : "text-purple-700"}`} to={isUnifiedBookEditor() && book.status === "complete" ? `${createPageUrl("BookCreation")}?id=${encodeURIComponent(book.id)}&tab=print` : printEditionUrl(book.id)}>
-              <Printer aria-hidden="true" className="h-4 w-4" />{editionLabels(i18nIsRTL).title}
+              <Printer aria-hidden="true" className="h-4 w-4" />{editionLabels(isRTL).title}
             </Link>
           </div>
         )}
@@ -858,7 +870,7 @@ function BookReader({ bookId, user }) {
               aria-label={t('bookView.exportingPdf') || 'Exporting PDF'}
             >
               <div
-                className="bg-gradient-to-r from-purple-500 to-indigo-500 h-1 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 h-1 rounded-full transition-all motion-safe:duration-300"
                 style={{ width: `${pdfProgress}%` }}
                 aria-hidden="true"
               />
@@ -874,6 +886,7 @@ function BookReader({ bookId, user }) {
         aria-valuemin={0}
         aria-valuemax={pages.length > 1 ? pages.length - 1 : 0}
         aria-valuenow={currentPageIndex}
+        aria-valuetext={currentPage ? pageLabel(currentPage) : undefined}
         aria-label={t('bookView.readingProgress') || 'Reading progress'}
       >
         <motion.div
@@ -884,10 +897,12 @@ function BookReader({ bookId, user }) {
               ? `${(currentPageIndex / (pages.length - 1)) * 100}%`
               : "0%"
           }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3 }}
           aria-hidden="true"
         />
       </div>
+
+      <p className="sr-only" role="status">{currentPage ? pageLabel(currentPage) : ""}</p>
 
       {/* Book content */}
       <main className="flex-1 flex flex-col">
@@ -897,21 +912,24 @@ function BookReader({ bookId, user }) {
             <div className={`flex-1 flex flex-col items-center justify-start p-4 md:justify-center md:p-8 ${nightBg}`}>
               <div
                 className="reader-desk w-full max-w-4xl"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={() => { touchStartRef.current = null; }}
                 style={/** @type {React.CSSProperties} */ ({ "--reading-scale": zoomLevel })}
               >
                 <PageFlip
-                  pageKey={currentPageIndex}
+                  pageKey={currentPage.page_number}
                   direction={direction}
-                  isRTL={isRTL}
+                  isRTL={bookIsRTL}
                   onPrev={goToPreviousPage}
                   onNext={goToNextPage}
                   canGoPrev={currentPageIndex > 0}
                   canGoNext={currentPageIndex < pages.length - 1}
                 >
-                  <div className={`${nightCard} rounded-2xl shadow-xl overflow-hidden ring-1 ${nightMode ? "ring-gray-700" : "ring-black/5 dark:ring-white/10"} transition-colors duration-300`}>
+                  <div className={`${nightCard} rounded-2xl shadow-xl overflow-hidden ring-1 ${nightMode ? "ring-gray-700" : "ring-black/5 dark:ring-white/10"} transition-colors motion-safe:duration-300`}>
                     {isCoverPage ? (
                       /* Cover page */
-                      <div className="reader-cover relative">
+                      <div className="reader-cover relative" lang={bookLocale?.code} dir={bookIsRTL ? "rtl" : "ltr"}>
                         {coverImage ? (
                           <ReaderIllustration onAvailability={failed => recordArtFailure("cover", failed)} key={coverImage}
                             src={coverImage}
@@ -920,7 +938,7 @@ function BookReader({ bookId, user }) {
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-600 flex items-center justify-center">
-                            <div className={`text-center p-8 ${isRTL ? "text-right" : ""}`}>
+                            <div className="text-center p-8">
                               <div className="text-6xl mb-4">📖</div>
                               <h2
                                 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-sm"
@@ -940,7 +958,7 @@ function BookReader({ bookId, user }) {
                         {coverImage && (
                           <div className="reader-cover-title text-center p-4">
                             <h2
-                              className={`text-xl md:text-2xl font-bold text-white drop-shadow-sm ${isRTL ? "text-right" : ""}`}
+                              className="text-xl md:text-2xl font-bold text-white drop-shadow-sm"
                               style={{ fontFamily: getBookFontFamily() }}
                             >
                               {book.title}
@@ -952,15 +970,15 @@ function BookReader({ bookId, user }) {
                         )}
                       </div>
                     ) : (
-                      <figure className="reader-leaf" data-layout={currentPage?.layout_type} dir={isHebrewBook || book.language === "yiddish" ? "rtl" : "ltr"}>
-                        <div className="reader-art">
+                      <figure className="reader-leaf" lang={bookLocale?.code} data-layout={currentPage?.layout_type} dir={bookIsRTL ? "rtl" : "ltr"}>
+                        <div className="reader-art" lang={LANGUAGES[interfaceLanguage]?.code}>
                           {currentPage?.image_url ? (
-                            <ReaderIllustration onAvailability={failed => recordArtFailure(currentPage.page_number, failed)} key={currentPage.image_url} className="reader-page-art" src={currentPage.image_url} alt={t('bookView.pageAlt', { number: currentPageIndex + 1 })} />
+                            <ReaderIllustration onAvailability={failed => recordArtFailure(currentPage.page_number, failed)} key={currentPage.image_url} className="reader-page-art" src={currentPage.image_url} alt={pageLabel(currentPage)} />
                           ) : (
                             <p className="reader-art-pending"><BookOpen aria-hidden="true" />{t('bookView.noIllustration')}</p>
                           )}
                         </div>
-                        <span className="reader-folio" aria-hidden="true">{currentPageIndex + 1}</span>
+                        <span className="reader-folio" aria-hidden="true">{currentPage.page_number}</span>
                         <figcaption>{currentPage?.text_content && <p className="reader-prose" style={{ fontFamily: getBookFontFamily() }}>{currentPage.text_content}</p>}</figcaption>
                       </figure>
                     )}
@@ -973,11 +991,11 @@ function BookReader({ bookId, user }) {
             <AnimatePresence>
               {fullyIllustrated && currentPageIndex === pages.length - 1 && pages.length > 1 && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
+                  exit={reduceMotion ? undefined : { opacity: 0, y: 20 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
-                  className={`px-4 pt-6 pb-2 text-center ${nightBg} transition-colors duration-300`}
+                  className={`px-4 pt-6 pb-2 text-center ${nightBg} transition-colors motion-safe:duration-300`}
                 >
                   <div className={`max-w-2xl mx-auto rounded-2xl p-6 shadow-lg ring-1 ${
                     nightMode
@@ -996,8 +1014,7 @@ function BookReader({ bookId, user }) {
                         variant="outline"
                         onClick={() => {
                           bookReadAwardedRef.current = false;
-                          setCurrentPageIndex(0);
-                          setDirection(-1);
+                          goToPage(0);
                         }}
                         className="flex items-center gap-2 rounded-xl"
                       >
