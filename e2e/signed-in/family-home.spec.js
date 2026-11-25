@@ -48,7 +48,7 @@ async function installFixtures(page) {
       return route.fulfill({ headers: cors, json: owner ? books : books[0] || null });
     }
     if (url.pathname.endsWith('/pages')) {
-      return route.fulfill({ headers: cors, json: [1, 2, 3].map(page_number => ({
+      return route.fulfill({ headers: cors, json: [1, 2, 3, 4].map(page_number => ({
         id: `fixture-page-${page_number}`, book_id: fixtureBook.id, page_number,
         text_content: `הגענו לתחנה ${page_number}.`, image_url: '/images/spx/hearth.webp',
       })) });
