@@ -1,4 +1,4 @@
-import React, { StrictMode } from "react";
+import { StrictMode } from "react";
 import { render, screen, fireEvent, cleanup, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,15 +9,16 @@ const mocks = vi.hoisted(() => ({
   owner: { id: "owner" },
   getBook: vi.fn(),
   getPages: vi.fn(),
+  getPublicBook: vi.fn(),
   generate: vi.fn(),
   reserve: vi.fn(),
   clear: vi.fn(),
   isLive: vi.fn(),
 }));
-vi.mock("@/entities/Book", () => ({ Book: { get: mocks.getBook, generationStore: {} } }));
+vi.mock("@/entities/Book", () => ({ Book: { filter: mocks.getBook, generationStore: {} } }));
 vi.mock("@/entities/Page", () => ({ Page: { filter: mocks.getPages } }));
 vi.mock("@/entities/PublicBook", () => ({
-  PublicBook: { get: vi.fn(async () => ({ id: "demo", title: "Public book", status: "complete", total_pages: 2 })) },
+  PublicBook: { filter: mocks.getPublicBook },
   PublicPage: { filter: mocks.getPages },
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: mocks.owner }) }));
@@ -55,7 +56,8 @@ function open() {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("VITE_READER_AUTO_RECOVERY", "true");
-  mocks.getBook.mockResolvedValue(privateBook);
+  mocks.getBook.mockResolvedValue([privateBook]);
+  mocks.getPublicBook.mockResolvedValue([{ id: "demo", title: "Public book", status: "complete", total_pages: 2 }]);
   mocks.getPages.mockResolvedValue(pages);
   mocks.isLive.mockReturnValue(false);
 });
@@ -69,7 +71,7 @@ describe("owner workspace navigation", () => {
   it("links the owner to the unified print tab when enabled, and the standalone proof otherwise", async () => {
     vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
     vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
-    mocks.getBook.mockResolvedValue({ ...privateBook, status: "complete" });
+    mocks.getBook.mockResolvedValue([{ ...privateBook, status: "complete" }]);
     const view = open();
     const edit = await screen.findByRole("link", { name: "bookView.editAdvanced" });
     expect(edit).toHaveAttribute("href", "/BookCreation?id=demo");
@@ -137,8 +139,8 @@ describe("reader recovery", () => {
 
   it.each([
     ["flag off", () => vi.stubEnv("VITE_READER_AUTO_RECOVERY", "")],
-    ["public", () => mocks.getBook.mockResolvedValue({ ...privateBook, is_public: true })],
-    ["another owner", () => mocks.getBook.mockResolvedValue({ ...privateBook, created_by: "other" })],
+    ["public", () => mocks.getBook.mockResolvedValue([{ ...privateBook, is_public: true }])],
+    ["another owner", () => mocks.getBook.mockResolvedValue([{ ...privateBook, created_by: "other" }])],
     ["live run", () => mocks.isLive.mockReturnValue(true)],
     ["incomplete manuscript", () => mocks.getPages.mockResolvedValue(pages.slice(0, 1))],
     ["art already present", () => mocks.getPages.mockResolvedValue(pages.map(p => ({ ...p, image_url: "/good.png" })))],
@@ -149,4 +151,41 @@ describe("reader recovery", () => {
     expect(mocks.generate).not.toHaveBeenCalled();
     expect(mocks.reserve).not.toHaveBeenCalled();
   });
+});
+
+it("retains the currently visible owner folio after a transient metadata refresh and retries it", async () => {
+  vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
+  localStorage.setItem("book_demo_page", "1");
+  open();
+  expect(await screen.findByText("A persisted page")).toBeVisible();
+
+  mocks.getBook.mockRejectedValueOnce(new Error("Offline"));
+  fireEvent.online(window);
+  await screen.findByText("bookView.loadError");
+  expect(screen.getByText("A persisted page")).toBeVisible();
+  expect(mocks.getPublicBook).not.toHaveBeenCalled();
+
+  mocks.getPages.mockResolvedValueOnce([{ ...pages[1], text_content: "The updated folio" }]);
+  fireEvent.click(screen.getByRole("button", { name: "common.retry" }));
+  expect(await screen.findByText("The updated folio")).toBeVisible();
+  expect(screen.queryByText("bookView.loadError")).toBeNull();
+  expect(mocks.getBook).toHaveBeenLastCalledWith({ id: "demo", created_by: "owner" });
+});
+
+it("removes private data as soon as owner access is lost, even when the public lookup fails", async () => {
+  vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
+  localStorage.setItem("book_demo_page", "1");
+  open();
+  expect(await screen.findByText("A persisted page")).toBeVisible();
+
+  mocks.getBook.mockResolvedValue([]);
+  mocks.getPublicBook.mockRejectedValueOnce(new Error("Offline")).mockResolvedValue([]);
+  fireEvent.online(window);
+  await screen.findByText("bookView.loadError");
+  expect(screen.queryByText("A persisted page")).toBeNull();
+  expect(screen.queryByText("Private book")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "common.retry" }));
+  expect(await screen.findByRole("heading", { name: "bookView.noBook.title" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "bookView.backToLibrary" })).toHaveAttribute("href", "/Library");
 });

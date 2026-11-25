@@ -89,7 +89,7 @@ function BookReader({ bookId, user }) {
   // Re-read on a timer while a run is heartbeating, so pages appear as they land.
   const [liveTick, setLiveTick] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [pageLoadError, setPageLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [direction, setDirection] = useState(1);
   const reduceMotion = useReducedMotion();
 
@@ -108,6 +108,7 @@ function BookReader({ bookId, user }) {
   const containerRef = useRef(null);
   const fullscreenTrigger = useRef(null);
   const touchStartRef = useRef(null);
+  const verifiedOwnerRef = useRef(false);
   const positionRestoredRef = useRef(false);
   const bookReadAwardedRef = useRef(false);
 
@@ -136,35 +137,24 @@ function BookReader({ bookId, user }) {
       try {
         if (!isRefresh) setLoading(true);
 
-        // Owner reads the full book (RLS scopes the base tables to the owner).
-        // Guests / non-owners cannot read the base books/pages tables (they
-        // carry child PII and anon has no grant) — fall back to the sanitized,
-        // PII-free public views (public_books / public_pages), which only return
-        // rows where is_public = true. See entities/PublicBook.js + migration
-        // 2026-05-25-public-pii-safe-views.sql.
-        // Resolved independently on purpose. These used to share one try/catch
-        // over a Promise.all, so a failure fetching PAGES sent the BOOK to the
-        // public-view fallback too — and public_books only returns is_public
-        // rows, so a private book the owner had every right to see resolved to
-        // null and rendered as "book not found". A book that loads must be
-        // shown even when its pages cannot be.
-        let bookData = null;
-        let pagesData = [];
+        // A successful empty result confirms absence under RLS. A rejected
+        // query leaves the last verified reader snapshot intact.
+        const ownerRows = user?.id ? await Book.filter({ id: bookId, created_by: user.id }) : [];
+        if (!current) return;
+        const ownedBook = ownerRows.find(row => row.created_by === user?.id);
+        const ownerLoaded = Boolean(ownedBook);
+        if (verifiedOwnerRef.current && !ownerLoaded) {
+          setBook(null);
+          setAllPages([]);
+          setIsOwner(false);
+          resetMeta();
+        }
+        verifiedOwnerRef.current = ownerLoaded;
 
-        try {
-          bookData = user?.id ? await Book.get(bookId) : null;
-          if (bookData?.created_by !== user?.id) bookData = null;
-        } catch {
-          bookData = null;
-        }
-        const ownerLoaded = Boolean(bookData);
-        if (!bookData) {
-          try {
-            bookData = await PublicBook.get(bookId);
-          } catch {
-            bookData = null;
-          }
-        }
+        // Public views contain only sanitized rows and pages for public books.
+        const bookData = ownedBook ?? (await PublicBook.filter({ id: bookId }))[0] ?? null;
+        if (!current) return;
+        let pagesData = [];
 
         try {
           if (bookData) {
@@ -174,7 +164,7 @@ function BookReader({ bookId, user }) {
           if (!current) return;
           setBook(bookData);
           setIsOwner(ownerLoaded);
-          setPageLoadError(true);
+          setLoadError(true);
           return;
         }
         pagesData = Array.isArray(pagesData) ? pagesData : [];
@@ -183,7 +173,7 @@ function BookReader({ bookId, user }) {
         setBook(bookData);
         setIsOwner(ownerLoaded);
         setAllPages(pagesData);
-        setPageLoadError(false);
+        setLoadError(false);
 
         const readable = readablePages(pagesData);
         if (readable.length && !positionRestoredRef.current) {
@@ -204,12 +194,11 @@ function BookReader({ bookId, user }) {
             image: bookData.cover_image,
             type: 'article',
           });
+        } else {
+          resetMeta();
         }
       } catch {
-        if (current) toast({
-          variant: "destructive",
-          description: t('bookView.loadError'),
-        });
+        if (current) setLoadError(true);
       } finally {
         if (current) setLoading(false);
       }
@@ -562,13 +551,23 @@ function BookReader({ bookId, user }) {
     );
   }
 
-  const pageError = pageLoadError && (
-    <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-3 text-sm" dir={isRTL ? "rtl" : "ltr"}>
+  const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+  const backLink = (
+    <Button asChild variant="outline" className="min-h-11 gap-2">
+      <Link to={createPageUrl(isGuest ? "Home" : "Library")}>
+        <BackIcon aria-hidden="true" />
+        {t(isGuest ? "pageNotFound.goHome" : "bookView.backToLibrary")}
+      </Link>
+    </Button>
+  );
+  const readerError = loadError && (
+    <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-3 text-center text-sm" dir={isRTL ? "rtl" : "ltr"}>
       <p role="status">{t("bookView.loadError")}</p>
       <Button variant="outline" className="min-h-11" onClick={refresh}>{t("common.retry")}</Button>
+      {pages.length === 0 && backLink}
     </div>
   );
-  if (pageLoadError && pages.length === 0) return pageError;
+  if (loadError && pages.length === 0) return readerError;
 
   // A book that exists but has no readable page yet is NOT "not found". Creation
   // writes the book row, then its outline, then each page — so there is a real
@@ -601,7 +600,7 @@ function BookReader({ bookId, user }) {
             <Button
               onClick={() => handleResume(legacyConfirmation)}
               disabled={isResuming}
-              className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              className="min-h-11 gap-2 bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isResuming
                 ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -609,12 +608,7 @@ function BookReader({ bookId, user }) {
               {legacyConfirmation ? t("spxReader.confirmAllowance") : t("bookView.building.continue")}
             </Button>
           )}
-          <Link to={createPageUrl("Library")}>
-            <Button variant={canResume && !starting ? "outline" : "default"} className="gap-2">
-              {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-              {t('bookView.backToLibrary')}
-            </Button>
-          </Link>
+          {backLink}
         </div>
       </div>
     );
@@ -631,12 +625,7 @@ function BookReader({ bookId, user }) {
         <p className="text-gray-500 dark:text-gray-400 mb-6">
           {t('bookView.noBook.description')}
         </p>
-        <Link to={createPageUrl("Library")}>
-          <Button className="gap-2 bg-purple-600 hover:bg-purple-700 text-white">
-            {isRTL ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-            {t('bookView.backToLibrary')}
-          </Button>
-        </Link>
+        {backLink}
       </div>
     );
   }
@@ -685,7 +674,7 @@ function BookReader({ bookId, user }) {
         </div>
       )}
 
-      {pageError}
+      {readerError}
 
       {resumeError && (
         <div className="px-4 py-2 text-sm bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200" role="alert">

@@ -6,10 +6,10 @@ import BookView from '../../pages/BookView';
 import { PublicBook, PublicPage } from '@/entities/PublicBook';
 
 vi.mock('framer-motion', async importOriginal => ({ ...await importOriginal(), useReducedMotion: () => true }));
-vi.mock('@/entities/Book', () => ({ Book: { get: vi.fn().mockResolvedValue(null) } }));
+vi.mock('@/entities/Book', () => ({ Book: { filter: vi.fn().mockResolvedValue([]) } }));
 vi.mock('@/entities/Page', () => ({ Page: { filter: vi.fn().mockRejectedValue(new Error('guest')) } }));
 vi.mock('@/entities/PublicBook', () => ({
-  PublicBook: { get: vi.fn().mockResolvedValue({ id: 'demo', title: 'Demo book', total_pages: 1, status: 'complete' }) },
+  PublicBook: { filter: vi.fn().mockResolvedValue([{ id: 'demo', title: 'Demo book', total_pages: 1, status: 'complete' }]) },
   PublicPage: { filter: vi.fn().mockResolvedValue([{ page_number: 1, text_content: 'A story', image_url: '/demo.png' }]) },
 }));
 vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: null }) }));
@@ -138,7 +138,7 @@ it.each([
   ['hebrew', 'english', 'ArrowRight', -70, 'rtl', 'ltr'],
   ['english', 'hebrew', 'ArrowLeft', 70, 'ltr', 'rtl'],
 ])('uses the book direction in a %s interface for a %s book', async (interfaceLanguage, bookLanguage, key, swipe, interfaceDir, bookDir) => {
-  PublicBook.get.mockResolvedValueOnce({ id: 'demo', title: 'Demo book', status: 'partial', language: bookLanguage });
+  PublicBook.filter.mockResolvedValueOnce([{ id: 'demo', title: 'Demo book', status: 'partial', language: bookLanguage }]);
   PublicPage.filter.mockResolvedValueOnce(pagesWithGap);
   const view = showReader(interfaceLanguage);
   await screen.findByText('Cover words');
@@ -160,4 +160,32 @@ it.each([
   fireEvent.error(view.container.querySelector('.reader-page-art'));
   expect(screen.getByText(view.t('bookView.noIllustration'))).toBeVisible();
   expect(screen.getByText('Folio three')).toBeVisible();
+});
+
+it('gives a guest a retry on metadata failure and opens the story when the connection recovers', async () => {
+  PublicBook.filter.mockRejectedValueOnce(new Error('Offline'));
+  const { t } = showReader('hebrew');
+  await screen.findByText(t('bookView.loadError'));
+  expect(screen.queryByText(t('bookView.noBook.title'))).toBeNull();
+  expect(screen.getByRole('link', { name: t('pageNotFound.goHome') })).toHaveAttribute('href', '/');
+  fireEvent.click(screen.getByRole('button', { name: t('common.retry') }));
+  expect(await screen.findByText('A story')).toBeVisible();
+  expect(screen.queryByText(t('bookView.loadError'))).toBeNull();
+  expect(PublicBook.filter).toHaveBeenCalledTimes(2);
+});
+
+it.each(['missing', 'private'])('uses the same public unavailable state for a %s book', async () => {
+  PublicBook.filter.mockResolvedValueOnce([]);
+  const { t } = showReader('hebrew');
+  await screen.findByRole('heading', { name: t('bookView.noBook.title') });
+  expect(screen.getByText(t('bookView.noBook.description'))).toBeVisible();
+  expect(screen.getByRole('link', { name: t('pageNotFound.goHome') })).toHaveAttribute('href', '/');
+  expect(PublicPage.filter).not.toHaveBeenCalled();
+});
+
+it('provides the same public way home from an empty public book', async () => {
+  PublicPage.filter.mockResolvedValueOnce([]);
+  const { t } = showReader('hebrew');
+  await screen.findByText(t('bookView.building.stopped'));
+  expect(screen.getByRole('link', { name: t('pageNotFound.goHome') })).toHaveAttribute('href', '/');
 });
