@@ -71,7 +71,7 @@ export function getSelectedTopicLabel(selectedTopic, t) {
  * TopicStep - Step 1 of the wizard: Choose a story topic.
  * Illustrated choices, surprise ideas, and custom ideas.
  */
-export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, onApplySuggestedIdea = onCustomIdeaChange, isRTL, language }) {
+export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, isRTL, language }) {
   const { t } = useI18n();
   const isHebrew = language === "hebrew";
   const isYiddish = language === "yiddish";
@@ -153,7 +153,7 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
       ideaRef.current?.focus();
       focusIdeaRef.current = false;
     }
-    onApplySuggestedIdea?.(idea);
+    onCustomIdeaChange?.(idea);
     selectTopic("custom");
   };
 

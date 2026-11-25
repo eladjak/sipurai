@@ -864,9 +864,9 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     setBookData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applySuggestedIdea = (idea) => {
-    if (idea === customIdea) return;
+  const updateCustomIdea = (idea) => {
     setCustomIdea(idea);
+    if (idea.trim() === customIdea.trim()) return;
     setGeneratedOutline(null);
     if (!importedIdeaFields.length) return;
     setBookData(previous => {
@@ -919,8 +919,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             selectedTopic={selectedTopic}
             onSelectTopic={setSelectedTopic}
             customIdea={customIdea}
-            onCustomIdeaChange={setCustomIdea}
-            onApplySuggestedIdea={applySuggestedIdea}
+            onCustomIdeaChange={updateCustomIdea}
             isRTL={isRTL}
             language={currentLanguage}
           />

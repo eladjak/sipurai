@@ -855,11 +855,12 @@ describe("visible private draft restore", () => {
     expect(text.value).toContain("Freckles on the Moon");
     expect(screen.getByRole("button", { name: "wizard.draft.restore" })).toBeDefined();
     expect(sessionStorage.getItem("sipurai_pending_idea")).toBeNull();
-    fireEvent.change(text, { target: { value: "A giraffe flies to the Moon" } });
     const newKey = getDraftKeys("test-user").find(key => key !== oldKey);
+    expect(JSON.parse(localStorage.getItem(newKey)).bookData.moral).toBe("Friends come in many shapes");
+    fireEvent.change(text, { target: { value: "A giraffe flies to the Moon" } });
     expect(JSON.parse(localStorage.getItem(newKey))).toMatchObject({
       customIdea: "A giraffe flies to the Moon",
-      bookData: { moral: "Friends come in many shapes" },
+      bookData: { moral: "" },
     });
     expect(JSON.parse(localStorage.getItem(oldKey)).bookData.title).toBe("Old space draft");
     cleanup();
@@ -926,6 +927,38 @@ describe("visible private draft restore", () => {
     expect(screen.getByDisplayValue("The family's own moral")).toBeDefined();
     expect(InvokeLLM.mock.calls[0][0].prompt).toContain("New Forest — Foxes find a map");
     expect(InvokeLLM.mock.calls[0][0].prompt).not.toContain("Old Moon");
+  });
+
+  it("uses a manually rewritten idea in the outline after restoring its draft", async () => {
+    sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
+      ownerId: "test-user", title: "Old Moon", description: "Moon explorers", moral: "Old moon lesson",
+    }));
+    render(<BookWizardPage />);
+    const idea = await screen.findByDisplayValue("Old Moon — Moon explorers");
+    fireEvent.change(idea, { target: { value: "Old Moon — Moon explorers " } });
+    const readDraft = () => JSON.parse(localStorage.getItem(getDraftKeys("test-user")[0]));
+    expect(readDraft().bookData.title).toBe("Old Moon");
+    fireEvent.change(idea, { target: { value: "Two foxes follow a map" } });
+    expect(readDraft().bookData).toMatchObject({ title: "", description: "", moral: "" });
+
+    cleanup();
+    InvokeLLM.mockClear();
+    InvokeLLM.mockResolvedValueOnce({
+      title: "The Forest Map", description: "Two foxes find a forest trail.", moral_lesson: "Explore together",
+    });
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+    expect(screen.getByDisplayValue("Two foxes follow a map")).toBeDefined();
+    const next = () => fireEvent.click(screen.getByLabelText("Next step"));
+    next();
+    fireEvent.click(await screen.findByText("Brave Hero"));
+    next();
+    next();
+    expect(await screen.findByDisplayValue("The Forest Map")).toBeDefined();
+    expect(screen.getByDisplayValue("Two foxes find a forest trail.")).toBeDefined();
+    expect(screen.getByDisplayValue("Explore together")).toBeDefined();
+    expect(screen.queryByDisplayValue("Old Moon")).toBeNull();
+    expect(InvokeLLM.mock.calls[0][0].prompt).toContain("Two foxes follow a map");
   });
 
   it("does not show a browser-wide or another account's old draft", async () => {
