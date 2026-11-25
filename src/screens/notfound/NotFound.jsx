@@ -36,7 +36,7 @@ export default function NotFound() {
       <h1 className="mt-6 max-w-md font-sp-display text-sp-2xl font-semibold">{t('notFound.title')}</h1>
       <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:flex-row sm:justify-center">
         <Link className={`${action} bg-sp-violet-600 text-sp-card hover:bg-sp-violet-700`} to="/">{isAuthenticated ? t('notFound.home') : t('notFound.guestHome')}</Link>
-        <Link className={`${action} border border-sp-on-night text-sp-on-night hover:bg-sp-night-700`} to={isAuthenticated ? '/Library' : '/sign-in'}>{isAuthenticated ? t('notFound.shelf') : t('notFound.signIn')}</Link>
+        <Link className={`${action} border border-sp-on-night text-sp-on-night hover:bg-sp-night-700`} to={isAuthenticated ? '/Library' : '/samples/demo-dragons-garden'}>{isAuthenticated ? t('notFound.shelf') : t('notFound.sample')}</Link>
       </div>
     </main>
   );

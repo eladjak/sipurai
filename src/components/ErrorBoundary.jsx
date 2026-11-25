@@ -1,9 +1,10 @@
 import { CONTACT_EMAIL } from '@/data/privacyPolicyContent';
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { RefreshCw, Home } from "lucide-react";
 import heLegal from '@/components/i18n/locales/he/legal';
 import enLegal from '@/components/i18n/locales/en/legal';
+import { LogoMark } from '@/components/brand/LogoMark';
 import { captureError } from "@/lib/errorTracking";
 
 export default class ErrorBoundary extends React.Component {
@@ -52,9 +53,8 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       // Detect language from localStorage to determine direction
-      const storedLanguage = typeof window !== 'undefined'
-        ? localStorage.getItem('language') || 'hebrew'
-        : 'hebrew';
+      let storedLanguage = 'hebrew';
+      try { storedLanguage = localStorage.getItem('language') || 'hebrew'; } catch { /* Storage may be unavailable. */ }
       const isRTL = storedLanguage === 'hebrew' || storedLanguage === 'yiddish';
       const labels = (storedLanguage === 'english' ? enLegal : heLegal).legal;
       const { errorTitle: heading, errorDescription: description, retry: tryAgainLabel, home: goHomeLabel } = labels;
@@ -67,9 +67,7 @@ export default class ErrorBoundary extends React.Component {
           aria-live="assertive"
         >
           <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-10 h-10 text-amber-500" aria-hidden="true" />
-            </div>
+            <LogoMark className="mx-auto h-24 w-24" />
 
             <div className="space-y-2">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

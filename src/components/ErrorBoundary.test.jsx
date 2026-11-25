@@ -51,6 +51,19 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('חזרה הביתה')).toBeInTheDocument();
   });
 
+  it('offers recovery when storage access is blocked', () => {
+    const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('Storage denied', 'SecurityError');
+    });
+    try {
+      render(<ErrorBoundary><ProblemChild /></ErrorBoundary>);
+      expect(screen.getByRole('alert')).toHaveAttribute('dir', 'rtl');
+      expect(screen.getByRole('button', { name: 'לנסות שוב' })).toBeVisible();
+    } finally {
+      read.mockRestore();
+    }
+  });
+
   it('resets error state when retry button is clicked', () => {
     render(
       <ErrorBoundary>

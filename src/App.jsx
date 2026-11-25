@@ -138,6 +138,11 @@ const AuthenticatedApp = () => {
   return <LegacyAuthenticatedApp />;
 };
 
+const LegacyLoginRedirect = ({ navigateToLogin }) => {
+  useEffect(() => { navigateToLogin(); }, [navigateToLogin]);
+  return null;
+};
+
 export const LegacyAuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
   const location = useLocation();
@@ -148,55 +153,17 @@ export const LegacyAuthenticatedApp = () => {
     trackPageView(pageName);
   }, [location.pathname]);
 
-  // Check if the current route is a public page that doesn't need auth
-  const currentPath = location.pathname.replace(/^\//, '') || mainPageKey;
-  const isPublicRoute =
-    PUBLIC_PAGES.has(currentPath) ||
-    /^\/b\/print\/[^/]+\/?$/.test(location.pathname) ||
-    /^\/samples\/[^/]+\/?$/.test(location.pathname) ||
-    location.pathname === '/' ||
-    LEGACY_HOME_PATHS.some((p) => location.pathname.toLowerCase() === p.toLowerCase()) ||
-    location.pathname.startsWith('/blog') ||
-    location.pathname.startsWith('/sign-in') ||
-    location.pathname.startsWith('/sign-up') ||
-    location.pathname === '/privacy' ||
-    location.pathname === '/terms' ||
-    // Consumer Protection Law s.14T(b): the cancellation link must work for everyone, signed in or not.
-    location.pathname.replace(/\/+$/, '') === '/cancel-subscription' ||
-    location.pathname === '/welcome' ||
-    location.pathname === '/contact' ||
-    location.pathname === '/Contact' ||
-    location.pathname === '/pricing' ||
-    location.pathname === '/accessibility' ||
-    (CheckoutHarness !== null && location.pathname === '/__checkout-states') ||
-    (PrivacyGateHarness !== null && location.pathname === '/__privacy-gate');
-
-  // Show loading spinner while checking app public settings or auth
-  // For public routes, skip auth loading wait (user will be null but that's fine)
-  if (!isPublicRoute && (isLoadingPublicSettings || isLoadingAuth)) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Handle authentication errors — but only redirect for non-public routes
-  if (!isPublicRoute && authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically for protected routes
-      navigateToLogin();
-      return null;
+  // Gate the element selected by React Router, including encoded path spellings.
+  const protectedPage = (element) => {
+    if (isLoadingPublicSettings || isLoadingAuth) {
+      return <div className="fixed inset-0 flex items-center justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>;
     }
-  }
-
-  // For non-public routes, redirect to login if not authenticated
-  if (!isPublicRoute && !isLoadingAuth && !user) {
-    navigateToLogin();
-    return null;
-  }
+    if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
+    if (authError?.type === 'auth_required' || !user) {
+      return <LegacyLoginRedirect navigateToLogin={navigateToLogin} />;
+    }
+    return element;
+  };
 
   // Render the main app
   return (
@@ -249,19 +216,19 @@ export const LegacyAuthenticatedApp = () => {
                 PUBLIC_PAGES.has(path) ? (
                   <Page />
                 ) : (
-                  <LayoutWrapper currentPageName={path}>
+                  protectedPage(<LayoutWrapper currentPageName={path}>
                     <Page />
-                  </LayoutWrapper>
+                  </LayoutWrapper>)
                 )
               }
             />
           ))}
           {PrintCheckout && (
-            <Route path="/book/:id/order" element={<LayoutWrapper currentPageName="PrintCheckout"><PrintCheckout /></LayoutWrapper>} />
+            <Route path="/book/:id/order" element={protectedPage(<LayoutWrapper currentPageName="PrintCheckout"><PrintCheckout /></LayoutWrapper>)} />
           )}
-          {MyOrders && <Route path="/orders" element={<LayoutWrapper currentPageName="MyOrders"><MyOrders /></LayoutWrapper>} />}
+          {MyOrders && <Route path="/orders" element={protectedPage(<LayoutWrapper currentPageName="MyOrders"><MyOrders /></LayoutWrapper>)} />}
           {AdminPrintOrders && (
-            <Route path="/admin/print-orders" element={<LayoutWrapper currentPageName="AdminPrintOrders"><AdminPrintOrders /></LayoutWrapper>} />
+            <Route path="/admin/print-orders" element={protectedPage(<LayoutWrapper currentPageName="AdminPrintOrders"><AdminPrintOrders /></LayoutWrapper>)} />
           )}
           {CheckoutHarness && <Route path="/__checkout-states" element={<CheckoutHarness />} />}
           {PrivacyGateHarness && <Route path="/__privacy-gate" element={<PrivacyGateHarness />} />}
