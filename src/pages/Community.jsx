@@ -253,7 +253,8 @@ export default function CommunityPage() {
     const ownerId = currentUserRef.current;
     const controls = getParentalControls();
     if (!ownerId || !controls.allowCommunitySharing || (controls.requireApprovalBeforePublish && !pinVerified)) {
-      toast({ variant: "destructive", description: t(!controls.allowCommunitySharing ? "sharing.publicationDisabled" : "sharing.pinRequired") });
+      toast({ variant: "destructive", description: !controls.allowCommunitySharing
+        ? t("sharing.publicationDisabled") : t("sharing.pinRequired") });
       return;
     }
     const title = moderateInput(bookData.title, "title");

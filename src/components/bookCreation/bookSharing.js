@@ -60,7 +60,7 @@ export async function publishBookShare({ Book, Community, bookId, ownerId, post,
     if (isCurrent() && error?.message === "sipurai_cleanup_required") {
       return { visibility: false, cleanupRequired: true, error: "sharing.cleanupPending" };
     }
-    rejected = Boolean(error && status >= 400 && status < 500 && status !== 408);
+    rejected = Boolean(error && status >= 400 && status !== 408);
   } catch {
     // A lost response may still mean the transaction committed.
   }

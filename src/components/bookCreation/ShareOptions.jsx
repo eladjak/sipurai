@@ -114,6 +114,10 @@ function BookSharing({ book, bookId }) {
         setNotice("communityPost.inappropriateDesc");
         return;
       }
+      if (!title.sanitized.trim() || !description.sanitized.trim()) {
+        setNotice("sharing.missingInfoDesc");
+        return;
+      }
       post = {
         title: title.sanitized,
         description: description.sanitized,
@@ -140,7 +144,12 @@ function BookSharing({ book, bookId }) {
       }
 
       const result = await publishBookShare({
-        Book, Community, bookId, ownerId, post, isCurrent: () => mounted.current
+        Book, Community, bookId, ownerId, post,
+        isCurrent: () => {
+          const latestControls = getParentalControls();
+          return mounted.current && latestControls.allowCommunitySharing
+            && (!latestControls.requireApprovalBeforePublish || pinVerified);
+        }
       });
       if (!mounted.current) return;
       setVisibility(result.visibility);
@@ -197,7 +206,7 @@ function BookSharing({ book, bookId }) {
       await navigator.clipboard.writeText(text);
       if (!mounted.current || pending.current || version !== readVersion.current) return;
       setCopyFailed(false);
-      toast({ title: t(instagram ? "sharing.copiedForInstagram" : "sharing.linkCopied") });
+      toast({ title: instagram ? t("sharing.copiedForInstagram") : t("sharing.linkCopied") });
     } catch {
       if (mounted.current && !pending.current && version === readVersion.current) setCopyFailed(true);
     }
@@ -205,10 +214,23 @@ function BookSharing({ book, bookId }) {
 
   const socialText = `${t("sharing.socialShareText")} ${book?.title ?? ""}`;
   const socialLinks = url ? [
-    { label: "shareWhatsApp", Icon: MessageCircle, href: `https://wa.me/?text=${encodeURIComponent(`${socialText}\n${url}`)}` },
-    { label: "shareFacebook", Icon: Facebook, href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
-    { label: "shareTwitter", Icon: Twitter, href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(socialText)}&url=${encodeURIComponent(url)}` }
+    { label: t("sharing.shareWhatsApp"), Icon: MessageCircle, href: `https://wa.me/?text=${encodeURIComponent(`${socialText}\n${url}`)}` },
+    { label: t("sharing.shareFacebook"), Icon: Facebook, href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
+    { label: t("sharing.shareTwitter"), Icon: Twitter, href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(socialText)}&url=${encodeURIComponent(url)}` }
   ] : [];
+  const noticeLabel = {
+    "communityPost.inappropriateDesc": t("communityPost.inappropriateDesc"),
+    "sharing.cleanupPending": t("sharing.cleanupPending"),
+    "sharing.linkReady": t("sharing.linkReady"),
+    "sharing.listingCheckFailed": t("sharing.listingCheckFailed"),
+    "sharing.listingIncomplete": t("sharing.listingIncomplete"),
+    "sharing.missingInfoDesc": t("sharing.missingInfoDesc"),
+    "sharing.pinRequired": t("sharing.pinRequired"),
+    "sharing.publicationDisabled": t("sharing.publicationDisabled"),
+    "sharing.shareErrorDesc": t("sharing.shareErrorDesc"),
+    "sharing.shareSuccessDesc": t("sharing.shareSuccessDesc"),
+    "sharing.visibilityUnavailable": t("sharing.visibilityUnavailable"),
+  }[notice];
 
   const selectShareType = (type) => {
     setShareType(type);
@@ -234,7 +256,7 @@ function BookSharing({ book, bookId }) {
             <CardDescription role="status">
               {checking ? t("sharing.checkingVisibility")
                 : readFailed ? t("sharing.visibilityUnavailable")
-                : t(isShared ? "sharing.publicStatus" : "sharing.privateStatus")}
+                : isShared ? t("sharing.publicStatus") : t("sharing.privateStatus")}
             </CardDescription>
           </div>
         </CardHeader>
@@ -299,7 +321,7 @@ function BookSharing({ book, bookId }) {
                 <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
                   <input type="checkbox" className="mt-1 size-5 shrink-0 accent-purple-700" checked={publicAck}
                     onChange={(e) => setPublicAck(e.target.checked)} />
-                  <span>{t(isCommunity ? "sharing.publicAck" : "sharing.linkAck")}</span>
+                  <span>{isCommunity ? t("sharing.publicAck") : t("sharing.linkAck")}</span>
                 </label>
                 {controls.requireApprovalBeforePublish && (
                   <div className="grid gap-2">
@@ -310,7 +332,7 @@ function BookSharing({ book, bookId }) {
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button type="submit" className="min-h-11" disabled={!publicAck}>
-                    {busy ? t("sharing.sharing") : t(isCommunity ? "sharing.publishListing" : "sharing.confirmPublicLink")}
+                    {busy ? t("sharing.sharing") : isCommunity ? t("sharing.publishListing") : t("sharing.confirmPublicLink")}
                   </Button>
                   <Button type="button" variant="ghost" className="min-h-11" onClick={() => selectShareType("")}>
                     {t("bookControls.cancel")}
@@ -321,7 +343,7 @@ function BookSharing({ book, bookId }) {
           )}
           <p role="status" className="text-sm">
             {cleanupRequired && visibility === false ? t("sharing.cleanupPending")
-              : notice && t(notice)}
+              : noticeLabel}
           </p>
           {(isShared || cleanupRequired) && (
             <BookControlButton kind="unshare" book={{ ...book, id: bookId }} onAction={stopSharing} onChanged={() => {
@@ -356,7 +378,7 @@ function BookSharing({ book, bookId }) {
             <div className="flex flex-wrap gap-2">
               {socialLinks.map(({ label, Icon, href }) => (
                 <Button type="button" key={label} variant="outline" size="icon" className="size-11"
-                  aria-label={t(`sharing.${label}`)} onClick={async () => {
+                  aria-label={label} onClick={async () => {
                     if (await refreshSharing({ conceal: false })) window.location.assign(href);
                   }}>
                   <Icon aria-hidden="true" className="size-5" />

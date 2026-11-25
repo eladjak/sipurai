@@ -18,7 +18,7 @@ vi.mock("@/utils/content-moderation", () => ({
   getParentalControls: api.controls,
   isPinSet: api.pinSet,
   verifyParentalPin: api.verifyPin,
-  moderateInput: (value) => ({ sanitized: value, blocked: value === "blocked" })
+  moderateInput: (value) => ({ sanitized: value === "<br>" ? "" : value, blocked: value === "blocked" })
 }));
 
 const book = { id: "book#1", title: "Moon story", created_by: "owner", is_public: false };
@@ -290,10 +290,10 @@ it("passes observed public visibility so a concurrent revoke cannot be silently 
   expect(screen.queryByText("sharing.shareSuccessDesc")).toBeNull();
 });
 
-it("does not accept an existing public listing as a successful write if the RPC is unavailable", async () => {
+it.each([404, 503])("does not accept an existing public listing when the RPC rejects with %s", async (status) => {
   api.get.mockResolvedValue(publicBook);
   api.filter.mockResolvedValue([{ ...post, title: book.title, description: "A short story", tags: ["story", "children"] }]);
-  api.rpc.mockResolvedValue({ data: null, error: { code: "PGRST202", message: "RPC unavailable" }, status: 404 });
+  api.rpc.mockResolvedValue({ data: null, error: { message: "RPC unavailable" }, status });
   start();
   await chooseCommunity();
   fireEvent.click(screen.getByRole("checkbox"));
@@ -301,6 +301,29 @@ it("does not accept an existing public listing as a successful write if the RPC 
   await screen.findByText("sharing.shareErrorDesc");
   expect(api.filter).not.toHaveBeenCalled();
   expect(screen.queryByText("sharing.shareSuccessDesc")).toBeNull();
+});
+
+it("does not publish if the parent disables sharing during the final owner read", async () => {
+  start();
+  fireEvent.click(await screen.findByRole("button", { name: "sharing.enablePublicLink" }));
+  fireEvent.click(screen.getByRole("checkbox"));
+  api.get.mockImplementationOnce(async () => {
+    api.controls.mockReturnValue({ allowCommunitySharing: false, requireApprovalBeforePublish: false });
+    return book;
+  });
+  fireEvent.click(action("sharing.confirmPublicLink"));
+  await screen.findByRole("button", { name: "sharing.checkAgain" });
+  expect(api.rpc).not.toHaveBeenCalled();
+});
+
+it("requires the moderated description to contain text", async () => {
+  api.controls.mockReturnValue({ allowCommunitySharing: true, requireApprovalBeforePublish: false });
+  start();
+  await chooseCommunity("<br>");
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(action("sharing.publishListing"));
+  await screen.findByText("sharing.missingInfoDesc");
+  expect(api.rpc).not.toHaveBeenCalled();
 });
 
 it("offers owner cleanup when the server discovers a stale listing hidden by RLS", async () => {

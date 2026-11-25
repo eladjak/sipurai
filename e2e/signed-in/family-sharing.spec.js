@@ -7,7 +7,7 @@ test.skip(!hasCredentials, SKIP_REASON);
 test.setTimeout(75_000);
 test.use({ locale: 'he-IL', serviceWorkers: 'block', reducedMotion: 'reduce' });
 
-const id = 'fixture-sharing-book';
+const id = '556ae518-7f7b-4b9c-9908-a198294c5874';
 const title = 'הירח מעל הגינה';
 const privateStatus = 'הספר פרטי. רק אתם יכולים לפתוח אותו בחשבון שלכם.';
 const publicStatus = 'כל מי שמקבל את הקישור יכול לקרוא את הספר ולהעביר אותו הלאה.';
@@ -60,7 +60,7 @@ async function setup(page) {
       expect(req.postDataJSON()).toEqual({ bookId: id });
       expect(state.public).toBe(true);
       state.revoke++; state.public = false;
-      return route.fulfill({ json: { ok: true } });
+      return route.fulfill({ json: { ok: true, removedPosts: 0 } });
     }
     if (url.origin === 'http://localhost:4173' && !url.pathname.startsWith('/api/') && method === 'GET') return route.continue();
     // Only Clerk's dedicated development login may contact a remote service. After login,
@@ -110,9 +110,13 @@ for (const width of [375, 1280]) {
     const publish = page.getByRole('button', { name: 'פתיחת קישור ציבורי' });
     await expect(publish).toBeDisabled();
     expect(state.publish).toBe(0);
-    await page.getByRole('checkbox', { name: /ברור לי שכל מי שיקבל את הקישור/ }).check();
+    const acknowledgement = page.getByRole('checkbox', { name: /ברור לי שכל מי שיקבל את הקישור/ });
+    await acknowledgement.focus();
+    await page.keyboard.press('Space');
+    await expect(acknowledgement).toBeChecked();
     await targetSize(publish);
-    await publish.click();
+    await publish.focus();
+    await page.keyboard.press('Enter');
     await expect(page.getByText(publicStatus)).toBeVisible();
     expect(state.publish).toBe(1);
     const copy = page.getByRole('button', { name: 'העתק קישור שיתוף' });
@@ -129,7 +133,8 @@ for (const width of [375, 1280]) {
     expect(state.revoke).toBe(0);
     const confirm = dialog.getByRole('button', { name: 'כן, להפסיק לשתף' });
     await targetSize(confirm);
-    await confirm.click();
+    await confirm.focus();
+    await page.keyboard.press('Enter');
     await expect(page.getByText(privateStatus)).toBeVisible();
     expect(state.revoke).toBe(1);
     await expect(page.getByRole('button', { name: 'העתק קישור שיתוף' })).toHaveCount(0);
