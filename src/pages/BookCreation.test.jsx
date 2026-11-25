@@ -98,6 +98,16 @@ afterEach(() => {
 });
 
 describe("unified owner editor", () => {
+  it.each(["false", "true"])("opens the owner share tab directly with unified editor %s", async (flag) => {
+    vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", flag);
+    open("/BookCreation?id=first&tab=share");
+    const shareTab = await screen.findByRole("tab", { name: flag === "false" ? "Share & Export" : "Share", selected: true });
+    expect(document.getElementById(shareTab.getAttribute("aria-controls"))).toHaveTextContent("Share tools");
+    expect(mocks.print).not.toHaveBeenCalled();
+    expect(mocks.image).not.toHaveBeenCalled();
+    expect(mocks.text).not.toHaveBeenCalled();
+  });
+
   it("leaves the legacy editor and URL alone when the flag is off", async () => {
     vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "false");
     open("/BookCreation?id=first&tab=print");

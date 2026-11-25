@@ -72,7 +72,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
   const [generatingStep, setGeneratingStep] = useState(0);
   const [unavailable, setUnavailable] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
-  const [legacyTab, setLegacyTab] = useState("editor");
+  const [legacyTab, setLegacyTab] = useState(() => searchParams.get("tab") === "share" ? "share" : "editor");
   // Story tool translations follow the book language. The tab controls
   // follow the shell language when the unified editor is enabled.
   const currentLanguage = book?.language || "english";
