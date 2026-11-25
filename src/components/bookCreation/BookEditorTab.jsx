@@ -32,6 +32,7 @@ export default function BookEditorTab({
   onConfirmTextSave,
   onKeepServerText,
   textDraft,
+  hasTextDrafts,
   textSaveStatus,
   textConflict,
   serverText,
@@ -166,7 +167,7 @@ export default function BookEditorTab({
             </Link>
           </Button>
         </div>
-        {textDraft && <p className="text-sm">{editorCopy("book.editorReaderVersion")}</p>}
+        {hasTextDrafts && <p className="text-sm">{editorCopy("book.editorReaderVersion")}</p>}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import useGamification from "@/hooks/useGamification";
 import { Book } from "@/entities/Book";
-import { Page } from "@/entities/Page";
+import { Page, savePageText } from "@/entities/Page";
 import { normalizePages, readablePages } from "@/lib/bookProgress";
 import { GenerateImage, InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
@@ -148,6 +148,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
   const currentPage = pages[currentPageIndex];
   const textDraft = drafts.read(currentPage?.id, "text_content");
   const promptDraft = drafts.read(currentPage?.id, "image_prompt");
+  const hasTextDrafts = pages.some(page => drafts.read(page.id, "text_content"));
   const currentPageText = textDraft?.value ?? currentPage?.text_content ?? "";
   const currentPageImagePrompt = promptDraft?.value ?? currentPage?.image_prompt ?? "";
   const currentPageLayout = currentPage?.layout_type || "text_top";
@@ -158,7 +159,8 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
   const transformRevision = useRef(0);
   const textSaveStatus = textSaves[currentPage?.id];
   const serverText = currentPage?.text_content ?? "";
-  const textConflict = textDraft && textDraft.base !== serverText && textDraft.value !== serverText;
+  const textConflict = textDraft && textDraft.value !== serverText &&
+    (textSaveStatus === "conflict" || textDraft.base !== serverText);
 
   useLayoutEffect(() => () => { transformRevision.current += 1; }, [currentPage?.id, currentPageText, activeTab]);
 
@@ -558,7 +560,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
     setPages(existing => existing.map(page => page.id === pageId ? { ...page, ...patch } : page));
   }
 
-  const updatePageText = async (approvedServerText) => {
+  const updatePageText = async (approval) => {
     if (!currentPage?.id || !textDraft) return;
     const pageId = currentPage.id;
     const writeKey = `${pageId}:text`;
@@ -570,19 +572,30 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
     try {
       const latest = await Page.get(pageId);
       if (latest?.id !== pageId || latest.book_id !== bookId) throw new Error("Page unavailable");
-      const latestText = latest.text_content ?? "";
-      mergePage(pageId, { text_content: latestText });
+      const expectedText = latest.text_content ?? null;
+      const latestText = expectedText ?? "";
+      mergePage(pageId, { text_content: expectedText });
       if (drafts.read(pageId, "text_content") !== textDraft) {
         setStatus(null);
         return;
       }
-      if (latestText !== textDraft.value && latestText !== (approvedServerText ?? textDraft.base)) {
-        setStatus(null);
+      const matchesBase = approval ? expectedText === approval.text : latestText === textDraft.base;
+      if (latestText !== textDraft.value && !matchesBase) {
+        setStatus("conflict");
         return;
       }
       if (latestText !== textDraft.value) {
-        const updated = await Page.update(pageId, { text_content: textDraft.value });
-        if (updated?.id !== pageId || updated.text_content !== textDraft.value) throw new Error("Save unconfirmed");
+        const updated = await savePageText({ pageId, bookId, ownerId, expectedText, text: textDraft.value });
+        if (!updated) {
+          const current = await Page.get(pageId);
+          if (current?.id !== pageId || current.book_id !== bookId || current.text_content === expectedText) {
+            throw new Error("Save unconfirmed");
+          }
+          mergePage(pageId, { text_content: current.text_content });
+          setStatus("conflict");
+          return;
+        }
+        if (updated.id !== pageId || updated.text_content !== textDraft.value) throw new Error("Save unconfirmed");
         mergePage(pageId, { text_content: updated.text_content });
       }
       drafts.acknowledge(pageId, "text_content", textDraft, textDraft.value);
@@ -897,13 +910,14 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
               onPageIndexChange={selectPage}
               onTextChange={editText}
               onSaveText={() => updatePageText()}
-              onConfirmTextSave={() => updatePageText(serverText)}
+              onConfirmTextSave={() => updatePageText({ text: currentPage.text_content ?? null })}
               onKeepServerText={() => {
                 transformRevision.current += 1;
                 if (textDraft) drafts.acknowledge(currentPage.id, "text_content", textDraft, serverText);
                 setTextSaves(previous => ({ ...previous, [currentPage.id]: null }));
               }}
               textDraft={textDraft}
+              hasTextDrafts={hasTextDrafts}
               textSaveStatus={textSaveStatus}
               textConflict={textConflict}
               serverText={serverText}
@@ -936,7 +950,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
 
           {/* Tab 2: Preview — gradient border frame */}
           <TabsContent value="preview">
-            {pages.some(page => drafts.read(page.id, "text_content")) && (
+            {hasTextDrafts && (
               <p className="mb-3 text-sm">{editorCopy("book.editorReaderVersion")}</p>
             )}
             <motion.div

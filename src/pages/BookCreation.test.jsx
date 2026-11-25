@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   book: vi.fn(),
   pages: vi.fn(),
   getPage: vi.fn(),
+  saveText: vi.fn(),
   updatePage: vi.fn(),
   collaborators: vi.fn(),
   print: vi.fn(),
@@ -19,7 +20,7 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 vi.mock("@/entities/Book", () => ({ Book: { get: mocks.book } }));
-vi.mock("@/entities/Page", () => ({ Page: { get: mocks.getPage, filter: mocks.pages, update: mocks.updatePage } }));
+vi.mock("@/entities/Page", () => ({ Page: { get: mocks.getPage, filter: mocks.pages, update: mocks.updatePage }, savePageText: mocks.saveText }));
 vi.mock("@/entities/Collaboration", () => ({ Collaboration: { filter: mocks.collaborators } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: mocks.user, isLoading: mocks.loading }) }));
 vi.mock("@/hooks/useGamification", () => ({ default: () => ({}) }));
@@ -196,7 +197,7 @@ describe("page drafts", () => {
     expect(await screen.findByRole("textbox", { name: "Page text" })).toHaveValue("");
     fireEvent.click(screen.getByRole("button", { name: "First page" }));
     expect(screen.getByRole("textbox", { name: "Page text" })).toHaveValue("Edited second");
-    expect(mocks.updatePage).not.toHaveBeenCalled();
+    expect(mocks.saveText).not.toHaveBeenCalled();
   });
 
   it("leaves a newer text draft in place after a delayed explicit save", async () => {
@@ -205,23 +206,23 @@ describe("page drafts", () => {
     mocks.pages.mockResolvedValue([initial]);
     mocks.getPage.mockResolvedValue(initial);
     let confirm;
-    mocks.updatePage.mockImplementation(() => new Promise(resolve => { confirm = resolve; }));
+    mocks.saveText.mockImplementation(() => new Promise(resolve => { confirm = resolve; }));
     open("/BookCreation?id=first");
     const field = await screen.findByRole("textbox", { name: "Edit Page Text" });
     fireEvent.change(field, { target: { value: "Version I" } });
     expect(screen.getByText("The text draft is saved on this device.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save to book" }));
-    await waitFor(() => expect(mocks.updatePage).toHaveBeenCalledWith("page-1", { text_content: "Version I" }));
+    await waitFor(() => expect(mocks.saveText).toHaveBeenCalledWith({ pageId: "page-1", bookId: "first", ownerId: "owner", expectedText: "First", text: "Version I" }));
     expect(screen.getByText("Saving to the book…")).toBeInTheDocument();
     fireEvent.change(field, { target: { value: "Version II" } });
     await act(async () => confirm({ ...initial, text_content: "Version I" }));
     expect(field).toHaveValue("Version II");
     expect(screen.queryByText("Saved to the book.")).toBeNull();
     mocks.getPage.mockResolvedValue({ ...initial, text_content: "Version I" });
-    mocks.updatePage.mockRejectedValueOnce(new Error("connection lost"));
+    mocks.saveText.mockRejectedValueOnce(new Error("connection lost"));
     fireEvent.click(screen.getByRole("button", { name: "Save to book" }));
     expect(await screen.findByText("The text couldn't be saved to the book.")).toBeInTheDocument();
-    mocks.updatePage.mockResolvedValueOnce({ ...initial, text_content: "Version II" });
+    mocks.saveText.mockResolvedValueOnce({ ...initial, text_content: "Version II" });
     fireEvent.click(screen.getByRole("button", { name: "Try saving again" }));
     expect(await screen.findByText("Saved to the book.")).toBeInTheDocument();
     expect(screen.queryByText("The text draft is saved on this device.")).toBeNull();
@@ -242,11 +243,60 @@ describe("page drafts", () => {
     expect(await screen.findByRole("button", { name: "Save my draft to the book" })).toBeInTheDocument();
     expect(screen.getAllByText("Written elsewhere").length).toBeGreaterThan(0);
     expect(field).toHaveValue("My draft");
-    expect(mocks.updatePage).not.toHaveBeenCalled();
+    expect(mocks.saveText).not.toHaveBeenCalled();
     storageWrite.mockRestore();
-    mocks.updatePage.mockResolvedValue({ ...initial, text_content: "My draft" });
+    mocks.saveText.mockResolvedValue({ ...initial, text_content: "My draft" });
     fireEvent.click(screen.getByRole("button", { name: "Save my draft to the book" }));
     expect(await screen.findByText("Saved to the book.")).toBeInTheDocument();
+  });
+
+  it("refreshes conflict choices when other saves win before the conditional write", async () => {
+    let storedPage = page("page-1", null);
+    mocks.realEditor = true;
+    mocks.pages.mockResolvedValue([storedPage]);
+    mocks.getPage.mockImplementation(async () => storedPage);
+    mocks.saveText
+      .mockImplementationOnce(async () => {
+        storedPage = { ...storedPage, text_content: "Device B" };
+        return null;
+      })
+      .mockImplementationOnce(async () => {
+        storedPage = { ...storedPage, text_content: "" };
+        return null;
+      })
+      .mockImplementation(async ({ expectedText, text }) => {
+        if (storedPage.text_content !== expectedText) return null;
+        storedPage = { ...storedPage, text_content: text };
+        return storedPage;
+      });
+    open("/BookCreation?id=first");
+    const field = await screen.findByRole("textbox", { name: "Edit Page Text" });
+    fireEvent.change(field, { target: { value: "Device A" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save to book" }));
+    expect(await screen.findByText("Device B")).toBeInTheDocument();
+    const useMine = screen.getByRole("button", { name: "Save my draft to the book" });
+    fireEvent.click(useMine);
+    await waitFor(() => expect(mocks.saveText).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("This page has no saved text.")).toBeInTheDocument();
+    expect(field).toHaveValue("Device A");
+    expect(screen.queryByText("Saved to the book.")).toBeNull();
+    expect(storedPage.text_content).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Save my draft to the book" }));
+    expect(await screen.findByText("Saved to the book.")).toBeInTheDocument();
+    expect(mocks.saveText.mock.calls.map(([request]) => request.expectedText)).toEqual([null, "Device B", ""]);
+  });
+
+  it("warns about the reader's saved version from a different page and the preview tab", async () => {
+    mocks.realEditor = true;
+    mocks.pages.mockResolvedValue([page("page-1", "First"), page("page-2", "Second", 2)]);
+    open("/BookCreation?id=first");
+    const field = await screen.findByRole("textbox", { name: "Edit Page Text" });
+    fireEvent.change(field, { target: { value: "First draft" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Choose a page" }), { target: { value: "1" } });
+    expect(field).toHaveValue("Second");
+    expect(screen.getByText("The reader shows the last version saved to the book.")).toBeInTheDocument();
+    chooseTab("Preview");
+    expect(screen.getByText("The reader shows the last version saved to the book.")).toBeInTheDocument();
   });
 
   it("keeps delayed nikud from replacing newer text or moving to another page", async () => {
@@ -303,6 +353,6 @@ describe("page drafts", () => {
     fireEvent.click(summary);
     expect(summary.parentElement).toHaveAttribute("open");
     expect(screen.getByText("Legacy text")).toBeInTheDocument();
-    expect(mocks.updatePage).not.toHaveBeenCalled();
+    expect(mocks.saveText).not.toHaveBeenCalled();
   });
 });
