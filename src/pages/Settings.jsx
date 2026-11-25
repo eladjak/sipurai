@@ -52,7 +52,7 @@ import AIProvidersPanel from '../components/ai/AIProvidersPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ParentalControls from '../components/settings/ParentalControls';
 import AccountDataControls from '../components/settings/AccountDataControls';
-import { PLANS, openCheckout } from '@/lib/creem';
+import { PLANS, isSubscriptionCheckoutEnabled, openCheckout } from '@/lib/creem';
 import useSubscription from '@/hooks/useSubscription';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -100,6 +100,7 @@ function SettingCard({ title, icon, children, isRTL, className = "" }) {
 
 function BillingTab({ currentPlan, userEmail, isRTL, toast, selectedPlan }) {
   const { t } = useI18n();
+  const checkoutEnabled = isSubscriptionCheckoutEnabled();
   const [upgrading, setUpgrading] = useState(null); // planId being upgraded
   const [confirmPlan, setConfirmPlan] = useState(null); // plan awaiting confirmation
   const lang = isRTL ? 'he' : 'en';
@@ -147,6 +148,11 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast, selectedPlan }) {
       </SettingCard>
 
       {selectedPlan && <p role="status" className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-gray-900">{t('spxLibrary.selectedPlan')}: {PLANS[selectedPlan]?.name[lang]}<br />{t('spxLibrary.planReview')}</p>}
+      {!checkoutEnabled && (
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          {t('settings.billing.checkoutUnavailable')}
+        </p>
+      )}
       {/* Plan cards */}
       <div className="grid md:grid-cols-4 gap-4">
         {Object.values(PLANS).map((planDef) => {
@@ -193,7 +199,7 @@ function BillingTab({ currentPlan, userEmail, isRTL, toast, selectedPlan }) {
                   <Button className="w-full rounded-xl" variant="outline" disabled>
                     {t('settings.billing.currentPlanBtn')}
                   </Button>
-                ) : isPaid ? (
+                ) : isPaid ? checkoutEnabled && (
                   <Button
                     className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0 shadow-md"
                     onClick={() => handleUpgrade(planDef.id)}
