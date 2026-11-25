@@ -8,7 +8,6 @@ export default {
     readError: 'We could not load the book’s pages. Try again.',
     createError: 'We could not confirm that the copy was created. Check the library for a draft before trying again.',
     interrupted: 'Duplication stopped. You can finish copying the pages into the same private copy.',
-    resumeReadError: 'We could not check which pages are already in this copy. Try again.',
     resumeConflict: 'The original or the copy changed. This copy cannot be resumed.',
     resumeCopy: 'Resume copying',
     emptyDraft: 'The original has no readable pages. We created a private draft.',

@@ -138,7 +138,7 @@ function FamilyLibrary({ ownerId }) {
   };
 
   const duplicateBook = async (id, recovery = null) => {
-    if (copyFeedback?.sourceId === id && copyFeedback.pages) recovery ??= copyFeedback;
+    if (copyFeedback?.sourceId === id && copyFeedback.pageIds) recovery ??= copyFeedback;
     const source = recovery?.source ?? books.find(book => book.id === id);
     if (!source || !ownerId || !mounted.current || activeCopy.current) return;
 
@@ -228,7 +228,7 @@ function FamilyLibrary({ ownerId }) {
         <div
           ref={feedbackRegion}
           tabIndex={-1}
-          role={["readError", "createError", "interrupted", "resumeReadError", "resumeConflict"].includes(copyFeedback.kind) ? "alert" : "status"}
+          role={["readError", "createError", "interrupted", "resumeConflict"].includes(copyFeedback.kind) ? "alert" : "status"}
           className="mb-5 rounded-xl border border-purple-200 bg-purple-50 p-4 text-gray-900 dark:border-purple-800 dark:bg-gray-800 dark:text-white"
         >
           <p>{t(`libraryLegacy.${copyFeedback.kind}`, { count: copyFeedback.count })}</p>
@@ -238,7 +238,7 @@ function FamilyLibrary({ ownerId }) {
               {t("shelf.retry")}
             </Button>
           )}
-          {["interrupted", "resumeReadError"].includes(copyFeedback.kind) && (
+          {copyFeedback.kind === "interrupted" && (
             <Button type="button" variant="outline" className="mt-2 min-h-11 min-w-11" onClick={() => duplicateBook(copyFeedback.sourceId, copyFeedback)}>
               {t("libraryLegacy.resumeCopy")}
             </Button>
