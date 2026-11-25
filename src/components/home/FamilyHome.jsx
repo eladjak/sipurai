@@ -58,10 +58,12 @@ function progressCopy(book, detail, t) {
   if (book.status === 'partial') {
     if (!detail) return t('tonight.partialUnknown');
     if (!detail.ready) return t('tonight.partialNone');
-    const key = detail.missingImage.length ? 'tonight.partialArt' : 'tonight.partialReady';
-    return t(key, { ready: detail.ready, total: detail.total });
+    const counts = { ready: detail.ready, total: detail.total };
+    return detail.missingImage.length ? t('tonight.partialArt', counts) : t('tonight.partialReady', counts);
   }
-  return t(book.status === 'failed' ? 'tonight.failed' : book.status === 'generating' ? 'tonight.generating' : 'tonight.draft');
+  if (book.status === 'failed') return t('tonight.failed');
+  if (book.status === 'generating') return t('tonight.generating');
+  return t('tonight.draft');
 }
 
 function openBook(book) {
@@ -140,12 +142,12 @@ function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirs
   const featuredDetail = featured && details(featured);
   const featuredAction = featuredDetail?.page
     ? t('tonight.continue', { page: featuredDetail.page })
-    : t(featured?.status === 'partial' && featuredDetail?.ready === 0 ? 'tonight.recover' : 'tonight.openBook');
+    : featured?.status === 'partial' && featuredDetail?.ready === 0 ? t('tonight.recover') : t('tonight.openBook');
   const problem = offline || error;
   const waiting = loading && !problem;
   const title = featured
     ? featured.title || t('tonight.untitled')
-    : t(problem || waiting || empty ? 'tonight.firstTitle' : 'tonight.title');
+    : problem || waiting || empty ? t('tonight.firstTitle') : t('tonight.title');
 
   return (
     <div className="family-home" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -156,10 +158,10 @@ function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirs
         </div>
         <div className="family-home__scene-copy">
           {featured
-            ? <p className="family-home__greeting"><Moon size={17} aria-hidden="true" />{t(featured.status === 'complete' ? 'tonight.latestBook' : 'tonight.familyBook')}</p>
+            ? <p className="family-home__greeting"><Moon size={17} aria-hidden="true" />{featured.status === 'complete' ? t('tonight.latestBook') : t('tonight.familyBook')}</p>
             : name && <p className="family-home__greeting"><Moon size={17} aria-hidden="true" />{t('tonight.greetingName', { name })}</p>}
           <h1 id="home-title" dir={featured ? 'auto' : undefined}>{title}</h1>
-          {problem && <p role={offline ? 'status' : 'alert'}>{t(offline ? 'tonight.offline' : 'tonight.error')}</p>}
+          {problem && <p role={offline ? 'status' : 'alert'}>{offline ? t('tonight.offline') : t('tonight.error')}</p>}
           {waiting && <p role="status">{t('tonight.loading')}</p>}
           {featured?.status === 'partial' && <p>{progressCopy(featured, featuredDetail, t)}</p>}
           <div className="family-home__actions">
@@ -168,7 +170,7 @@ function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirs
               <BookOpen size={19} aria-hidden="true" />{featuredAction}
             </Link>}
             {identityReady && <Link to={createUrl} className={`family-home__action ${featured || error ? 'family-home__quiet' : 'family-home__primary'}`}>
-              <Feather size={18} aria-hidden="true" />{t(empty ? 'tonight.firstAction' : 'tonight.newStory')}
+              <Feather size={18} aria-hidden="true" />{empty ? t('tonight.firstAction') : t('tonight.newStory')}
             </Link>}
             {identityReady && !empty && <Link to={shelfUrl} className="family-home__action family-home__quiet">{t('tonight.allBooks')}</Link>}
           </div>
