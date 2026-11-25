@@ -4,7 +4,7 @@ import { Book } from "@/entities/Book";
 import { Page } from "@/entities/Page";
 import { createPageUrl } from "@/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -23,7 +23,7 @@ import { captureError } from "@/lib/errorTracking";
 
 import GenerationWaiting from "@/components/bookReader/GenerationWaiting";
 import WizardProgress from "@/components/wizard/WizardProgress";
-import TopicStep from "@/components/wizard/TopicStep";
+import TopicStep, { getSelectedTopicLabel } from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "@/components/wizard/PreviewEditStep";
 import PrintSizeStep from "@/components/wizard/PrintSizeStep";
@@ -63,28 +63,29 @@ export function getDraftKeys(ownerId) {
     }
   }
   // Sort by saved timestamp (newest first)
-  keys.sort((a, b) => {
-    try {
-      const aData = JSON.parse(localStorage.getItem(a) || "{}");
-      const bData = JSON.parse(localStorage.getItem(b) || "{}");
-      return (bData._savedAt || 0) - (aData._savedAt || 0);
-    } catch {
-      return 0;
-    }
-  });
+  keys.sort((a, b) => (readDraft(b)?._savedAt || 0) - (readDraft(a)?._savedAt || 0));
   return keys;
 }
 
-function getLatestDraft(ownerId) {
-  const keys = getDraftKeys(ownerId);
-  if (keys.length === 0) return null;
+function readDraft(key) {
   try {
-    const data = JSON.parse(localStorage.getItem(keys[0]) || "null");
-    if (data) data._draftKey = keys[0];
-    return data;
+    const draft = JSON.parse(localStorage.getItem(key) || "null");
+    return Number.isFinite(draft?._savedAt) ? draft : null;
   } catch {
     return null;
   }
+}
+
+function getLatestDraft(ownerId) {
+  try {
+    for (const key of getDraftKeys(ownerId)) {
+      const draft = readDraft(key);
+      if (draft) return { ...draft, _draftKey: key };
+    }
+  } catch {
+    // The wizard is still usable when browser storage is unavailable.
+  }
+  return null;
 }
 
 function clearDraft(key) {
@@ -104,6 +105,7 @@ export default function BookWizard() {
 }
 
 function BookWizardSession() {
+  const reduceMotion = useReducedMotion();
   const navigate = useNavigate();
   const { toast } = useToast();
   const gamification = useGamification();
@@ -112,7 +114,8 @@ function BookWizardSession() {
   const ownerId = currentUserData?.id || null;
   const ownerRef = useRef(ownerId);
   ownerRef.current = ownerId;
-  const pendingIdeaRef = useRef(false);
+  const pendingIdeaRef = useRef(null);
+  const incomingIdeaLoadedRef = useRef(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(0);
@@ -152,7 +155,7 @@ function BookWizardSession() {
   const createdTitleRef = useRef("");
 
   // Step 3: Book data (preview/edit)
-  const [bookData, setBookData] = useState({
+  const [initialBookData] = useState(() => ({
     title: "",
     description: "",
     moral: "",
@@ -171,7 +174,8 @@ function BookWizardSession() {
     cover_image: "",
     print_size: "square-220",
     printEdition: null
-  });
+  }));
+  const [bookData, setBookData] = useState(initialBookData);
 
   const [generatedOutline, setGeneratedOutline] = useState(null);
 
@@ -186,9 +190,10 @@ function BookWizardSession() {
   // Draft auto-save
   const [activeDraftKey, setActiveDraftKey] = useState(null);
   const [pendingDraft, setPendingDraft] = useState(null);
-  const draftTimerRef = useRef(null);
+  const skipNextAutosaveRef = useRef(false);
+  const [hasIncomingIdea, setHasIncomingIdea] = useState(false);
 
-  // Save draft to localStorage (debounced)
+  // Save draft to localStorage.
   const saveDraft = useCallback((attemptId = quotaKeyRef.current) => {
     // Don't save while creating or if book is already being generated
     if (isCreating || !ownerId) return;
@@ -208,7 +213,7 @@ function BookWizardSession() {
     };
 
     const ownerPrefix = draftOwnerPrefix(ownerId);
-    const key = activeDraftKey?.startsWith(ownerPrefix) ? activeDraftKey : `${ownerPrefix}${Date.now()}`;
+    const key = activeDraftKey?.startsWith(ownerPrefix) ? activeDraftKey : `${ownerPrefix}${Date.now()}_${newBookKey()}`;
     try {
       localStorage.setItem(key, JSON.stringify(draftData));
       if (activeDraftKey !== key) setActiveDraftKey(key);
@@ -218,101 +223,84 @@ function BookWizardSession() {
     }
   }, [currentStep, selectedTopic, customIdea, selectedCharacters, scenes, bookData, generatedOutline, useRhyming, rhymeSettings, isCreating, activeDraftKey, ownerId]);
 
-  // Debounced auto-save on state changes (2 second delay)
+  // Import only once the account is known. Keep the handoff until the new draft is saved.
   useEffect(() => {
-    // Don't auto-save on initial load or while loading
-    if (isLoading || isCreating) return;
-    // Only save if user has made meaningful progress (selected a topic at minimum)
-    if (!selectedTopic && !customIdea && !bookData.title) return;
-
-    if (draftTimerRef.current) {
-      clearTimeout(draftTimerRef.current);
+    if (!ownerId || incomingIdeaLoadedRef.current) return;
+    incomingIdeaLoadedRef.current = true;
+    const draft = getLatestDraft(ownerId);
+    if (draft?._savedAt && Date.now() - draft._savedAt < 7 * 24 * 60 * 60 * 1000) {
+      setPendingDraft(draft);
     }
-    draftTimerRef.current = setTimeout(() => {
-      saveDraft();
-    }, 2000);
 
-    return () => {
-      if (draftTimerRef.current) {
-        clearTimeout(draftTimerRef.current);
-      }
-    };
-  }, [currentStep, selectedTopic, customIdea, selectedCharacters, bookData, generatedOutline, saveDraft, isLoading, isCreating]);
-
-  // Prefill from a "Use this idea" handoff (set by the Story Ideas page).
-  // Runs once on mount, before the draft-restore prompt.
-  useEffect(() => {
-    if (!ownerId) return;
-    let pending = null;
     try {
       const raw = sessionStorage.getItem("sipurai_pending_idea");
-      if (raw) {
-        const candidate = JSON.parse(raw);
-        if (candidate?.ownerId === ownerId) {
-          pending = candidate;
-          sessionStorage.removeItem("sipurai_pending_idea");
-        }
-      }
-    } catch {
-      pending = null;
-    }
-    if (pending && (pending.title || pending.description)) {
-      pendingIdeaRef.current = true;
+      const pending = JSON.parse(raw);
+      if (pending?.ownerId !== ownerId) return;
+      const { title, description, moral } = pending;
+      const ideaText = [title, description].filter(value => typeof value === "string" && value.trim()).join(" — ");
+      if (!ideaText) return;
+
+      pendingIdeaRef.current = raw;
+      setHasIncomingIdea(true);
       setSelectedTopic("custom");
-      const ideaText = [pending.title, pending.description].filter(Boolean).join(" — ");
-      if (ideaText) setCustomIdea(ideaText);
-      setBookData((prev) => ({
+      setCustomIdea(ideaText);
+      setBookData(prev => ({
         ...prev,
-        title: pending.title || prev.title,
-        description: pending.description || prev.description,
-        moral: pending.moral || prev.moral,
+        title: typeof title === "string" ? title : "",
+        description: typeof description === "string" ? description : "",
+        moral: typeof moral === "string" ? moral : "",
       }));
       toast({
         title: t("wizard.idea.prefilled"),
         className: "bg-purple-100 text-purple-900 dark:bg-purple-900/50 dark:text-purple-100",
       });
+    } catch {
+      // A blocked or malformed handoff does not prevent opening the wizard.
     }
-    // Wait until identity is known before consuming personal handoff data.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownerId]);
+  }, [ownerId, t, toast]);
 
-  // Restore draft on mount
+  // Persist committed edits so leaving the page immediately cannot drop them.
   useEffect(() => {
-    if (!ownerId || pendingIdeaRef.current) return;
-    const draft = getLatestDraft(ownerId);
-    if (draft && draft._savedAt) {
-      // Only offer restore if draft is less than 7 days old
-      const ageMs = Date.now() - draft._savedAt;
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      if (ageMs < sevenDays) {
-        setPendingDraft(draft);
-      }
+    if (isLoading || isCreating || (!selectedTopic && !customIdea && !bookData.title)) return;
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
     }
-    // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownerId]);
+    if (!saveDraft() || !pendingIdeaRef.current) return;
+    try {
+      if (sessionStorage.getItem("sipurai_pending_idea") === pendingIdeaRef.current) {
+        sessionStorage.removeItem("sipurai_pending_idea");
+      }
+      pendingIdeaRef.current = null;
+    } catch {
+      // The draft remains saved even if session storage cannot be changed.
+    }
+  }, [selectedTopic, customIdea, bookData.title, saveDraft, isLoading, isCreating]);
 
   const restorePendingDraft = () => {
     const draft = pendingDraft;
     if (!draft || ownerRef.current !== ownerId) return;
-    if (draft.currentStep != null) setCurrentStep(draft.currentStep);
-    if (draft.selectedTopic) setSelectedTopic(draft.selectedTopic);
-    if (draft.customIdea) setCustomIdea(draft.customIdea);
-    if (draft.selectedCharacters) setSelectedCharacters(draft.selectedCharacters);
-    if (draft.scenes) setScenes(draft.scenes);
-    if (draft.bookData) setBookData((prev) => ({ ...prev, ...draft.bookData }));
-    if (draft.generatedOutline) setGeneratedOutline(draft.generatedOutline);
-    if (draft.useRhyming != null) setUseRhyming(draft.useRhyming);
+    setCurrentStep(Number.isInteger(draft.currentStep) && draft.currentStep >= 0 && draft.currentStep < steps.length ? draft.currentStep : 0);
+    setSelectedTopic(draft.selectedTopic ?? null);
+    setCustomIdea(typeof draft.customIdea === "string" ? draft.customIdea : "");
+    setSelectedCharacters(Array.isArray(draft.selectedCharacters) ? draft.selectedCharacters : []);
+    setScenes(Array.isArray(draft.scenes) ? draft.scenes : []);
+    setBookData({ ...initialBookData, language: currentLanguage, ...draft.bookData });
+    setGeneratedOutline(draft.generatedOutline ?? null);
+    setUseRhyming(draft.useRhyming === true);
     if (draft.rhymeSettings) setRhymeSettings((prev) => ({ ...prev, ...draft.rhymeSettings }));
     quotaKeyRef.current = draft._attemptId || null;
     setActiveDraftKey(draft._draftKey);
     setPendingDraft(null);
+    setHasIncomingIdea(false);
+    pendingIdeaRef.current = null;
   };
 
   const handleClearDraft = () => {
     quotaKeyRef.current = null;
     if (activeDraftKey) {
       clearDraft(activeDraftKey);
+      skipNextAutosaveRef.current = true;
       setActiveDraftKey(null);
     } else {
       clearAllDrafts(ownerId);
@@ -1005,14 +993,14 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     <motion.div
       className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8"
       dir={isRTL ? "rtl" : "ltr"}
-      initial={{ opacity: 0, y: 20 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: -20 }}
     >
-      {pendingDraft && <section role="status" className="mb-4 rounded-2xl border border-sp-line bg-sp-card p-4 text-sp-ink-900">
-        <p className="font-semibold">{t("wizard.draft.found")}</p>
-        <p className="mt-1 text-sm">{t("wizard.draft.foundDesc", { title: pendingDraft.bookData?.title || pendingDraft.selectedTopic || t("wizard.draft.untitled") })}</p>
-        <div className="mt-3 flex flex-wrap gap-2"><Button type="button" onClick={restorePendingDraft} className="min-h-11">{t("wizard.draft.restore")}</Button><Button type="button" variant="outline" onClick={() => setPendingDraft(null)} className="min-h-11">{t("spxWizard.fresh")}</Button></div>
+      {pendingDraft && <section className="mb-4 rounded-2xl border border-sp-line bg-sp-card p-4 text-sp-ink-900">
+        <p role="status" className="font-semibold">{t("wizard.draft.found")}</p>
+        <p className="mt-1 text-sm">{t("wizard.draft.foundDesc", { title: pendingDraft.bookData?.title || getSelectedTopicLabel(pendingDraft.selectedTopic, t) || t("wizard.draft.untitled") })}</p>
+        <div className="mt-3 flex flex-wrap gap-2"><Button type="button" onClick={restorePendingDraft} className="min-h-11">{t("wizard.draft.restore")}</Button><Button type="button" variant="outline" onClick={() => setPendingDraft(null)} className="min-h-11">{hasIncomingIdea ? t("spxWizard.topic.keepIncoming") : t("spxWizard.fresh")}</Button></div>
       </section>}
 
       <header className="mb-4 flex min-h-24 items-center gap-4 overflow-hidden rounded-2xl border border-amber-100 bg-[#fffaf0] p-3 text-[#231942] shadow-sm sm:mb-6 sm:p-4">
@@ -1032,9 +1020,9 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
-          initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
+          initial={reduceMotion ? false : { opacity: 0, x: isRTL ? -30 : 30 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: isRTL ? 30 : -30 }}
+          exit={reduceMotion ? undefined : { opacity: 0, x: isRTL ? 30 : -30 }}
           transition={{ duration: 0.3 }}
           className="mb-6 min-h-[300px] relative bg-[#fffdf8] dark:bg-gray-800/50 rounded-2xl shadow-sm border border-amber-100 dark:border-gray-700/50 p-4 sm:p-6"
         >
@@ -1070,9 +1058,11 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
       </AnimatePresence>
 
       {/* Navigation Buttons */}
-      <div className="flex flex-row justify-between items-center mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+      <div className={`mt-6 flex items-center justify-between border-t border-gray-100 pt-4 dark:border-gray-700/50 ${currentStep === 0
+        ? "sticky bottom-0 z-20 rounded-t-xl bg-[#fffdf8] px-2 pb-3 shadow-[0_-4px_20px_rgba(40,24,70,0.09)] dark:bg-slate-950"
+        : ""}`}>
         <div className="flex items-center gap-2">
-          <motion.div whileHover={currentStep > 0 ? { scale: 1.03 } : {}} whileTap={currentStep > 0 ? { scale: 0.97 } : {}}>
+          <motion.div whileHover={!reduceMotion && currentStep > 0 ? { scale: 1.03 } : {}} whileTap={!reduceMotion && currentStep > 0 ? { scale: 0.97 } : {}}>
             <Button
               variant="outline"
               onClick={prevStep}
@@ -1099,7 +1089,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
               variant="ghost"
               size="sm"
               onClick={handleClearDraft}
-              className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-xl h-9 w-9 p-0"
+              className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-xl h-11 w-11 p-0"
               aria-label={t("wizard.draft.clear")}
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -1109,8 +1099,8 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
         {currentStep < steps.length - 1 && (
           <motion.div
-            whileHover={canGoNext() && !isGeneratingOutline ? { scale: 1.04, y: -1 } : {}}
-            whileTap={canGoNext() && !isGeneratingOutline ? { scale: 0.97 } : {}}
+            whileHover={!reduceMotion && canGoNext() && !isGeneratingOutline ? { scale: 1.04, y: -1 } : {}}
+            whileTap={!reduceMotion && canGoNext() && !isGeneratingOutline ? { scale: 0.97 } : {}}
           >
             <Button
               onClick={nextStep}

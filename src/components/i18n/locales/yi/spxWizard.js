@@ -1,5 +1,16 @@
 export default {
   spxWizard: {
+    topic: {
+      scenes: "קלײַבט אַ וועלט פֿאַר דער מעשׂה",
+      selected: "אויסגעקליבן: {topic}",
+      savedLoading: "מען עפֿנט די געהיטענע רעיונות…",
+      savedError: "מען האָט נישט געקענט עפֿענען די געהיטענע רעיונות.",
+      retry: "פּרוּווט ווידער",
+      replacePrompt: "בײַטן אײַער איצטיקן רעיון אויף דעם?",
+      replace: "ניצן דעם רעיון",
+      keep: "האַלטן מײַן רעיון",
+      keepIncoming: "ווײַטער מיטן נײַעם רעיון",
+    },
     firstPages: "די ערשטע זײַטן זײַנען גרייט צו לייענען",
     surpriseSound: "קלאַנג בײַ אַ חידוש",
     writingCount: "{ready} פֿון {total} זײַטן געשריבן",

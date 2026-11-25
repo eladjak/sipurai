@@ -899,7 +899,7 @@ export default {
     },
     topic: {
       title: "על מה יהיה הסיפור?",
-      subtitle: "בחר נושא שמעניין אותך",
+      subtitle: "בחרו עולם לסיפור, כתבו רעיון משלכם או תנו לנו להפתיע אתכם.",
       chooseTopic: "בחר נושא",
       customIdea: "רעיון שלי",
       customIdeaShort: "רעיון משלי",
@@ -909,7 +909,7 @@ export default {
       useSavedIdea: "השתמש ברעיון שמור",
       useSavedIdeaDesc: "בחר מהרעיונות השמורים שלך",
       savedIdeasTitle: "הרעיונות השמורים שלך:",
-      noSavedIdeas: "אין רעיונות שמורים עדיין",
+      noSavedIdeas: "עוד אין כאן רעיונות שמורים. אפשר לבחור עולם מאויר או לכתוב רעיון משלכם.",
       customPlaceholder: "תאר את הרעיון שלך לסיפור...",
       surpriseMe: "הפתע אותי!"
     },

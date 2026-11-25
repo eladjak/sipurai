@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import React from "react";
 
 // Mock secureEntity to pass through in tests
@@ -28,6 +28,10 @@ vi.mock("@/lib/AuthContext", () => ({
   }),
   AuthProvider: ({ children }) => children,
   FallbackAuthProvider: ({ children }) => children,
+}));
+
+vi.mock("@/entities/StoryIdea", () => ({
+  StoryIdea: { list: vi.fn() },
 }));
 
 // Mock dependencies
@@ -193,11 +197,13 @@ vi.mock("framer-motion", () => ({
     )),
   },
   AnimatePresence: ({ children }) => <>{children}</>,
+  useReducedMotion: () => false,
 }));
 
 // Test imports for individual components
 import WizardProgress from "./WizardProgress";
 import TopicStep, { TOPIC_CARDS } from "./TopicStep";
+import { StoryIdea } from "@/entities/StoryIdea";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "./PreviewEditStep";
 import SaveStep from "./SaveStep";
@@ -265,6 +271,30 @@ describe("WizardProgress", () => {
 
 // === TOPIC STEP TESTS ===
 describe("TopicStep", () => {
+  it("distinguishes a failed request from an empty list and retries in place", async () => {
+    StoryIdea.list.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([]);
+    render(<TopicStep onSelectTopic={vi.fn()} language="english" />);
+    fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("spxWizard.topic.savedError");
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.retry" }));
+    expect(await screen.findByText("wizard.topic.noSavedIdeas")).toBeDefined();
+  });
+
+  it("asks before replacing typed words with a saved idea", async () => {
+    StoryIdea.list.mockResolvedValueOnce([{ id: "moon", title: "Moon", description: "A fox trips on a star." }]);
+    const change = vi.fn();
+    render(<TopicStep selectedTopic="custom" customIdea="Our original idea" onSelectTopic={vi.fn()}
+      onCustomIdeaChange={change} language="english" />);
+    fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Moon/ }));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.keep" }));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Moon/ }));
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.replace" }));
+    expect(change).toHaveBeenCalledWith("Moon — A fox trips on a star.");
+  });
+
   it("renders all topic cards", () => {
     render(
       <TopicStep
@@ -806,6 +836,37 @@ describe("visible private draft restore", () => {
     fireEvent.click(await screen.findByRole('button',{name:'wizard.draft.restore'}));
     expect(screen.getByRole('radio', { name: 'Space' }).checked).toBe(true);
   });
+  it("keeps a new idea and an older draft independently, even before the autosave delay", async () => {
+    const oldKey = "sipurai_draft_v2_9_test-user_123";
+    localStorage.setItem(oldKey, JSON.stringify({
+      _savedAt: Date.now() - 1000,
+      currentStep: 0,
+      selectedTopic: "space",
+      bookData: { title: "Old space draft" },
+    }));
+    sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
+      ownerId: "test-user", title: "Freckles on the Moon", description: "A giraffe makes friends",
+      moral: "Friends come in many shapes",
+    }));
+    render(<BookWizardPage />);
+
+    const text = await screen.findByRole("textbox", { name: "wizard.topic.tellUsIdea" });
+    expect(text.value).toContain("Freckles on the Moon");
+    expect(screen.getByRole("button", { name: "wizard.draft.restore" })).toBeDefined();
+    expect(sessionStorage.getItem("sipurai_pending_idea")).toBeNull();
+    fireEvent.change(text, { target: { value: "A giraffe flies to the Moon" } });
+    const newKey = getDraftKeys("test-user").find(key => key !== oldKey);
+    expect(JSON.parse(localStorage.getItem(newKey))).toMatchObject({
+      customIdea: "A giraffe flies to the Moon",
+      bookData: { moral: "Friends come in many shapes" },
+    });
+    expect(JSON.parse(localStorage.getItem(oldKey)).bookData.title).toBe("Old space draft");
+    cleanup();
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+    expect(screen.getByRole("textbox", { name: "wizard.topic.tellUsIdea" }).value).toBe("A giraffe flies to the Moon");
+  });
+
   it("does not show a browser-wide or another account's old draft", async () => {
     localStorage.setItem('sipurai_draft_123',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Old secret'}}));
     localStorage.setItem('sipurai_draft_v2_5_other_234',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Other secret'}}));
