@@ -1,4 +1,3 @@
-import React from "react";
 import { Edit, Music, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +16,10 @@ export default function PageTextEditor({
   currentPageText,
   onTextChange,
   onSaveText,
+  saving,
+  saveDisabled,
+  showRetry,
+  editorCopy,
   onAddNikud,
   onConvertToRhyme,
   bookLanguage,
@@ -45,14 +48,14 @@ export default function PageTextEditor({
             aria-label={t("book.editPageText")}
           />
           <div className={`flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Button onClick={onSaveText} className="flex-1 min-w-[100px]">
-              {t("book.saveText")}
+            <Button onClick={onSaveText} disabled={saving || saveDisabled} className="min-h-11 min-w-[100px] flex-1">
+              {editorCopy(showRetry ? "book.editorRetry" : "book.editorSave")}
             </Button>
             {isHebrewLike && (
               <Button
                 variant="outline"
                 onClick={onAddNikud}
-                className="flex-1 min-w-[100px]"
+                className="min-h-11 min-w-[100px] flex-1"
               >
                 {t("book.addNikud")}
               </Button>
@@ -61,7 +64,7 @@ export default function PageTextEditor({
               <Button
                 variant="outline"
                 onClick={onConvertToRhyme}
-                className="flex-1 min-w-[100px]"
+                className="min-h-11 min-w-[100px] flex-1"
                 disabled={isGenerating}
               >
                 {isGenerating ? (
