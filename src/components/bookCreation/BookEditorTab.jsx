@@ -37,7 +37,7 @@ export default function BookEditorTab({
   textConflict,
   serverText,
   promptDraft,
-  editorCopy,
+  editorCopy = t,
   onAddNikud,
   onConvertToRhyme,
   onImagePromptChange,
