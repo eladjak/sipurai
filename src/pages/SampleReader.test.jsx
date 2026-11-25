@@ -3,7 +3,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import SampleReader from './SampleReader';
 import books from '@/data/demoBooks';
-vi.mock('@/components/i18n/i18nProvider', async () => { const locale = (await import('@/components/i18n/locales/he/spxLibrary')).default; return { useI18n: () => ({ language: 'hebrew', isRTL: true, t: key => key.split('.').reduce((value, part) => value?.[part], locale) || key }) }; });
+vi.mock('@/components/i18n/i18nProvider', async () => {
+  const locale = (await import('@/components/i18n/locales/he/spxLibrary')).default;
+  return { useI18n: () => ({
+    language: 'hebrew',
+    isRTL: true,
+    t: (key, params = {}) => (key.split('.').reduce((value, part) => value?.[part], locale) || key)
+      .replace(/\{(\w+)\}/g, (token, name) => params[name] ?? token),
+  }) };
+});
 vi.mock('@/components/brand/Wordmark', () => ({ Wordmark: () => <span>Sipurai</span> }));
 vi.mock('@/lib/flags', () => ({ isNewShell: () => false }));
 function Location() { const location = useLocation(); return <output data-testid="url">{location.search}</output>; }
@@ -54,4 +62,47 @@ describe('public sample catalogue', () => {
     view.unmount(); open('/samples/not-a-public-book');
     expect(screen.getByText('הספר לדוגמה לא נמצא')).toBeTruthy();
   });
+  it('announces position and keeps focus when the last page replaces the next button', () => {
+    const book = books[0];
+    const view = open(`/samples/${book.id}?page=${book.pages.length - 1}`);
+    const next = screen.getByRole('button', { name: 'לעמוד הבא' });
+    next.focus();
+    fireEvent.click(next);
+    expect(screen.getAllByRole('status').at(-1).textContent).toBe(`עמוד ${book.pages.length} מתוך ${book.pages.length}`);
+    expect(document.activeElement).toBe(screen.getByRole('link', { name: 'יוצרים סיפור משלכם' }));
+    view.unmount();
+  });
+  it('shows illustrated fallback when an image fails', () => {
+    const view = open(`/samples/${books[0].id}`);
+    fireEvent.error(view.container.querySelector('img'));
+    expect(view.container.querySelector('.sample-fallback')).toBeTruthy();
+    view.unmount();
+  });
+  it.each([
+    ['demo-dragons-garden', 'לילי'],
+    ['demo-space-adventure', 'יעל'],
+    ['demo-brave-fox', 'ערן'],
+  ])('tries a name only in the current reading session for %s', (id, lead) => {
+    const book = books.find(item => item.id === id);
+    const store = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      const view = open(`/samples/${book.id}`);
+      const name = screen.getByRole('textbox', { name: 'לנסות שם אחר בסיפור' });
+      fireEvent.change(name, { target: { value: 'נועה' } });
+      fireEvent.click(screen.getByRole('button', { name: 'פותחים את הספר' }));
+      expect(book.pages[0].text).toContain(lead);
+      expect(screen.getByText(book.pages[0].text.replaceAll(lead, 'נועה'))).toBeVisible();
+      expect(screen.getByTestId('url')).toHaveTextContent('?page=1');
+      expect(store).not.toHaveBeenCalled();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      fireEvent.click(screen.getByRole('button', { name: 'חזרה לשם המקורי' }));
+      expect(screen.getByRole('textbox', { name: 'לנסות שם אחר בסיפור' })).toHaveFocus();
+      fireEvent.click(screen.getByRole('button', { name: 'פותחים את הספר' }));
+      expect(screen.getByText(book.pages[0].text)).toBeVisible();
+      view.unmount();
+    } finally {
+      store.mockRestore();
+    }
+  });
+
 });
