@@ -1,5 +1,5 @@
 {
-  "total": 202,
+  "total": 189,
   "files": {
     "src/components/ai/SmartAutoSelector.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
@@ -59,20 +59,6 @@
     "src/components/gamification/XPToast.jsx": {
       "TS2339: Property 'celebration' does not exist on type '{}'.": 1,
       "TS2339: Property 'onDismiss' does not exist on type '{}'.": 1
-    },
-    "src/components/home/DailyPromptCard.jsx": {
-      "TS2339: Property 'dailyPrompt' does not exist on type '{}'.": 1,
-      "TS2339: Property 'isPromptLoading' does not exist on type '{}'.": 1
-    },
-    "src/components/home/DraftBooksSection.jsx": {
-      "TS2339: Property 'draftBooks' does not exist on type '{}'.": 1
-    },
-    "src/components/home/FeaturedBooksSection.jsx": {
-      "TS2339: Property 'featuredBooks' does not exist on type '{}'.": 1,
-      "TS2339: Property 'isLoading' does not exist on type '{}'.": 1,
-      "TS2339: Property 'recentBooks' does not exist on type '{}'.": 1,
-      "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 3,
-      "TS2741: Property 'variant' is missing in type '{ children: string; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
     },
     "src/components/i18n/i18nProvider.jsx": {
       "TS2554: Expected 1 arguments, but got 0.": 1
@@ -224,11 +210,6 @@
     },
     "src/pages/Feedback.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any[]; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 2
-    },
-    "src/pages/Home.jsx": {
-      "TS2322: Type '{ dailyPrompt: any; isPromptLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ draftBooks: any[]; }' is not assignable to type 'IntrinsicAttributes & object'.": 1,
-      "TS2322: Type '{ featuredBooks: any[]; recentBooks: any[]; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.": 1
     },
     "src/pages/LandingPage.jsx": {
       "TS2345: Argument of type '{ title: any; description: any; }' is not assignable to parameter of type '{ title: any; description: any; image: any; url: any; type?: string; locale?: string; }'.": 1

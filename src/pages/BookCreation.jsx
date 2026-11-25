@@ -48,13 +48,14 @@ export default function BookCreation() {
     key={JSON.stringify([user?.id, bookId])}
     bookId={bookId}
     ownerId={user?.id}
+    preferredAgeRange={user?.preferred_age_range}
     authLoading={authLoading}
     searchParams={searchParams}
     setSearchParams={setSearchParams}
   />;
 }
 
-function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearchParams }) {
+function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, searchParams, setSearchParams }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { language: uiLanguage, isRTL } = useI18n();
@@ -457,8 +458,8 @@ function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearch
     if (length === "short") pageCount = 6;
     if (length === "long") pageCount = 15;
 
-    // Use stored age range from onboarding if book doesn't have one
-    const resolvedAgeRange = age_range || localStorage.getItem("preferredAgeRange") || "5-10";
+    // Use the active family's age range if the book doesn't have one.
+    const resolvedAgeRange = age_range || preferredAgeRange || "5-10";
     const safetyPrefix = buildSafetyPromptPrefix(resolvedAgeRange);
 
     return `${safetyPrefix}Create a detailed outline for a personalized children's book with the following details:
@@ -485,8 +486,8 @@ function OwnerBookEditor({ bookId, ownerId, authLoading, searchParams, setSearch
 
   const getPageTextPrompt = (pageDescription, pageNumber) => {
     const { child_name, child_age, genre, age_range, art_style } = book;
-    // Use stored age range from onboarding if book doesn't have one
-    const resolvedAgeRange = age_range || localStorage.getItem("preferredAgeRange") || "5-10";
+    // Use the active family's age range if the book doesn't have one.
+    const resolvedAgeRange = age_range || preferredAgeRange || "5-10";
     const safetyPrefix = buildSafetyPromptPrefix(resolvedAgeRange);
 
     return `${safetyPrefix}Write the text content for page ${pageNumber} of a children's story based on this description: "${pageDescription}"

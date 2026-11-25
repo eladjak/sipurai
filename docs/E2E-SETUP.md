@@ -69,3 +69,11 @@ npx playwright test
 ## When the public group goes red
 
 Open the "Playwright report" download on the failed run (screenshots, video and a step-by-step trace are inside). The most common honest causes: a heading was reworded (update the test), a page now scrolls sideways on a phone (fix the page), or a protected page stopped redirecting to sign-in (fix the app).
+
+## Family screen evidence
+
+The dedicated Clerk DEV family is selected by `E2E_CLERK_USER_EMAIL` in this
+repository's Actions secrets. That location is the test-family configuration.
+The family home spec uses the same real login and test-only book, page and
+consent responses. It captures 375px and 1280px states in the Playwright
+artifact. It does not create a book, change a profile, or invoke a paid service.

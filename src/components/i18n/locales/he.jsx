@@ -146,7 +146,7 @@ export default {
       title: "רעיון יומי לסיפור",
       try: "שמור לרעיונות",
       use: "צור ספר עכשיו",
-      createFromIdea: "צור ספר מהרעיון הזה",
+      createFromIdea: "מתחילים עם הרעיון הזה",
       loading: "טוען רעיונות...",
       explore: "גלה עוד רעיונות"
     },
