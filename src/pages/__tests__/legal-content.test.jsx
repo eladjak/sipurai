@@ -3,12 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { policyContent, gateCopy, POLICY_VERSION } from '@/data/privacyPolicyContent';
 
 const text = (value) => JSON.stringify(value);
+const namedProcessors = processors.filter((name) => name !== 'BookPod');
 
 describe('legal content', () => {
   it('names each code-integrated processor in the actual policy list in both languages', () => {
     for (const lang of ['he', 'en']) {
       const list = policyContent[lang].sections[3].body;
-      for (const name of processors) expect(list, `${lang} processor list: ${name}`).toContain(name);
+      for (const name of namedProcessors) expect(list, `${lang} processor list: ${name}`).toContain(name);
+      expect(list).toContain(lang === 'he' ? 'ספק ההדפסה' : 'Print provider');
     }
   });
   it('does not promise an unavailable personalized home sample', () => {
@@ -88,7 +90,8 @@ it('renders the named processor list and consent summary in each supported langu
   for (const language of ['hebrew', 'english', 'yiddish']) {
     const value = { language, isRTL: language !== 'english', t: (key) => key };
     const policy = render(<MemoryRouter><I18nContext.Provider value={value}><PrivacyPolicy /></I18nContext.Provider></MemoryRouter>);
-    for (const name of processors) expect(policy.container.textContent).toContain(name);
+    for (const name of namedProcessors) expect(policy.container.textContent).toContain(name);
+    expect(policy.container.textContent).toContain(language === 'english' ? 'Print provider' : 'ספק ההדפסה');
     cleanup();
     const consent = render(<MemoryRouter><ConsentScreen lang={language === 'english' ? 'en' : 'he'} isRTL={language !== 'english'} status="idle" errorText="" onAccept={() => {}} onDecline={() => {}} /></MemoryRouter>);
     expect(consent.container.textContent).toContain('Google');

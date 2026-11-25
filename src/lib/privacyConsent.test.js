@@ -64,10 +64,11 @@ describe('API calls', () => {
 });
 
 describe('policy text', () => {
-  it('lists the integrated processors in both languages', () => {
+  it('discloses the integrated processors in both languages', () => {
     for (const lang of ['he', 'en']) {
       for (const name of processors) {
-        expect(policyContent[lang].sections[3].body, `${lang}: ${name}`).toContain(name);
+        const label = name === 'BookPod' ? { he: 'ספק ההדפסה', en: 'Print provider' }[lang] : name;
+        expect(policyContent[lang].sections[3].body, `${lang}: ${label}`).toContain(label);
       }
     }
   });
