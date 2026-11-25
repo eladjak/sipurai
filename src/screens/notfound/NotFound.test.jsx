@@ -39,7 +39,7 @@ describe('new shell', () => {
     const { render, screen, cleanup } = await import('@testing-library/react/pure');
     state.signedIn = false;
     const guest = render(<MemoryRouter><NotFound /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: 'notFound.signIn' })).toHaveAttribute('href', '/sign-in');
+    expect(screen.getByRole('link', { name: 'notFound.sample' })).toHaveAttribute('href', '/samples/demo-dragons-garden');
     expect(screen.getByRole('heading', { name: 'notFound.title' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'notFound.guestHome' })).toHaveAttribute('href', '/');
     expect(document.title).toBe('notFound.title');

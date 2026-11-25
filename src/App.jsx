@@ -10,7 +10,7 @@ const VisualEditAgent = import.meta.env.DEV
   : () => null;
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Link, matchPath } from 'react-router-dom';
 import { redirects, resolveRedirect } from './lib/routes';
 import { isNewShell } from '@/lib/flags';
 const ParentsHub = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/parents/ParentsHub')) : null;
@@ -23,7 +23,7 @@ const Tonight = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@
 const Shelf = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/shelf/Shelf')) : null;
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { EmptyState } from '@/components/ds/EmptyState';
-import PageNotFound from './lib/PageNotFound';
+import PageNotFound from './screens/notfound/NotFound';
 import RedirectHome, { LEGACY_HOME_PATHS } from './lib/RedirectHome';
 import { AuthProvider, FallbackAuthProvider, useAuth } from '@/lib/AuthContext';
 import ClerkLocaleProvider from '@/components/ClerkLocaleProvider';
@@ -171,9 +171,19 @@ export const LegacyAuthenticatedApp = () => {
     (CheckoutHarness !== null && location.pathname === '/__checkout-states') ||
     (PrivacyGateHarness !== null && location.pathname === '/__privacy-gate');
 
+  // Only actual registered protected routes require authentication. React Router's
+  // matcher handles case and trailing slashes the same way as the routes below.
+  const protectedPaths = [
+    ...Object.keys(Pages).filter((name) => !PUBLIC_PAGES.has(name)).map((name) => `/${name}`),
+    ...(PrintCheckout ? ['/book/:id/order'] : []),
+    ...(MyOrders ? ['/orders'] : []),
+    ...(AdminPrintOrders ? ['/admin/print-orders'] : []),
+  ];
+  const requiresAuth = !isPublicRoute && protectedPaths.some((path) => matchPath({ path, end: true }, location.pathname));
+
   // Show loading spinner while checking app public settings or auth
   // For public routes, skip auth loading wait (user will be null but that's fine)
-  if (!isPublicRoute && (isLoadingPublicSettings || isLoadingAuth)) {
+  if (requiresAuth && (isLoadingPublicSettings || isLoadingAuth)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -182,7 +192,7 @@ export const LegacyAuthenticatedApp = () => {
   }
 
   // Handle authentication errors — but only redirect for non-public routes
-  if (!isPublicRoute && authError) {
+  if (requiresAuth && authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
@@ -193,7 +203,7 @@ export const LegacyAuthenticatedApp = () => {
   }
 
   // For non-public routes, redirect to login if not authenticated
-  if (!isPublicRoute && !isLoadingAuth && !user) {
+  if (requiresAuth && !isLoadingAuth && !user) {
     navigateToLogin();
     return null;
   }
