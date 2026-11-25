@@ -8,3 +8,5 @@
 [dir='rtl'] .sample-page--forward, [dir='ltr'] .sample-page--back { animation-name: sample-turn-in-rtl; }
 @keyframes sample-turn-in-rtl { from { opacity: .55; transform: perspective(1200px) rotateY(7deg) translateX(-12px); } to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); } }
 @media (prefers-reduced-motion: reduce) { [dir] .sample-page { animation: none; } }
+
+.sample-fallback { width: min(55%, 220px); min-width: 140px; margin: auto; }
