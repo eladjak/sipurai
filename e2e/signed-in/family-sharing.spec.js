@@ -4,7 +4,7 @@ import { CURRENT_POLICY_VERSION as policyVersion } from '../../api/_lib/policyVe
 import { hasCredentials, SKIP_REASON } from './credentials.js';
 
 test.skip(!hasCredentials, SKIP_REASON);
-test.setTimeout(75_000);
+test.setTimeout(45_000);
 test.use({ locale: 'he-IL', serviceWorkers: 'block', reducedMotion: 'reduce' });
 
 const id = '556ae518-7f7b-4b9c-9908-a198294c5874';
@@ -13,7 +13,7 @@ const privateStatus = 'הספר פרטי. רק אתם יכולים לפתוח א
 const publicStatus = 'כל מי שמקבל את הקישור יכול לקרוא את הספר ולהעביר אותו הלאה.';
 
 async function setup(page) {
-  const state = { owner: null, public: false, publish: 0, revoke: 0, signedIn: false, blocked: [] };
+  const state = { owner: null, public: false, publish: 0, revoke: 0 };
   await page.addInitScript(() => {
     localStorage.setItem('language', 'hebrew');
     localStorage.setItem('parentalControls', JSON.stringify({
@@ -62,19 +62,16 @@ async function setup(page) {
       state.revoke++; state.public = false;
       return route.fulfill({ json: { ok: true, removedPosts: 0 } });
     }
-    if (url.origin === 'http://localhost:4173' && !url.pathname.startsWith('/api/') && method === 'GET') return route.continue();
-    // Only Clerk's dedicated development login may contact a remote service. After login,
-    // even Clerk writes are blocked to protect the shared test account's profile.
-    if ((url.hostname.endsWith('.clerk.accounts.dev') || url.hostname.endsWith('.clerk.dev'))
-      && (!state.signedIn || method === 'GET')) return route.continue();
-    state.blocked.push(`${method} ${url.origin}${url.pathname}`);
+    if (url.hostname.endsWith('.supabase.co')) return route.abort();
+    // Clerk's test helper also routes its requests. Fallback preserves that routing,
+    // and allows the script/CDN reads needed to initialize Clerk before sign-in.
+    if (method === 'GET' || url.hostname.endsWith('.clerk.accounts.dev')) return route.fallback();
     return route.abort();
   });
   await page.goto('/');
   await clerk.signIn({ page, emailAddress: process.env.E2E_CLERK_USER_EMAIL });
   state.owner = await page.evaluate(() => window.Clerk?.user?.id);
   expect(Boolean(state.owner)).toBe(true);
-  state.signedIn = true;
   return state;
 }
 
