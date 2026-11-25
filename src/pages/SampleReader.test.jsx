@@ -78,15 +78,20 @@ describe('public sample catalogue', () => {
     expect(view.container.querySelector('.sample-fallback')).toBeTruthy();
     view.unmount();
   });
-  it('tries a name only in the current reading session and restores the original on reset', () => {
-    const book = books[0];
+  it.each([
+    ['demo-dragons-garden', 'לילי'],
+    ['demo-space-adventure', 'יעל'],
+    ['demo-brave-fox', 'ערן'],
+  ])('tries a name only in the current reading session for %s', (id, lead) => {
+    const book = books.find(item => item.id === id);
     const store = vi.spyOn(Storage.prototype, 'setItem');
     try {
       const view = open(`/samples/${book.id}`);
       const name = screen.getByRole('textbox', { name: 'לנסות שם אחר בסיפור' });
       fireEvent.change(name, { target: { value: 'נועה' } });
       fireEvent.click(screen.getByRole('button', { name: 'פותחים את הספר' }));
-      expect(screen.getByText(book.pages[0].text.replaceAll('לילי', 'נועה'))).toBeVisible();
+      expect(book.pages[0].text).toContain(lead);
+      expect(screen.getByText(book.pages[0].text.replaceAll(lead, 'נועה'))).toBeVisible();
       expect(screen.getByTestId('url')).toHaveTextContent('?page=1');
       expect(store).not.toHaveBeenCalled();
       fireEvent.keyDown(window, { key: 'ArrowRight' });

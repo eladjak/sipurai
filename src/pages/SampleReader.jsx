@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { Wordmark } from '@/components/brand/Wordmark';
@@ -26,6 +26,12 @@ export default function SampleReader() {
   const nameInput = useRef(null);
   const forwardRef = useRef(null);
   const restoreForwardFocus = useRef(false);
+  const bindForward = useCallback((control) => {
+    if (!control && forwardRef.current === document.activeElement) {
+      restoreForwardFocus.current = true;
+    }
+    forwardRef.current = control;
+  }, []);
   const raw = Number(params.get('page') || 0);
   const page = Number.isInteger(raw) ? Math.max(0, Math.min(book?.pages.length || 0, raw)) : 0;
   const text = book?.pages[page - 1];
@@ -114,8 +120,8 @@ export default function SampleReader() {
             <nav aria-label={t('spxLibrary.pageNav')} className="sample-controls sticky bottom-0 z-10 mt-5 flex flex-wrap items-center justify-between gap-2 py-3">
               <button type="button" onClick={() => go(page - 1)} disabled={page === 0} className={`${button} border border-[#73818a] bg-[#f8f1e3] disabled:opacity-40`}>{t('spxLibrary.previous')}</button>
               {page < book.pages.length ? (
-                <button ref={forwardRef} type="button" onClick={() => go(page + 1)} className={`${button} bg-[#263c4c] text-white`}>{page === 0 ? t('spxLibrary.open') : t('spxLibrary.next')}</button>
-              ) : <Link ref={forwardRef} to={isNewShell() ? '/new' : '/BookWizard'} className={`${button} bg-[#263c4c] text-white`}>{t('spxLibrary.create')}</Link>}
+                <button ref={bindForward} type="button" onClick={() => go(page + 1)} className={`${button} bg-[#263c4c] text-white`}>{page === 0 ? t('spxLibrary.open') : t('spxLibrary.next')}</button>
+              ) : <Link ref={bindForward} to={isNewShell() ? '/new' : '/BookWizard'} className={`${button} bg-[#263c4c] text-white`}>{t('spxLibrary.create')}</Link>}
             </nav>
           </>
         )}
