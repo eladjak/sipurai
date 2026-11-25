@@ -1,13 +1,11 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Book } from "@/entities/Book";
-import { Page } from "@/entities/Page";
-import { readablePages } from "@/lib/bookProgress";
+import { copyBook } from "@/components/library/copyBook";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useToast } from "@/components/ui/use-toast";
 import {
   PlusCircle,
   Search,
@@ -38,19 +36,24 @@ import BookCard from "../components/library/BookCard";
 import EmptyState from "../components/library/EmptyState";
 
 export default function Library() {
+  const { user } = useCurrentUser();
+  // Recovery and pending attempts last only for this mounted Library view.
+  const copyPlans = useRef(new Map());
+  const pendingCopies = useRef(new Map());
+  return <FamilyLibrary key={user?.id ?? ''} ownerId={user?.id} copyPlans={copyPlans.current} pendingCopies={pendingCopies.current} />;
+}
+
+function FamilyLibrary({ ownerId, copyPlans, pendingCopies }) {
   const { t, isRTL } = useI18n();
-  const { toast } = useToast();
-  const { user: hookUser } = useCurrentUser();
-  const ownerId = hookUser?.id;
-  const owner = useRef(ownerId);
-  owner.current = ownerId;
+  const mounted = useRef(false);
   const request = useRef(0);
-  const [snapshot, setSnapshot] = useState({ owner: null, books: [], error: false });
-  const [loading, setLoading] = useState(true);
-  const bookOwnerMatches = snapshot.owner === ownerId;
-  const books = bookOwnerMatches ? snapshot.books : [];
-  const isLoading = loading || (Boolean(ownerId) && !bookOwnerMatches);
-  const loadError = bookOwnerMatches && snapshot.error;
+  const activeCopy = useRef(null);
+  const feedbackRegion = useRef(null);
+  const [copySourceId, setCopySourceId] = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(null);
+  const [books, setBooks] = useState([]);
+  const [isLoading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
     status: "all",
@@ -60,14 +63,15 @@ export default function Library() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    loadBooks();
-    return () => { request.current += 1; };
-  }, [ownerId]);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
-  const loadBooks = async () => {
-    if (owner.current !== ownerId) return;
+  const loadBooks = useCallback(async () => {
+    if (!mounted.current) return;
     const active = ++request.current;
+    const isCurrent = () => mounted.current && request.current === active;
     if (!ownerId) {
       setLoading(false);
       return;
@@ -75,17 +79,28 @@ export default function Library() {
     setLoading(true);
     try {
       const found = await Book.filter({ created_by: ownerId });
-      if (request.current === active && owner.current === ownerId) {
-        setSnapshot({ owner: ownerId, books: Array.isArray(found) ? found : [], error: false });
+      if (isCurrent()) {
+        setBooks(Array.isArray(found) ? found.filter(book => book?.created_by === ownerId) : []);
+        setLoadError(false);
       }
     } catch {
-      if (request.current === active && owner.current === ownerId) {
-        setSnapshot({ owner: ownerId, books: [], error: true });
+      if (isCurrent()) {
+        setBooks([]);
+        setLoadError(true);
       }
     } finally {
-      if (request.current === active && owner.current === ownerId) setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  };
+  }, [ownerId]);
+
+  useEffect(() => {
+    loadBooks();
+    return () => { request.current += 1; };
+  }, [loadBooks]);
+
+  useEffect(() => {
+    if (copyFeedback) feedbackRegion.current?.focus();
+  }, [copyFeedback]);
 
   const filterBooks = () => {
     let results = [...books];
@@ -125,55 +140,38 @@ export default function Library() {
     setSearchQuery("");
   };
 
-  const duplicateBook = async (book) => {
+  const duplicateBook = async (id, recovery = null) => {
+    const ownerPlans = copyPlans.get(ownerId);
+    recovery ??= ownerPlans?.get(id);
+    const source = recovery?.source ?? books.find(book => book.id === id);
+    if (!source || !ownerId || !mounted.current || activeCopy.current || pendingCopies.get(ownerId)?.has(id)) return;
+
+    if (!pendingCopies.has(ownerId)) pendingCopies.set(ownerId, new Set());
+    pendingCopies.get(ownerId).add(id);
+    const operation = {};
+    activeCopy.current = operation;
+    setCopySourceId(id);
+    setCopyFeedback(null);
+    const isCurrent = () => mounted.current && activeCopy.current === operation;
     try {
-      const { id, created_date, created_by, ...bookFields } = book;
-
-      // Only pages that have words. A half-built book can be duplicated, but
-      // its skeleton rows are a work queue, not content — copying them would
-      // give the new book blank pages and no run that will ever fill them.
-      // Read them BEFORE creating the copy so `total_pages` describes what the
-      // copy will actually contain; a copy claiming ten pages while holding
-      // three would present itself as interrupted forever.
-      let pages = [];
-      try {
-        pages = readablePages(await Page.filter({ book_id: book.id }));
-      } catch {
-        pages = [];
+      const title = `${source.title || t("libraryLegacy.untitledBook")} (${t("library.copy")})`;
+      const result = await copyBook({ source, ownerId, title, isCurrent, resume: recovery, onPlan: plan => {
+        if (!copyPlans.has(ownerId)) copyPlans.set(ownerId, new Map());
+        copyPlans.get(ownerId).set(id, { ...plan, sourceId: id, source });
+      } });
+      if (result?.kind === 'resumeConflict') copyPlans.get(ownerId)?.delete(id);
+      if (!isCurrent() || !result) return;
+      if (['complete', 'emptyDraft'].includes(result.kind)) {
+        copyPlans.get(ownerId)?.delete(id);
       }
-
-      const newBook = await Book.create({
-        ...bookFields,
-        title: `${book.title} (${t("library.copy")})`,
-        status: "complete",
-        total_pages: pages.length,
-      });
-
-      try {
-        if (pages.length > 0) {
-          await Promise.all(
-            pages.map((page) => {
-              const { id: pageId, created_date: pageCreated, created_by: pageOwner, ...pageFields } = page;
-              return Page.create({ ...pageFields, book_id: newBook.id });
-            })
-          );
-        }
-      } catch {
-        // Page duplication is best-effort
+      setCopyFeedback({ ...result, sourceId: id, source });
+      if (result.kind === "createError" || result.copy) await loadBooks();
+    } finally {
+      pendingCopies.get(ownerId)?.delete(id);
+      if (isCurrent()) {
+        activeCopy.current = null;
+        setCopySourceId(null);
       }
-
-      toast({
-        title: t("library.duplicated"),
-        description: t("library.duplicatedDesc", { title: newBook.title }),
-        className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100",
-      });
-
-      await loadBooks();
-    } catch {
-      toast({
-        variant: "destructive",
-        title: t("library.duplicateError"),
-      });
     }
   };
 
@@ -208,6 +206,14 @@ export default function Library() {
     filters.age_range !== "all" || filters.language !== "all";
 
   const hasQuery = Boolean(searchQuery || hasActiveFilters);
+  const feedbackText = copyFeedback && ({
+    readError: () => t('libraryLegacy.readError'),
+    createError: () => t('libraryLegacy.createError'),
+    interrupted: () => t('libraryLegacy.interrupted'),
+    resumeConflict: () => t('libraryLegacy.resumeConflict'),
+    emptyDraft: () => t('libraryLegacy.emptyDraft'),
+    complete: () => t('libraryLegacy.complete', { count: copyFeedback.count }),
+  })[copyFeedback.kind]?.();
   const clearQuery = () => {
     setSearchQuery("");
     resetFilters();
@@ -240,6 +246,33 @@ export default function Library() {
         </Button>
       </header>
 
+      {copyFeedback && (
+        <div
+          ref={feedbackRegion}
+          tabIndex={-1}
+          role={["readError", "createError", "interrupted", "resumeConflict"].includes(copyFeedback.kind) ? "alert" : "status"}
+          className="mb-5 rounded-xl border border-purple-200 bg-purple-50 p-4 text-gray-900 dark:border-purple-800 dark:bg-gray-800 dark:text-white"
+        >
+          <p>{feedbackText}</p>
+          {copyFeedback.copy && <p className="break-words font-medium"><bdi>{copyFeedback.copy.title}</bdi></p>}
+          {copyFeedback.kind === "readError" && books.some(book => book.id === copyFeedback.sourceId) && (
+            <Button type="button" variant="outline" className="mt-2 min-h-11" onClick={() => duplicateBook(copyFeedback.sourceId)}>
+              {t("shelf.retry")}
+            </Button>
+          )}
+          {copyFeedback.kind === "interrupted" && (
+            <Button type="button" variant="outline" className="mt-2 min-h-11 min-w-11" onClick={() => duplicateBook(copyFeedback.sourceId, copyFeedback)}>
+              {t("libraryLegacy.resumeCopy")}
+            </Button>
+          )}
+          {copyFeedback.kind === "emptyDraft" && (
+            <Button asChild variant="outline" className="mt-2 min-h-11">
+              <Link to={`${createPageUrl("BookCreation")}?id=${encodeURIComponent(copyFeedback.copy.id)}`}>{t("libraryLegacy.openCopy")}</Link>
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Search + filter bar */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -255,13 +288,13 @@ export default function Library() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label={t("library.search")}
-              className="ps-10 rounded-2xl border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500/20 dark:bg-gray-800 dark:text-white h-11"
+              className="ps-10 pe-12 rounded-2xl border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500/20 dark:bg-gray-800 dark:text-white h-11"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute end-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 hover:text-purple-600"
+                className="absolute end-0 top-1/2 -translate-y-1/2 min-h-11 min-w-11 text-gray-400 hover:text-purple-600"
                 onClick={() => setSearchQuery("")}
                 aria-label={t("libraryLegacy.clearSearch")}
               >
@@ -388,7 +421,7 @@ export default function Library() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
                 >
-                  <BookCard book={book} viewType="grid" onDuplicate={duplicateBook} onChanged={loadBooks} />
+                  <BookCard book={book} viewType="grid" onDuplicate={duplicateBook} isDuplicating={copySourceId === book.id} copyDisabled={copySourceId !== null} onChanged={loadBooks} />
                 </motion.div>
               ))}
             </motion.div>
@@ -409,7 +442,7 @@ export default function Library() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
                 >
-                  <BookCard book={book} viewType="list" onDuplicate={duplicateBook} onChanged={loadBooks} />
+                  <BookCard book={book} viewType="list" onDuplicate={duplicateBook} isDuplicating={copySourceId === book.id} copyDisabled={copySourceId !== null} onChanged={loadBooks} />
                 </motion.div>
               ))}
             </motion.div>

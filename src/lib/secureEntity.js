@@ -31,6 +31,9 @@ export function createSecureEntity(entity, options = {}) {
     create: async (data) => {
       const user = await User.me();
       if (!user?.id) throw new Error('Authentication required');
+      if (Object.hasOwn(data, ownerField) && data[ownerField] !== user.id) {
+        throw new Error('Not authorized to create this resource');
+      }
       // Ownership is ALWAYS keyed on the Clerk user id (the `sub` claim in the
       // Supabase JWT), which is what every RLS policy compares the owner column
       // against. Email is never used for authorization (it is mutable).

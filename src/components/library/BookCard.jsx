@@ -25,29 +25,44 @@ import { motion } from "framer-motion";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import BookControls from "@/components/bookControls/BookControls";
 
-function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
+function BookCard({ book, viewType = "grid", onDuplicate, isDuplicating, copyDisabled, onChanged }) {
   const { t, isRTL } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
-  const [isDuplicating, setIsDuplicating] = useState(false);
-
-  const handleDuplicate = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!onDuplicate || isDuplicating) return;
-    setIsDuplicating(true);
-    try {
-      await onDuplicate(book);
-    } finally {
-      setIsDuplicating(false);
-    }
+  const draft = book.status === "draft";
+  const primaryUrl = `${createPageUrl(draft ? "BookCreation" : "BookView")}?id=${encodeURIComponent(book.id)}`;
+  const actionLabels = {
+    draft: t("bookCard.edit"),
+    complete: t("shelf.read"),
+    generating: t("libraryLegacy.openProgress"),
+    partial: t("libraryLegacy.readAvailable"),
+    failed: t("libraryLegacy.openRecovery"),
   };
-  
+  const primaryLabel = Object.hasOwn(actionLabels, book.status) ? actionLabels[book.status] : t("spxRecovery.openBook");
+  const copyLabel = isDuplicating ? t("libraryLegacy.copying") : t("bookCard.duplicate");
+  const duplicateAction = onDuplicate && (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => onDuplicate(book.id)}
+      disabled={copyDisabled}
+      className="min-h-11 min-w-11 gap-1 border-amber-200 dark:border-amber-900"
+    >
+      {isDuplicating ? (
+        <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" aria-hidden="true" />
+      ) : (
+        <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+      )}
+      <span>{copyLabel}</span>
+    </Button>
+  );
+
   // Every value `books.status` can hold must appear in all three maps. A status
   // with no entry renders as a card with no badge at all — which is how a book
   // that failed to build looked exactly like one that succeeded.
   const statusIcons = {
     draft: <Clock className="h-4 w-4 text-yellow-500" aria-hidden="true" />,
-    generating: <RotateCw className="h-4 w-4 text-blue-500 animate-spin" aria-hidden="true" />,
+    generating: <RotateCw className="h-4 w-4 text-blue-500 motion-safe:animate-spin" aria-hidden="true" />,
     partial: <RotateCw className="h-4 w-4 text-amber-500" aria-hidden="true" />,
     failed: <AlertTriangle className="h-4 w-4 text-red-500" aria-hidden="true" />,
     complete: <CheckCircle className="h-4 w-4 text-green-500" aria-hidden="true" />
@@ -75,6 +90,10 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
     complete: t("bookCard.complete")
   };
 
+  const statusLabel = Object.hasOwn(statusLabels, book.status) ? statusLabels[book.status] : t("libraryLegacy.unknownStatus");
+  const statusIcon = Object.hasOwn(statusIcons, book.status) ? statusIcons[book.status] : null;
+  const statusStyle = Object.hasOwn(statusStyles, book.status) ? statusStyles[book.status] : "bg-gray-100 text-gray-800";
+
   if (viewType === "grid") {
     return (
       <motion.div
@@ -90,7 +109,7 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          <Link to={`${createPageUrl("BookView")}?id=${book.id}`}>
+          <Link to={primaryUrl} aria-label={`${primaryLabel} · ${book.title || t("libraryLegacy.untitledBook")}`} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-purple-700">
             <div className="aspect-[3/4] relative overflow-hidden bg-gradient-to-br from-purple-100 via-indigo-50 to-violet-100 dark:from-purple-950 dark:via-indigo-950 dark:to-gray-900">
               {book.cover_image ? (
                 <>
@@ -109,10 +128,10 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
                   <p className="font-medium text-purple-700 dark:text-purple-300 text-sm">{book.title || t("libraryLegacy.untitledBook")}</p>
                 </div>
               )}
-              <Badge className={`absolute top-2 end-2 shadow-md ${statusStyles[book.status]}`}>
+              <Badge className={`absolute top-2 end-2 shadow-md ${statusStyle}`}>
                 <span className="flex items-center gap-1">
-                  {statusIcons[book.status]}
-                  {statusLabels[book.status]}
+                  {statusIcon}
+                  {statusLabel}
                 </span>
               </Badge>
               
@@ -153,18 +172,11 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
             </div>
             
             <div className="flex flex-wrap gap-2 w-full">
-              <Link to={`${createPageUrl("BookView")}?id=${book.id}`} className="flex-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-1 hover:bg-purple-50 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-900 hover:text-purple-700 dark:hover:text-purple-300"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  <span>{t("bookCard.view")}</span>
-                </Button>
-              </Link>
+              <Button asChild variant="outline" size="sm" className="min-h-11 flex-1 gap-1 border-purple-200 dark:border-purple-900">
+                <Link to={primaryUrl}><Eye className="h-3.5 w-3.5" aria-hidden="true" />{primaryLabel}</Link>
+              </Button>
 
-              {book.status !== "generating" && (
+              {!draft && book.status !== "generating" && (
                 <Link to={`${createPageUrl("BookCreation")}?id=${book.id}`} className="flex-1">
                   <Button
                     variant="outline"
@@ -177,22 +189,7 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
                 </Link>
               )}
 
-              {onDuplicate && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDuplicate}
-                  disabled={isDuplicating}
-                  className="gap-1 hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-200 dark:border-amber-900 hover:text-amber-700 dark:hover:text-amber-300"
-                  aria-label={t("bookCard.duplicate")}
-                >
-                  {isDuplicating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-              )}
+              {duplicateAction}
             </div>
             {book.id && onChanged && <BookControls book={book} onChanged={onChanged} compact className="mt-2 w-full" />}
           </CardFooter>
@@ -226,20 +223,20 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
             )}
           </div>
           
-          <div className="flex-1 p-4">
+          <div className="min-w-0 flex-1 p-4">
             <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
               <div>
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+                <h3 className="break-words font-semibold text-lg text-gray-900 dark:text-white">
                   {book.title}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("bookCard.for")} {book.child_name}, {book.child_age} {t("bookCard.years")}
                 </p>
               </div>
-              <Badge className={`${statusStyles[book.status]}`}>
+              <Badge className={`${statusStyle}`}>
                 <span className="flex items-center gap-1">
-                  {statusIcons[book.status]}
-                  {statusLabels[book.status]}
+                  {statusIcon}
+                  {statusLabel}
                 </span>
               </Badge>
             </div>
@@ -261,17 +258,11 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
             </div>
             
             <div className="flex flex-wrap gap-2 mt-4">
-              <Link to={`${createPageUrl("BookView")}?id=${book.id}`}>
-                <Button 
-                  size="sm"
-                  className="gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm hover:shadow transition-all duration-200"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  <span>{t("bookCard.view")}</span>
-                </Button>
-              </Link>
-              
-              {book.status !== "generating" && (
+              <Button asChild size="sm" className="min-h-11 gap-1 bg-purple-700 text-white hover:bg-purple-800">
+                <Link to={primaryUrl}><Eye className="h-3.5 w-3.5" aria-hidden="true" />{primaryLabel}</Link>
+              </Button>
+
+              {!draft && book.status !== "generating" && (
                 <Link to={`${createPageUrl("BookCreation")}?id=${book.id}`}>
                   <Button 
                     variant="outline" 
@@ -306,23 +297,7 @@ function BookCard({ book, viewType = "grid", onDuplicate, onChanged }) {
                 </Button>
               )}
 
-              {onDuplicate && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDuplicate}
-                  disabled={isDuplicating}
-                  className="gap-1 border-amber-200 dark:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/30"
-                  aria-label={t("bookCard.duplicate")}
-                >
-                  {isDuplicating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                  <span>{t("bookCard.duplicate")}</span>
-                </Button>
-              )}
+              {duplicateAction}
             </div>
             {book.id && onChanged && <BookControls book={book} onChanged={onChanged} compact className="mt-3 sm:max-w-sm" />}
           </div>
