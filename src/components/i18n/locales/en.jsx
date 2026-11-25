@@ -899,7 +899,7 @@ export default {
     },
     topic: {
       title: "What's the story about?",
-      subtitle: "Pick a topic you love",
+      subtitle: "Pick a world to explore, write your own idea or try a surprise.",
       chooseTopic: "Choose topic",
       customIdea: "My Own Idea",
       customIdeaShort: "My Own Idea",
@@ -909,7 +909,7 @@ export default {
       useSavedIdea: "Use Saved Idea",
       useSavedIdeaDesc: "Pick from your saved story ideas",
       savedIdeasTitle: "Your saved ideas:",
-      noSavedIdeas: "No saved ideas yet",
+      noSavedIdeas: "You have no saved ideas yet. You can pick an illustrated world or write your own idea.",
       customPlaceholder: "Describe your story idea...",
       surpriseMe: "Surprise Me!"
     },

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import React from "react";
 
 // Mock secureEntity to pass through in tests
@@ -16,10 +16,12 @@ vi.mock("@/entities/User", () => ({
   },
 }));
 
+const authFixture = vi.hoisted(() => ({ ownerId: "test-user" }));
+
 // Mock AuthContext (useCurrentUser depends on useAuth)
 vi.mock("@/lib/AuthContext", () => ({
   useAuth: () => ({
-    user: { id: "test-user", email: "test@test.com", full_name: "Test User", language: "english", preferred_age_range: "8-10" },
+    user: { id: authFixture.ownerId, email: "test@test.com", full_name: "Test User", language: "english", preferred_age_range: "8-10" },
     isAuthenticated: true,
     isLoadingAuth: false,
     navigateToLogin: vi.fn(),
@@ -28,6 +30,10 @@ vi.mock("@/lib/AuthContext", () => ({
   }),
   AuthProvider: ({ children }) => children,
   FallbackAuthProvider: ({ children }) => children,
+}));
+
+vi.mock("@/entities/StoryIdea", () => ({
+  StoryIdea: { filter: vi.fn() },
 }));
 
 // Mock dependencies
@@ -193,11 +199,14 @@ vi.mock("framer-motion", () => ({
     )),
   },
   AnimatePresence: ({ children }) => <>{children}</>,
+  useReducedMotion: () => false,
 }));
 
 // Test imports for individual components
 import WizardProgress from "./WizardProgress";
 import TopicStep, { TOPIC_CARDS } from "./TopicStep";
+import { StoryIdea } from "@/entities/StoryIdea";
+import { InvokeLLM } from "@/integrations/Core";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "./PreviewEditStep";
 import SaveStep from "./SaveStep";
@@ -265,6 +274,31 @@ describe("WizardProgress", () => {
 
 // === TOPIC STEP TESTS ===
 describe("TopicStep", () => {
+  it("distinguishes a failed request from an empty list and retries in place", async () => {
+    StoryIdea.filter.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([]);
+    render(<TopicStep ownerId="test-user" onSelectTopic={vi.fn()} language="english" />);
+    fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("spxWizard.topic.savedError");
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.retry" }));
+    expect(await screen.findByText("wizard.topic.noSavedIdeas")).toBeDefined();
+    expect(StoryIdea.filter).toHaveBeenLastCalledWith({ created_by: "test-user" }, "-created_date", 10);
+  });
+
+  it("asks before replacing typed words with a saved idea", async () => {
+    StoryIdea.filter.mockResolvedValueOnce([{ id: "moon", title: "Moon", description: "A fox trips on a star." }]);
+    const change = vi.fn();
+    render(<TopicStep ownerId="test-user" selectedTopic="custom" customIdea="Our original idea" onSelectTopic={vi.fn()}
+      onCustomIdeaChange={change} language="english" />);
+    fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Moon/ }));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.keep" }));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Moon/ }));
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.replace" }));
+    expect(change).toHaveBeenCalledWith("Moon — A fox trips on a star.");
+  });
+
   it("renders all topic cards", () => {
     render(
       <TopicStep
@@ -653,6 +687,33 @@ describe("Content Filtering for Wizard", () => {
 
 // === BOOK WIZARD PAGE INTEGRATION TESTS (10 new tests) ===
 describe("BookWizard Page", () => {
+  it("clears saved ideas and replacement prompts on account changes", async () => {
+    StoryIdea.filter
+      .mockResolvedValueOnce([{ id: "first-idea", title: "First family idea" }])
+      .mockResolvedValueOnce([{ id: "second-idea", title: "Second family idea" }]);
+    const { rerender } = render(<BookWizardPage />);
+    const savedIdeas = () => screen.getByRole("button", { name: "wizard.topic.useSavedIdea" });
+
+    try {
+      fireEvent.click(screen.getByRole("radio", { name: "wizard.topic.customIdeaShort" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "wizard.topic.tellUsIdea" }), { target: { value: "Typed story" } });
+      fireEvent.click(savedIdeas());
+      fireEvent.click(await screen.findByRole("button", { name: "First family idea" }));
+      expect(screen.getByText("spxWizard.topic.replacePrompt")).toBeDefined();
+
+      authFixture.ownerId = "test-user-2";
+      rerender(<BookWizardPage />);
+      expect(screen.queryByText("First family idea")).toBeNull();
+      expect(screen.queryByText("spxWizard.topic.replacePrompt")).toBeNull();
+      expect(savedIdeas()).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(savedIdeas());
+      expect(await screen.findByRole("button", { name: "Second family idea" })).toBeDefined();
+      expect(StoryIdea.filter).toHaveBeenLastCalledWith({ created_by: "test-user-2" }, "-created_date", 10);
+    } finally {
+      authFixture.ownerId = "test-user";
+    }
+  });
+
   it("renders wizard title after user loads", async () => {
     render(<BookWizardPage />);
     await waitFor(() => {
@@ -806,6 +867,130 @@ describe("visible private draft restore", () => {
     fireEvent.click(await screen.findByRole('button',{name:'wizard.draft.restore'}));
     expect(screen.getByRole('radio', { name: 'Space' }).checked).toBe(true);
   });
+  it("keeps a new idea and an older draft independently, even before the autosave delay", async () => {
+    const oldKey = "sipurai_draft_v2_9_test-user_123";
+    localStorage.setItem(oldKey, JSON.stringify({
+      _savedAt: Date.now() - 1000,
+      currentStep: 0,
+      selectedTopic: "space",
+      bookData: { title: "Old space draft" },
+    }));
+    sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
+      ownerId: "test-user", title: "Freckles on the Moon", description: "A giraffe makes friends",
+      moral: "Friends come in many shapes",
+    }));
+    render(<BookWizardPage />);
+
+    const text = await screen.findByRole("textbox", { name: "wizard.topic.tellUsIdea" });
+    expect(text.value).toContain("Freckles on the Moon");
+    expect(screen.getByRole("button", { name: "wizard.draft.restore" })).toBeDefined();
+    expect(sessionStorage.getItem("sipurai_pending_idea")).toBeNull();
+    const newKey = getDraftKeys("test-user").find(key => key !== oldKey);
+    expect(JSON.parse(localStorage.getItem(newKey)).bookData.moral).toBe("Friends come in many shapes");
+    fireEvent.change(text, { target: { value: "A giraffe flies to the Moon" } });
+    expect(JSON.parse(localStorage.getItem(newKey))).toMatchObject({
+      customIdea: "A giraffe flies to the Moon",
+      bookData: { moral: "" },
+    });
+    expect(JSON.parse(localStorage.getItem(oldKey)).bookData.title).toBe("Old space draft");
+    cleanup();
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+    expect(screen.getByRole("textbox", { name: "wizard.topic.tellUsIdea" }).value).toBe("A giraffe flies to the Moon");
+  });
+
+  it("uses the replacement after reload and preserves preview fields edited by the family", async () => {
+    sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
+      ownerId: "test-user", title: "Old Moon", description: "Moon explorers", moral: "Old moon lesson",
+    }));
+    StoryIdea.filter.mockResolvedValue([{ id: "forest", title: "New Forest", description: "Foxes find a map" }]);
+    const next = () => fireEvent.click(screen.getByLabelText("Next step"));
+    const back = () => fireEvent.click(screen.getByLabelText("Back"));
+    const openReplacement = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
+      fireEvent.click(await screen.findByRole("button", { name: /New Forest/ }));
+    };
+
+    render(<BookWizardPage />);
+    await screen.findByDisplayValue("Old Moon — Moon explorers");
+    next();
+    fireEvent.click(await screen.findByText("Brave Hero"));
+    next();
+    next();
+    expect(await screen.findByDisplayValue("Old Moon")).toBeDefined();
+    fireEvent.change(screen.getByRole("textbox", { name: "wizard.preview.moral" }), {
+      target: { value: "The family's own moral" },
+    });
+    back();
+    back();
+    back();
+    cleanup();
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+
+    await openReplacement();
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.keep" }));
+    const readDraft = () => JSON.parse(localStorage.getItem(getDraftKeys("test-user")[0]));
+    expect(readDraft().bookData).toMatchObject({
+      title: "Old Moon", description: "Moon explorers", moral: "The family's own moral",
+    });
+    fireEvent.click(screen.getByRole("button", { name: /New Forest/ }));
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.replace" }));
+    expect(readDraft()).toMatchObject({
+      customIdea: "New Forest — Foxes find a map",
+      bookData: { title: "", description: "", moral: "The family's own moral" },
+    });
+
+    cleanup();
+    InvokeLLM.mockClear();
+    InvokeLLM.mockResolvedValueOnce({
+      title: "Foxes in the Forest", description: "Two foxes followed a map.", moral_lesson: "Try together",
+    });
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+    expect(screen.getByDisplayValue("New Forest — Foxes find a map")).toBeDefined();
+    next();
+    next();
+    next();
+    expect(await screen.findByDisplayValue("Foxes in the Forest")).toBeDefined();
+    expect(screen.getByDisplayValue("Two foxes followed a map.")).toBeDefined();
+    expect(screen.getByDisplayValue("The family's own moral")).toBeDefined();
+    expect(InvokeLLM.mock.calls[0][0].prompt).toContain("New Forest — Foxes find a map");
+    expect(InvokeLLM.mock.calls[0][0].prompt).not.toContain("Old Moon");
+  });
+
+  it("uses a manually rewritten idea in the outline after restoring its draft", async () => {
+    sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
+      ownerId: "test-user", title: "Old Moon", description: "Moon explorers", moral: "Old moon lesson",
+    }));
+    render(<BookWizardPage />);
+    const idea = await screen.findByDisplayValue("Old Moon — Moon explorers");
+    fireEvent.change(idea, { target: { value: "Old Moon — Moon explorers " } });
+    const readDraft = () => JSON.parse(localStorage.getItem(getDraftKeys("test-user")[0]));
+    expect(readDraft().bookData.title).toBe("Old Moon");
+    fireEvent.change(idea, { target: { value: "Two foxes follow a map" } });
+    expect(readDraft().bookData).toMatchObject({ title: "", description: "", moral: "" });
+
+    cleanup();
+    InvokeLLM.mockClear();
+    InvokeLLM.mockResolvedValueOnce({
+      title: "The Forest Map", description: "Two foxes find a forest trail.", moral_lesson: "Explore together",
+    });
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+    expect(screen.getByDisplayValue("Two foxes follow a map")).toBeDefined();
+    const next = () => fireEvent.click(screen.getByLabelText("Next step"));
+    next();
+    fireEvent.click(await screen.findByText("Brave Hero"));
+    next();
+    next();
+    expect(await screen.findByDisplayValue("The Forest Map")).toBeDefined();
+    expect(screen.getByDisplayValue("Two foxes find a forest trail.")).toBeDefined();
+    expect(screen.getByDisplayValue("Explore together")).toBeDefined();
+    expect(screen.queryByDisplayValue("Old Moon")).toBeNull();
+    expect(InvokeLLM.mock.calls[0][0].prompt).toContain("Two foxes follow a map");
+  });
+
   it("does not show a browser-wide or another account's old draft", async () => {
     localStorage.setItem('sipurai_draft_123',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Old secret'}}));
     localStorage.setItem('sipurai_draft_v2_5_other_234',JSON.stringify({_savedAt:Date.now(),bookData:{title:'Other secret'}}));

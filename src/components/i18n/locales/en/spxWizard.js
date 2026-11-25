@@ -1,5 +1,16 @@
 export default {
   spxWizard: {
+    topic: {
+      scenes: "Pick a story world",
+      selected: "Selected: {topic}",
+      savedLoading: "Opening your saved ideas…",
+      savedError: "We couldn’t load your saved ideas.",
+      retry: "Try again",
+      replacePrompt: "Replace your current idea with this one?",
+      replace: "Use this idea",
+      keep: "Keep my idea",
+      keepIncoming: "Continue with the new idea",
+    },
     waiting: {
       narrator: "The story dragon says",
       preparing: "Getting your story ready",

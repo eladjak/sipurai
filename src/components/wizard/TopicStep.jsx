@@ -1,6 +1,5 @@
 import { useId, useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Music, Lightbulb, Shuffle, Wand2 } from "lucide-react";
+import { Music, Lightbulb, PencilLine, Shuffle } from "lucide-react";
 import IllustratedChoice from "./IllustratedChoice";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -62,22 +61,34 @@ export function getTopicLabel(topic, t) {
   return t("topicNames." + topic.id) || topic.en;
 }
 
+export function getSelectedTopicLabel(selectedTopic, t) {
+  if (selectedTopic === "custom") return t("wizard.topic.customIdeaShort");
+  const topic = TOPIC_CARDS.find(card => card.id === selectedTopic);
+  return topic ? getTopicLabel(topic, t) : "";
+}
+
 /**
  * TopicStep - Step 1 of the wizard: Choose a story topic.
  * Illustrated choices, surprise ideas, and custom ideas.
  */
-export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, isRTL, language }) {
+export default function TopicStep({ ownerId, selectedTopic, onSelectTopic, customIdea, onCustomIdeaChange, isRTL, language }) {
   const { t } = useI18n();
   const isHebrew = language === "hebrew";
   const isYiddish = language === "yiddish";
   const group = useId();
   const customIdeaId = `${group}-idea`;
   const showCustomIdea = selectedTopic === "custom";
+  const savedIdeasId = `${group}-saved`;
+  const selectedLabel = getSelectedTopicLabel(selectedTopic, t);
   const [showSavedIdeas, setShowSavedIdeas] = useState(false);
   const [savedIdeas, setSavedIdeas] = useState([]);
-  const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
-  const [surprisedTopicId, setSurprisedTopicId] = useState(null);
-  const surpriseTimerRef = useRef(null);
+  const [savedStatus, setSavedStatus] = useState("loading");
+  const [retryCount, setRetryCount] = useState(0);
+  const [replacement, setReplacement] = useState(null);
+  const ideaRef = useRef(null);
+  const replacementTriggerRef = useRef(null);
+  const keepIdeaRef = useRef(null);
+  const focusIdeaRef = useRef(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   function playSurpriseSound() {
@@ -101,46 +112,61 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
   }
 
   useEffect(() => {
-    if (showSavedIdeas && savedIdeas.length === 0) {
-      loadSavedIdeas();
+    if (!showSavedIdeas || !ownerId) return;
+    let ignore = false;
+    async function loadSavedIdeas() {
+      try {
+        const ideas = await StoryIdea.filter({ created_by: ownerId }, "-created_date", 10);
+        if (ignore) return;
+        setSavedIdeas(ideas);
+        setSavedStatus("ready");
+      } catch {
+        if (!ignore) setSavedStatus("error");
+      }
     }
-  }, [showSavedIdeas]);
+    void loadSavedIdeas();
+    return () => { ignore = true; };
+  }, [ownerId, showSavedIdeas, retryCount]);
 
   useEffect(() => {
-    return () => {
-      if (surpriseTimerRef.current) {
-        clearTimeout(surpriseTimerRef.current);
-      }
-    };
-  }, []);
-
-  const loadSavedIdeas = async () => {
-    try {
-      setIsLoadingIdeas(true);
-      const ideas = await StoryIdea.list("-created_date", 10);
-      setSavedIdeas(ideas);
-    } catch {
-      // silently handled
-    } finally {
-      setIsLoadingIdeas(false);
+    if (showCustomIdea && focusIdeaRef.current) {
+      ideaRef.current?.focus();
+      focusIdeaRef.current = false;
     }
-  };
+  }, [customIdea, showCustomIdea]);
+
+  useEffect(() => {
+    if (!replacement) return;
+    keepIdeaRef.current?.focus({ preventScroll: true });
+    keepIdeaRef.current?.scrollIntoView?.({ block: "center" });
+  }, [replacement]);
 
   const selectTopic = (topic) => {
+    setReplacement(null);
     setShowSavedIdeas(false);
-    setSurprisedTopicId(null);
     onSelectTopic(topic);
   };
 
-  const handleSelectSavedIdea = (idea) => {
-    if (onCustomIdeaChange) {
-      onCustomIdeaChange(idea.description || idea.title);
+  const applyIdea = (idea) => {
+    focusIdeaRef.current = true;
+    if (showCustomIdea && customIdea === idea) {
+      ideaRef.current?.focus();
+      focusIdeaRef.current = false;
     }
-    onSelectTopic("custom");
-    setShowSavedIdeas(false);
+    onCustomIdeaChange?.(idea);
+    selectTopic("custom");
   };
 
-  const handleSurpriseMe = () => {
+  const suggestIdea = (idea, trigger) => {
+    if (customIdea?.trim() && customIdea !== idea) {
+      replacementTriggerRef.current = trigger;
+      setReplacement(idea);
+      return;
+    }
+    applyIdea(idea);
+  };
+
+  const handleSurpriseMe = (event) => {
     try { playSurpriseSound(); } catch { /* The illustrated reveal also works silently. */ }
     const randomTopic = TOPIC_CARDS[Math.floor(Math.random() * TOPIC_CARDS.length)];
     const twistList = isYiddish ? SURPRISE_TWISTS.yi : isHebrew ? SURPRISE_TWISTS.he : SURPRISE_TWISTS.en;
@@ -156,172 +182,122 @@ export default function TopicStep({ selectedTopic, onSelectTopic, customIdea, on
       ideaText = `A story about ${topicLabel.toLowerCase()} ${randomTwist}`;
     }
 
-    setSurprisedTopicId(randomTopic.id);
-    if (surpriseTimerRef.current) {
-      clearTimeout(surpriseTimerRef.current);
-    }
-    surpriseTimerRef.current = setTimeout(() => setSurprisedTopicId(null), 900);
-
-    onSelectTopic("custom");
-    if (onCustomIdeaChange) onCustomIdeaChange(ideaText);
-    setShowSavedIdeas(false);
+    suggestIdea(ideaText, event.currentTarget);
   };
 
   return (
-    <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      {/* Header */}
-      <div className="text-center mb-2">
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {t("wizard.topic.title")}
-          </h2>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.4 }}
-        >
-          <p className="text-gray-500 dark:text-gray-400 text-base">
-            {t("wizard.topic.subtitle")}
-          </p>
-        </motion.div>
-      </div>
-
-      {/* Surprise Me! Button */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <motion.button
-          onClick={handleSurpriseMe}
-          whileHover={{ scale: 1.06, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          aria-label={t("surpriseMe")}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="
-            relative flex items-center gap-3 px-8 py-3.5 rounded-2xl font-bold text-base
-            bg-gradient-to-r from-fuchsia-500 via-purple-500 to-indigo-500
-            text-white shadow-lg shadow-purple-300/50
-            hover:shadow-xl hover:shadow-purple-400/50
-            transition-shadow duration-200 overflow-hidden
-          "
-        >
-          <Shuffle className="h-5 w-5 relative z-10" aria-hidden="true" />
-          <span className="relative z-10">{t("surpriseMe")}</span>
-          <Wand2 className="h-5 w-5 relative z-10" aria-hidden="true" />
-        </motion.button>
-        {typeof window !== 'undefined' && window.AudioContext && (
-          <button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled(enabled => !enabled)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium text-slate-700 aria-pressed:bg-amber-100 dark:text-slate-100">
-            <Music aria-hidden="true" size={16} />{t('spxWizard.surpriseSound')}
-          </button>
-        )}
-      </div>
-
-      <fieldset>
+    <div className="space-y-5" dir={isRTL ? "rtl" : "ltr"}>
+      <p className="text-sm leading-relaxed text-sp-ink-600 dark:text-slate-200 sm:text-base">
+        {t("wizard.topic.subtitle")}
+      </p>
+      <fieldset className="space-y-5">
         <legend className="sr-only">{t("wizard.topic.chooseTopic")}</legend>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-3">
-          {TOPIC_CARDS.map((topic) => (
-            <IllustratedChoice key={topic.id} group={group} value={topic.id} checked={selectedTopic === topic.id}
-              highlight={surprisedTopicId === topic.id} onSelect={selectTopic}
-              src={`/images/spx/topics/${topic.id}.webp`} label={getTopicLabel(topic, t)} />
-          ))}
-          <IllustratedChoice group={group} value="custom" checked={showCustomIdea} onSelect={selectTopic}
-            src="/images/topic-custom.jpg" label={t("wizard.topic.customIdeaShort")} />
-        </div>
-      </fieldset>
+        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900 dark:bg-slate-900 sm:p-4">
+          <div className="flex flex-wrap gap-2">
+            <label className="relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-violet-300 bg-white px-3 text-sm font-semibold text-violet-950 transition-colors hover:bg-violet-50 has-[:checked]:bg-violet-100 has-[:checked]:ring-2 has-[:checked]:ring-violet-700 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-violet-700 dark:border-violet-700 dark:bg-slate-950 dark:text-violet-100 dark:has-[:checked]:bg-violet-950">
+              <input className="sr-only" type="radio" name={group} value="custom" checked={showCustomIdea}
+                onChange={() => selectTopic("custom")} />
+              <PencilLine size={16} aria-hidden="true" />
+              {t("wizard.topic.customIdeaShort")}
+            </label>
+            <Button type="button" variant="outline" onClick={handleSurpriseMe}
+              className="min-h-11 gap-2 rounded-xl border-amber-300 bg-white text-violet-950 hover:bg-amber-100 dark:border-amber-900 dark:bg-slate-950 dark:text-violet-100">
+              <Shuffle size={16} aria-hidden="true" />
+              {t("surpriseMe")}
+            </Button>
+            <Button type="button" variant="outline" disabled={!ownerId} aria-expanded={showSavedIdeas} aria-controls={savedIdeasId}
+              onClick={() => {
+                if (!showSavedIdeas) setSavedStatus("loading");
+                setReplacement(null);
+                setShowSavedIdeas(value => !value);
+              }}
+              className="min-h-11 gap-2 rounded-xl border-amber-300 bg-white text-violet-950 hover:bg-amber-100 dark:border-amber-900 dark:bg-slate-950 dark:text-violet-100">
+              <Lightbulb size={16} aria-hidden="true" />
+              {t("wizard.topic.useSavedIdea")}
+            </Button>
+            {typeof window !== "undefined" && window.AudioContext && (
+              <button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled(enabled => !enabled)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-700 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 aria-pressed:bg-amber-200 dark:text-slate-100 dark:hover:bg-slate-800 dark:aria-pressed:bg-slate-700">
+                <Music size={16} aria-hidden="true" />{t("spxWizard.surpriseSound")}
+              </button>
+            )}
+          </div>
 
-      {/* Custom idea text input */}
-      <AnimatePresence>
-        {showCustomIdea && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl p-4 space-y-3 border border-purple-100 dark:border-purple-900/50 shadow-sm">
-              <label htmlFor={customIdeaId} className="text-sm font-semibold text-purple-800 dark:text-purple-300 block">
+          {showCustomIdea && (
+            <div className="space-y-2 rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-900 dark:bg-slate-950">
+              <label htmlFor={customIdeaId} className="block text-sm font-semibold text-violet-950 dark:text-violet-200">
                 {t("wizard.topic.tellUsIdea")}
               </label>
-              <Textarea
-                id={customIdeaId}
-                value={customIdea || ""}
-                onChange={(e) => onCustomIdeaChange?.(e.target.value)}
-                placeholder={t("ideaPlaceholder")}
-                dir={isRTL ? "rtl" : "ltr"}
-                rows={3}
-                maxLength={500}
-                className="resize-none bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:border-purple-400 rounded-xl"
-              />
+              <Textarea ref={ideaRef} id={customIdeaId} value={customIdea || ""}
+                onChange={(event) => onCustomIdeaChange?.(event.target.value)}
+                placeholder={t("ideaPlaceholder")} dir="auto" rows={3}
+                className="min-h-24 resize-y rounded-xl text-base" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
 
-      {/* "Use Saved Idea" toggle */}
-      <div className="flex justify-center">
-        <Button
-          variant="ghost"
-          onClick={() => setShowSavedIdeas(!showSavedIdeas)}
-          className="text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 gap-2 rounded-xl"
-          aria-expanded={showSavedIdeas}
-        >
-          <Lightbulb className="h-4 w-4" aria-hidden="true" />
-          {t("wizard.topic.useSavedIdea")}
-        </Button>
-      </div>
+          <section id={savedIdeasId} hidden={!showSavedIdeas}
+            className="space-y-2 rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-900 dark:bg-slate-950">
+            <h2 className="text-sm font-semibold text-violet-950 dark:text-violet-200">{t("wizard.topic.savedIdeasTitle")}</h2>
+            {savedStatus === "loading" && (
+              <p role="status" className="text-sm text-slate-700 dark:text-slate-200">{t("spxWizard.topic.savedLoading")}</p>
+            )}
+            {savedStatus === "error" && (
+              <div className="space-y-2">
+                <p role="alert" className="text-sm text-slate-700 dark:text-slate-200">{t("spxWizard.topic.savedError")}</p>
+                <Button type="button" variant="outline" className="min-h-11"
+                  onClick={() => { setSavedStatus("loading"); setRetryCount(count => count + 1); }}>
+                  {t("spxWizard.topic.retry")}
+                </Button>
+              </div>
+            )}
+            {savedStatus === "ready" && (savedIdeas.length === 0 ? (
+              <p role="status" className="text-sm text-slate-700 dark:text-slate-200">{t("wizard.topic.noSavedIdeas")}</p>
+            ) : (
+              <ul className="grid gap-2">
+                {savedIdeas.map(idea => (
+                  <li key={idea.id}>
+                    <button type="button" onClick={event => suggestIdea([idea.title, idea.description].filter(Boolean).join(" — "), event.currentTarget)}
+                      className="block min-h-11 w-full rounded-xl border border-violet-200 px-3 py-2 text-start hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 dark:border-violet-900 dark:hover:bg-slate-900">
+                      <span className="block break-words text-sm font-semibold" dir="auto">{idea.title}</span>
+                      {idea.description && <span className="mt-1 line-clamp-2 text-sm text-slate-700 dark:text-slate-200" dir="auto">{idea.description}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </section>
 
-      {/* Saved ideas list */}
-      <AnimatePresence>
-        {showSavedIdeas && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/30 rounded-2xl p-4 space-y-3 border border-blue-100 dark:border-blue-900/50">
-              <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-                {t("wizard.topic.savedIdeasTitle")}
-              </h3>
-              {isLoadingIdeas ? (
-                <div className="flex justify-center py-4">
-                  <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
-                </div>
-              ) : savedIdeas.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-3">
-                  {t("wizard.topic.noSavedIdeas")}
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {savedIdeas.map((idea) => (
-                    <motion.button
-                      key={idea.id}
-                      whileHover={{ scale: 1.01, x: isRTL ? -3 : 3 }}
-                      whileTap={{ scale: 0.99 }}
-                      onClick={() => handleSelectSavedIdea(idea)}
-                      className="w-full text-left p-3 bg-white dark:bg-gray-800 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors border border-gray-200 dark:border-gray-700 shadow-sm"
-                    >
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
-                        {idea.title}
-                      </p>
-                      {idea.description && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                          {idea.description}
-                        </p>
-                      )}
-                    </motion.button>
-                  ))}
-                </div>
-              )}
+          {replacement && (
+            <div className="space-y-2 rounded-xl border border-violet-300 bg-violet-50 p-3 dark:border-violet-700 dark:bg-slate-900">
+              <div role="status">
+                <p className="text-sm font-semibold">{t("spxWizard.topic.replacePrompt")}</p>
+                <p className="mt-1 break-words text-sm" dir="auto">{replacement}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" className="min-h-11" onClick={() => applyIdea(replacement)}>{t("spxWizard.topic.replace")}</Button>
+                <Button ref={keepIdeaRef} type="button" variant="outline" className="min-h-11" onClick={() => {
+                  setReplacement(null);
+                  replacementTriggerRef.current?.focus();
+                }}>{t("spxWizard.topic.keep")}</Button>
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-baseline justify-between gap-1">
+          <h2 className="text-base font-semibold text-sp-ink-900 dark:text-white">{t("spxWizard.topic.scenes")}</h2>
+          <p role="status" className="text-sm font-medium text-violet-800 dark:text-violet-200">
+            {selectedLabel && t("spxWizard.topic.selected", { topic: selectedLabel })}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {TOPIC_CARDS.map(topic => (
+            <IllustratedChoice key={topic.id} group={group} value={topic.id} checked={selectedTopic === topic.id}
+              onSelect={selectTopic} src={`/images/spx/topics/${topic.id}.webp`}
+              label={getTopicLabel(topic, t)} className="aspect-[4/5] w-full sm:aspect-square" />
+          ))}
+        </div>
+      </fieldset>
     </div>
   );
 }

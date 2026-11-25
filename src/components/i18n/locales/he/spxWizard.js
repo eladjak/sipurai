@@ -1,5 +1,16 @@
 export default {
   spxWizard: {
+    topic: {
+      scenes: "באיזה עולם יתחיל הסיפור?",
+      selected: "בחרתם: {topic}",
+      savedLoading: "פותחים את הרעיונות ששמרתם…",
+      savedError: "לא הצלחנו לפתוח את הרעיונות ששמרתם.",
+      retry: "לנסות שוב",
+      replacePrompt: "להחליף את הרעיון שלכם ברעיון הזה?",
+      replace: "להשתמש ברעיון הזה",
+      keep: "להשאיר את הרעיון שלי",
+      keepIncoming: "להמשיך עם הרעיון החדש",
+    },
     waiting: {
       narrator: "דרקון הסיפורים מספר",
       preparing: "מתכוננים לכתוב את הסיפור",

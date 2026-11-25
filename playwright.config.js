@@ -11,6 +11,9 @@ process.env.CLERK_PUBLISHABLE_KEY = publishableKey();
 // The app is served from the production build by scripts/e2e-server.mjs (run `bun run build` first),
 // which also mounts the real api/ handlers.
 const PORT = 4173;
+// The Clerk development flows deliberately retain only explicitly masked screenshots.
+// Failure traces can include session request headers or cookies.
+const privateArtifacts = { trace: 'off', screenshot: 'off', video: 'off' };
 
 export default defineConfig({
   testDir: './e2e',
@@ -41,12 +44,13 @@ export default defineConfig({
     {
       name: 'clerk-setup',
       testMatch: /signed-in\/global\.setup\.js/,
+      use: privateArtifacts,
     },
     {
       name: 'signed-in',
       testMatch: /signed-in\/.*\.spec\.js/,
       dependencies: ['clerk-setup'],
-      use: { browserName: 'chromium' },
+      use: { browserName: 'chromium', ...privateArtifacts },
     },
   ],
 });
