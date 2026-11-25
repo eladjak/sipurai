@@ -14,10 +14,36 @@ export async function readOwnerVisibility(Book, bookId, ownerId) {
   }
 }
 
+function matchesOwnerListing(row, bookId, ownerId) {
+  return row?.book_id === bookId && row.created_by === ownerId;
+}
+
+async function hasOwnerListing(Community, bookId, ownerId, visibility = undefined) {
+  const filter = { book_id: bookId, created_by: ownerId, ...(visibility && { visibility }) };
+  const rows = await Community.filter(filter, undefined, 1);
+  return rows.some((row) => matchesOwnerListing(row, bookId, ownerId) && (!visibility || row.visibility === visibility));
+}
+
+export async function readOwnerSharingState({ Book, Community, bookId, ownerId }) {
+  const visibility = await readOwnerVisibility(Book, bookId, ownerId);
+  if (visibility !== false) return { visibility, cleanupRequired: false, listingReadFailed: false };
+  try {
+    const cleanupRequired = await hasOwnerListing(Community, bookId, ownerId);
+    return { visibility, cleanupRequired, listingReadFailed: false };
+  } catch {
+    return { visibility, cleanupRequired: false, listingReadFailed: true };
+  }
+}
+
+/** @returns {Promise<{ visibility: boolean | null, error?: string, cleanupRequired?: boolean, listingReadFailed?: boolean }>} */
 export async function publishBookShare({ Book, Community, bookId, ownerId, post, isCurrent }) {
-  let visibility = await readOwnerVisibility(Book, bookId, ownerId);
+  const state = await readOwnerSharingState({ Book, Community, bookId, ownerId });
+  let { visibility } = state;
   if (!isCurrent() || visibility === null) {
     return { visibility: null, error: "sharing.visibilityUnavailable" };
+  }
+  if (state.cleanupRequired || state.listingReadFailed) {
+    return { ...state, error: state.cleanupRequired ? "sharing.cleanupPending" : "sharing.listingCheckFailed" };
   }
   if (visibility === false) {
     try {
@@ -32,13 +58,11 @@ export async function publishBookShare({ Book, Community, bookId, ownerId, post,
   }
 
   if (post && isCurrent()) {
-    const filter = { book_id: bookId, created_by: ownerId, visibility: "public" };
-    const matches = (row) => row?.book_id === bookId && row.created_by === ownerId && row.visibility === "public";
-    const hasListing = async () => (await Community.filter(filter, undefined, 1)).some(matches);
+    const hasListing = () => hasOwnerListing(Community, bookId, ownerId, "public");
     try {
       if (!await hasListing() && isCurrent()) {
         const row = await Community.create({ ...post, id: bookId, book_id: bookId, user_id: ownerId, visibility: "public" });
-        if (!matches(row)) throw new Error("Listing creation not confirmed");
+        if (!matchesOwnerListing(row, bookId, ownerId) || row.visibility !== "public") throw new Error("Listing creation not confirmed");
       }
     } catch {
       try {

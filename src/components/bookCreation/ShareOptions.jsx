@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { BookOpen, Copy, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { BookControlButton } from "@/components/bookControls/BookControls";
@@ -13,7 +13,7 @@ import { Community } from "@/entities/Community";
 import { unshareBook } from "@/lib/ownerApi";
 import { createPageUrl } from "@/utils";
 import { getParentalControls, isPinSet, moderateInput, verifyParentalPin } from "@/utils/content-moderation";
-import { publishBookShare, readOwnerVisibility } from "./bookSharing";
+import { publishBookShare, readOwnerSharingState, readOwnerVisibility } from "./bookSharing";
 
 export default function ShareOptions({ book, bookId }) {
   return <BookSharing key={JSON.stringify([book?.created_by, bookId])} book={book} bookId={bookId} />;
@@ -26,7 +26,8 @@ function BookSharing({ book, bookId }) {
   const [coverFailed, setCoverFailed] = useState(false);
   const [visibility, setVisibility] = useState(null);
   const [readFailed, setReadFailed] = useState(false);
-  const [readAttempt, setReadAttempt] = useState(0);
+  const [checking, setChecking] = useState(true);
+  const [listingReadFailed, setListingReadFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [shareType, setShareType] = useState("");
   const [publicAck, setPublicAck] = useState(false);
@@ -44,11 +45,12 @@ function BookSharing({ book, bookId }) {
   const pending = useRef(false);
   const mounted = useRef(false);
   const heading = useRef(null);
+  const readVersion = useRef(0);
   const ownerId = book?.id === bookId ? book?.created_by : null;
   const controls = getParentalControls();
   const isShared = visibility === true;
   const isCommunity = shareType === "community";
-  const url = isShared && !busy
+  const url = isShared && !busy && !checking
     ? `${window.location.origin}${createPageUrl("BookView")}?id=${encodeURIComponent(bookId)}`
     : null;
 
@@ -57,18 +59,43 @@ function BookSharing({ book, bookId }) {
     return () => { mounted.current = false; };
   }, []);
 
+  const refreshSharing = useCallback(async ({ conceal = true } = {}) => {
+    if (pending.current || !mounted.current) return false;
+    const version = ++readVersion.current;
+    if (conceal) {
+      setChecking(true);
+      setCopyFailed(false);
+    }
+    const state = await readOwnerSharingState({ Book, Community, bookId, ownerId });
+    if (!mounted.current || version !== readVersion.current) return false;
+    setVisibility(state.visibility);
+    if (state.visibility !== true) setCopyFailed(false);
+    setReadFailed(state.visibility === null);
+    setListingReadFailed(state.listingReadFailed);
+    if (state.visibility !== null && !state.listingReadFailed) {
+      setCleanupRequired(state.cleanupRequired);
+    }
+    setChecking(false);
+    return state.visibility === true;
+  }, [bookId, ownerId]);
+
   useEffect(() => {
-    let current = true;
-    readOwnerVisibility(Book, bookId, ownerId).then((value) => {
-      if (!current) return;
-      setVisibility(value);
-      setReadFailed(value === null);
-    });
-    return () => { current = false; };
-  }, [bookId, ownerId, readAttempt]);
+    void refreshSharing();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshSharing();
+    };
+    const refreshOnFocus = () => void refreshSharing();
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      readVersion.current += 1;
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshSharing]);
 
   const handlePublish = async () => {
-    if (pending.current || visibility === null || !ownerId || !publicAck
+    if (pending.current || checking || listingReadFailed || cleanupRequired || visibility === null || !ownerId || !publicAck
       || !["link", "community"].includes(shareType)) return;
     if (!getParentalControls().allowCommunitySharing) {
       setNotice("sharing.publicationDisabled");
@@ -118,6 +145,8 @@ function BookSharing({ book, bookId }) {
       if (!mounted.current) return;
       setVisibility(result.visibility);
       setReadFailed(result.visibility === null);
+      setListingReadFailed(result.listingReadFailed === true);
+      if (result.cleanupRequired) setCleanupRequired(true);
       if (result.error) {
         setNotice(result.error);
         return;
@@ -138,6 +167,8 @@ function BookSharing({ book, bookId }) {
   const stopSharing = async (id) => {
     if (pending.current) throw new Error("Share operation in progress");
     pending.current = true;
+    readVersion.current += 1;
+    setChecking(false);
     setBusy(true);
     setCopyFailed(false);
     try {
@@ -159,14 +190,16 @@ function BookSharing({ book, bookId }) {
 
   const copy = async (instagram = false) => {
     if (!url || pending.current) return;
+    if (!await refreshSharing({ conceal: false })) return;
+    const version = readVersion.current;
     const text = instagram ? `${t("sharing.socialShareText")} ${book?.title ?? ""}\n${url}` : url;
     try {
       await navigator.clipboard.writeText(text);
-      if (!mounted.current || pending.current) return;
+      if (!mounted.current || pending.current || version !== readVersion.current) return;
       setCopyFailed(false);
       toast({ title: t(instagram ? "sharing.copiedForInstagram" : "sharing.linkCopied") });
     } catch {
-      if (mounted.current && !pending.current) setCopyFailed(true);
+      if (mounted.current && !pending.current && version === readVersion.current) setCopyFailed(true);
     }
   };
 
@@ -195,22 +228,21 @@ function BookSharing({ book, bookId }) {
             <span className="min-w-0 [overflow-wrap:anywhere]">{book?.title || t("bookControls.untitled")}</span>
           </CardTitle>
           <CardDescription role="status">
-            {readFailed ? t("sharing.visibilityUnavailable")
-              : visibility === null ? t("sharing.checkingVisibility")
+            {checking ? t("sharing.checkingVisibility")
+              : readFailed ? t("sharing.visibilityUnavailable")
               : t(isShared ? "sharing.publicStatus" : "sharing.privateStatus")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {readFailed && (
-            <Button type="button" variant="outline" className="min-h-11 justify-self-start" onClick={() => {
-              setReadFailed(false);
-              setReadAttempt(attempt => attempt + 1);
-            }}>
+          {listingReadFailed && !checking && <p role="status">{t("sharing.listingCheckFailed")}</p>}
+          {(readFailed || listingReadFailed) && (
+            <Button type="button" variant="outline" className="min-h-11 justify-self-start" disabled={checking || busy}
+              onClick={() => void refreshSharing()}>
               {t("sharing.checkAgain")}
             </Button>
           )}
           {visibility !== null && !controls.allowCommunitySharing && <p>{t("sharing.publicationDisabled")}</p>}
-          {visibility !== null && controls.allowCommunitySharing && !cleanupRequired && (
+          {!checking && !listingReadFailed && visibility !== null && controls.allowCommunitySharing && !cleanupRequired && (
             <div className="flex flex-wrap gap-2">
               {!isShared && <Button type="button" className="min-h-11" disabled={busy} aria-pressed={shareType === "link"} onClick={() => selectShareType("link")}>
                 {t("sharing.enablePublicLink")}
@@ -220,7 +252,7 @@ function BookSharing({ book, bookId }) {
               </Button>
             </div>
           )}
-          {shareType && visibility !== null && controls.allowCommunitySharing && !cleanupRequired && (
+          {shareType && !checking && !listingReadFailed && visibility !== null && controls.allowCommunitySharing && !cleanupRequired && (
             <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void handlePublish(); }}>
               <fieldset className="grid min-w-0 gap-4" disabled={busy}>
                 {isCommunity && <>
@@ -282,11 +314,15 @@ function BookSharing({ book, bookId }) {
               </fieldset>
             </form>
           )}
-          <p role="status" className="text-sm">{notice && t(notice)}</p>
+          <p role="status" className="text-sm">
+            {cleanupRequired && visibility === false ? t("sharing.cleanupPending")
+              : notice && t(notice)}
+          </p>
           {(isShared || cleanupRequired) && (
             <BookControlButton kind="unshare" book={{ ...book, id: bookId }} onAction={stopSharing} onChanged={() => {
               setVisibility(false);
               setReadFailed(false);
+              setListingReadFailed(false);
               setCleanupRequired(false);
               selectShareType("");
               setInviteEmail("");
@@ -301,23 +337,24 @@ function BookSharing({ book, bookId }) {
         <Card className="min-w-0">
           <CardHeader><CardTitle>{t("sharing.shareLinkTitle")}</CardTitle></CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid min-w-0 gap-2">
+            <p id={`${fieldId}-copy-status`} role="status" className="text-sm">
+              {copyFailed && t("sharing.manualCopy")}
+            </p>
+            {copyFailed && <div className="grid min-w-0 gap-2">
               <Label htmlFor={`${fieldId}-link`}>{t("sharing.publicLinkLabel")}</Label>
               <Input id={`${fieldId}-link`} dir="ltr" value={url} readOnly className="min-h-11"
-                aria-describedby={copyFailed ? `${fieldId}-copy-status` : undefined} />
-              <p id={`${fieldId}-copy-status`} role="status" className="text-sm">
-                {copyFailed && t("sharing.manualCopy")}
-              </p>
-            </div>
+                aria-describedby={`${fieldId}-copy-status`} />
+            </div>}
             <Button type="button" variant="outline" className="min-h-11 justify-self-start gap-2" onClick={() => copy()}>
               <Copy aria-hidden="true" className="size-4" /> {t("sharing.copyShareLink")}
             </Button>
             <div className="flex flex-wrap gap-2">
               {socialLinks.map(({ label, Icon, href }) => (
-                <Button asChild key={label} variant="outline" size="icon" className="size-11">
-                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={t(`sharing.${label}`)}>
-                    <Icon aria-hidden="true" className="size-5" />
-                  </a>
+                <Button type="button" key={label} variant="outline" size="icon" className="size-11"
+                  aria-label={t(`sharing.${label}`)} onClick={async () => {
+                    if (await refreshSharing({ conceal: false })) window.location.assign(href);
+                  }}>
+                  <Icon aria-hidden="true" className="size-5" />
                 </Button>
               ))}
               <Button type="button" variant="outline" size="icon" className="size-11"
@@ -331,9 +368,9 @@ function BookSharing({ book, bookId }) {
         <Card className="min-w-0">
           <CardHeader><CardTitle>{t("sharing.emailDraft")}</CardTitle></CardHeader>
           <CardContent>
-            <form className="grid gap-4" onSubmit={(e) => {
+            <form className="grid gap-4" onSubmit={async (e) => {
               e.preventDefault();
-              if (pending.current) return;
+              if (!await refreshSharing({ conceal: false })) return;
               const subject = encodeURIComponent(`${t("sharing.inviteSubject")} ${book?.title || t("sharing.aChildrensBook")}`);
               const body = encodeURIComponent(`${inviteMessage ? inviteMessage + '\n\n' : ''}${t("sharing.readBookHere")}\n${url}`);
               window.location.href = `mailto:${encodeURIComponent(inviteEmail).replace("%40", "@")}?subject=${subject}&body=${body}`;

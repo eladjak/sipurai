@@ -61,7 +61,10 @@ describe("editor sharing", () => {
     await screen.findByText("sharing.linkReady");
     expect(api.update).toHaveBeenCalledExactlyOnceWith(book.id, { is_public: true });
     expect(api.create).not.toHaveBeenCalled();
-    expect(link().value).toMatch(/\/BookView\?id=book%231$/i);
+    api.get.mockResolvedValue(publicBook);
+    fireEvent.click(action("sharing.copyShareLink"));
+    const url = await screen.findByRole("textbox", { name: "sharing.publicLinkLabel" });
+    expect(url.value).toMatch(/\/BookView\?id=book%231$/i);
   });
 
   it("does not distribute a link or insert a community listing when visibility remains private", async () => {
@@ -88,7 +91,7 @@ describe("editor sharing", () => {
     expect(api.create).not.toHaveBeenCalled();
     api.get.mockResolvedValue(publicBook);
     fireEvent.click(action("sharing.checkAgain"));
-    await screen.findByRole("textbox", { name: "sharing.publicLinkLabel" });
+    await screen.findByRole("button", { name: "sharing.copyShareLink" });
   });
 
   it("keeps the public link and preserves the form when creating the listing fails", async () => {
@@ -98,7 +101,7 @@ describe("editor sharing", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(action("sharing.publishListing"));
     await screen.findByText("sharing.listingIncomplete");
-    expect(link()).toBeInTheDocument();
+    expect(action("sharing.copyShareLink")).toBeInTheDocument();
     expect(screen.getByLabelText("sharing.descriptionLabel")).toHaveValue("A short story");
     expect(screen.queryByText("sharing.shareSuccessDesc")).toBeNull();
   });
@@ -164,7 +167,7 @@ describe("editor sharing", () => {
   });
 
   it("reconciles a lost listing response by reading the matching owner listing", async () => {
-    api.filter.mockResolvedValueOnce([]).mockResolvedValueOnce([post]);
+    api.filter.mockImplementation(async (filter) => filter.visibility && api.create.mock.calls.length ? [post] : []);
     api.create.mockRejectedValue(new Error("lost write response"));
     start();
     await chooseCommunity();
@@ -181,16 +184,67 @@ describe("editor sharing", () => {
     await screen.findByText("sharing.manualCopy");
     expect(link()).toHaveAttribute("readonly");
     expect(link()).toHaveAttribute("dir", "ltr");
+    const url = link().value;
     expect(api.toast).not.toHaveBeenCalled();
     const writeText = vi.fn().mockRejectedValueOnce(new Error("permission denied")).mockResolvedValueOnce();
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
     fireEvent.click(action("sharing.copyInstagram"));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining(link().value)));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining(url)));
     expect(api.toast).not.toHaveBeenCalled();
     fireEvent.click(action("sharing.copyInstagram"));
     await waitFor(() => expect(api.toast).toHaveBeenCalledWith({ title: "sharing.copiedForInstagram" }));
     expect(screen.queryByText("sharing.manualCopy")).toBeNull();
   });
+
+  it("recovers an owner listing for an already-private book and cleans it without making the book public", async () => {
+    api.filter.mockResolvedValue([post]);
+    api.unshare.mockResolvedValue({ ok: true });
+    start();
+    await screen.findByText("sharing.cleanupPending");
+    expect(api.filter).toHaveBeenCalledWith({ book_id: book.id, created_by: book.created_by }, undefined, 1);
+    expect(link()).toBeNull();
+    expect(screen.queryByRole("button", { name: "sharing.enablePublicLink" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /bookControls.stopShare/ }));
+    fireEvent.click(action("bookControls.stopShareConfirm"));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the private book's cleanup status cannot be loaded", async () => {
+    api.filter.mockRejectedValueOnce(new Error("listing read failed"));
+    start();
+    await screen.findByText("sharing.listingCheckFailed");
+    expect(screen.queryByRole("button", { name: "sharing.enablePublicLink" })).toBeNull();
+    fireEvent.click(action("sharing.checkAgain"));
+    await screen.findByRole("button", { name: "sharing.enablePublicLink" });
+  });
+
+  it("refreshes visibility on window focus and removes every public action after external revocation", async () => {
+    api.get.mockResolvedValueOnce(publicBook);
+    start();
+    await screen.findByRole("button", { name: "sharing.shareWhatsApp" });
+    expect(screen.queryByRole("link")).toBeNull();
+    fireEvent(window, new Event("focus"));
+    await screen.findByText("sharing.privateStatus");
+    expect(screen.queryByRole("button", { name: "sharing.shareWhatsApp" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "sharing.copyShareLink" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "sharing.emailDraft" })).toBeNull();
+  });
+
+  it.each(["sharing.shareFacebook", "sharing.copyShareLink", "sharing.emailDraft"])(
+    "rechecks public access before %s can distribute a link",
+    async (name) => {
+      api.get.mockResolvedValueOnce(publicBook);
+      const writeText = vi.fn();
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+      start();
+      fireEvent.click(await screen.findByRole("button", { name }));
+      await screen.findByText("sharing.privateStatus");
+      expect(writeText).not.toHaveBeenCalled();
+      expect(link()).toBeNull();
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+  );
 
   it("hides the link and keeps a cleanup retry when unsharing made the book private but failed", async () => {
     api.get.mockResolvedValueOnce(publicBook);
