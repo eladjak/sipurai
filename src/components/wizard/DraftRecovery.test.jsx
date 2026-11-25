@@ -18,7 +18,11 @@ describe('read-only draft recovery', () => {
     expect(Book.filter).toHaveBeenCalledWith({ id: 'a&b', created_by: 'owner' });
     expect(Page.filter).toHaveBeenCalledWith({ book_id: 'a&b' }, 'page_number');
   });
-  it.each([[], [{ id: 'a&b', created_by: 'other' }], [{ id: 'other', created_by: 'owner' }]])('does not read pages without an exact owner and id', async matches => {
+  it.each([
+    { kind: 'missing row', matches: [] },
+    { kind: 'different owner', matches: [{ id: 'a&b', created_by: 'other' }] },
+    { kind: 'different book', matches: [{ id: 'other', created_by: 'owner' }] },
+  ])('does not read pages for a $kind', async ({ matches }) => {
     Book.filter.mockResolvedValue(matches); renderRecovery();
     await screen.findByText('spxWizard.recovery.unavailable'); expect(Page.filter).not.toHaveBeenCalled();
   });

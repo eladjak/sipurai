@@ -875,6 +875,7 @@ describe("visible private draft restore", () => {
     expect(screen.queryByRole('button', {name:'Create My Book!'})).toBeNull();
     fireEvent.click(screen.getByRole('button', {name:'spxWizard.recovery.returnToDraft'}));
     expect(await screen.findByRole('button', {name:'Create My Book!'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {level:1})).toHaveFocus();
     expect(screen.queryByRole('region', {name:'spxWizard.recovery.title'})).toBeNull();
   });
   it("keeps a new idea and an older draft independently, even before the autosave delay", async () => {

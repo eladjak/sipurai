@@ -194,6 +194,12 @@ function BookWizardSession() {
   const [activeDraftKey, setActiveDraftKey] = useState(null);
   const [pendingDraft, setPendingDraft] = useState(null);
   const [restoredAttemptId, setRestoredAttemptId] = useState(null);
+  const focusRestoredStep = useRef(false);
+  const focusAfterRecovery = useCallback((heading) => {
+    if (!heading || !focusRestoredStep.current) return;
+    focusRestoredStep.current = false;
+    heading.focus();
+  }, []);
   const skipNextAutosaveRef = useRef(false);
   const [hasIncomingIdea, setHasIncomingIdea] = useState(false);
 
@@ -894,7 +900,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   }
 
   if (restoredAttemptId) {
-    return <DraftRecovery key={`${ownerId}:${restoredAttemptId}`} ownerId={ownerId} attemptId={restoredAttemptId} t={t} isRTL={isRTL} onReturnToDraft={() => setRestoredAttemptId(null)} />;
+    return <DraftRecovery key={`${ownerId}:${restoredAttemptId}`} ownerId={ownerId} attemptId={restoredAttemptId} t={t} isRTL={isRTL} onReturnToDraft={() => {
+      focusRestoredStep.current = true;
+      setRestoredAttemptId(null);
+    }} />;
   }
 
   // Error state
@@ -1038,7 +1047,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         <img src="/images/spx/topics/adventure.webp" alt="" aria-hidden="true" className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-purple-700">{t("wizard.title")}</p>
-          <h1 className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{steps[currentStep]?.title}</h1>
+          <h1 ref={focusAfterRecovery} tabIndex={-1} className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{steps[currentStep]?.title}</h1>
           <p className="mt-1 text-sm text-[#5b5478]" aria-live="polite">{t("spxWizard.step", { current: currentStep + 1, total: steps.length })}</p>
         </div>
       </header>
