@@ -141,7 +141,7 @@ function BookReader({ bookId, user }) {
         // query leaves the last verified reader snapshot intact.
         const ownerRows = user?.id ? await Book.filter({ id: bookId, created_by: user.id }) : [];
         if (!current) return;
-        const ownedBook = ownerRows.find(row => row.created_by === user?.id);
+        const ownedBook = ownerRows.find(row => row.id === bookId && row.created_by === user?.id);
         const ownerLoaded = Boolean(ownedBook);
         if (verifiedOwnerRef.current && !ownerLoaded) {
           setBook(null);
@@ -1032,12 +1032,14 @@ function BookReader({ bookId, user }) {
                         </Button>
                       ) : (
                         <>
-                          <Link to={createPageUrl("Community")}>
-                            <Button variant="outline" className="flex items-center gap-2 rounded-xl">
-                              <Share2 className="h-4 w-4" />
-                              {t('bookView.share')}
+                          {isOwner && book.id === bookId && (
+                            <Button asChild variant="outline" className="min-h-11 flex items-center gap-2 rounded-xl">
+                              <Link to={`${createPageUrl("BookCreation")}?id=${encodeURIComponent(book.id)}&tab=share`}>
+                                <Share2 className="h-4 w-4" />
+                                {t('bookView.share')}
+                              </Link>
                             </Button>
-                          </Link>
+                          )}
 
                           <Link to={createPageUrl("BookWizard")}>
                             <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 rounded-xl shadow-md">
