@@ -42,7 +42,13 @@ async function call(method, url, body, { fetchImpl = globalThis.fetch, getHeader
   return data;
 }
 
-export const unshareBook = (bookId, opts) => call('POST', '/api/books/unshare', { bookId }, opts);
+export async function unshareBook(bookId, opts) {
+  const data = await call('POST', '/api/books/unshare', { bookId }, opts);
+  if (data?.ok !== true || !Number.isInteger(data.removedPosts) || data.removedPosts < 0) {
+    throw new OwnerApiError('invalid unshare response', { code: 'invalid_response' });
+  }
+  return data;
+}
 export const deleteBook = (bookId, opts) => call('POST', '/api/books/delete', { bookId }, opts);
 export const fetchSubscription = (opts) => call('GET', '/api/subscription/cancel', null, opts);
 export const cancelMySubscription = (opts) => call('POST', '/api/subscription/cancel', {}, opts);

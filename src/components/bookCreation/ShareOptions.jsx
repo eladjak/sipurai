@@ -1,445 +1,423 @@
-import React, { useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Copy, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { BookControlButton } from "@/components/bookControls/BookControls";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Share2,
-  MessageSquare,
-  Heart,
-  Download,
-  Copy,
-  Twitter,
-  Facebook,
-  Instagram,
-  Mail,
-  BookOpen,
-  Send,
-  MessageCircle
-} from "lucide-react";
-import { Community } from "@/entities/Community";
-import { Book } from "@/entities/Book";
 import { useToast } from "@/components/ui/use-toast";
+import { Book } from "@/entities/Book";
+import { Community } from "@/entities/Community";
+import { unshareBook } from "@/lib/ownerApi";
 import { createPageUrl } from "@/utils";
-import { moderateInput, getParentalControls } from "@/utils/content-moderation";
+import { getParentalControls, isPinSet, moderateInput, verifyParentalPin } from "@/utils/content-moderation";
+import { publishBookShare, readOwnerSharingState, readOwnerVisibility } from "./bookSharing";
 
 export default function ShareOptions({ book, bookId }) {
-  const { t } = useI18n();
+  return <BookSharing key={JSON.stringify([book?.created_by, bookId])} book={book} bookId={bookId} />;
+}
+
+function BookSharing({ book, bookId }) {
+  const { t, isRTL } = useI18n();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [shareType, setShareType] = useState("community");
+  const fieldId = useId();
+  const [coverFailed, setCoverFailed] = useState(false);
+  const [visibility, setVisibility] = useState(null);
+  const [readFailed, setReadFailed] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [listingReadFailed, setListingReadFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [shareType, setShareType] = useState("");
+  const [publicAck, setPublicAck] = useState(false);
+  const [pin, setPin] = useState("");
+  const [notice, setNotice] = useState("");
+  const [copyFailed, setCopyFailed] = useState(false);
+  const [cleanupRequired, setCleanupRequired] = useState(false);
   const [communityPost, setCommunityPost] = useState({
     title: book?.title || "",
     description: "",
     tags: ["story", "children"]
   });
-  // Tracks sharing done or undone on this screen, on top of what the book row said when it loaded.
-  const [sharedHere, setSharedHere] = useState(null);
-  const [publicAck, setPublicAck] = useState(false);
-  const isShared = sharedHere ?? !!book?.is_public;
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
-  
-  const handleCommunityShare = async () => {
-    if (!communityPost.title || !communityPost.description) {
-      toast({
-        variant: "destructive",
-        title: t("sharing.missingInfo"),
-        description: t("sharing.missingInfoDesc")
-      });
+  const pending = useRef(false);
+  const mounted = useRef(false);
+  const heading = useRef(null);
+  const readVersion = useRef(0);
+  const ownerId = book?.id === bookId ? book?.created_by : null;
+  const controls = getParentalControls();
+  const isShared = visibility === true;
+  const isCommunity = shareType === "community";
+  const url = isShared && !busy && !checking
+    ? `${window.location.origin}${createPageUrl("BookView")}?id=${encodeURIComponent(bookId)}`
+    : null;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  const refreshSharing = useCallback(async ({ conceal = true } = {}) => {
+    if (pending.current || !mounted.current) return false;
+    const version = ++readVersion.current;
+    if (conceal) {
+      setChecking(true);
+      setCopyFailed(false);
+    }
+    const state = await readOwnerSharingState({ Book, Community, bookId, ownerId });
+    if (!mounted.current || version !== readVersion.current) return false;
+    setVisibility(state.visibility);
+    if (state.visibility !== true) setCopyFailed(false);
+    setReadFailed(state.visibility === null);
+    setListingReadFailed(state.listingReadFailed);
+    if (state.visibility !== null && !state.listingReadFailed) {
+      setCleanupRequired(state.cleanupRequired);
+    }
+    setChecking(false);
+    return state.visibility === true;
+  }, [bookId, ownerId]);
+
+  useEffect(() => {
+    void refreshSharing();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshSharing();
+    };
+    const refreshOnFocus = () => void refreshSharing();
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      readVersion.current += 1;
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshSharing]);
+
+  const handlePublish = async () => {
+    if (pending.current || checking || listingReadFailed || cleanupRequired || visibility === null || !ownerId || !publicAck
+      || !["link", "community"].includes(shareType)) return;
+    if (!getParentalControls().allowCommunitySharing) {
+      setNotice("sharing.publicationDisabled");
       return;
     }
 
-    // Check parental controls before sharing
-    const controls = getParentalControls();
-    if (controls.requireApprovalBeforePublish || !controls.allowCommunitySharing) {
-      toast({
-        variant: "destructive",
-        title: t("sharing.parentalApprovalRequired") || "Parental Approval Required",
-        description: t("sharing.shareFromCommunityPage") || "Ask your parents to share this book from the Community page where they can approve it with their PIN."
-      });
-      return;
+    let post;
+    if (isCommunity) {
+      if (!communityPost.title.trim() || !communityPost.description.trim()) {
+        setNotice("sharing.missingInfoDesc");
+        return;
+      }
+      const title = moderateInput(communityPost.title, 'title');
+      const description = moderateInput(communityPost.description, 'description');
+      if (title.blocked || description.blocked) {
+        setNotice("communityPost.inappropriateDesc");
+        return;
+      }
+      if (!title.sanitized.trim() || !description.sanitized.trim()) {
+        setNotice("sharing.missingInfoDesc");
+        return;
+      }
+      post = {
+        title: title.sanitized,
+        description: description.sanitized,
+        tags: communityPost.tags
+      };
     }
 
-    // Moderate title and description before posting
-    const titleMod = moderateInput(communityPost.title, 'title');
-    if (titleMod.blocked) {
-      toast({
-        variant: "destructive",
-        title: t("communityPost.inappropriateTitle") || "Inappropriate Content",
-        description: t("communityPost.inappropriateDesc") || "Your post contains inappropriate content. Please revise it."
-      });
-      return;
-    }
-
-    const descMod = moderateInput(communityPost.description, 'description');
-    if (descMod.blocked) {
-      toast({
-        variant: "destructive",
-        title: t("communityPost.inappropriateTitle") || "Inappropriate Content",
-        description: t("communityPost.inappropriateDesc") || "Your post contains inappropriate content. Please revise it."
-      });
-      return;
-    }
-
-    setIsLoading(true);
+    pending.current = true;
+    setBusy(true);
+    setNotice("");
     try {
-      await Community.create({
-        book_id: bookId,
-        title: titleMod.sanitized,
-        description: descMod.sanitized,
-        tags: communityPost.tags,
-        visibility: "public"
-      });
-
-      // Mark the book itself public so its direct BookView link is readable by
-      // anonymous visitors. books.is_public is the source of truth for sharing
-      // (RLS: books_public_select / pages_public_select). Owner-only update, so
-      // this is safe and authorized by RLS.
-      if (bookId) {
-        try { await Book.update(bookId, { is_public: true }); } catch { /* non-fatal */ }
+      const needsPin = getParentalControls().requireApprovalBeforePublish;
+      const pinVerified = needsPin && isPinSet() && pin && await verifyParentalPin(pin) === true;
+      if (!mounted.current) return;
+      setPin("");
+      const currentControls = getParentalControls();
+      if (!currentControls.allowCommunitySharing) {
+        setNotice("sharing.publicationDisabled");
+        return;
+      }
+      if (currentControls.requireApprovalBeforePublish && !pinVerified) {
+        setNotice("sharing.pinRequired");
+        return;
       }
 
-      toast({
-        title: t("sharing.shareSuccess"),
-        description: t("sharing.shareSuccessDesc"),
-        className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
+      const result = await publishBookShare({
+        Book, Community, bookId, ownerId, post,
+        isCurrent: () => {
+          const latestControls = getParentalControls();
+          return mounted.current && latestControls.allowCommunitySharing
+            && (!latestControls.requireApprovalBeforePublish || pinVerified);
+        }
       });
-      
-      setSharedHere(true);
-      // Reset form
-      setCommunityPost({
-        title: book?.title || "",
-        description: "",
-        tags: ["story", "children"]
-      });
-    } catch (error) {
-      // silently handled
-      toast({
-        variant: "destructive",
-        title: t("sharing.shareError"),
-        description: t("sharing.shareErrorDesc")
-      });
+      if (!mounted.current) return;
+      setVisibility(result.visibility);
+      setReadFailed(result.visibility === null);
+      setListingReadFailed(result.listingReadFailed === true);
+      if (result.cleanupRequired) setCleanupRequired(true);
+      if (result.error) {
+        setNotice(result.error);
+        return;
+      }
+
+      setNotice(isCommunity ? "sharing.shareSuccessDesc" : "sharing.linkReady");
+      setPublicAck(false);
+      setShareType("");
+      setPin("");
+    } catch {
+      if (mounted.current) setNotice("sharing.shareErrorDesc");
     } finally {
-      setIsLoading(false);
+      pending.current = false;
+      if (mounted.current) setBusy(false);
     }
   };
-  
-  const copyLink = () => {
-    const url = `${window.location.origin}${createPageUrl("BookView")}?id=${bookId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      toast({
-        title: t("sharing.linkCopied"),
-        description: t("sharing.linkCopiedDesc")
-      });
-    });
-  };
-  
-  const shareToSocialMedia = (platform) => {
-    const url = `${window.location.origin}${createPageUrl("BookView")}?id=${bookId}`;
-    const text = `${t("sharing.socialShareText")} ${book?.title}`;
 
-    let shareUrl;
-    switch (platform) {
-      case 'whatsapp':
-        shareUrl = `https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`;
-        window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        return;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-        break;
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        break;
-      case 'email':
-        shareUrl = `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}`;
-        break;
-      default:
-        return;
+  const stopSharing = async (id) => {
+    if (pending.current) throw new Error("Share operation in progress");
+    pending.current = true;
+    readVersion.current += 1;
+    setChecking(false);
+    setBusy(true);
+    setCopyFailed(false);
+    try {
+      return await unshareBook(id);
+    } catch (error) {
+      const value = await readOwnerVisibility(Book, id, ownerId);
+      if (mounted.current) {
+        setVisibility(value);
+        setReadFailed(value === null);
+        setCleanupRequired(true);
+        setNotice(value === false ? "sharing.cleanupPending" : "");
+      }
+      throw error;
+    } finally {
+      pending.current = false;
+      if (mounted.current) setBusy(false);
     }
-
-    window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=400');
   };
 
-  const copyForInstagram = () => {
-    const url = `${window.location.origin}${createPageUrl("BookView")}?id=${bookId}`;
-    const text = `${t("sharing.socialShareText")} ${book?.title}\n${url}`;
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: t("sharing.copiedForInstagram"),
-        description: t("sharing.copiedForInstagramDesc")
-      });
-    });
+  const copy = async (instagram = false) => {
+    if (!url || pending.current) return;
+    if (!await refreshSharing({ conceal: false })) return;
+    const version = readVersion.current;
+    const text = instagram ? `${t("sharing.socialShareText")} ${book?.title ?? ""}\n${url}` : url;
+    try {
+      await navigator.clipboard.writeText(text);
+      if (!mounted.current || pending.current || version !== readVersion.current) return;
+      setCopyFailed(false);
+      toast({ title: instagram ? t("sharing.copiedForInstagram") : t("sharing.linkCopied") });
+    } catch {
+      if (mounted.current && !pending.current && version === readVersion.current) setCopyFailed(true);
+    }
   };
-  
+
+  const socialText = `${t("sharing.socialShareText")} ${book?.title ?? ""}`;
+  const socialLinks = url ? [
+    { label: t("sharing.shareWhatsApp"), Icon: MessageCircle, href: `https://wa.me/?text=${encodeURIComponent(`${socialText}\n${url}`)}` },
+    { label: t("sharing.shareFacebook"), Icon: Facebook, href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
+    { label: t("sharing.shareTwitter"), Icon: Twitter, href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(socialText)}&url=${encodeURIComponent(url)}` }
+  ] : [];
+  const noticeLabel = {
+    "communityPost.inappropriateDesc": t("communityPost.inappropriateDesc"),
+    "sharing.cleanupPending": t("sharing.cleanupPending"),
+    "sharing.linkReady": t("sharing.linkReady"),
+    "sharing.listingCheckFailed": t("sharing.listingCheckFailed"),
+    "sharing.listingIncomplete": t("sharing.listingIncomplete"),
+    "sharing.missingInfoDesc": t("sharing.missingInfoDesc"),
+    "sharing.pinRequired": t("sharing.pinRequired"),
+    "sharing.publicationDisabled": t("sharing.publicationDisabled"),
+    "sharing.shareErrorDesc": t("sharing.shareErrorDesc"),
+    "sharing.shareSuccessDesc": t("sharing.shareSuccessDesc"),
+    "sharing.visibilityUnavailable": t("sharing.visibilityUnavailable"),
+  }[notice];
+
+  const selectShareType = (type) => {
+    setShareType(type);
+    setPublicAck(false);
+    setPin("");
+    setNotice("");
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <MessageSquare className="h-5 w-5 mr-2 text-purple-500" />
-            {t("sharing.communityTitle")}
-          </CardTitle>
-          <CardDescription>
-            {t("sharing.communityDesc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="postTitle">{t("sharing.postTitle")}</Label>
-              <Input
-                id="postTitle"
-                value={communityPost.title}
-                onChange={(e) => setCommunityPost(prev => ({ ...prev, title: e.target.value }))}
-                placeholder={t("sharing.postTitlePlaceholder")}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="postDescription">{t("sharing.descriptionLabel")}</Label>
-              <Textarea
-                id="postDescription"
-                value={communityPost.description}
-                onChange={(e) => setCommunityPost(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={t("sharing.descriptionPlaceholder")}
-                className="min-h-[120px]"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>{t("sharing.tags")}</Label>
-              <div className="flex flex-wrap gap-2">
-                {communityPost.tags.map((tag, index) => (
-                  <div key={index} className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full px-3 py-1 text-sm flex items-center">
-                    {tag}
-                    <button
-                      onClick={() => setCommunityPost(prev => ({
-                        ...prev,
-                        tags: prev.tags.filter((_, i) => i !== index)
-                      }))}
-                      className="ml-2 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-                <Input
-                  className="w-32 h-8"
-                  placeholder={t("sharing.addTag")}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target.value) {
-                      e.preventDefault();
-                      if (!communityPost.tags.includes(e.target.value)) {
-                        setCommunityPost(prev => ({
-                          ...prev,
-                          tags: [...prev.tags, e.target.value]
-                        }));
-                      }
-                      e.target.value = '';
-                    }
-                  }}
-                />
-              </div>
-            </div>
+    <div className="grid min-w-0 gap-5" dir={isRTL ? "rtl" : "ltr"}>
+      <Card className="min-w-0">
+        <CardHeader className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 space-y-0 rounded-t-xl border-b border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-amber-50">
+          <img
+            src={book?.cover_image && !coverFailed ? book.cover_image : "/icons/moon-book-192.png"}
+            onError={book?.cover_image && !coverFailed ? () => setCoverFailed(true) : undefined}
+            alt=""
+            className="size-16 rounded-xl border border-white bg-indigo-950 object-cover shadow-sm sm:size-20"
+          />
+          <div className="min-w-0 space-y-2">
+            <h2 ref={heading} tabIndex={-1} className="text-lg font-semibold leading-tight [overflow-wrap:anywhere]">
+              {book?.title || t("bookControls.untitled")}
+            </h2>
+            <CardDescription role="status">
+              {checking ? t("sharing.checkingVisibility")
+                : readFailed ? t("sharing.visibilityUnavailable")
+                : isShared ? t("sharing.publicStatus") : t("sharing.privateStatus")}
+            </CardDescription>
           </div>
-        </CardContent>
-        <CardFooter className="flex-col items-stretch">
-          {/* Privacy Protection Law s.1-3: informed consent at the moment of publishing a child's book. */}
-          {!isShared && (
-            <label className="mb-3 flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-              <input
-                type="checkbox"
-                className="mt-1 size-5 shrink-0 accent-purple-700"
-                checked={publicAck}
-                onChange={(e) => setPublicAck(e.target.checked)}
-              />
-              <span>{t("sharing.publicAck")}</span>
-            </label>
+        </CardHeader>
+        <CardContent className="grid gap-4 pt-5">
+          {listingReadFailed && !checking && <p role="status">{t("sharing.listingCheckFailed")}</p>}
+          {(readFailed || listingReadFailed) && (
+            <Button type="button" variant="outline" className="min-h-11 justify-self-start" disabled={checking || busy}
+              onClick={() => void refreshSharing()}>
+              {t("sharing.checkAgain")}
+            </Button>
           )}
-          <Button 
-            onClick={handleCommunityShare}
-            disabled={isLoading || !communityPost.title || !communityPost.description || (!isShared && !publicAck)}
-            className="w-full"
-          >
-            {isLoading ? (
-              <>
-                <span className="mr-2">{t("sharing.sharing")}</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-4 w-4 mr-2" />
+          {visibility !== null && !controls.allowCommunitySharing && <p>{t("sharing.publicationDisabled")}</p>}
+          {!checking && !listingReadFailed && visibility !== null && controls.allowCommunitySharing && !cleanupRequired && (
+            <div className="flex flex-wrap gap-2">
+              {!isShared && <Button type="button" className="min-h-11" disabled={busy} aria-pressed={shareType === "link"} onClick={() => selectShareType("link")}>
+                {t("sharing.enablePublicLink")}
+              </Button>}
+              <Button type="button" variant="outline" className="min-h-11" disabled={busy} aria-pressed={isCommunity} onClick={() => selectShareType("community")}>
                 {t("sharing.communityTitle")}
-              </>
-            )}
-          </Button>
-          {isShared && bookId && (
-            <BookControlButton
-              kind="unshare"
-              book={{ ...book, id: bookId }}
-              onChanged={() => setSharedHere(false)}
-              className="mt-3"
-            />
+              </Button>
+            </div>
           )}
-        </CardFooter>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Share2 className="h-5 w-5 mr-2 text-blue-500" />
-            {t("sharing.shareLinkTitle")}
-          </CardTitle>
-          <CardDescription>
-            {t("sharing.shareLinkDesc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="relative">
-              <Input
-                value={`${window.location.origin}${createPageUrl("BookView")}?id=${bookId}`}
-                readOnly
-                className="pr-12"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full text-gray-500 hover:text-gray-700"
-                onClick={copyLink}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div>
-              <Label className="mb-2 block">{t("sharing.shareOnSocial")}</Label>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white"
-                  onClick={() => shareToSocialMedia('whatsapp')}
-                  title={t("sharing.shareWhatsApp")}
-                >
-                  <MessageCircle className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  onClick={() => shareToSocialMedia('facebook')}
-                  title={t("sharing.shareFacebook")}
-                >
-                  <Facebook className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full text-blue-400 hover:text-blue-500 hover:bg-blue-50"
-                  onClick={() => shareToSocialMedia('twitter')}
-                  title={t("sharing.shareTwitter")}
-                >
-                  <Twitter className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full text-pink-600 hover:text-pink-700 hover:bg-pink-50"
-                  onClick={copyForInstagram}
-                  title={t("sharing.copyInstagram")}
-                >
-                  <Instagram className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
-                  onClick={() => shareToSocialMedia('email')}
-                  title={t("sharing.shareEmail")}
-                >
-                  <Mail className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-            
-            <div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={copyLink}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                {t("sharing.copyShareLink")}
-              </Button>
-            </div>
-          </div>
+          {shareType && !checking && !listingReadFailed && visibility !== null && controls.allowCommunitySharing && !cleanupRequired && (
+            <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void handlePublish(); }}>
+              <fieldset className="grid min-w-0 gap-4" disabled={busy}>
+                {isCommunity && <>
+                  <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-title`}>{t("sharing.postTitle")}</Label>
+                    <Input id={`${fieldId}-title`} className="min-h-11" required value={communityPost.title}
+                      placeholder={t("sharing.postTitlePlaceholder")}
+                      onChange={(e) => setCommunityPost(prev => ({ ...prev, title: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-description`}>{t("sharing.descriptionLabel")}</Label>
+                    <Textarea id={`${fieldId}-description`} className="min-h-24" required value={communityPost.description}
+                      placeholder={t("sharing.descriptionPlaceholder")}
+                      onChange={(e) => setCommunityPost(prev => ({ ...prev, description: e.target.value }))} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-tags`}>{t("sharing.addTag")}</Label>
+                    <Input id={`${fieldId}-tags`} className="min-h-11" onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      const tag = e.currentTarget.value.trim();
+                      if (tag && !communityPost.tags.includes(tag)) {
+                        setCommunityPost(prev => ({ ...prev, tags: [...prev.tags, tag] }));
+                      }
+                      e.currentTarget.value = "";
+                    }} />
+                    <div className="flex flex-wrap gap-2">
+                      {communityPost.tags.map(tag => (
+                        <Button type="button" key={tag} variant="outline" className="min-h-11 max-w-full whitespace-normal [overflow-wrap:anywhere]"
+                          aria-label={`${t("sharing.removeTag")} ${tag}`} onClick={() => setCommunityPost(prev => ({
+                            ...prev, tags: prev.tags.filter(value => value !== tag)
+                          }))}>
+                          {tag} <span aria-hidden="true">×</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </>}
+                <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+                  <input type="checkbox" className="mt-1 size-5 shrink-0 accent-purple-700" checked={publicAck}
+                    onChange={(e) => setPublicAck(e.target.checked)} />
+                  <span>{isCommunity ? t("sharing.publicAck") : t("sharing.linkAck")}</span>
+                </label>
+                {controls.requireApprovalBeforePublish && (
+                  <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-pin`}>{t("sharing.parentalApprovalRequired")}</Label>
+                    <Input id={`${fieldId}-pin`} className="min-h-11" dir="ltr" inputMode="numeric" type="password"
+                      autoComplete="off" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value)} />
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" className="min-h-11" disabled={!publicAck}>
+                    {busy ? t("sharing.sharing") : isCommunity ? t("sharing.publishListing") : t("sharing.confirmPublicLink")}
+                  </Button>
+                  <Button type="button" variant="ghost" className="min-h-11" onClick={() => selectShareType("")}>
+                    {t("bookControls.cancel")}
+                  </Button>
+                </div>
+              </fieldset>
+            </form>
+          )}
+          <p role="status" className="text-sm">
+            {cleanupRequired && visibility === false ? t("sharing.cleanupPending")
+              : noticeLabel}
+          </p>
+          {(isShared || cleanupRequired) && (
+            <BookControlButton kind="unshare" book={{ ...book, id: bookId }} onAction={stopSharing} successFocus={heading} onChanged={() => {
+              setVisibility(false);
+              setReadFailed(false);
+              setListingReadFailed(false);
+              setCleanupRequired(false);
+              selectShareType("");
+              setInviteEmail("");
+              setInviteMessage("");
+            }} />
+          )}
         </CardContent>
       </Card>
-      
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Send className="h-5 w-5 mr-2 text-green-500" />
-            {t("sharing.inviteTitle")}
-          </CardTitle>
-          <CardDescription>
-            {t("sharing.inviteDesc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="inviteEmail">{t("sharing.emailLabel")}</Label>
-              <Input
-                id="inviteEmail"
-                placeholder={t("sharing.emailPlaceholder")}
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="inviteMessage">{t("sharing.personalMessage")}</Label>
-              <Textarea
-                id="inviteMessage"
-                placeholder={t("sharing.personalMessagePlaceholder")}
-                className="min-h-[100px]"
-                value={inviteMessage}
-                onChange={(e) => setInviteMessage(e.target.value)}
-              />
+      {url && <>
+        <Card className="min-w-0">
+          <CardHeader><CardTitle>{t("sharing.shareLinkTitle")}</CardTitle></CardHeader>
+          <CardContent className="grid gap-4">
+            <p id={`${fieldId}-copy-status`} role="status" className="text-sm">
+              {copyFailed && t("sharing.manualCopy")}
+            </p>
+            {copyFailed && <div className="grid min-w-0 gap-2">
+              <Label htmlFor={`${fieldId}-link`}>{t("sharing.publicLinkLabel")}</Label>
+              <Input id={`${fieldId}-link`} dir="ltr" value={url} readOnly className="min-h-11"
+                aria-describedby={`${fieldId}-copy-status`} />
+            </div>}
+            <Button type="button" variant="outline" className="min-h-11 justify-self-start gap-2" onClick={() => copy()}>
+              <Copy aria-hidden="true" className="size-4" /> {t("sharing.copyShareLink")}
+            </Button>
+            <div className="flex flex-wrap gap-2">
+              {socialLinks.map(({ label, Icon, href }) => (
+                <Button type="button" key={label} variant="outline" size="icon" className="size-11"
+                  aria-label={label} onClick={async () => {
+                    if (await refreshSharing({ conceal: false })) window.location.assign(href);
+                  }}>
+                  <Icon aria-hidden="true" className="size-5" />
+                </Button>
+              ))}
+              <Button type="button" variant="outline" size="icon" className="size-11"
+                aria-label={t("sharing.copyInstagram")} onClick={() => copy(true)}>
+                <Instagram aria-hidden="true" className="size-5" />
+              </Button>
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button
-            disabled={!inviteEmail}
-            onClick={() => {
-              const bookUrl = `${window.location.origin}${createPageUrl("BookView")}?id=${bookId}`;
+          </CardContent>
+        </Card>
+
+        <Card className="min-w-0">
+          <CardHeader><CardTitle>{t("sharing.emailDraft")}</CardTitle></CardHeader>
+          <CardContent>
+            <form className="grid gap-4" onSubmit={async (e) => {
+              e.preventDefault();
+              if (!await refreshSharing({ conceal: false })) return;
               const subject = encodeURIComponent(`${t("sharing.inviteSubject")} ${book?.title || t("sharing.aChildrensBook")}`);
-              const body = encodeURIComponent(
-                `${inviteMessage ? inviteMessage + '\n\n' : ''}${t("sharing.readBookHere")}\n${bookUrl}`
-              );
-              window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`, '_blank');
-            }}
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {t("sharing.sendInvitation")}
-          </Button>
-        </CardFooter>
-      </Card>
+              const body = encodeURIComponent(`${inviteMessage ? inviteMessage + '\n\n' : ''}${t("sharing.readBookHere")}\n${url}`);
+              window.location.href = `mailto:${encodeURIComponent(inviteEmail).replace("%40", "@")}?subject=${subject}&body=${body}`;
+            }}>
+              <div className="grid gap-2">
+                <Label htmlFor={`${fieldId}-email`}>{t("sharing.emailLabel")}</Label>
+                <Input id={`${fieldId}-email`} className="min-h-11" dir="ltr" type="email"
+                  value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor={`${fieldId}-message`}>{t("sharing.personalMessage")}</Label>
+                <Textarea id={`${fieldId}-message`} className="min-h-24" value={inviteMessage}
+                  placeholder={t("sharing.personalMessagePlaceholder")} onChange={(e) => setInviteMessage(e.target.value)} />
+              </div>
+              <Button type="submit" className="min-h-11 justify-self-start gap-2">
+                <Mail aria-hidden="true" className="size-4" /> {t("sharing.emailDraft")}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </>}
     </div>
   );
 }

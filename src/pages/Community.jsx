@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import { Community } from "@/entities/Community";
 import { Book } from "@/entities/Book";
@@ -8,13 +7,10 @@ import { Comment } from "@/entities/Comment";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import useGamification from "@/hooks/useGamification";
 import { captureError } from "@/lib/errorTracking";
-import { verifyParentalPin, isPinSet } from "@/utils/content-moderation";
+import { verifyParentalPin, isPinSet, getParentalControls, moderateInput } from "@/utils/content-moderation";
 import {
   Search,
   Filter,
-  Award,
-  Heart,
-  MessageSquare,
   Users,
   Tag,
   BookOpen,
@@ -42,16 +38,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import CommunityPost from "../components/community/CommunityPost";
 import FeaturedStory from "../components/community/FeaturedStory";
 import ShareBookModal from "../components/community/ShareBookModal";
+import { publishBookShare } from "../components/bookCreation/bookSharing";
 
 export default function CommunityPage() {
-  const navigate = useNavigate();
+  const mounted = useRef(false);
+  const currentUserRef = useRef(null);
+  const sharing = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const { toast } = useToast();
   const gamification = useGamification();
   const { user: hookUser } = useCurrentUser();
@@ -64,6 +63,7 @@ export default function CommunityPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  currentUserRef.current = hookUser?.id || null;
   const [likedPostsKey, setLikedPostsKey] = useState("likedPosts_anonymous");
   const [likedPosts, setLikedPosts] = useState([]);
   const { t, isRTL } = useI18n();
@@ -248,58 +248,56 @@ export default function CommunityPage() {
     }
   };
 
-  const doShareBook = async (bookData) => {
+  const doShareBook = async (bookData, pinVerified = false) => {
+    if (sharing.current) return;
+    const ownerId = currentUserRef.current;
+    const controls = getParentalControls();
+    if (!ownerId || !controls.allowCommunitySharing || (controls.requireApprovalBeforePublish && !pinVerified)) {
+      toast({ variant: "destructive", description: !controls.allowCommunitySharing
+        ? t("sharing.publicationDisabled") : t("sharing.pinRequired") });
+      return;
+    }
+    const title = moderateInput(bookData.title, "title");
+    const description = moderateInput(bookData.description, "description");
+    if (title.blocked || description.blocked || !title.sanitized?.trim() || !description.sanitized?.trim()) {
+      toast({ variant: "destructive", description: t("communityPost.inappropriateDesc") });
+      return;
+    }
+    sharing.current = true;
+    const isCurrent = () => mounted.current && currentUserRef.current === ownerId
+      && getParentalControls().allowCommunitySharing
+      && (!getParentalControls().requireApprovalBeforePublish || pinVerified);
     try {
-      const postData = {
-        book_id: bookData.bookId,
-        user_id: currentUser.id,
-        title: bookData.title,
-        description: bookData.description,
-        tags: bookData.tags,
-        visibility: "public",
-        likes: 0,
-      };
-
-      await Community.create(postData);
-
-      // Mark the book public so its direct link is readable by anon visitors.
-      // books.is_public is the source of truth for sharing (owner-only update).
-      if (bookData.bookId) {
-        try { await Book.update(bookData.bookId, { is_public: true }); } catch { /* non-fatal */ }
+      const result = await publishBookShare({ Book, Community, bookId: bookData.bookId, ownerId,
+        post: { title: title.sanitized, description: description.sanitized, tags: bookData.tags }, isCurrent });
+      if (!mounted.current || currentUserRef.current !== ownerId) return;
+      if (result.error) throw new Error(result.error);
+      if (result.listingCreated) {
+        gamification.awardXP("community_share");
+        gamification.incrementStat("totalShares");
       }
-
-      gamification.awardXP("community_share");
-      gamification.incrementStat("totalShares");
-
       await loadFilteredPosts();
-
+      if (!mounted.current) return;
       setShowShareModal(false);
-
-      toast({
-        description: t("community.toast.shareSuccess"),
-      });
+      toast({ description: t("community.toast.shareSuccess") });
     } catch (error) {
       captureError(error, { context: 'Community.doShareBook' });
-      toast({
-        variant: "destructive",
-        description: t("community.toast.shareError"),
-      });
+      if (mounted.current) toast({ variant: "destructive", description: t("community.toast.shareError") });
+    } finally {
+      sharing.current = false;
     }
   };
 
   const handleShareBook = async (bookData) => {
-    // Informed consent at the moment of publishing (Privacy Protection Law s.1-3).
-    if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(t('sharing.publicAck'))) return;
-    let controls = {};
-    try {
-      controls = JSON.parse(localStorage.getItem("parentalControls") || "{}");
-    } catch {
-      controls = {};
-    }
-
-    const requireApproval = controls.requireApprovalBeforePublish ?? true;
-
-    if (requireApproval && isPinSet()) {
+    if (typeof window.confirm !== "function" || window.confirm(t("sharing.publicAck")) !== true) return;
+    const controls = getParentalControls();
+    if (!controls.allowCommunitySharing) {
+      toast({ variant: "destructive", description: t("sharing.publicationDisabled") });
+    } else if (controls.requireApprovalBeforePublish) {
+      if (!isPinSet()) {
+        toast({ variant: "destructive", description: t("sharing.pinRequired") });
+        return;
+      }
       setPendingShareData(bookData);
       setPinInput("");
       setPinError("");
@@ -311,11 +309,12 @@ export default function CommunityPage() {
 
   const handlePinSubmit = async () => {
     const ok = await verifyParentalPin(pinInput);
-    if (ok) {
+    if (!mounted.current) return;
+    if (ok === true) {
       setShowPinDialog(false);
       setPinError("");
       if (pendingShareData) {
-        await doShareBook(pendingShareData);
+        await doShareBook(pendingShareData, true);
         setPendingShareData(null);
       }
     } else {
