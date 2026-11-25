@@ -19,6 +19,10 @@ export default function LandingNav() {
   const langMenu = useRef(null);
   const langTrigger = useRef(null);
   const mobileTrigger = useRef(null);
+  const mobilePanel = useRef(null);
+  const desktopLinks = useRef(null);
+  const desktopActions = useRef(null);
+  const homeLink = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -30,7 +34,12 @@ export default function LandingNav() {
   useEffect(() => {
     const desktop = window.matchMedia?.('(min-width: 1024px)');
     if (!desktop) return;
-    const closeDisclosures = () => {
+    const closeDisclosures = ({ matches }) => {
+      const focused = document.activeElement;
+      const focusWillBeHidden = matches
+        ? focused === mobileTrigger.current || mobilePanel.current?.contains(focused)
+        : desktopLinks.current?.contains(focused) || desktopActions.current?.contains(focused);
+      if (focusWillBeHidden) homeLink.current?.focus();
       setMobileMenuOpen(false);
       setLanguagesOpen(false);
     };
@@ -133,14 +142,14 @@ export default function LandingNav() {
       aria-label={t('nav.primaryNavigation')}
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 motion-reduce:transition-none ${scrolled
         ? 'bg-white/95 shadow-md backdrop-blur-md dark:bg-gray-900/95'
-        : 'bg-[#f8f1e3]'}`}
+        : 'bg-[#f8f1e3] dark:bg-gray-900'}`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <Link to="/" className={`${hitArea} shrink-0 bg-[#f8f1e3] px-2`} aria-label="Sipurai">
+        <Link ref={homeLink} to="/" className={`${hitArea} shrink-0 bg-[#f8f1e3] px-2`} aria-label="Sipurai">
           <Wordmark language={language === 'english' || language === 'en' ? 'en' : 'he'} variant="plate" />
         </Link>
-        <div className="hidden items-center gap-3 lg:flex xl:gap-6">{renderLinks()}</div>
-        <div className="hidden shrink-0 items-center gap-2 lg:flex">
+        <div ref={desktopLinks} className="hidden items-center gap-3 lg:flex xl:gap-6">{renderLinks()}</div>
+        <div ref={desktopActions} className="hidden shrink-0 items-center gap-2 lg:flex">
           <div ref={langMenu} className="relative" onBlur={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget)) setLanguagesOpen(false);
           }}>
@@ -179,6 +188,7 @@ export default function LandingNav() {
         </button>
       </div>
       <div
+        ref={mobilePanel}
         id="mobile-menu"
         hidden={!mobileMenuOpen}
         className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-white px-4 py-4 shadow-lg dark:bg-gray-900 lg:hidden"
