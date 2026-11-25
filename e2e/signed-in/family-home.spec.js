@@ -24,7 +24,9 @@ async function installFixtures(page) {
     // XP is outside these journeys. Keep the shared dev family's metadata steady.
     const read = Storage.prototype.getItem;
     Storage.prototype.getItem = function (key) {
-      return String(key).startsWith('first_login_awarded_') ? 'true' : read.call(this, key);
+      if (String(key).startsWith('first_login_awarded_')) return 'true';
+      if (String(key).startsWith('streak_last_active_')) return new Date().toDateString();
+      return read.call(this, key);
     };
   });
   const cors = {
