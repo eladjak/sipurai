@@ -84,4 +84,11 @@ describe("ending share action", () => {
     expect(screen.getByRole("button", { name: "bookView.signInToCreate" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "bookView.share" })).toBeNull();
   });
+  it("keeps a readable ending available while the book still has to finish saving", async () => {
+    mocks.getBook.mockResolvedValue([{ ...complete("first"), status: "generating" }]);
+    open();
+    await finish();
+    expect(screen.getByRole("button", { name: "bookView.readAgain" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "bookView.share" })).toBeNull();
+  });
 });

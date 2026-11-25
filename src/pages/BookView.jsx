@@ -1032,7 +1032,7 @@ function BookReader({ bookId, user }) {
                         </Button>
                       ) : (
                         <>
-                          {isOwner && book.id === bookId && (
+                          {isOwner && book.id === bookId && book.status === "complete" && (
                             <Button asChild variant="outline" className="min-h-11 flex items-center gap-2 rounded-xl">
                               <Link to={`${createPageUrl("BookCreation")}?id=${encodeURIComponent(book.id)}&tab=share`}>
                                 <Share2 className="h-4 w-4" />
