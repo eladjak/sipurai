@@ -44,7 +44,6 @@ vi.hoisted(() => { vi.stubEnv('VITE_NEW_SHELL', 'true'); });
 const legacyAuth = vi.hoisted(() => ({ user: null, navigateToLogin: vi.fn() }));
 vi.mock('@/lib/AuthContext', () => ({ useAuth: () => ({ ...legacyAuth, isLoadingAuth: false, isLoadingPublicSettings: false }), AuthProvider: ({children}) => children, FallbackAuthProvider: ({children}) => children }));
 vi.mock('@/components/privacy/PrivacyGate', () => ({ default: ({children}) => children }));
-vi.mock('@/lib/PageNotFound', () => ({ default: () => <div data-testid="page">NotFound</div> }));
 vi.mock('@/lib/analytics', () => ({ trackPageView: vi.fn(), identifyUser: vi.fn() }));
 vi.mock('../pages.config', () => {
   const names = ['Blog','BlogPost','BookCreation','PrivacyPolicy','TermsOfService','BookView','BookWizard','CharacterEditor','Characters','Community','CommunityPost','Feedback','Home','LandingPage','Leaderboard','Library','Profile','Settings','StoryIdeas','Contact','Pricing','Accessibility'];
@@ -75,10 +74,17 @@ describe('legacy route equivalence fixture from main', () => {
     if (publicPage) expect(screen.getByTestId('page')).toHaveTextContent(name);
     else expect(legacyAuth.navigateToLogin).toHaveBeenCalled();
   });
-  it('keeps the unknown guest on the legacy login path', () => {
+  it('shows guests the recovery page for a missing route without redirecting', () => {
     legacyAuth.user = null; legacyAuth.navigateToLogin.mockClear();
     render(<MemoryRouter initialEntries={['/not-a-route']}><LegacyAuthenticatedApp /></MemoryRouter>);
+    expect(screen.getByTestId('page')).toHaveTextContent('NotFound');
+    expect(legacyAuth.navigateToLogin).not.toHaveBeenCalled();
+  });
+  it('requires sign-in before rendering an encoded protected path', () => {
+    legacyAuth.user = null; legacyAuth.navigateToLogin.mockClear();
+    render(<MemoryRouter initialEntries={['/%42ookCreation']}><LegacyAuthenticatedApp /></MemoryRouter>);
     expect(legacyAuth.navigateToLogin).toHaveBeenCalled();
+    expect(screen.queryByTestId('page')).toBeNull();
   });
 });
 
