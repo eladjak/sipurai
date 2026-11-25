@@ -93,3 +93,30 @@ psql_test landscape -f "$work/bootstrap-no-roles.sql" >/dev/null
 psql_test landscape -c 'ALTER TABLE public.books DROP COLUMN print_size' >/dev/null
 psql_test landscape -f "$repo/migrations/20261108_book_print_size.sql" -f "$repo/migrations/20261118_landscape_proof.sql" -f "$repo/tests/generation-private/landscape-test.sql"
 echo 'historical trim constraints and landscape aspect guard passed'
+
+createdb -h "$work/socket" -U "$pguser" library_copy
+psql_test library_copy -f "$work/bootstrap-no-roles.sql" -f "$repo/tests/library-copy/setup.sql" -f "$repo/migrations/20261125_library_copy.sql" -f "$repo/tests/library-copy/checks.sql"
+copy_target=30000000-0000-4000-8000-000000000000
+psql_test library_copy -At -c "SELECT is_public = false AND status = 'draft' FROM public.books WHERE id='$copy_target'" | grep -q '^t$'
+psql_test library_copy -c "SET ROLE authenticated; SET request.jwt.claims = '{\"sub\":\"owner\"}'; BEGIN; UPDATE public.books SET is_public=true WHERE id='$copy_target'; SELECT pg_sleep(3); COMMIT;" >"$work/visibility.log" 2>&1 &
+privacy_pid=$!
+wait_for_transaction "$copy_target"
+psql_test library_copy -c "SET ROLE authenticated; SET request.jwt.claims = '{\"sub\":\"owner\"}'; SELECT * FROM public.sipurai_finalize_library_copy('10000000-0000-4000-8000-000000000000','$copy_target',ARRAY['11000000-0000-4000-8000-000000000000','12000000-0000-4000-8000-000000000000']::uuid[]);" >"$work/copy-race.log" 2>&1 &
+copy_pid=$!
+copy_waited=false
+for _ in {1..20}; do
+  if psql_test library_copy -At -c "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%sipurai_finalize_library_copy%' AND query LIKE '%$copy_target%')" | grep -q '^t$'; then
+    copy_waited=true
+    break
+  fi
+  sleep 0.1
+done
+wait "$privacy_pid"
+if wait "$copy_pid"; then
+  echo 'library copy accepted a formerly private book'
+  exit 1
+fi
+[[ "$copy_waited" == true ]]
+grep -q 'library_copy_conflict' "$work/copy-race.log"
+psql_test library_copy -At -c "SELECT is_public = true AND status = 'draft' AND NOT EXISTS (SELECT 1 FROM public.pages WHERE book_id='$copy_target') FROM public.books WHERE id='$copy_target'" | grep -q '^t$'
+echo 'library copy race: observed RPC wait for row lock, concurrent privacy change won, zero pages inserted and target still draft'
