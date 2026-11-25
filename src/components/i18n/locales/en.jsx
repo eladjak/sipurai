@@ -802,6 +802,7 @@ export default {
       activeBadge: "Active",
       currentPlanBtn: "Current Plan",
       upgradeNow: "Upgrade Now",
+      checkoutUnavailable: "Paid plans are currently unavailable for purchase.",
       checkoutError: "Error",
       checkoutErrorDesc: "Could not open checkout. Please try again."
     },
