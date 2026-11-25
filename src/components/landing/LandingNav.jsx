@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Globe, LayoutDashboard, Menu, Newspaper, X } from 'lucide-react';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { useI18n } from '@/components/i18n/i18nProvider';
@@ -12,6 +12,7 @@ const hitArea = `inline-flex min-h-11 min-w-11 items-center rounded-lg ${focusRi
 export default function LandingNav() {
   const { t, isRTL, language, changeLanguage, languages } = useI18n();
   const { isAuthenticated } = useAuth();
+  const reduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languagesOpen, setLanguagesOpen] = useState(false);
@@ -126,7 +127,7 @@ export default function LandingNav() {
 
   return (
     <motion.nav
-      initial={{ y: -100 }}
+      initial={reduceMotion ? false : { y: -100 }}
       animate={{ y: 0 }}
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-label={t('nav.primaryNavigation')}
