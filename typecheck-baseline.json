@@ -1,5 +1,5 @@
 {
-  "total": 189,
+  "total": 188,
   "files": {
     "src/components/ai/SmartAutoSelector.jsx": {
       "TS2741: Property 'variant' is missing in type '{ children: any; className: string; }' but required in type '{ [x: string]: any; className: any; variant: any; }'.": 1
@@ -125,9 +125,6 @@
     },
     "src/entities/User.js": {
       "TS2694: Namespace '\"node_modules/@clerk/clerk-react/dist/index\"' has no exported member 'UserResource'.": 1
-    },
-    "src/hooks/useAutoSave.js": {
-      "TS2739: Type '{}' is missing the following properties from type '{ onSaveToDb: Function; delayMs: number; enabled: boolean; }': onSaveToDb, delayMs, enabled": 1
     },
     "src/integrations/Core.js": {
       "TS2739: Type '{ base64: string; mimeType: string; }' is missing the following properties from type 'Promise<T>': then, catch, finally, [Symbol.toStringTag]": 1

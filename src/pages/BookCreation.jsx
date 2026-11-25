@@ -154,7 +154,6 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
   const currentPageLayout = currentPage?.layout_type || "text_top";
   const [textSaves, setTextSaves] = useState({});
   const [editorBusy, setEditorBusy] = useState(false);
-  const [legacyDraft, setLegacyDraft] = useState(null);
   const writes = useRef(new Set());
   const transformRevision = useRef(0);
   const textSaveStatus = textSaves[currentPage?.id];
@@ -282,13 +281,8 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
         setCollaborators(collaboratorsList);
       }
 
-      // Attempt to restore auto-saved state
-      const legacy = loadAutoSaved(`book_${bookId}`).data;
-      const saved = loadAutoSaved(settingsKey).data || legacy;
-      if (legacy && bookData.status === "complete" &&
-          (typeof legacy.currentPageText === "string" || typeof legacy.currentPageImagePrompt === "string")) {
-        setLegacyDraft(legacy);
-      }
+      // Only owner-scoped settings can be restored on a shared browser.
+      const saved = loadAutoSaved(settingsKey).data;
       if (saved && bookData.status === "complete") {
         if (saved.textStyles) setTextStyles(saved.textStyles);
         if (saved.useRhyming !== undefined) setUseRhyming(saved.useRhyming);
@@ -922,7 +916,6 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
               textConflict={textConflict}
               serverText={serverText}
               promptDraft={promptDraft}
-              legacyDraft={legacyDraft}
               editorCopy={editorCopy}
               onAddNikud={addNikudToText}
               onConvertToRhyme={convertToRhyme}

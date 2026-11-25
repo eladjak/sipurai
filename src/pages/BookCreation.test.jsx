@@ -29,7 +29,7 @@ vi.mock("@/components/ui/use-toast", () => ({ useToast: () => ({ toast: mocks.to
 vi.mock("@/components/i18n/i18nProvider", () => ({ useI18n: () => ({ language: "english", isRTL: false }) }));
 vi.mock("@/integrations/Core", () => ({ GenerateImage: mocks.image, InvokeLLM: mocks.text }));
 vi.mock("@/components/bookCreation/BookEditorTab", async importOriginal => {
-  const { default: Editor } = await importOriginal();
+  const { default: Editor } = await /** @type {Promise<typeof import("@/components/bookCreation/BookEditorTab")>} */ (importOriginal());
   return { default: props => mocks.realEditor ? <Editor {...props} /> : <>
   <p>Editor tools</p>
   <input aria-label="Page text" value={props.currentPageText} onChange={(event) => props.onTextChange(event.target.value)} />
@@ -348,16 +348,17 @@ describe("page drafts", () => {
     expect(await screen.findByRole("textbox", { name: "Page text" })).toHaveValue("Original");
   });
 
-  it("keeps a matching legacy draft available for manual recovery without assigning its index", async () => {
+  it("does not expose an ownerless legacy draft on a shared browser", async () => {
     mocks.realEditor = true;
     mocks.pages.mockResolvedValue([page("page-1", "First")]);
-    localStorage.setItem("ey_autosave_book_first", JSON.stringify({ data: { currentPageIndex: 0, currentPageText: "Legacy text" } }));
+    const legacy = JSON.stringify({ data: { currentPageIndex: 0, currentPageText: "Private legacy text", currentPageImagePrompt: "Private legacy prompt" } });
+    localStorage.setItem("ey_autosave_book_first", legacy);
     open("/BookCreation?id=first");
     expect(await screen.findByRole("textbox", { name: "Edit Page Text" })).toHaveValue("First");
-    const summary = screen.getByText("Draft from an earlier editor");
-    fireEvent.click(summary);
-    expect(summary.parentElement).toHaveAttribute("open");
-    expect(screen.getByText("Legacy text")).toBeInTheDocument();
+    expect(screen.queryByText("Draft from an earlier editor")).toBeNull();
+    expect(screen.queryByText("Private legacy text")).toBeNull();
+    expect(screen.queryByText("Private legacy prompt")).toBeNull();
+    expect(localStorage.getItem("ey_autosave_book_first")).toBe(legacy);
     expect(mocks.saveText).not.toHaveBeenCalled();
   });
 });

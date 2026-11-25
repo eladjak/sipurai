@@ -37,7 +37,6 @@ export default function BookEditorTab({
   textConflict,
   serverText,
   promptDraft,
-  legacyDraft,
   editorCopy,
   onAddNikud,
   onConvertToRhyme,
@@ -120,14 +119,6 @@ export default function BookEditorTab({
               {editorCopy("book.editorKeepServer")}
             </Button>
           </div>
-        )}
-        {legacyDraft && (
-          <details className="rounded-xl border px-4">
-            <summary className="flex min-h-11 cursor-pointer items-center">{editorCopy("book.editorLegacyTitle")}</summary>
-            <p className="mb-2 text-sm">{editorCopy("book.editorLegacyHelp")}</p>
-            {legacyDraft.currentPageText && <p className="mb-2 whitespace-pre-wrap break-words text-sm" dir="auto">{legacyDraft.currentPageText}</p>}
-            {legacyDraft.currentPageImagePrompt && <p className="mb-2 whitespace-pre-wrap break-words text-sm" dir="auto">{legacyDraft.currentPageImagePrompt}</p>}
-          </details>
         )}
         <details className="rounded-xl border px-4">
           <summary className="flex min-h-11 cursor-pointer items-center">{editorCopy("book.editorAdvanced")}</summary>
