@@ -90,7 +90,12 @@ beforeEach(() => {
   vi.stubEnv("VITE_UNIFIED_BOOK_EDITOR", "");
 });
 
-afterEach(() => { cleanup(); vi.unstubAllEnvs(); });
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+  localStorage.clear();
+});
 
 describe("unified owner editor", () => {
   it("leaves the legacy editor and URL alone when the flag is off", async () => {
