@@ -556,7 +556,7 @@ function BookReader({ bookId, user }) {
     <Button asChild variant="outline" className="min-h-11 gap-2">
       <Link to={createPageUrl(isGuest ? "Home" : "Library")}>
         <BackIcon aria-hidden="true" />
-        {t(isGuest ? "pageNotFound.goHome" : "bookView.backToLibrary")}
+        {isGuest ? t("pageNotFound.goHome") : t("bookView.backToLibrary")}
       </Link>
     </Button>
   );

@@ -12,14 +12,16 @@ test.use({ locale: 'he-IL', serviceWorkers: 'block', reducedMotion: 'reduce' });
 const fixtureBook = {
   id: 'fixture-moon-book',
   title: 'הירח מעל הגינה',
-  status: 'complete',
+  // The fixture stays unfinished so reading its last available page cannot award Clerk XP.
+  status: 'partial',
+  total_pages: 5,
   language: 'hebrew',
   created_date: '2026-10-31T00:00:00Z',
   cover_image: '/images/spx/hearth.webp',
 };
 
 async function installFixtures(page) {
-  const data = { books: [], fail: false, owner: null, ideas: [], ideasFail: false, ideaOwners: [] };
+  const data = { books: [], folios: [0, 1, 3], fail: false, owner: null, ideas: [], ideasFail: false, ideaOwners: [] };
   await page.addInitScript(() => {
     // XP is outside these journeys. Keep the shared dev family's metadata steady.
     const read = Storage.prototype.getItem;
@@ -31,7 +33,7 @@ async function installFixtures(page) {
   });
   const cors = {
     'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET, POST, PATCH, OPTIONS',
+    'access-control-allow-methods': 'GET, OPTIONS',
     'access-control-allow-headers': '*',
   };
   await page.route('**/api/privacy/consent', async route => {
@@ -42,6 +44,7 @@ async function installFixtures(page) {
     const request = route.request();
     const url = new URL(request.url());
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (request.method() !== 'GET') return route.fulfill({ status: 403, headers: cors });
     if (url.pathname.endsWith('/books')) {
       const owner = url.searchParams.get('created_by')?.replace(/^eq\./, '');
       if (owner) data.owner = owner;
@@ -50,13 +53,12 @@ async function installFixtures(page) {
       return route.fulfill({ headers: cors, json: owner ? books : books[0] || null });
     }
     if (url.pathname.endsWith('/story_ideas')) {
-      expect(request.method()).toBe('GET');
       data.ideaOwners.push(url.searchParams.get('created_by'));
       if (data.ideasFail) return route.fulfill({ status: 503, headers: cors, json: { message: 'Fixture outage' } });
       return route.fulfill({ headers: cors, json: data.ideas });
     }
     if (url.pathname.endsWith('/pages')) {
-      return route.fulfill({ headers: cors, json: [1, 2, 3, 4].map(page_number => ({
+      return route.fulfill({ headers: cors, json: data.folios.map(page_number => ({
         id: `fixture-page-${page_number}`, book_id: fixtureBook.id, page_number,
         text_content: `הגענו לתחנה ${page_number}.`, image_url: '/images/spx/hearth.webp',
       })) });
@@ -107,8 +109,38 @@ for (const width of [375, 1280]) {
     await expect(page.getByRole('link', { name: 'ממשיכים מעמוד 3' })).toHaveAttribute('href', `/BookView?id=${fixtureBook.id}`);
     await snapshot(page, testInfo, `home-returning-${width}`);
     await page.getByRole('link', { name: 'ממשיכים מעמוד 3' }).click();
-    await expect(page.locator('.reader-folio')).toHaveText('3');
-    await expect(page.getByText('הגענו לתחנה 3.', { exact: true })).toBeVisible();
+    const reader = page.locator('.family-reader');
+    const picker = reader.getByRole('combobox', { name: 'מעבר לעמוד' });
+    const storyText = reader.getByText('הגענו לתחנה 3.', { exact: true });
+    const bookmark = () => page.evaluate(id => ({
+      index: localStorage.getItem(`book_${id}_page`),
+      anchor: localStorage.getItem(`book_${id}_page_anchor`),
+    }), fixtureBook.id);
+    await expect(storyText).toBeVisible();
+    await expect(picker.locator('option')).toHaveText(['עטיפה', 'עמוד 1', 'עמוד 3']);
+    await expect(picker).toHaveValue('2');
+    await expect.poll(bookmark).toEqual({ index: '2', anchor: '[3,2]' });
+
+    data.folios = [0, 1, 2, 3];
+    await page.reload();
+    await expect(storyText).toBeVisible();
+    await expect(reader.locator('.reader-folio')).toHaveText('3');
+    await expect(picker.locator('option')).toHaveText(['עטיפה', 'עמוד 1', 'עמוד 2', 'עמוד 3']);
+    await expect(picker).toHaveValue('3');
+    await expect.poll(bookmark).toEqual({ index: '3', anchor: '[3,3]' });
+    await expect(reader).toHaveAttribute('dir', 'rtl');
+    await expect(reader.locator('.reader-leaf')).toHaveAttribute('dir', 'rtl');
+    for (const target of [
+      picker,
+      reader.getByRole('button', { name: 'הקודם', exact: true }),
+      reader.getByRole('button', { name: 'הבא', exact: true }),
+    ]) {
+      await expect(target).toBeVisible();
+      const box = await target.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+    await snapshot(page, testInfo, `reader-resumed-${width}`);
     await page.goto('/');
 
     data.fail = true;
