@@ -157,7 +157,7 @@ it("retains the currently visible owner folio after a transient metadata refresh
   vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
   localStorage.setItem("book_demo_page", "1");
   open();
-  expect(await screen.findByText("A persisted page")).toBeVisible();
+  await waitFor(() => expect(screen.getByText("A persisted page")).toBeVisible());
 
   mocks.getBook.mockRejectedValueOnce(new Error("Offline"));
   fireEvent.online(window);
@@ -167,7 +167,7 @@ it("retains the currently visible owner folio after a transient metadata refresh
 
   mocks.getPages.mockResolvedValueOnce([{ ...pages[1], text_content: "The updated folio" }]);
   fireEvent.click(screen.getByRole("button", { name: "common.retry" }));
-  expect(await screen.findByText("The updated folio")).toBeVisible();
+  await waitFor(() => expect(screen.getByText("The updated folio")).toBeVisible());
   expect(screen.queryByText("bookView.loadError")).toBeNull();
   expect(mocks.getBook).toHaveBeenLastCalledWith({ id: "demo", created_by: "owner" });
 });
@@ -176,7 +176,7 @@ it("removes private data as soon as owner access is lost, even when the public l
   vi.stubEnv("VITE_READER_AUTO_RECOVERY", "");
   localStorage.setItem("book_demo_page", "1");
   open();
-  expect(await screen.findByText("A persisted page")).toBeVisible();
+  await waitFor(() => expect(screen.getByText("A persisted page")).toBeVisible());
 
   mocks.getBook.mockResolvedValue([]);
   mocks.getPublicBook.mockRejectedValueOnce(new Error("Offline")).mockResolvedValue([]);
