@@ -1,4 +1,3 @@
-import React from "react";
 
 /**
  * Renders a single page preview with text and image in the selected layout.
@@ -7,6 +6,7 @@ import React from "react";
 export default function PagePreview({
   currentPage,
   currentPageIndex,
+  totalPages,
   currentPageText,
   currentPageLayout,
   textStyles,
@@ -52,12 +52,12 @@ export default function PagePreview({
       className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-md bg-white dark:bg-gray-800"
       dir={isRTL ? "rtl" : "ltr"}
       role="article"
-      aria-label={t("book.pageOf", { current: currentPageIndex + 1, total: "?" })}
+      aria-label={t("book.pageOf", { current: currentPageIndex + 1, total: totalPages })}
     >
       <div className={`flex ${getLayoutClasses()} h-full`}>
         {/* Text section */}
         <div className="flex-1 p-6 flex items-center">
-          <div style={getTextStyle()} className="w-full">
+          <div style={getTextStyle()} className="w-full whitespace-pre-wrap break-words">
             {currentPageText}
 
             {pageInteractiveElements.map((element, idx) => (
@@ -95,12 +95,13 @@ export default function PagePreview({
           {currentPage.image_url ? (
             <img
               src={currentPage.image_url}
-              alt={`${t("book.pageOf", { current: currentPageIndex + 1, total: "" })}`.trim()}
+              alt={t("book.pageOf", { current: currentPageIndex + 1, total: totalPages })}
               className="w-full h-full object-contain"
             />
           ) : (
-            <div className="w-full h-full min-h-[300px] flex items-center justify-center">
-              <p className="text-gray-400 dark:text-gray-500">{t("book.noImage")}</p>
+            <div className="w-full h-full min-h-40 flex flex-col items-center justify-center gap-2 p-4">
+              <img src="/icons/moon-book-192.png" alt="" className="size-16" />
+              <p className="text-gray-600 dark:text-gray-300">{t("book.noImage")}</p>
             </div>
           )}
         </div>

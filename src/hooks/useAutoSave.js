@@ -8,10 +8,10 @@ const AUTO_SAVE_STORAGE_PREFIX = "ey_autosave_";
  *
  * @param {string} key - Unique key for this auto-save instance (e.g., book ID)
  * @param {object} data - The data to auto-save
- * @param {object} options
- * @param {function} options.onSaveToDb - Async function to persist to database
- * @param {number} options.delayMs - Debounce delay in ms (default 3000)
- * @param {boolean} options.enabled - Whether auto-save is active (default true)
+ * @param {object} [options]
+ * @param {function} [options.onSaveToDb] - Async function to persist to database
+ * @param {number} [options.delayMs] - Debounce delay in ms (default 3000)
+ * @param {boolean} [options.enabled] - Whether auto-save is active (default true)
  * @returns {{ status: string, lastSaved: Date|null, forceSave: function, clearSaved: function }}
  */
 export function useAutoSave(key, data, options = {}) {

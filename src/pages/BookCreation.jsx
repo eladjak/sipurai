@@ -1,13 +1,13 @@
 import { isUnifiedBookEditor } from "@/lib/flags";
 import { imageAspectForBook } from "@/lib/printSpec";
 
-import { lazy, Suspense, useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/components/i18n/i18nProvider";
 import useGamification from "@/hooks/useGamification";
 import { Book } from "@/entities/Book";
-import { Page } from "@/entities/Page";
-import { readablePages } from "@/lib/bookProgress";
+import { Page, savePageText } from "@/entities/Page";
+import { normalizePages, readablePages } from "@/lib/bookProgress";
 import { GenerateImage, InvokeLLM } from "@/integrations/Core";
 import { buildSafetyPromptPrefix, sanitizeAIOutput } from "@/utils/content-moderation";
 import { canCreateBook, recordBookCreation } from "@/utils/bookRateLimit";
@@ -31,10 +31,10 @@ import BookEditorTab from "../components/bookCreation/BookEditorTab";
 import BookStylingTab from "../components/bookCreation/BookStylingTab";
 import ShareOptions from "../components/bookCreation/ShareOptions";
 import DraftView from "../components/bookCreation/DraftView";
-import AutoSaveIndicator from "../components/bookCreation/AutoSaveIndicator";
 
 // Hooks
 import { useAutoSave, loadAutoSaved } from "@/hooks/useAutoSave";
+import { useEditorPageDrafts } from "@/hooks/useEditorPageDrafts";
 
 // Translations
 import { getBookTranslation } from "@/utils/book-translations";
@@ -67,7 +67,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
   const [isLoading, setIsLoading] = useState(true);
   const [book, setBook] = useState(null);
   const [pages, setPages] = useState([]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [selectedPageId, setSelectedPageId] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingStep, setGeneratingStep] = useState(0);
   const [unavailable, setUnavailable] = useState(false);
@@ -94,6 +94,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
 
   function changeTab(tab) {
     if (!editorTabs.some(item => item.id === tab) || (!unifiedEditor && tab === "print")) return;
+    transformRevision.current += 1;
     if (!unifiedEditor) {
       setLegacyTab(tab);
       return;
@@ -142,42 +143,53 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
     style: "consistent"
   });
 
-  // Current page editing state
-  const [currentPageText, setCurrentPageText] = useState("");
-  const [currentPageImagePrompt, setCurrentPageImagePrompt] = useState("");
-  const [currentPageLayout, setCurrentPageLayout] = useState("text_top");
+  const drafts = useEditorPageDrafts(ownerId, bookId);
+  const currentPageIndex = Math.max(0, pages.findIndex(page => page.id === selectedPageId));
+  const currentPage = pages[currentPageIndex];
+  const textDraft = drafts.read(currentPage?.id, "text_content");
+  const promptDraft = drafts.read(currentPage?.id, "image_prompt");
+  const hasTextDrafts = pages.some(page => drafts.read(page.id, "text_content"));
+  const currentPageText = textDraft?.value ?? currentPage?.text_content ?? "";
+  const currentPageImagePrompt = promptDraft?.value ?? currentPage?.image_prompt ?? "";
+  const currentPageLayout = currentPage?.layout_type || "text_top";
+  const [textSaves, setTextSaves] = useState({});
+  const [editorBusy, setEditorBusy] = useState(false);
+  const writes = useRef(new Set());
+  const transformRevision = useRef(0);
+  const textSaveStatus = textSaves[currentPage?.id];
+  const serverText = currentPage?.text_content ?? "";
+  const textConflict = textDraft && textDraft.value !== serverText &&
+    (textSaveStatus === "conflict" || textDraft.base !== serverText);
+
+  useLayoutEffect(() => () => { transformRevision.current += 1; }, [currentPage?.id, currentPageText, activeTab]);
+
+  const selectionKey = `sipurai:editor-selection:${JSON.stringify([ownerId, bookId])}`;
+
+  function selectPage(index) {
+    const pageId = pages[index]?.id;
+    if (!pageId) return;
+    transformRevision.current += 1;
+    setSelectedPageId(pageId);
+    try {
+      localStorage.setItem(selectionKey, pageId);
+    } catch {
+      // Selection remains available for this session.
+    }
+  }
+
+  function editText(value) {
+    transformRevision.current += 1;
+    drafts.edit(currentPage, "text_content", value);
+  }
 
   // Pre-generation wizard phase: "draft" (DraftView) → "scenePlan" (ScenePlanStep) → generation
   const [wizardPhase, setWizardPhase] = useState("draft");
   const [scenePlan, setScenePlan] = useState([]);
 
-  // Auto-save: track editable state
-  const autoSaveData = {
-    currentPageIndex,
-    currentPageText,
-    currentPageImagePrompt,
-    currentPageLayout,
-    textStyles,
-    useRhyming,
-    rhymeSettings,
-    characterConsistency
-  };
-
-  const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave(
-    bookId ? `book_${bookId}` : null,
-    autoSaveData,
-    {
-      enabled: !!book && book.status === "complete",
-      delayMs: 3000,
-      onSaveToDb: async (data) => {
-        // Persist current page text to DB on force save
-        if (pages.length > 0 && data.currentPageIndex >= 0 && data.currentPageIndex < pages.length) {
-          const pageId = pages[data.currentPageIndex].id;
-          await Page.update(pageId, { text_content: data.currentPageText });
-        }
-      }
-    }
-  );
+  const settingsKey = `editor_settings_${JSON.stringify([ownerId, bookId])}`;
+  useAutoSave(settingsKey, { textStyles, useRhyming, rhymeSettings, characterConsistency }, {
+    enabled: !isLoading && book?.status === "complete" && book.created_by === ownerId,
+  });
 
   // Load book data
   useEffect(() => {
@@ -196,16 +208,6 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
     return () => { current = false; };
   }, [bookId, ownerId, authLoading]);
 
-  // Sync current page fields when page changes
-  useEffect(() => {
-    if (pages.length > 0 && currentPageIndex >= 0 && currentPageIndex < pages.length) {
-      const currentPage = pages[currentPageIndex];
-      setCurrentPageText(currentPage.text_content || "");
-      setCurrentPageImagePrompt(currentPage.image_prompt || "");
-      setCurrentPageLayout(currentPage.layout_type || "text_top");
-    }
-  }, [pages, currentPageIndex]);
-
   const loadBookData = async (isCurrent) => {
     try {
       setIsLoading(true);
@@ -219,10 +221,20 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
       }
       setBook(bookData);
 
-      // Skeleton rows exist to persist the outline while a book is still
-      // being written; they carry no text, so there is nothing here to edit.
-      const pagesData = readablePages(await Page.filter({ book_id: bookId }, "page_number"));
+      // A finished book can contain a deliberately blank page. During generation
+      // blank skeleton rows still indicate writing progress rather than editor pages.
+      const storedPages = await Page.filter({ book_id: bookId }, "page_number");
+      const pagesData = bookData.status === "complete" ? normalizePages(storedPages) : readablePages(storedPages);
       if (!isCurrent()) return;
+      drafts.restore(pagesData);
+      if (bookData.status === "complete") {
+        try {
+          const lastPageId = localStorage.getItem(selectionKey);
+          if (pagesData.some(page => page.id === lastPageId)) setSelectedPageId(lastPageId);
+        } catch {
+          // A blocked browser storage API should not block editing.
+        }
+      }
       setPages(pagesData);
 
       // Initialize character consistency
@@ -269,13 +281,13 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
         setCollaborators(collaboratorsList);
       }
 
-      // Attempt to restore auto-saved state
-      const saved = loadAutoSaved(`book_${bookId}`);
-      if (saved.data && bookData.status === "complete") {
-        if (saved.data.textStyles) setTextStyles(saved.data.textStyles);
-        if (saved.data.useRhyming !== undefined) setUseRhyming(saved.data.useRhyming);
-        if (saved.data.rhymeSettings) setRhymeSettings(saved.data.rhymeSettings);
-        if (saved.data.characterConsistency) setCharacterConsistency(saved.data.characterConsistency);
+      // Only owner-scoped settings can be restored on a shared browser.
+      const saved = loadAutoSaved(settingsKey).data;
+      if (saved && bookData.status === "complete") {
+        if (saved.textStyles) setTextStyles(saved.textStyles);
+        if (saved.useRhyming !== undefined) setUseRhyming(saved.useRhyming);
+        if (saved.rhymeSettings) setRhymeSettings(saved.rhymeSettings);
+        if (saved.characterConsistency) setCharacterConsistency(saved.characterConsistency);
       }
 
       setIsLoading(false);
@@ -538,95 +550,106 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
 
   // --- Page Edit Actions ---
 
-  const updatePageText = useCallback(async () => {
-    if (currentPageIndex < 0 || currentPageIndex >= pages.length) return;
+  function mergePage(pageId, patch) {
+    setPages(existing => existing.map(page => page.id === pageId ? { ...page, ...patch } : page));
+  }
+
+  const updatePageText = async (approval) => {
+    if (!currentPage?.id || !textDraft) return;
+    const pageId = currentPage.id;
+    const writeKey = `${pageId}:text`;
+    if (writes.current.has(writeKey)) return;
+    writes.current.add(writeKey);
+    const setStatus = status => setTextSaves(previous => ({ ...previous, [pageId]: status }));
+    setStatus("saving");
 
     try {
-      const pageId = pages[currentPageIndex].id;
-      await Page.update(pageId, { text_content: currentPageText });
-
-      const updatedPages = [...pages];
-      updatedPages[currentPageIndex] = {
-        ...updatedPages[currentPageIndex],
-        text_content: currentPageText
-      };
-      setPages(updatedPages);
-
-      // Award XP for explicitly saving a page edit
-      gamification.awardXP("page_edited");
-
-      toast({
-        description: t("book.textUpdated"),
-        className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
-      });
-    } catch (error) {
-      toast({ variant: "destructive", description: t("book.textUpdateError") });
+      const latest = await Page.get(pageId);
+      if (latest?.id !== pageId || latest.book_id !== bookId) throw new Error("Page unavailable");
+      const expectedText = latest.text_content ?? null;
+      const latestText = expectedText ?? "";
+      mergePage(pageId, { text_content: expectedText });
+      if (drafts.read(pageId, "text_content") !== textDraft) {
+        setStatus(null);
+        return;
+      }
+      const matchesBase = approval ? expectedText === approval.text : latestText === textDraft.base;
+      if (latestText !== textDraft.value && !matchesBase) {
+        setStatus("conflict");
+        return;
+      }
+      if (latestText !== textDraft.value) {
+        const updated = await savePageText({ pageId, bookId, ownerId, expectedText, text: textDraft.value });
+        if (!updated) {
+          const current = await Page.get(pageId);
+          if (current?.id !== pageId || current.book_id !== bookId || current.text_content === expectedText) {
+            throw new Error("Save unconfirmed");
+          }
+          mergePage(pageId, { text_content: current.text_content });
+          setStatus("conflict");
+          return;
+        }
+        if (updated.id !== pageId || updated.text_content !== textDraft.value) throw new Error("Save unconfirmed");
+        mergePage(pageId, { text_content: updated.text_content });
+      }
+      drafts.acknowledge(pageId, "text_content", textDraft, textDraft.value);
+      setStatus("saved");
+      if (latestText !== textDraft.value) gamification.awardXP?.("page_edited");
+    } catch {
+      setStatus("error");
+    } finally {
+      writes.current.delete(writeKey);
     }
-  }, [currentPageIndex, currentPageText, pages, t, toast, gamification]);
+  };
 
-  const updatePageImage = useCallback(async () => {
-    if (currentPageIndex < 0 || currentPageIndex >= pages.length || !currentPageImagePrompt) return;
-
+  const updatePageImage = async () => {
+    if (!currentPage?.id || !currentPageImagePrompt || editorBusy || writes.current.has("image")) return;
+    const pageId = currentPage.id;
+    writes.current.add("image");
     try {
-      setIsGenerating(true);
-
+      setEditorBusy(true);
       const enhancedPrompt = getEnhancedImagePrompt(currentPageImagePrompt, currentPageIndex);
       const imageResult = await GenerateImage({ prompt: enhancedPrompt, aspectRatio: imageAspectForBook(book) });
-
-      const pageId = pages[currentPageIndex].id;
-      await Page.update(pageId, {
-        image_url: imageResult.url,
-        image_prompt: enhancedPrompt
-      });
-
-      const updatedPages = [...pages];
-      updatedPages[currentPageIndex] = {
-        ...updatedPages[currentPageIndex],
-        image_url: imageResult.url,
-        image_prompt: enhancedPrompt
-      };
-      setPages(updatedPages);
-
+      const patch = { image_url: imageResult.url, image_prompt: enhancedPrompt };
+      const updated = await Page.update(pageId, patch);
+      if (updated?.id !== pageId || updated.image_prompt !== enhancedPrompt) throw new Error("Save unconfirmed");
+      mergePage(pageId, patch);
+      if (promptDraft) drafts.acknowledge(pageId, "image_prompt", promptDraft, enhancedPrompt);
       toast({
         description: t("book.imageUpdated"),
         className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
       });
-    } catch (error) {
+    } catch {
       toast({ variant: "destructive", description: t("book.imageUpdateError") });
     } finally {
-      setIsGenerating(false);
+      writes.current.delete("image");
+      setEditorBusy(false);
     }
-  }, [currentPageIndex, currentPageImagePrompt, pages, t, toast, book, characterConsistency]);
+  };
 
-  const updatePageLayout = useCallback(
-    async (newLayout) => {
-      if (currentPageIndex < 0 || currentPageIndex >= pages.length) return;
+  const updatePageLayout = async (newLayout) => {
+    if (!currentPage?.id) return;
+    const pageId = currentPage.id;
+    const writeKey = `${pageId}:layout`;
+    if (writes.current.has(writeKey)) return;
+    writes.current.add(writeKey);
+    try {
+      await Page.update(pageId, { layout_type: newLayout });
+      mergePage(pageId, { layout_type: newLayout });
+      toast({
+        description: t("book.layoutUpdated"),
+        className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
+      });
+    } catch {
+      toast({ variant: "destructive", description: t("book.layoutUpdateError") });
+    } finally {
+      writes.current.delete(writeKey);
+    }
+  };
 
-      try {
-        const pageId = pages[currentPageIndex].id;
-        await Page.update(pageId, { layout_type: newLayout });
-
-        const updatedPages = [...pages];
-        updatedPages[currentPageIndex] = {
-          ...updatedPages[currentPageIndex],
-          layout_type: newLayout
-        };
-        setPages(updatedPages);
-        setCurrentPageLayout(newLayout);
-
-        toast({
-          description: t("book.layoutUpdated"),
-          className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
-        });
-      } catch (error) {
-        toast({ variant: "destructive", description: t("book.layoutUpdateError") });
-      }
-    },
-    [currentPageIndex, pages, t, toast]
-  );
-
-  const addNikudToText = useCallback(async () => {
-    if (!currentPageText) return;
+  const addNikudToText = async () => {
+    if (!currentPageText || !currentPage?.id) return;
+    const revision = ++transformRevision.current;
 
     try {
       const result = await InvokeLLM({
@@ -637,23 +660,25 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
         }
       });
 
-      if (result.text_with_nikud) {
-        setCurrentPageText(sanitizeAIOutput(result.text_with_nikud));
+      if (revision === transformRevision.current && result.text_with_nikud) {
+        editText(sanitizeAIOutput(result.text_with_nikud));
         toast({
           description: t("book.nikudAdded"),
           className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
         });
       }
     } catch (error) {
-      toast({ variant: "destructive", description: t("book.nikudError") });
+      if (revision === transformRevision.current) toast({ variant: "destructive", description: t("book.nikudError") });
     }
-  }, [currentPageText, t, toast]);
+  };
 
-  const convertToRhyme = useCallback(async () => {
-    if (!currentPageText) return;
+  const convertToRhyme = async () => {
+    if (!currentPageText || !currentPage?.id || editorBusy || writes.current.has("rhyme")) return;
+    const revision = ++transformRevision.current;
 
+    writes.current.add("rhyme");
     try {
-      setIsGenerating(true);
+      setEditorBusy(true);
 
       const result = await InvokeLLM({
         prompt: `Convert the following text to a rhyming format in the same language.
@@ -667,19 +692,20 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
         }
       });
 
-      if (result.rhyming_text) {
-        setCurrentPageText(sanitizeAIOutput(result.rhyming_text));
+      if (revision === transformRevision.current && result.rhyming_text) {
+        editText(sanitizeAIOutput(result.rhyming_text));
         toast({
           description: t("book.rhymeSuccess"),
           className: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100"
         });
       }
     } catch (error) {
-      toast({ variant: "destructive", description: t("book.rhymeError") });
+      if (revision === transformRevision.current) toast({ variant: "destructive", description: t("book.rhymeError") });
     } finally {
-      setIsGenerating(false);
+      writes.current.delete("rhyme");
+      setEditorBusy(false);
     }
-  }, [currentPageText, rhymeSettings, t, toast]);
+  };
 
   // --- Render States ---
 
@@ -807,7 +833,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(createPageUrl("Library"))}
-                className="text-white/80 hover:text-white hover:bg-white/15 rounded-xl"
+                className="min-h-11 min-w-11 text-white/80 hover:text-white hover:bg-white/15 rounded-xl"
                 aria-label={t("book.backToLibrary")}
               >
                 <ArrowLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} aria-hidden="true" />
@@ -823,15 +849,6 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
               </div>
             </div>
 
-            {/* Right: auto-save indicator */}
-            <div className="shrink-0">
-              <AutoSaveIndicator
-                status={autoSaveStatus}
-                lastSaved={lastSaved}
-                isRTL={isRTL}
-                t={t}
-              />
-            </div>
           </div>
         </div>
       </motion.div>
@@ -881,21 +898,34 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
               textStyles={textStyles}
               interactiveElements={interactiveElements}
               useRhyming={useRhyming}
-              isGenerating={isGenerating}
+              isGenerating={editorBusy}
               isRTL={isRTL}
               t={t}
-              onPageIndexChange={setCurrentPageIndex}
-              onTextChange={setCurrentPageText}
-              onSaveText={updatePageText}
+              onPageIndexChange={selectPage}
+              onTextChange={editText}
+              onSaveText={() => updatePageText()}
+              onConfirmTextSave={() => updatePageText({ text: currentPage.text_content ?? null })}
+              onKeepServerText={() => {
+                transformRevision.current += 1;
+                if (textDraft) drafts.acknowledge(currentPage.id, "text_content", textDraft, serverText);
+                setTextSaves(previous => ({ ...previous, [currentPage.id]: null }));
+              }}
+              textDraft={textDraft}
+              hasTextDrafts={hasTextDrafts}
+              textSaveStatus={textSaveStatus}
+              textConflict={textConflict}
+              serverText={serverText}
+              promptDraft={promptDraft}
+              editorCopy={editorCopy}
               onAddNikud={addNikudToText}
               onConvertToRhyme={convertToRhyme}
-              onImagePromptChange={setCurrentPageImagePrompt}
+              onImagePromptChange={value => drafts.edit(currentPage, "image_prompt", value)}
               onRegenerateImage={updatePageImage}
               onLayoutChange={updatePageLayout}
             />
 
             {/* Styling section below editor */}
-            <BookStylingTab
+            {currentPage && <BookStylingTab
               textStyles={textStyles}
               setTextStyles={setTextStyles}
               bookLanguage={book.language}
@@ -904,15 +934,18 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
               rhymeSettings={rhymeSettings}
               setRhymeSettings={setRhymeSettings}
               onConvertToRhyme={convertToRhyme}
-              isGenerating={isGenerating}
+              isGenerating={editorBusy}
               isRTL={isRTL}
               t={t}
               toast={toast}
-            />
+            />}
           </TabsContent>
 
           {/* Tab 2: Preview — gradient border frame */}
           <TabsContent value="preview">
+            {hasTextDrafts && (
+              <p className="mb-3 text-sm">{editorCopy("book.editorReaderVersion")}</p>
+            )}
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}

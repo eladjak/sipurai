@@ -1,4 +1,4 @@
-import React from "react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -10,33 +10,42 @@ export default function PageNavigation({
   totalPages,
   onPrevPage,
   onNextPage,
-  isRTL,
+  onPageIndexChange,
+  editorCopy,
   t
 }) {
+  const pickerId = useId();
   return (
-    <div className={`flex justify-between items-center mt-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+    <div className="mt-4 flex flex-wrap items-end justify-between gap-2">
       <Button
         variant="outline"
         onClick={onPrevPage}
         disabled={currentPageIndex === 0}
-        className="min-w-[120px]"
+        className="min-h-11"
         aria-label={t("book.prevPage")}
       >
         {t("book.prevPage")}
       </Button>
 
-      <span
-        className="flex items-center text-sm text-gray-500 dark:text-gray-400 font-medium"
-        aria-live="polite"
-      >
-        {t("book.pageOf", { current: currentPageIndex + 1, total: totalPages })}
-      </span>
+      <div className="grid min-w-0 gap-1">
+        <label htmlFor={pickerId} className="text-sm font-medium">{editorCopy("book.editorChoosePage")}</label>
+        <select
+          className="min-h-11 min-w-0 max-w-full rounded-md border bg-background px-3 text-sm"
+          id={pickerId}
+          value={currentPageIndex}
+          onChange={(event) => onPageIndexChange(Number(event.target.value))}
+        >
+          {Array.from({ length: totalPages }, (_, index) => (
+            <option key={index} value={index}>{t("book.pageOf", { current: index + 1, total: totalPages })}</option>
+          ))}
+        </select>
+      </div>
 
       <Button
         variant="outline"
         onClick={onNextPage}
         disabled={currentPageIndex === totalPages - 1}
-        className="min-w-[120px]"
+        className="min-h-11"
         aria-label={t("book.nextPage")}
       >
         {t("book.nextPage")}
