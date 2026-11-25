@@ -22,6 +22,7 @@ import { trackEvent } from "@/lib/analytics";
 import { captureError } from "@/lib/errorTracking";
 
 import GenerationWaiting from "@/components/bookReader/GenerationWaiting";
+import DraftRecovery from "@/components/wizard/DraftRecovery";
 import WizardProgress from "@/components/wizard/WizardProgress";
 import TopicStep, { getSelectedTopicLabel } from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
@@ -192,6 +193,13 @@ function BookWizardSession() {
   // Draft auto-save
   const [activeDraftKey, setActiveDraftKey] = useState(null);
   const [pendingDraft, setPendingDraft] = useState(null);
+  const [restoredAttemptId, setRestoredAttemptId] = useState(null);
+  const focusRestoredStep = useRef(false);
+  const focusAfterRecovery = useCallback((heading) => {
+    if (!heading || !focusRestoredStep.current) return;
+    focusRestoredStep.current = false;
+    heading.focus();
+  }, []);
   const skipNextAutosaveRef = useRef(false);
   const [hasIncomingIdea, setHasIncomingIdea] = useState(false);
 
@@ -296,6 +304,7 @@ function BookWizardSession() {
     setUseRhyming(draft.useRhyming === true);
     if (draft.rhymeSettings) setRhymeSettings((prev) => ({ ...prev, ...draft.rhymeSettings }));
     quotaKeyRef.current = draft._attemptId || null;
+    setRestoredAttemptId(typeof draft._attemptId === "string" && draft._attemptId ? draft._attemptId : null);
     setActiveDraftKey(draft._draftKey);
     setPendingDraft(null);
     setHasIncomingIdea(false);
@@ -890,6 +899,13 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
     return <QuotaLimitCard error={quotaBlock} onBack={() => navigate(createPageUrl("Library"))} />;
   }
 
+  if (restoredAttemptId) {
+    return <DraftRecovery key={`${ownerId}:${restoredAttemptId}`} ownerId={ownerId} attemptId={restoredAttemptId} t={t} isRTL={isRTL} onReturnToDraft={() => {
+      focusRestoredStep.current = true;
+      setRestoredAttemptId(null);
+    }} />;
+  }
+
   // Error state
   if (error && !isGeneratingOutline && !isCreating) {
     return (
@@ -1031,7 +1047,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         <img src="/images/spx/topics/adventure.webp" alt="" aria-hidden="true" className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-purple-700">{t("wizard.title")}</p>
-          <h1 className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{steps[currentStep]?.title}</h1>
+          <h1 ref={focusAfterRecovery} tabIndex={-1} className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{steps[currentStep]?.title}</h1>
           <p className="mt-1 text-sm text-[#5b5478]" aria-live="polite">{t("spxWizard.step", { current: currentStep + 1, total: steps.length })}</p>
         </div>
       </header>
