@@ -159,7 +159,7 @@ function BookWizardSession() {
     art_style: "disney",
     length: "medium",
     genre: "adventure",
-    age_range: "5-7",
+    age_range: currentUserData?.preferred_age_range || "5-7",
     language: "english",
     child_name: "",
     child_age: 5,
@@ -423,8 +423,8 @@ function BookWizardSession() {
         }
       }
 
-      // Use bookData.age_range, fallback to preferredAgeRange from onboarding, then default
-      const ageRange = bookData.age_range || localStorage.getItem("preferredAgeRange") || "5-10";
+      // Prefer the book’s age range, then this family’s saved preference.
+      const ageRange = bookData.age_range || currentUserData?.preferred_age_range || "5-10";
       const safetyPrefix = buildSafetyPromptPrefix(ageRange);
       // Use currentLanguage (book content language) for AI prompt instruction
       const langInstruction = currentLanguage === "hebrew"
@@ -541,7 +541,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   const tryStoryBibleFastPath = async () => {
     try {
       const isHebrewBook = bookData.language === "hebrew";
-      const ageRange = bookData.age_range || localStorage.getItem("preferredAgeRange") || "5-10";
+      const ageRange = bookData.age_range || currentUserData?.preferred_age_range || "5-10";
       const safetyDirective = buildSafetyPromptPrefix(ageRange);
       const topicDescription = selectedTopic === "custom" && customIdea ? customIdea : selectedTopic;
       const characters = selectedCharacters.map((c) => ({
@@ -690,7 +690,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
         rhymeSettings,
         storyBible,
         pageCount,
-        defaultAgeRange: localStorage.getItem("preferredAgeRange") || "5-10",
+        defaultAgeRange: currentUserData?.preferred_age_range || "5-10",
       });
 
       const result = await generateBookIncremental({
@@ -933,7 +933,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             customIdea={customIdea}
             selectedCharacters={selectedCharacters}
             language={currentLanguage}
-            ageRange={bookData.age_range || localStorage.getItem("preferredAgeRange") || "5-7"}
+            ageRange={bookData.age_range || currentUserData?.preferred_age_range || "5-7"}
             isRTL={isRTL}
           />
         );

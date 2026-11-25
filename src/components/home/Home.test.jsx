@@ -1,59 +1,159 @@
-import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Book } from '@/entities/Book';
+import { Page } from '@/entities/Page';
 import Home from '@/pages/Home';
+import Tonight from '@/screens/tonight/Tonight';
 import demoBooks from '@/data/demoBooks';
 
-globalThis.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} };
-
-const state = vi.hoisted(() => ({ language: 'hebrew', user: { id: 'test-user' } }));
-vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: state.user }) }));
-vi.mock('@/entities/Book', () => ({ Book: { filter: vi.fn(async () => []) } }));
-vi.mock('@/hooks/useGamification', () => ({ default: () => ({ badges: [], awardXP: vi.fn() }) }));
-vi.mock('@/lib/dailyPrompt', () => ({ getDailyPrompt: vi.fn(async () => ({ title: 'רעיון', description: 'סיפור' })) }));
+const state = vi.hoisted(() => ({ language: 'hebrew', user: null, isLoading: false }));
+vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: state.user, isLoading: state.isLoading }) }));
+vi.mock('@/entities/Book', () => ({ Book: { filter: vi.fn() } }));
+vi.mock('@/entities/Page', () => ({ Page: { filter: vi.fn() } }));
 vi.mock('@/components/onboarding/OnboardingWizard', () => ({ default: ({ onCancel }) => <button onClick={onCancel}>close preferences</button> }));
 vi.mock('@/components/i18n/i18nProvider', async () => {
   const he = (await import('@/components/i18n/locales/he')).default;
   const en = (await import('@/components/i18n/locales/en')).default;
-  he.spxLibrary = (await import('@/components/i18n/locales/he/spxLibrary')).default.spxLibrary;
-  en.spxLibrary = (await import('@/components/i18n/locales/en/spxLibrary')).default.spxLibrary;
-  he.homeLegacy = (await import('@/components/i18n/locales/he/home')).default.homeLegacy;
-  en.homeLegacy = (await import('@/components/i18n/locales/en/home')).default.homeLegacy;
-  return { useI18n: () => ({ language: state.language, isRTL: state.language === 'hebrew', t: (key) => key.split('.').reduce((obj, part) => obj?.[part], state.language === 'hebrew' ? he : en) || key }) };
-
+  const heTonight = (await import('@/components/i18n/locales/he/tonight')).default;
+  const enTonight = (await import('@/components/i18n/locales/en/tonight')).default;
+  const heLibrary = (await import('@/components/i18n/locales/he/spxLibrary')).default;
+  const enLibrary = (await import('@/components/i18n/locales/en/spxLibrary')).default;
+  return {
+    useI18n: () => {
+      const rtl = state.language === 'hebrew';
+      const strings = rtl ? { ...he, ...heTonight, ...heLibrary } : { ...en, ...enTonight, ...enLibrary };
+      return {
+        language: state.language,
+        isRTL: rtl,
+        t: (key, replacements = {}) => {
+          const text = key.split('.').reduce((obj, part) => obj?.[part], strings) || key;
+          return text.replace(/\{(\w+)\}/g, (whole, variable) => replacements[variable] ?? whole);
+        },
+      };
+    },
+  };
 });
 
-describe('legacy home samples', () => {
-  beforeEach(() => { localStorage.setItem('onboarding_complete', 'true'); state.language = 'hebrew'; });
-  it('renders the three demo titles and covers in Hebrew and links all three samples to public reading', async () => {
-    render(<MemoryRouter><Home /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText(demoBooks[0].title.he)).toBeInTheDocument());
+const home = (PageComponent = Home) => <MemoryRouter><PageComponent /></MemoryRouter>;
+const row = (id, status, date = '2026-11-25') => ({ id, title: `Story ${id}`, status, created_date: date });
+const textPage = (page_number, image_url) => ({ page_number, text_content: 'Words on a page', image_url });
+
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+  Book.filter.mockReset().mockResolvedValue([]);
+  Page.filter.mockReset().mockResolvedValue([]);
+  state.user = { id: 'owner-a', favorite_topics: ['space'] };
+  state.language = 'hebrew';
+  state.isLoading = false;
+  vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(true);
+});
+
+describe('family home', () => {
+  it('keeps samples available during identity loading and offers first creation only after an empty response', async () => {
+    state.isLoading = true;
+    const { rerender } = render(home());
+    expect(screen.getByRole('status')).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'יוצרים סיפור ראשון' })).toBeNull();
+    expect(Book.filter).not.toHaveBeenCalled();
     for (const book of demoBooks) {
-      expect(screen.getByText(book.title.he)).toBeInTheDocument();
-      expect(screen.getByAltText(book.title.he)).toHaveAttribute('src', book.cover_image);
-      expect(screen.queryByText(book.title.en)).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: book.title.he })).toHaveAttribute('href', `/samples/${book.id}`);
+      expect(screen.getByRole('link', { name: book.title.he }).querySelector('img')).toHaveAttribute('src', book.cover_image);
     }
-    expect(screen.queryByText("The Dragon's Quest")).not.toBeInTheDocument();
-    expect(screen.getByText('הסיפור שלכם מתחיל כאן')).toBeInTheDocument();
-    expect(screen.queryByText('Guest')).not.toBeInTheDocument();
-    expect(screen.getByText('מדע בדיוני')).toBeInTheDocument();
-    expect(screen.getByText('לילי מגלה גן סודי ופוגשת דרקון שמחפש חברים.')).toBeInTheDocument();
-    for (const book of demoBooks) expect(screen.getAllByRole('link').some(link => link.getAttribute('href') === `/samples/${book.id}`)).toBe(true);
+    state.isLoading = false;
+    rerender(home());
+    expect(await screen.findByRole('link', { name: 'יוצרים סיפור ראשון' })).toHaveAttribute('href', '/BookWizard');
   });
-  it('offers optional preferences without blocking first entry', async () => {
-    render(<MemoryRouter><Home /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText(demoBooks[0].title.he)).toBeInTheDocument());
-    expect(screen.queryByText('close preferences')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'בחירת העדפות לסיפורים' }));
-    fireEvent.click(screen.getByRole('button', { name: 'close preferences' }));
-    expect(screen.queryByText('close preferences')).not.toBeInTheDocument();
+
+  it('validates a zero-based bookmark against readable pages and keeps one reading link', async () => {
+    Book.filter.mockResolvedValue([row('ready', 'complete')]);
+    Page.filter.mockResolvedValue([textPage(0), textPage(2), textPage(3), { page_number: 1 }]);
+    localStorage.setItem('book_ready_page', '2');
+    render(home());
+    const read = await screen.findByRole('link', { name: 'ממשיכים מעמוד 3' });
+    expect(read).toHaveAttribute('href', '/BookView?id=ready');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Story ready');
+    expect(screen.getByRole('link', { name: 'כל הספרים' })).toHaveAttribute('href', '/Library');
+    expect(screen.getAllByRole('link')[0]).toBe(read);
   });
-  it('shows English demo copy for English users', async () => {
+
+  it('shows generic reading and a fallback when a bookmark is out of range and cover breaks', async () => {
+    Book.filter.mockResolvedValue([{ ...row('ready', 'complete'), cover_image: '/broken.webp' }]);
+    Page.filter.mockResolvedValue([textPage(0)]);
+    localStorage.setItem('book_ready_page', '9');
+    const { container } = render(home());
+    await screen.findByRole('link', { name: 'פותחים את הספר' });
+    await waitFor(() => expect(Page.filter).toHaveBeenCalled());
+    const cover = container.querySelector('img[src="/broken.webp"]');
+    fireEvent.error(cover);
+    expect(container.querySelector('.family-home__art svg')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /ממשיכים מעמוד/ })).toBeNull();
+  });
+
+  it('routes drafts, running and failed books and shows partial work once', async () => {
     state.language = 'english';
-    render(<MemoryRouter><Home /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText(demoBooks[0].title.en)).toBeInTheDocument());
-    expect(screen.getByText('Lily discovers a secret garden and meets a dragon looking for friends.')).toBeInTheDocument();
-    expect(screen.getByText('Your story begins here')).toBeInTheDocument();
+    Book.filter.mockResolvedValue([
+      row('draft', 'draft'), row('running', 'generating'), row('failed', 'failed'),
+      { ...row('partial', 'partial'), total_pages: 3 },
+    ]);
+    Page.filter.mockResolvedValue([textPage(1), textPage(2, '/illustration.webp')]);
+    render(home(Tonight));
+    expect(await screen.findByText('2 of 3 pages are ready to read. You can finish the illustrations inside the book.')).toBeVisible();
+    expect(screen.getAllByText('Story partial')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: /Story draft/ })).toHaveAttribute('href', '/BookCreation?id=draft');
+    expect(screen.getByRole('link', { name: /Story running/ })).toHaveAttribute('href', '/BookView?id=running');
+    expect(screen.getByRole('link', { name: /Story failed/ })).toHaveAttribute('href', '/BookView?id=failed');
+    expect(screen.getByRole('link', { name: 'All books' })).toHaveAttribute('href', '/shelf');
+    expect(screen.getByRole('link', { name: 'Create a new story' })).toHaveAttribute('href', '/new');
+    expect(screen.getByRole('heading', { level: 1 }).closest('.family-home')).toHaveAttribute('dir', 'ltr');
+  });
+
+  it('distinguishes a server error from an empty shelf and retries', async () => {
+    Book.filter.mockRejectedValueOnce(new Error('unavailable')).mockResolvedValueOnce([]);
+    render(home());
+    expect(await screen.findByRole('alert')).toHaveTextContent('לא הצלחנו לטעון את הספרים');
+    expect(screen.queryByRole('link', { name: 'יוצרים סיפור ראשון' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'לנסות שוב' }));
+    expect(await screen.findByRole('link', { name: 'יוצרים סיפור ראשון' })).toBeVisible();
+  });
+
+  it('recovers automatically on reconnect', async () => {
+    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    render(home());
+    expect(screen.getByRole('status')).toHaveTextContent('אין חיבור לרשת');
+    expect(Book.filter).not.toHaveBeenCalled();
+    fireEvent(window, new Event('online'));
+    expect(await screen.findByRole('link', { name: 'יוצרים סיפור ראשון' })).toBeVisible();
+  });
+
+  it('discards an old owner’s pending books and displays only the new owner’s idea', async () => {
+    let finishOld;
+    Book.filter.mockImplementation(({ created_by }) => created_by === 'owner-a'
+      ? new Promise(resolve => { finishOld = resolve; })
+      : Promise.resolve([row('current', 'complete')]));
+    const { rerender } = render(home());
+    expect(screen.getByText('חללית בעציץ')).toBeVisible();
+    state.user = { id: 'owner-b', favorite_topics: ['science'] };
+    rerender(home());
+    expect(await screen.findByRole('heading', { name: 'Story current' })).toBeVisible();
+    await act(async () => finishOld([row('other-account', 'complete')]));
+    expect(screen.queryByText('Story other-account')).toBeNull();
+    expect(screen.queryByText('חללית בעציץ')).toBeNull();
+    fireEvent.click(screen.getByRole('link', { name: 'מתחילים עם הרעיון הזה' }));
+    expect(JSON.parse(sessionStorage.getItem('sipurai_pending_idea'))).toMatchObject({
+      ownerId: 'owner-b', title: 'טיפה עם סוד',
+    });
+  });
+
+  it('returns focus to the preferences trigger after close', async () => {
+    render(home());
+    const trigger = screen.getByRole('button', { name: 'בחירת העדפות לסיפורים' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const preferences = screen.getByRole('dialog', { name: 'בחירת העדפות לסיפורים' });
+    fireEvent.click(await within(preferences).findByRole('button', { name: 'close preferences' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });

@@ -220,7 +220,7 @@ export function useNewStory(language, leaveMessage) {
         art_style: style,
         length,
         genre: "adventure",
-        age_range: "5-7",
+        age_range: user?.preferred_age_range || "5-7",
         language: language === "hebrew" ? "hebrew" : "english",
         child_name: hero.name,
         child_age: hero.age || 5,
@@ -243,7 +243,7 @@ export function useNewStory(language, leaveMessage) {
         rhymeSettings: { pattern: "aabb", meter: "free", complexity: "simple" },
         storyBible: null,
         pageCount: pageCountFor(length),
-        defaultAgeRange: localStorage.getItem("preferredAgeRange") || "5-10",
+        defaultAgeRange: user?.preferred_age_range || "5-10",
       });
       const result = await generateBookIncremental({
         entities: { Book, Page },

@@ -120,13 +120,18 @@ const translations = {
   }
 };
 
-const OnboardingWizard = React.memo(function OnboardingWizard(/** @type {{onComplete: () => void, onCancel?: () => void, userName?: string}} */ { onComplete, onCancel, userName }) {
+const OnboardingWizard = React.memo(function OnboardingWizard(
+  /** @type {{onComplete: (profile: Awaited<ReturnType<typeof User.me>>) => void,
+   * onCancel?: () => void, userName?: string, embedded?: boolean, ownerId: string,
+   * initialAge: string, initialTopics: string[]}} */
+  { onComplete, onCancel, userName, embedded = false, ownerId, initialAge, initialTopics }
+) {
   // NOTE: Language is now step 0 so the user immediately sees the UI in their
   // chosen language for all subsequent steps. RTL applies from step 0 onward.
   const { changeLanguage, language: currentLanguage, t: globalT } = useI18n();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(userName || "");
-  const [ageRange, setAgeRange] = useState(() => localStorage.getItem("preferredAgeRange") || "");
+  const [ageRange, setAgeRange] = useState(initialAge);
   const [language, setLanguage] = useState(() => {
     if (['english', 'hebrew', 'yiddish'].includes(currentLanguage)) return currentLanguage;
     const nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
@@ -134,11 +139,9 @@ const OnboardingWizard = React.memo(function OnboardingWizard(/** @type {{onComp
     if (nav.startsWith('yi')) return 'yiddish';
     return 'english';
   });
-  const [selectedTopics, setSelectedTopics] = useState(() => {
-    try { const saved = JSON.parse(localStorage.getItem("favoriteTopics") || "[]"); return Array.isArray(saved) ? saved : []; }
-    catch { return []; }
-  });
+  const [selectedTopics, setSelectedTopics] = useState(initialTopics);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   // RTL applies as soon as the user picks Hebrew/Yiddish in step 0
   const isRTL = language === "hebrew" || language === "yiddish";
@@ -170,31 +173,21 @@ const OnboardingWizard = React.memo(function OnboardingWizard(/** @type {{onComp
 
   const handleFinish = async () => {
     setIsSaving(true);
-    // Apply language change to the global i18n provider immediately so the
-    // app renders in the correct language/direction right after onboarding.
-    await changeLanguage(language);
+    setSaveError(false);
     try {
-      await User.updateMyUserData({
+      if ((await User.me()).id !== ownerId) throw new Error("Active account changed");
+      const updated = await User.updateMyUserData({
         display_name: name.trim(),
         preferred_age_range: ageRange,
         preferred_language: language,
-        language: language,
-        favorite_topics: selectedTopics
+        language,
+        favorite_topics: selectedTopics,
       });
-
-      localStorage.setItem("language", language);
-      localStorage.setItem("onboarding_complete", "true");
-      localStorage.setItem("preferredAgeRange", ageRange);
-      localStorage.setItem("favoriteTopics", JSON.stringify(selectedTopics));
-
-      onComplete?.();
+      if ((await User.me()).id !== ownerId) return;
+      if (language !== currentLanguage) await changeLanguage(language);
+      onComplete?.(updated);
     } catch {
-      // Still mark complete even if profile update fails (Base44 may not support all fields)
-      localStorage.setItem("language", language);
-      localStorage.setItem("onboarding_complete", "true");
-      localStorage.setItem("preferredAgeRange", ageRange);
-      localStorage.setItem("favoriteTopics", JSON.stringify(selectedTopics));
-      onComplete?.();
+      setSaveError(true);
     } finally {
       setIsSaving(false);
     }
@@ -219,9 +212,10 @@ const OnboardingWizard = React.memo(function OnboardingWizard(/** @type {{onComp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className={embedded ? undefined : "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"}>
       <Card className="w-full max-w-lg overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
         {onCancel && <button type="button" onClick={onCancel} className="m-3 min-h-11 rounded-lg px-3 underline focus-visible:outline focus-visible:outline-2">{globalT('spxLibrary.closePreferences')}</button>}
+        {saveError && <p role="alert" className="mx-4 mb-2 rounded-lg bg-red-50 p-3 text-red-900">{globalT('tonight.preferenceError')}</p>}
         {/* Progress bar */}
         <div className="flex gap-1 p-3 bg-gray-50 dark:bg-gray-900">
           {STEPS.map((s, i) => (

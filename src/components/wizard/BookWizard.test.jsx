@@ -19,7 +19,7 @@ vi.mock("@/entities/User", () => ({
 // Mock AuthContext (useCurrentUser depends on useAuth)
 vi.mock("@/lib/AuthContext", () => ({
   useAuth: () => ({
-    user: { id: "test-user", email: "test@test.com", full_name: "Test User", language: "english" },
+    user: { id: "test-user", email: "test@test.com", full_name: "Test User", language: "english", preferred_age_range: "8-10" },
     isAuthenticated: true,
     isLoadingAuth: false,
     navigateToLogin: vi.fn(),
@@ -658,6 +658,19 @@ describe("BookWizard Page", () => {
     await waitFor(() => {
       expect(screen.getByText("Book Creation Wizard")).toBeDefined();
     });
+  });
+
+  it("uses the signed-in family's preferred age even with another age in browser storage", async () => {
+    localStorage.clear();
+    localStorage.setItem("preferredAgeRange", "2-4");
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByText("Animals"));
+    await waitFor(() => {
+      const [key] = getDraftKeys("test-user");
+      expect(key).toBeDefined();
+      expect(JSON.parse(localStorage.getItem(key)).bookData.age_range).toBe("8-10");
+    }, { timeout: 3500 });
+    localStorage.clear();
   });
 
   it("renders all 4 step labels in progress indicator", async () => {

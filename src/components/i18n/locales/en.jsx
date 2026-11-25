@@ -146,7 +146,7 @@ export default {
       title: "Daily Story Prompt",
       try: "Save to Ideas",
       use: "Create Book Now",
-      createFromIdea: "Create book from this idea",
+      createFromIdea: "Start with this idea",
       loading: "Loading inspiration...",
       explore: "Explore more ideas"
     },
