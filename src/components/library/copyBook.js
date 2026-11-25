@@ -9,7 +9,7 @@ const storyFields = [
   'childNames', 'selectedCharacters', 'cover_image',
 ];
 
-export async function copyBook({ source, ownerId, title, isCurrent, resume }) {
+export async function copyBook({ source, ownerId, title, isCurrent, resume, onPlan }) {
   if (!isCurrent() || source.created_by !== ownerId) return null;
 
   let copy = resume?.copy;
@@ -43,6 +43,8 @@ export async function copyBook({ source, ownerId, title, isCurrent, resume }) {
     }
   }
 
+  // Keep the validated target even if the owner changed while creation was pending.
+  onPlan?.({ copy, pageIds });
   if (!isCurrent()) return null;
   if (!pageIds.length) return { kind: 'emptyDraft', copy };
 

@@ -37,11 +37,13 @@ import EmptyState from "../components/library/EmptyState";
 
 export default function Library() {
   const { user } = useCurrentUser();
+  // Recovery and pending attempts last only for this mounted Library view.
   const copyPlans = useRef(new Map());
-  return <FamilyLibrary key={user?.id ?? ''} ownerId={user?.id} copyPlans={copyPlans.current} />;
+  const pendingCopies = useRef(new Map());
+  return <FamilyLibrary key={user?.id ?? ''} ownerId={user?.id} copyPlans={copyPlans.current} pendingCopies={pendingCopies.current} />;
 }
 
-function FamilyLibrary({ ownerId, copyPlans }) {
+function FamilyLibrary({ ownerId, copyPlans, pendingCopies }) {
   const { t, isRTL } = useI18n();
   const mounted = useRef(false);
   const request = useRef(0);
@@ -142,8 +144,10 @@ function FamilyLibrary({ ownerId, copyPlans }) {
     const ownerPlans = copyPlans.get(ownerId);
     recovery ??= ownerPlans?.get(id);
     const source = recovery?.source ?? books.find(book => book.id === id);
-    if (!source || !ownerId || !mounted.current || activeCopy.current) return;
+    if (!source || !ownerId || !mounted.current || activeCopy.current || pendingCopies.get(ownerId)?.has(id)) return;
 
+    if (!pendingCopies.has(ownerId)) pendingCopies.set(ownerId, new Set());
+    pendingCopies.get(ownerId).add(id);
     const operation = {};
     activeCopy.current = operation;
     setCopySourceId(id);
@@ -151,17 +155,18 @@ function FamilyLibrary({ ownerId, copyPlans }) {
     const isCurrent = () => mounted.current && activeCopy.current === operation;
     try {
       const title = `${source.title || t("libraryLegacy.untitledBook")} (${t("library.copy")})`;
-      const result = await copyBook({ source, ownerId, title, isCurrent, resume: recovery });
-      if (!isCurrent() || !result) return;
-      if (result.kind === 'interrupted') {
+      const result = await copyBook({ source, ownerId, title, isCurrent, resume: recovery, onPlan: plan => {
         if (!copyPlans.has(ownerId)) copyPlans.set(ownerId, new Map());
-        copyPlans.get(ownerId).set(id, { ...result, sourceId: id, source });
-      } else if (result.kind === 'complete') {
-        ownerPlans?.delete(id);
+        copyPlans.get(ownerId).set(id, { ...plan, sourceId: id, source });
+      } });
+      if (!isCurrent() || !result) return;
+      if (['complete', 'emptyDraft', 'resumeConflict'].includes(result.kind)) {
+        copyPlans.get(ownerId)?.delete(id);
       }
       setCopyFeedback({ ...result, sourceId: id, source });
       if (result.kind === "createError" || result.copy) await loadBooks();
     } finally {
+      pendingCopies.get(ownerId)?.delete(id);
       if (isCurrent()) {
         activeCopy.current = null;
         setCopySourceId(null);

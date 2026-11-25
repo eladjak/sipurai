@@ -159,4 +159,86 @@ describe('legacy library duplicate RPC', () => {
     await act(async () => finish(copy));
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
+  it('retains a late-created target across A → B → A and blocks a second pending create', async () => {
+    let finish;
+    Book.create.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const { rerender } = render(view());
+    await duplicate();
+    await waitFor(() => expect(Book.create).toHaveBeenCalledTimes(1));
+    state.owner = 'family-b';
+    rerender(view());
+    state.owner = 'family-a';
+    rerender(view());
+    await duplicate();
+    expect(Book.create).toHaveBeenCalledTimes(1);
+    await act(async () => finish(copy));
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(screen.queryByText('libraryLegacy.complete')).toBeNull();
+    await duplicate();
+    await screen.findByText('libraryLegacy.complete');
+    expect(Book.create).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc.mock.calls).toEqual([rpcArgs]);
+  });
+
+  it('clears a terminal conflict only and creates a new draft on the next explicit click', async () => {
+    Book.create.mockResolvedValueOnce(copy).mockResolvedValueOnce({ ...copy, id: 'fresh-copy' });
+    supabase.rpc.mockRejectedValueOnce(new Error('lost'))
+      .mockResolvedValueOnce({ error: { message: 'library_copy_conflict' } })
+      .mockResolvedValueOnce(response);
+    render(view());
+    await duplicate();
+    fireEvent.click(await resume());
+    await screen.findByText('libraryLegacy.resumeConflict');
+    expect(Book.create).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc.mock.calls).toEqual([rpcArgs, rpcArgs]);
+    await duplicate();
+    await screen.findByText('libraryLegacy.complete');
+    expect(Book.create).toHaveBeenCalledTimes(2);
+    expect(supabase.rpc.mock.calls[2][1].p_target).toBe('fresh-copy');
+  });
+
+  it('allows B to copy independently while A creation is pending', async () => {
+    let finish;
+    const b = { ...original, created_by: 'family-b', title: 'B book' };
+    Book.filter.mockImplementation(async ({ created_by }) => created_by === 'family-a' ? [original] : [b]);
+    Book.create.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockResolvedValueOnce({ ...copy, id: 'b-copy', created_by: 'family-b' });
+    const { rerender } = render(view());
+    await duplicate();
+    await waitFor(() => expect(Book.create).toHaveBeenCalledTimes(1));
+    state.owner = 'family-b';
+    rerender(view());
+    await duplicate();
+    await screen.findByText('libraryLegacy.complete');
+    expect(Book.create.mock.calls[1][0].created_by).toBe('family-b');
+    expect(supabase.rpc.mock.calls[0][1].p_target).toBe('b-copy');
+    await act(async () => finish(copy));
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    state.owner = 'family-a';
+    rerender(view());
+    await duplicate();
+    await screen.findByText('libraryLegacy.complete');
+    expect(supabase.rpc.mock.calls[1]).toEqual(rpcArgs);
+    expect(Book.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('retains the plan when an already sent RPC resolves after an account switch', async () => {
+    let finish;
+    supabase.rpc.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockResolvedValueOnce({ data: [{ copied_count: 2, inserted_count: 0 }], error: null });
+    const { rerender } = render(view());
+    await duplicate();
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledTimes(1));
+    state.owner = 'family-b';
+    rerender(view());
+    await act(async () => finish(response));
+    expect(screen.queryByText('libraryLegacy.complete')).toBeNull();
+    state.owner = 'family-a';
+    rerender(view());
+    await duplicate();
+    await screen.findByText('libraryLegacy.complete');
+    expect(supabase.rpc.mock.calls).toEqual([rpcArgs, rpcArgs]);
+    expect(Book.create).toHaveBeenCalledTimes(1);
+  });
+
 });
