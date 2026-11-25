@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Trash2, EyeOff, Loader2, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -33,6 +33,7 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
   const [open, setOpen] = useState(initialOpen);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
+  const confirmed = useRef(false);
   const run = onAction || KINDS[kind].action;
   const confirm = async (e) => {
     e?.preventDefault(); // keep the dialog open until the server answers
@@ -41,6 +42,7 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
     setError('');
     try {
       const result = await run(book.id);
+      confirmed.current = true;
       setOpen(false);
       setBusy(false);
       // The book is gone, but the server could not remove some drawing files yet: say so plainly.
@@ -56,7 +58,7 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
     }
   };
   const onOpenChange = (v) => { if (!busy) { setOpen(v); if (!v) setError(''); } };
-  return { open, setOpen, onOpenChange, busy, error, confirm };
+  return { open, setOpen, onOpenChange, busy, error, confirm, confirmed };
 }
 
 /**
@@ -69,11 +71,13 @@ function useConfirm({ kind, book, onChanged, onAction, initialOpen = false, init
  * @param {boolean} [p.initialOpen]
  * @param {string} [p.initialError]
  * @param {boolean} [p.compact]
+ * @param {React.RefObject<HTMLElement>} [p.successFocus]
  */
-export function BookControlButton({ kind, book, onChanged, onAction, className = '', initialOpen, initialError, compact = false }) {
+export function BookControlButton({ kind, book, onChanged, onAction, className = '', initialOpen, initialError, compact = false, successFocus }) {
   const { t, isRTL } = useI18n();
   const { Icon, tone } = KINDS[kind];
   const s = useConfirm({ kind, book, onChanged, onAction, initialOpen, initialError });
+  const trigger = useRef(null);
   const title = book?.title || t('bookControls.untitled');
   const isDelete = kind === 'delete';
   const label = (isDelete ? t('bookControls.del') : t('bookControls.stopShare'));
@@ -84,6 +88,7 @@ export function BookControlButton({ kind, book, onChanged, onAction, className =
     <>
       <button
         type="button"
+        ref={trigger}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); s.setOpen(true); }}
         className={`inline-flex ${compact ? 'min-h-11 text-sm' : 'min-h-12 text-[15px]'} w-full items-center gap-3 rounded-xl border-2 bg-white px-4 text-start font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.98] ${palette} ${className}`}
       >
@@ -94,7 +99,18 @@ export function BookControlButton({ kind, book, onChanged, onAction, className =
         </span>
       </button>
       <AlertDialog open={s.open} onOpenChange={s.onOpenChange}>
-        <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'} className="max-h-[92dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-3xl">
+        <AlertDialogContent
+          dir={isRTL ? 'rtl' : 'ltr'}
+          className="max-h-[92dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-3xl motion-reduce:animate-none"
+          onCloseAutoFocus={(event) => {
+            const target = s.confirmed.current && successFocus?.current ? successFocus.current : trigger.current;
+            s.confirmed.current = false;
+            if (target?.isConnected) {
+              event.preventDefault();
+              target.focus();
+            }
+          }}
+        >
           <AlertDialogHeader className={isRTL ? 'sm:text-right' : ''}>
             <AlertDialogTitle className={`flex items-start gap-2 break-words ${isDelete ? 'text-red-700' : 'text-amber-800'}`}>
               <AlertTriangle className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />

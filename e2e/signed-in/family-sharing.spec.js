@@ -127,7 +127,12 @@ for (const width of [375, 1280]) {
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText(title);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(stop).toBeFocused();
     expect(state.revoke).toBe(0);
+    await page.keyboard.press('Enter');
+    await expect(dialog).toBeVisible();
     const confirm = dialog.getByRole('button', { name: 'כן, להפסיק לשתף' });
     await targetSize(confirm);
     await confirm.focus();
@@ -136,7 +141,7 @@ for (const width of [375, 1280]) {
     expect(state.revoke).toBe(1);
     await expect(page.getByRole('button', { name: 'העתק קישור שיתוף' })).toHaveCount(0);
     await expect(page.getByLabel('קישור קריאה ציבורי')).toHaveCount(0);
-    await expect(page.locator('[tabindex="-1"]').filter({ hasText: title })).toBeFocused();
+    await expect(page.getByRole('heading', { name: title, exact: true }).and(page.locator('[tabindex="-1"]'))).toBeFocused();
     await page.reload();
     await expect(page.getByText(privateStatus)).toBeVisible();
     await expect(page.getByRole('button', { name: 'העתק קישור שיתוף' })).toHaveCount(0);

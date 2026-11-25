@@ -261,7 +261,7 @@ describe("editor sharing", () => {
     fireEvent.click(action("bookControls.stopShareConfirm"));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(api.unshare).toHaveBeenCalledTimes(2);
-    expect(document.activeElement).toHaveTextContent(book.title);
+    await waitFor(() => expect(document.activeElement).toHaveTextContent(book.title));
     expect(screen.queryByRole("button", { name: /bookControls.stopShare/ })).toBeNull();
   });
 });

@@ -250,9 +250,9 @@ function BookSharing({ book, bookId }) {
             className="size-16 rounded-xl border border-white bg-indigo-950 object-cover shadow-sm sm:size-20"
           />
           <div className="min-w-0 space-y-2">
-            <CardTitle ref={heading} tabIndex={-1} className="[overflow-wrap:anywhere]">
+            <h2 ref={heading} tabIndex={-1} className="text-lg font-semibold leading-tight [overflow-wrap:anywhere]">
               {book?.title || t("bookControls.untitled")}
-            </CardTitle>
+            </h2>
             <CardDescription role="status">
               {checking ? t("sharing.checkingVisibility")
                 : readFailed ? t("sharing.visibilityUnavailable")
@@ -346,7 +346,7 @@ function BookSharing({ book, bookId }) {
               : noticeLabel}
           </p>
           {(isShared || cleanupRequired) && (
-            <BookControlButton kind="unshare" book={{ ...book, id: bookId }} onAction={stopSharing} onChanged={() => {
+            <BookControlButton kind="unshare" book={{ ...book, id: bookId }} onAction={stopSharing} successFocus={heading} onChanged={() => {
               setVisibility(false);
               setReadFailed(false);
               setListingReadFailed(false);
@@ -354,7 +354,6 @@ function BookSharing({ book, bookId }) {
               selectShareType("");
               setInviteEmail("");
               setInviteMessage("");
-              heading.current?.focus();
             }} />
           )}
         </CardContent>
