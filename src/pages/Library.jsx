@@ -159,8 +159,9 @@ function FamilyLibrary({ ownerId, copyPlans, pendingCopies }) {
         if (!copyPlans.has(ownerId)) copyPlans.set(ownerId, new Map());
         copyPlans.get(ownerId).set(id, { ...plan, sourceId: id, source });
       } });
+      if (result?.kind === 'resumeConflict') copyPlans.get(ownerId)?.delete(id);
       if (!isCurrent() || !result) return;
-      if (['complete', 'emptyDraft', 'resumeConflict'].includes(result.kind)) {
+      if (['complete', 'emptyDraft'].includes(result.kind)) {
         copyPlans.get(ownerId)?.delete(id);
       }
       setCopyFeedback({ ...result, sourceId: id, source });

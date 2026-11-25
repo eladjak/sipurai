@@ -54,8 +54,8 @@ export async function copyBook({ source, ownerId, title, isCurrent, resume, onPl
       p_target: copy.id,
       p_source_page_ids: pageIds,
     });
-    if (!isCurrent()) return null;
     if (error?.message === 'library_copy_conflict') return { kind: 'resumeConflict', copy };
+    if (!isCurrent()) return null;
     const result = Array.isArray(data) && data.length === 1 ? data[0] : null;
     if (!error && result?.copied_count === pageIds.length &&
         Number.isInteger(result.inserted_count) && result.inserted_count >= 0 && result.inserted_count <= result.copied_count) {

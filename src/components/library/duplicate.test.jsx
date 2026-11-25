@@ -197,6 +197,28 @@ describe('legacy library duplicate RPC', () => {
     expect(supabase.rpc.mock.calls[2][1].p_target).toBe('fresh-copy');
   });
 
+  it('forgets a terminal conflict returned while a different owner is active', async () => {
+    let finish;
+    Book.create.mockResolvedValueOnce(copy).mockResolvedValueOnce({ ...copy, id: 'fresh-copy' });
+    supabase.rpc.mockRejectedValueOnce(new Error('lost'))
+      .mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const { rerender } = render(view());
+    await duplicate();
+    fireEvent.click(await resume());
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledTimes(2));
+    state.owner = 'family-b';
+    rerender(view());
+    await act(async () => finish({ error: { message: 'library_copy_conflict' } }));
+    expect(screen.queryByText('libraryLegacy.resumeConflict')).toBeNull();
+    expect(Book.create).toHaveBeenCalledTimes(1);
+    state.owner = 'family-a';
+    rerender(view());
+    await duplicate();
+    await screen.findByText('libraryLegacy.complete');
+    expect(Book.create).toHaveBeenCalledTimes(2);
+    expect(supabase.rpc.mock.calls[2][1].p_target).toBe('fresh-copy');
+  });
+
   it('allows B to copy independently while A creation is pending', async () => {
     let finish;
     const b = { ...original, created_by: 'family-b', title: 'B book' };
