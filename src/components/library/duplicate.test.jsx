@@ -49,6 +49,24 @@ afterEach(() => {
 });
 
 describe('legacy library duplicate RPC', () => {
+  it('retains A’s interrupted target through a copy of B and retries A without creating another draft', async () => {
+    const other = { ...original, id: 'other', title: 'Other' };
+    Book.filter.mockResolvedValue([original, other]);
+    Book.create.mockResolvedValueOnce(copy).mockResolvedValueOnce({ ...copy, id: 'other-copy', title: 'Other copy' });
+    supabase.rpc.mockRejectedValueOnce(new Error('response lost')).mockResolvedValue(response);
+    render(view());
+    let buttons = await screen.findAllByRole('button', { name: 'bookCard.duplicate' });
+    fireEvent.click(buttons[0]);
+    await resume();
+    buttons = screen.getAllByRole('button', { name: 'bookCard.duplicate' });
+    fireEvent.click(buttons[1]);
+    await screen.findByText('libraryLegacy.complete');
+    buttons = screen.getAllByRole('button', { name: 'bookCard.duplicate' });
+    fireEvent.click(buttons[0]);
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledTimes(3));
+    expect(supabase.rpc.mock.calls[2]).toEqual(rpcArgs);
+    expect(Book.create).toHaveBeenCalledTimes(2);
+  });
   it('retries a source read failure before making any write', async () => {
     Page.filter.mockRejectedValueOnce(new Error('read failed'));
     render(view());

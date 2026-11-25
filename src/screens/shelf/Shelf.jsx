@@ -8,25 +8,26 @@ import EmptyState from '@/components/library/EmptyState';
 import ShelfGrid from './ShelfGrid';
 import BookSheet from './BookSheet';
 const chip = 'min-h-11 rounded-sp-pill border px-4 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600 motion-safe:active:scale-[0.98]';
-function recentIds() { try { return JSON.parse(localStorage.getItem('sipurai-shelf-recent') || '[]'); } catch { return []; } }
+// The legacy key has no owner, so it cannot safely be attributed to any family.
+function recentIds(ownerId) { try { const value = ownerId && JSON.parse(localStorage.getItem(`sipurai-shelf-recent:${ownerId}`) || '[]'); return Array.isArray(value) ? value.filter(id => typeof id === 'string').slice(0, 30) : []; } catch { return []; } }
 export default function Shelf() {
   const { user } = useCurrentUser();
-  return <FamilyShelf key={user?.id ?? ''} />;
+  return <FamilyShelf key={user?.id ?? ''} ownerId={user?.id} />;
 }
 
-function FamilyShelf() {
+function FamilyShelf({ ownerId }) {
   const { t } = useI18n();
   const { books, loading, error, offline, retry } = useShelf();
   const [params, setParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState(null);
   const selectedTrigger = useRef(null);
   const selected = books.find(book => book.id === selectedId);
-  const [recent, setRecent] = useState(recentIds);
+  const [recent, setRecent] = useState(() => recentIds(ownerId));
   const filter = params.get('filter') || 'all';
   const heroes = [...new Set(books.map(book => book.child_name).filter(Boolean))].sort();
   const filtered = books.filter(book => filter === 'all' || (filter === 'recent' ? recent.includes(book.id) : book.child_name === heroes[Number(filter.replace('hero-', ''))] && filter.startsWith('hero-'))).sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
   const setFilter = value => { const next = new URLSearchParams(params); if (value === 'all') next.delete('filter'); else next.set('filter', value); setParams(next); };
-  const saveRead = () => { const next = [selected.id, ...recent.filter(id => id !== selected.id)].slice(0, 30); setRecent(next); try { localStorage.setItem('sipurai-shelf-recent', JSON.stringify(next)); } catch { /* reading still works */ } };
+  const saveRead = () => { if (!ownerId || !selected) return; const next = [selected.id, ...recent.filter(id => id !== selected.id)].slice(0, 30); setRecent(next); try { localStorage.setItem(`sipurai-shelf-recent:${ownerId}`, JSON.stringify(next)); } catch { /* reading still works */ } };
   return <main className="sp-shell mx-auto max-w-6xl px-4 py-8 text-sp-ink-900 sm:px-8">
     <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>

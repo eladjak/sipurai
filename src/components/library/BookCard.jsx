@@ -30,15 +30,15 @@ function BookCard({ book, viewType = "grid", onDuplicate, isDuplicating, copyDis
   const [isHovered, setIsHovered] = useState(false);
   const draft = book.status === "draft";
   const primaryUrl = `${createPageUrl(draft ? "BookCreation" : "BookView")}?id=${encodeURIComponent(book.id)}`;
-  const actionKeys = {
-    draft: "bookCard.edit",
-    complete: "shelf.read",
-    generating: "libraryLegacy.openProgress",
-    partial: "libraryLegacy.readAvailable",
-    failed: "libraryLegacy.openRecovery",
+  const actionLabels = {
+    draft: t("bookCard.edit"),
+    complete: t("shelf.read"),
+    generating: t("libraryLegacy.openProgress"),
+    partial: t("libraryLegacy.readAvailable"),
+    failed: t("libraryLegacy.openRecovery"),
   };
-  const primaryLabel = t(Object.hasOwn(actionKeys, book.status) ? actionKeys[book.status] : "spxRecovery.openBook");
-  const copyLabel = t(isDuplicating ? "libraryLegacy.copying" : "bookCard.duplicate");
+  const primaryLabel = Object.hasOwn(actionLabels, book.status) ? actionLabels[book.status] : t("spxRecovery.openBook");
+  const copyLabel = isDuplicating ? t("libraryLegacy.copying") : t("bookCard.duplicate");
   const duplicateAction = onDuplicate && (
     <Button
       type="button"

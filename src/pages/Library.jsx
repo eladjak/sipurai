@@ -37,10 +37,11 @@ import EmptyState from "../components/library/EmptyState";
 
 export default function Library() {
   const { user } = useCurrentUser();
-  return <FamilyLibrary key={user?.id ?? ''} ownerId={user?.id} />;
+  const copyPlans = useRef(new Map());
+  return <FamilyLibrary key={user?.id ?? ''} ownerId={user?.id} copyPlans={copyPlans.current} />;
 }
 
-function FamilyLibrary({ ownerId }) {
+function FamilyLibrary({ ownerId, copyPlans }) {
   const { t, isRTL } = useI18n();
   const mounted = useRef(false);
   const request = useRef(0);
@@ -138,7 +139,8 @@ function FamilyLibrary({ ownerId }) {
   };
 
   const duplicateBook = async (id, recovery = null) => {
-    if (copyFeedback?.sourceId === id && copyFeedback.pageIds) recovery ??= copyFeedback;
+    const ownerPlans = copyPlans.get(ownerId);
+    recovery ??= ownerPlans?.get(id);
     const source = recovery?.source ?? books.find(book => book.id === id);
     if (!source || !ownerId || !mounted.current || activeCopy.current) return;
 
@@ -151,6 +153,12 @@ function FamilyLibrary({ ownerId }) {
       const title = `${source.title || t("libraryLegacy.untitledBook")} (${t("library.copy")})`;
       const result = await copyBook({ source, ownerId, title, isCurrent, resume: recovery });
       if (!isCurrent() || !result) return;
+      if (result.kind === 'interrupted') {
+        if (!copyPlans.has(ownerId)) copyPlans.set(ownerId, new Map());
+        copyPlans.get(ownerId).set(id, { ...result, sourceId: id, source });
+      } else if (result.kind === 'complete') {
+        ownerPlans?.delete(id);
+      }
       setCopyFeedback({ ...result, sourceId: id, source });
       if (result.kind === "createError" || result.copy) await loadBooks();
     } finally {
@@ -192,6 +200,14 @@ function FamilyLibrary({ ownerId }) {
     filters.age_range !== "all" || filters.language !== "all";
 
   const hasQuery = Boolean(searchQuery || hasActiveFilters);
+  const feedbackText = copyFeedback && ({
+    readError: () => t('libraryLegacy.readError'),
+    createError: () => t('libraryLegacy.createError'),
+    interrupted: () => t('libraryLegacy.interrupted'),
+    resumeConflict: () => t('libraryLegacy.resumeConflict'),
+    emptyDraft: () => t('libraryLegacy.emptyDraft'),
+    complete: () => t('libraryLegacy.complete', { count: copyFeedback.count }),
+  })[copyFeedback.kind]?.();
   const clearQuery = () => {
     setSearchQuery("");
     resetFilters();
@@ -231,7 +247,7 @@ function FamilyLibrary({ ownerId }) {
           role={["readError", "createError", "interrupted", "resumeConflict"].includes(copyFeedback.kind) ? "alert" : "status"}
           className="mb-5 rounded-xl border border-purple-200 bg-purple-50 p-4 text-gray-900 dark:border-purple-800 dark:bg-gray-800 dark:text-white"
         >
-          <p>{t(`libraryLegacy.${copyFeedback.kind}`, { count: copyFeedback.count })}</p>
+          <p>{feedbackText}</p>
           {copyFeedback.copy && <p className="break-words font-medium"><bdi>{copyFeedback.copy.title}</bdi></p>}
           {copyFeedback.kind === "readError" && books.some(book => book.id === copyFeedback.sourceId) && (
             <Button type="button" variant="outline" className="mt-2 min-h-11" onClick={() => duplicateBook(copyFeedback.sourceId)}>
