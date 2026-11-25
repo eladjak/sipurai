@@ -140,8 +140,9 @@ function FamilyHomeSession({ user, identityReady, createUrl, shelfUrl, awardFirs
   const profile = savedProfile?.updated && savedProfile.base === user ? savedProfile.updated : user;
   const name = (profile?.display_name || profile?.full_name)?.trim();
   const featuredDetail = featured && details(featured);
-  const featuredAction = featuredDetail?.page
-    ? t('tonight.continue', { page: featuredDetail.page })
+  const featuredPage = featuredDetail?.page ?? null;
+  const featuredAction = featuredPage !== null && featuredPage > 0
+    ? t('tonight.continue', { page: featuredPage })
     : featured?.status === 'partial' && featuredDetail?.ready === 0 ? t('tonight.recover') : t('tonight.openBook');
   const problem = offline || error;
   const waiting = loading && !problem;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Page } from '@/entities/Page';
-import { summarizeBook } from '@/lib/bookProgress';
+import { readablePages, summarizeBook } from '@/lib/bookProgress';
+import { readSavedReaderPosition } from '@/lib/readerPosition';
 import { useShelf } from '@/screens/shelf/useShelf';
 
 function savedIndex(id) {
@@ -50,9 +51,16 @@ export function useHomeBooks(identityReady) {
     const record = inspection?.[book.id];
     if (!record || record.snapshot !== books) return null;
     const summary = summarizeBook(book, record.rows);
-    const page = book === featured && bookmark !== null && bookmark < summary.ready
-      ? bookmark + 1
-      : null;
+    let page = null;
+    if (book === featured && bookmark !== null) {
+      const pages = readablePages(record.rows);
+      try {
+        const folio = readSavedReaderPosition(localStorage, book.id, pages);
+        if (pages.some(row => row.page_number === folio)) page = folio;
+      } catch {
+        // Keep the generic reading link when browser storage is unavailable.
+      }
+    }
     return { ...summary, page };
   };
 

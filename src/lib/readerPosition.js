@@ -1,6 +1,6 @@
 // Both readers and Tonight use the legacy zero-based index. The companion
 // anchors BookView to a folio while retaining the numeric index for older readers.
-export function readReaderPosition(storage, bookId, pages) {
+export function readSavedReaderPosition(storage, bookId, pages) {
   const key = `book_${bookId}_page`;
   const saved = storage.getItem(key);
   const index = saved !== null && /^\d+$/.test(saved) ? Number(saved) : null;
@@ -14,7 +14,11 @@ export function readReaderPosition(storage, bookId, pages) {
       // A corrupt companion must not invalidate an older bookmark.
     }
   }
-  return pages[index ?? 0]?.page_number ?? pages[0]?.page_number;
+  return index === null ? undefined : pages[index]?.page_number;
+}
+
+export function readReaderPosition(storage, bookId, pages) {
+  return readSavedReaderPosition(storage, bookId, pages) ?? pages[0]?.page_number;
 }
 
 export function writeReaderPosition(storage, bookId, pageNumber, index) {
