@@ -22,6 +22,7 @@ import { trackEvent } from "@/lib/analytics";
 import { captureError } from "@/lib/errorTracking";
 
 import GenerationWaiting from "@/components/bookReader/GenerationWaiting";
+import DraftRecovery from "@/components/wizard/DraftRecovery";
 import WizardProgress from "@/components/wizard/WizardProgress";
 import TopicStep, { getSelectedTopicLabel } from "@/components/wizard/TopicStep";
 import CharacterPicker from "@/components/shared/CharacterPicker";
@@ -192,6 +193,7 @@ function BookWizardSession() {
   // Draft auto-save
   const [activeDraftKey, setActiveDraftKey] = useState(null);
   const [pendingDraft, setPendingDraft] = useState(null);
+  const [restoredAttemptId, setRestoredAttemptId] = useState(null);
   const skipNextAutosaveRef = useRef(false);
   const [hasIncomingIdea, setHasIncomingIdea] = useState(false);
 
@@ -296,6 +298,7 @@ function BookWizardSession() {
     setUseRhyming(draft.useRhyming === true);
     if (draft.rhymeSettings) setRhymeSettings((prev) => ({ ...prev, ...draft.rhymeSettings }));
     quotaKeyRef.current = draft._attemptId || null;
+    setRestoredAttemptId(typeof draft._attemptId === "string" && draft._attemptId ? draft._attemptId : null);
     setActiveDraftKey(draft._draftKey);
     setPendingDraft(null);
     setHasIncomingIdea(false);
@@ -888,6 +891,10 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
 
   if (quotaBlock) {
     return <QuotaLimitCard error={quotaBlock} onBack={() => navigate(createPageUrl("Library"))} />;
+  }
+
+  if (restoredAttemptId) {
+    return <DraftRecovery key={`${ownerId}:${restoredAttemptId}`} ownerId={ownerId} attemptId={restoredAttemptId} t={t} isRTL={isRTL} onReturnToDraft={() => setRestoredAttemptId(null)} />;
   }
 
   // Error state

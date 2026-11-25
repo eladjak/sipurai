@@ -862,10 +862,20 @@ describe("draft privacy", () => {
 describe("visible private draft restore", () => {
   beforeEach(() => localStorage.clear());
   it("offers the matching account's draft and restores its choices", async () => {
-    localStorage.setItem('sipurai_draft_v2_9_test-user_123', JSON.stringify({_savedAt:Date.now(), _attemptId:'attempt-1', currentStep:0, selectedTopic:'space', bookData:{title:'My space book'}}));
+    localStorage.setItem('sipurai_draft_v2_9_test-user_123', JSON.stringify({_savedAt:Date.now(), currentStep:0, selectedTopic:'space', bookData:{title:'My space book'}}));
     render(<BookWizardPage />);
     fireEvent.click(await screen.findByRole('button',{name:'wizard.draft.restore'}));
     expect(screen.getByRole('radio', { name: 'Space' }).checked).toBe(true);
+  });
+  it("enters read-only recovery for a restored attempt", async () => {
+    localStorage.setItem('sipurai_draft_v2_9_test-user_123', JSON.stringify({_savedAt:Date.now(), _attemptId:'attempt-1', currentStep:5, selectedTopic:'space'}));
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole('button',{name:'wizard.draft.restore'}));
+    await screen.findByText('spxWizard.recovery.unavailable');
+    expect(screen.queryByRole('button', {name:'Create My Book!'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name:'spxWizard.recovery.returnToDraft'}));
+    expect(await screen.findByRole('button', {name:'Create My Book!'})).toBeInTheDocument();
+    expect(screen.queryByRole('region', {name:'spxWizard.recovery.title'})).toBeNull();
   });
   it("keeps a new idea and an older draft independently, even before the autosave delay", async () => {
     const oldKey = "sipurai_draft_v2_9_test-user_123";

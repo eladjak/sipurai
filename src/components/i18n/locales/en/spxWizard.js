@@ -24,6 +24,7 @@ export default {
       storyComing: "More of the story is on its way",
       artComing: "The story is written. The illustrations are on their way.",
     },
+    recovery: { title: "Your saved draft", returnToDraft: "Return to the draft", checking: "Checking what was saved in your book…", offline: "You are offline. Check again when your connection returns.", noPages: "There are no readable pages yet. Check again or visit the library.", unavailable: "We could not verify the saved book. Check again or visit the library.", open: "Open the book", retry: "Check again" },
     firstPages: "The first pages are ready to read",
     surpriseSound: "Surprise sound",
     writingCount: "{ready} of {total} pages written",
