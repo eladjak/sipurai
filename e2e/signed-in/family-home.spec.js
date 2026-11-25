@@ -80,7 +80,15 @@ async function snapshot(page, testInfo, name) {
     expect(box?.width).toBeGreaterThanOrEqual(44);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
+  await page.screenshot({
+    path: testInfo.outputPath(`${name}.png`),
+    fullPage: true,
+    mask: [
+      page.locator('a[href="/Profile" i]'),
+      page.locator('.family-home__greeting').filter({ hasText: /^(שלום|Hello)([\s,]|$)/ }),
+    ],
+    maskColor: '#ede7db',
+  });
 }
 
 for (const width of [375, 1280]) {
