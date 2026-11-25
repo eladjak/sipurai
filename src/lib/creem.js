@@ -106,11 +106,17 @@ export const PLANS = {
   },
 };
 
+export function isSubscriptionCheckoutEnabled() {
+  return import.meta.env.VITE_SUBSCRIPTION_CHECKOUT_ENABLED === 'true';
+}
+
 /**
  * Open Creem checkout for the given plan by calling our serverless proxy.
  * Redirects the user to the hosted Creem checkout page on success.
  */
 export async function openCheckout(planId, userEmail) {
+  if (!isSubscriptionCheckoutEnabled()) return;
+
   const plan = PLANS[planId];
   if (!plan?.creemProductId) {
     if (import.meta.env.DEV) console.warn('[creem] Unknown planId or no product ID:', planId);

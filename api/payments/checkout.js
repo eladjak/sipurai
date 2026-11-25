@@ -32,6 +32,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (process.env.SUBSCRIPTION_CHECKOUT_ENABLED !== 'true') {
+    return res.status(503).json({ error: 'Subscription checkout is unavailable' });
+  }
+
   const apiKey = process.env.CREEM_API_KEY;
   if (!apiKey) {
     console.error('[checkout] CREEM_API_KEY is not set');

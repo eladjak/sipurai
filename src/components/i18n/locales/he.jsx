@@ -802,6 +802,7 @@ export default {
       activeBadge: "נוכחי",
       currentPlanBtn: "המנוי הנוכחי",
       upgradeNow: "שדרג עכשיו",
+      checkoutUnavailable: "כרגע אי אפשר לרכוש מנוי בתשלום.",
       checkoutError: "שגיאה",
       checkoutErrorDesc: "לא ניתן לפתוח את דף התשלום. נסו שוב."
     },

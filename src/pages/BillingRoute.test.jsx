@@ -22,7 +22,20 @@ vi.mock('@/components/ClerkLocaleProvider', () => ({default:({children})=>childr
 vi.mock('@/pages.config', () => ({pagesConfig:{mainPage:'Home',Layout:({children})=>children,Pages:{Settings,Pricing,LandingPage:()=>null,Blog:()=>null,BlogPost:()=>null,PrivacyPolicy:()=>null,TermsOfService:()=>null,Accessibility:()=>null,Contact:()=>null}}}));
 afterEach(()=>{cleanup();checkout.mockClear();vi.unstubAllEnvs()});
 describe('authenticated billing route', () => {
+ it('shows the selected plan with purchases unavailable by default', async () => {
+  vi.stubEnv('VITE_SUBSCRIPTION_CHECKOUT_ENABLED', undefined);
+  vi.stubEnv('VITE_NEW_SHELL','true');
+  const { NewShellRoutes } = await import('../App.jsx');
+  render(<MemoryRouter initialEntries={['/pricing?plan=lite']}><NewShellRoutes/></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('link',{name:'spxLibrary.accountSettings'}));
+  expect(await screen.findByText('Lite')).toBeInTheDocument();
+  expect(screen.getByText('settings.billing.checkoutUnavailable')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'settings.billing.upgradeNow' })).not.toBeInTheDocument();
+  expect(checkout).not.toHaveBeenCalled();
+ });
+
  it('opens selected Lite in real billing UI, without calling checkout', async () => {
+  vi.stubEnv('VITE_SUBSCRIPTION_CHECKOUT_ENABLED', 'true');
   vi.stubEnv('VITE_NEW_SHELL','true');
   const { NewShellRoutes } = await import('../App.jsx');
   render(<MemoryRouter initialEntries={['/pricing?plan=lite']}><NewShellRoutes/></MemoryRouter>);
