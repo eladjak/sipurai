@@ -47,6 +47,7 @@ export function fillEmptyOutlineFields(previous, outline) {
 
 // --- Draft auto-save helpers ---
 const DRAFT_PREFIX = "sipurai_draft_";
+const IDEA_FIELDS = ["title", "description", "moral"];
 export function draftOwnerPrefix(ownerId) {
   const encoded = encodeURIComponent(ownerId);
   return `${DRAFT_PREFIX}v2_${encoded.length}_${encoded}_`;
@@ -130,6 +131,7 @@ function BookWizardSession() {
   // Step 1: Topic
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [customIdea, setCustomIdea] = useState("");
+  const [importedIdeaFields, setImportedIdeaFields] = useState([]);
 
   // Step 2: Characters
   const [selectedCharacters, setSelectedCharacters] = useState([]);
@@ -202,6 +204,7 @@ function BookWizardSession() {
       currentStep,
       selectedTopic,
       customIdea,
+      importedIdeaFields,
       selectedCharacters,
       scenes,
       bookData,
@@ -221,7 +224,7 @@ function BookWizardSession() {
     } catch {
       return false;
     }
-  }, [currentStep, selectedTopic, customIdea, selectedCharacters, scenes, bookData, generatedOutline, useRhyming, rhymeSettings, isCreating, activeDraftKey, ownerId]);
+  }, [currentStep, selectedTopic, customIdea, importedIdeaFields, selectedCharacters, scenes, bookData, generatedOutline, useRhyming, rhymeSettings, isCreating, activeDraftKey, ownerId]);
 
   // Import only once the account is known. Keep the handoff until the new draft is saved.
   useEffect(() => {
@@ -244,12 +247,13 @@ function BookWizardSession() {
       setHasIncomingIdea(true);
       setSelectedTopic("custom");
       setCustomIdea(ideaText);
-      setBookData(prev => ({
-        ...prev,
+      const metadata = {
         title: typeof title === "string" ? title : "",
         description: typeof description === "string" ? description : "",
         moral: typeof moral === "string" ? moral : "",
-      }));
+      };
+      setImportedIdeaFields(IDEA_FIELDS.filter(field => metadata[field].trim()));
+      setBookData(prev => ({ ...prev, ...metadata }));
       toast({
         title: t("wizard.idea.prefilled"),
         className: "bg-purple-100 text-purple-900 dark:bg-purple-900/50 dark:text-purple-100",
@@ -283,6 +287,8 @@ function BookWizardSession() {
     setCurrentStep(Number.isInteger(draft.currentStep) && draft.currentStep >= 0 && draft.currentStep < steps.length ? draft.currentStep : 0);
     setSelectedTopic(draft.selectedTopic ?? null);
     setCustomIdea(typeof draft.customIdea === "string" ? draft.customIdea : "");
+    const sourceFields = Array.isArray(draft.importedIdeaFields) ? draft.importedIdeaFields : [];
+    setImportedIdeaFields(IDEA_FIELDS.filter(field => sourceFields.includes(field)));
     setSelectedCharacters(Array.isArray(draft.selectedCharacters) ? draft.selectedCharacters : []);
     setScenes(Array.isArray(draft.scenes) ? draft.scenes : []);
     setBookData({ ...initialBookData, language: currentLanguage, ...draft.bookData });
@@ -852,7 +858,23 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
   };
 
   const updateBookField = (field, value) => {
+    if (importedIdeaFields.includes(field)) {
+      setImportedIdeaFields(previous => previous.filter(importedField => importedField !== field));
+    }
     setBookData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applySuggestedIdea = (idea) => {
+    if (idea === customIdea) return;
+    setCustomIdea(idea);
+    setGeneratedOutline(null);
+    if (!importedIdeaFields.length) return;
+    setBookData(previous => {
+      const next = { ...previous };
+      for (const field of importedIdeaFields) next[field] = "";
+      return next;
+    });
+    setImportedIdeaFields([]);
   };
 
   // Loading state
@@ -898,6 +920,7 @@ The story should be age-appropriate for children ages ${ageRange}, fun, engaging
             onSelectTopic={setSelectedTopic}
             customIdea={customIdea}
             onCustomIdeaChange={setCustomIdea}
+            onApplySuggestedIdea={applySuggestedIdea}
             isRTL={isRTL}
             language={currentLanguage}
           />

@@ -204,6 +204,7 @@ vi.mock("framer-motion", () => ({
 import WizardProgress from "./WizardProgress";
 import TopicStep, { TOPIC_CARDS } from "./TopicStep";
 import { StoryIdea } from "@/entities/StoryIdea";
+import { InvokeLLM } from "@/integrations/Core";
 import CharacterPicker from "@/components/shared/CharacterPicker";
 import PreviewEditStep from "./PreviewEditStep";
 import SaveStep from "./SaveStep";
@@ -865,6 +866,66 @@ describe("visible private draft restore", () => {
     render(<BookWizardPage />);
     fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
     expect(screen.getByRole("textbox", { name: "wizard.topic.tellUsIdea" }).value).toBe("A giraffe flies to the Moon");
+  });
+
+  it("uses the replacement after reload and preserves preview fields edited by the family", async () => {
+    sessionStorage.setItem("sipurai_pending_idea", JSON.stringify({
+      ownerId: "test-user", title: "Old Moon", description: "Moon explorers", moral: "Old moon lesson",
+    }));
+    StoryIdea.list.mockResolvedValue([{ id: "forest", title: "New Forest", description: "Foxes find a map" }]);
+    const next = () => fireEvent.click(screen.getByLabelText("Next step"));
+    const back = () => fireEvent.click(screen.getByLabelText("Back"));
+    const openReplacement = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "wizard.topic.useSavedIdea" }));
+      fireEvent.click(await screen.findByRole("button", { name: /New Forest/ }));
+    };
+
+    render(<BookWizardPage />);
+    await screen.findByDisplayValue("Old Moon — Moon explorers");
+    next();
+    fireEvent.click(await screen.findByText("Brave Hero"));
+    next();
+    next();
+    expect(await screen.findByDisplayValue("Old Moon")).toBeDefined();
+    fireEvent.change(screen.getByRole("textbox", { name: "wizard.preview.moral" }), {
+      target: { value: "The family's own moral" },
+    });
+    back();
+    back();
+    back();
+    cleanup();
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+
+    await openReplacement();
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.keep" }));
+    const readDraft = () => JSON.parse(localStorage.getItem(getDraftKeys("test-user")[0]));
+    expect(readDraft().bookData).toMatchObject({
+      title: "Old Moon", description: "Moon explorers", moral: "The family's own moral",
+    });
+    fireEvent.click(screen.getByRole("button", { name: /New Forest/ }));
+    fireEvent.click(screen.getByRole("button", { name: "spxWizard.topic.replace" }));
+    expect(readDraft()).toMatchObject({
+      customIdea: "New Forest — Foxes find a map",
+      bookData: { title: "", description: "", moral: "The family's own moral" },
+    });
+
+    cleanup();
+    InvokeLLM.mockClear();
+    InvokeLLM.mockResolvedValueOnce({
+      title: "Foxes in the Forest", description: "Two foxes followed a map.", moral_lesson: "Try together",
+    });
+    render(<BookWizardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "wizard.draft.restore" }));
+    expect(screen.getByDisplayValue("New Forest — Foxes find a map")).toBeDefined();
+    next();
+    next();
+    next();
+    expect(await screen.findByDisplayValue("Foxes in the Forest")).toBeDefined();
+    expect(screen.getByDisplayValue("Two foxes followed a map.")).toBeDefined();
+    expect(screen.getByDisplayValue("The family's own moral")).toBeDefined();
+    expect(InvokeLLM.mock.calls[0][0].prompt).toContain("New Forest — Foxes find a map");
+    expect(InvokeLLM.mock.calls[0][0].prompt).not.toContain("Old Moon");
   });
 
   it("does not show a browser-wide or another account's old draft", async () => {
