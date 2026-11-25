@@ -2554,7 +2554,8 @@ export default {
     blog: "Blog",
     openMenu: "Open menu",
     closeMenu: "Close menu",
-    changeLanguage: "Change language"
+    changeLanguage: "Change language",
+    primaryNavigation: "Main navigation"
   },
   modelSelector: {
     free: "Free",
