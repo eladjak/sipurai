@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { missingProcessors } from './processor-inventory.js';
 import { readFileSync } from 'node:fs';
-import { policyContent } from '@/data/privacyPolicyContent';
+import { policyContent, buildPolicyContent, buildGateCopy } from '@/data/privacyPolicyContent';
 
 describe('known processor discovery', () => {
   it('flags a known SDK or HTML domain omitted from the policy', () => {
@@ -16,6 +16,17 @@ describe('known processor discovery', () => {
     const html = readFileSync('index.html', 'utf8');
     for (const lang of ['he', 'en']) {
       expect(missingProcessors(pkg, html, policyContent[lang].sections[3].body), lang).toEqual([]);
+    }
+  });
+  it('discloses the print provider without naming it in policy or consent', () => {
+    for (const enabled of [false, true]) {
+      const policy = buildPolicyContent(enabled);
+      const consent = buildGateCopy(enabled);
+      for (const [lang, category] of [['he', 'ספק ההדפסה'], ['en', 'Print provider']]) {
+        expect(policy[lang].sections[3].body, lang).toContain(category);
+        expect(JSON.stringify(policy[lang]), lang).not.toMatch(/BookPod/i);
+        expect(JSON.stringify(consent[lang]), lang).not.toMatch(/BookPod/i);
+      }
     }
   });
 });

@@ -130,7 +130,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 
 **Morning, חשבונית ירוקה:** תשלום וקבלה על הזמנת ספר מודפס, אם הזמנתם. מקבלת את השם והסכום.
 
-**ספק ההדפסה BookPod:** רק כשמזמינים ספר מודפס. מקבל את קובצי הספר, ואת השם, הטלפון וכתובת המשלוח. (הזמנת ספרים מודפסים עדיין לא נפתחה לכולם.)
+**ספק ההדפסה:** רק כשמזמינים ספר מודפס. מקבל את קובצי הספר, ואת השם, הטלפון וכתובת המשלוח. (הזמנת ספרים מודפסים עדיין לא נפתחה לכולם.)
 
 **Sentry** (sentry.io): דיווחי תקלות, בלי שם, בלי מייל ובלי פרטי הילדים.
 
@@ -184,7 +184,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 
 **מה נשאר:** אם הזמנתם ספר מודפס, הרשומה הכספית של ההזמנה נשמרת כי החוק מחייב אותנו לשמור אותה, בלי כתובת המשלוח.
 
-**מה לא נמחק אצלנו בבת אחת:** מידע שכבר נמצא אצל ספקים חיצוניים, כמו רשומת התשלום אצל Creem ו-Morning, הזמנה מודפסת אצל BookPod, דיווחי תקלות, ספירת ביקורים, ומה שספקי הבינה המלאכותית שומרים לפי התנאים שלהם. אם תבקשו, נפנה לספקים ונבקש למחוק את מה שאפשר.
+**מה לא נמחק אצלנו בבת אחת:** מידע שכבר נמצא אצל ספקים חיצוניים, כמו רשומת התשלום אצל Creem ו-Morning, הזמנה מודפסת אצל ספק ההדפסה, דיווחי תקלות, ספירת ביקורים, ומה שספקי הבינה המלאכותית שומרים לפי התנאים שלהם. אם תבקשו, נפנה לספקים ונבקש למחוק את מה שאפשר.
 
 עותקי גיבוי אצל ספק האחסון עשויים להישמר זמן מוגבל אחרי המחיקה.`
           : `בכל רגע אפשר ללחוץ על **הגדרות, חשבון, מחיקת החשבון והנתונים**. המחיקה מיידית ואי אפשר לשחזר אותה.
@@ -193,7 +193,7 @@ const buildPolicyContent = (deleteEnabled) => ({
 
 **מה נשאר:** אם הזמנתם ספר מודפס והוא נשלח, הרשומה הכספית של ההזמנה נשמרת כי החוק מחייב אותנו לשמור אותה. כתובת המשלוח נמחקת ממנה.
 
-**מה לא נמחק בלחיצה:** מידע שכבר נמצא אצל ספקים חיצוניים, כמו רשומת התשלום אצל Creem ו-Morning, הזמנה מודפסת אצל BookPod, דיווחי תקלות, ספירת ביקורים, ומה שספקי הבינה המלאכותית שומרים לפי התנאים שלהם. אם תבקשו, נפנה לספקים ונבקש למחוק את מה שאפשר.
+**מה לא נמחק בלחיצה:** מידע שכבר נמצא אצל ספקים חיצוניים, כמו רשומת התשלום אצל Creem ו-Morning, הזמנה מודפסת אצל ספק ההדפסה, דיווחי תקלות, ספירת ביקורים, ומה שספקי הבינה המלאכותית שומרים לפי התנאים שלהם. אם תבקשו, נפנה לספקים ונבקש למחוק את מה שאפשר.
 
 **מתי אי אפשר למחוק מיד:** כשיש מנוי בתשלום פעיל (צריך קודם לבטל אותו, כי מחיקה לא מפסיקה חיוב) או הזמנה מודפסת שעדיין בדרך.
 
@@ -321,7 +321,7 @@ We do not sell or rent information, we do not share it for advertising, we do no
 
 **Morning (Green Invoice):** payment and receipt for a printed-book order, if you place one. Receives your name and the amount.
 
-**Print vendor BookPod:** only when you order a printed book. Receives the book files, and your name, phone and delivery address. (Printed-book ordering is not yet open to everyone.)
+**Print provider:** only when you order a printed book. Receives the book files, and your name, phone and delivery address. (Printed-book ordering is not yet open to everyone.)
 
 **Sentry** (sentry.io): error reports, without name, email or your children's details.
 
@@ -375,7 +375,7 @@ Error reports, visit counts and server logs are kept by the providers under thei
 
 **What stays:** if you ordered a printed book, the financial record of the order is kept because the law requires us to keep it, without the delivery address.
 
-**What we cannot delete in one step:** information already held by outside providers, such as the payment record at Creem and Morning, a printed order at BookPod, error reports, visit counts, and what the AI providers keep under their own terms. If you ask, we will contact the providers and ask them to delete what they can.
+**What we cannot delete in one step:** information already held by outside providers, such as the payment record at Creem and Morning, a printed order at the print provider, error reports, visit counts, and what the AI providers keep under their own terms. If you ask, we will contact the providers and ask them to delete what they can.
 
 Backup copies at the hosting provider may be kept for a limited time after deletion.`
           : `At any time, press **Settings, Account, Delete my account and data**. Deletion is immediate and cannot be undone.
@@ -384,7 +384,7 @@ Backup copies at the hosting provider may be kept for a limited time after delet
 
 **What stays:** if you ordered a printed book and it shipped, the financial record of the order is kept because the law requires us to keep it. The delivery address is removed from it.
 
-**What a click does not delete:** information already held by outside providers, such as the payment record at Creem and Morning, a printed order at BookPod, error reports, visit counts, and what the AI providers keep under their own terms. If you ask, we will contact the providers and ask them to delete what they can.
+**What a click does not delete:** information already held by outside providers, such as the payment record at Creem and Morning, a printed order at the print provider, error reports, visit counts, and what the AI providers keep under their own terms. If you ask, we will contact the providers and ask them to delete what they can.
 
 **When we cannot delete right away:** when there is an active paid subscription (cancel it first, because deleting does not stop billing) or a printed order still on its way.
 
