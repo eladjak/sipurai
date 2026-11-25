@@ -137,8 +137,9 @@ function FamilyLibrary({ ownerId }) {
     setSearchQuery("");
   };
 
-  const duplicateBook = async (id) => {
-    const source = books.find(book => book.id === id);
+  const duplicateBook = async (id, recovery = null) => {
+    if (copyFeedback?.sourceId === id && copyFeedback.pages) recovery ??= copyFeedback;
+    const source = recovery?.source ?? books.find(book => book.id === id);
     if (!source || !ownerId || !mounted.current || activeCopy.current) return;
 
     const operation = {};
@@ -148,9 +149,9 @@ function FamilyLibrary({ ownerId }) {
     const isCurrent = () => mounted.current && activeCopy.current === operation;
     try {
       const title = `${source.title || t("libraryLegacy.untitledBook")} (${t("library.copy")})`;
-      const result = await copyBook({ source, ownerId, title, isCurrent });
+      const result = await copyBook({ source, ownerId, title, isCurrent, resume: recovery });
       if (!isCurrent() || !result) return;
-      setCopyFeedback({ ...result, sourceId: id });
+      setCopyFeedback({ ...result, sourceId: id, source });
       if (result.kind === "createError" || result.copy) await loadBooks();
     } finally {
       if (isCurrent()) {
@@ -227,7 +228,7 @@ function FamilyLibrary({ ownerId }) {
         <div
           ref={feedbackRegion}
           tabIndex={-1}
-          role={["readError", "createError", "interrupted"].includes(copyFeedback.kind) ? "alert" : "status"}
+          role={["readError", "createError", "interrupted", "resumeReadError", "resumeConflict"].includes(copyFeedback.kind) ? "alert" : "status"}
           className="mb-5 rounded-xl border border-purple-200 bg-purple-50 p-4 text-gray-900 dark:border-purple-800 dark:bg-gray-800 dark:text-white"
         >
           <p>{t(`libraryLegacy.${copyFeedback.kind}`, { count: copyFeedback.count })}</p>
@@ -237,7 +238,12 @@ function FamilyLibrary({ ownerId }) {
               {t("shelf.retry")}
             </Button>
           )}
-          {["interrupted", "emptyDraft"].includes(copyFeedback.kind) && (
+          {["interrupted", "resumeReadError"].includes(copyFeedback.kind) && (
+            <Button type="button" variant="outline" className="mt-2 min-h-11 min-w-11" onClick={() => duplicateBook(copyFeedback.sourceId, copyFeedback)}>
+              {t("libraryLegacy.resumeCopy")}
+            </Button>
+          )}
+          {copyFeedback.kind === "emptyDraft" && (
             <Button asChild variant="outline" className="mt-2 min-h-11">
               <Link to={`${createPageUrl("BookCreation")}?id=${encodeURIComponent(copyFeedback.copy.id)}`}>{t("libraryLegacy.openCopy")}</Link>
             </Button>

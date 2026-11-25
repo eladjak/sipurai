@@ -10,11 +10,11 @@ vi.mock('@/components/i18n/i18nProvider', () => ({ useI18n: () => ({ t: key => k
 vi.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: { id: state.owner } }) }));
 vi.mock('@/components/ui/use-toast', () => ({ useToast: () => ({ toast: state.toast }) }));
 vi.mock('@/components/bookControls/BookControls', () => ({ default: () => null }));
-vi.mock('@/entities/Book', () => ({ Book: { filter: vi.fn(), create: vi.fn(), update: vi.fn() } }));
+vi.mock('@/entities/Book', () => ({ Book: { filter: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn() } }));
 vi.mock('@/entities/Page', () => ({ Page: { filter: vi.fn(), create: vi.fn() } }));
 
 const original = { id: 'original', created_by: 'family-a', title: 'Original', is_public: true, printEdition: { revision: 1 }, status: 'complete' };
-const copy = { id: 'copy', created_by: 'family-a', title: 'Original (library.copy)', status: 'draft' };
+const copy = { id: 'copy', created_by: 'family-a', title: 'Original (library.copy)', status: 'draft', is_public: false, total_pages: 2 };
 const pages = [
   { page_number: 4, book_id: original.id, text_content: 'Second page' },
   { page_number: 1, book_id: original.id, text_content: 'First page', generation_job: 'original-job' },
@@ -31,6 +31,7 @@ beforeEach(() => {
   state.owner = 'family-a';
   Book.filter.mockImplementation(async ({ created_by }) => created_by === 'family-a' ? [original] : []);
   Book.create.mockResolvedValue(copy);
+  Book.get.mockImplementation(async id => id === original.id ? original : copy);
   Book.update.mockResolvedValue({ ...copy, status: 'complete' });
   Page.filter.mockResolvedValue(pages);
   Page.create.mockResolvedValue({});
@@ -48,16 +49,41 @@ describe('legacy library duplicate', () => {
     await waitFor(() => expect(Book.update).toHaveBeenCalledTimes(1));
   });
 
-  it('keeps a private editable draft if a page write fails', async () => {
+  it('resumes the same private copy, retrying a read failure and skipping already written positions', async () => {
     Page.create.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('write failed'));
     render(view());
     await duplicate();
-    const edit = await screen.findByRole('link', { name: 'libraryLegacy.openCopy' });
-    expect(edit.getAttribute('href')).toMatch(/BookCreation\?id=copy$/i);
+    const resume = await screen.findByRole('button', { name: 'libraryLegacy.resumeCopy' });
     expect(Book.create).toHaveBeenCalledWith(expect.objectContaining({ status: 'draft', is_public: false, created_by: 'family-a' }));
     expect(Book.create.mock.calls[0][0]).not.toHaveProperty('printEdition');
     expect(Book.update).not.toHaveBeenCalled();
     expect(state.toast).not.toHaveBeenCalled();
+
+    Page.filter.mockResolvedValueOnce(pages).mockRejectedValueOnce(new Error('readback failed'));
+    fireEvent.click(resume);
+    await screen.findByText('libraryLegacy.resumeReadError');
+    expect(Page.create).toHaveBeenCalledTimes(2);
+    expect(Book.update).not.toHaveBeenCalled();
+
+    Page.filter.mockResolvedValueOnce(pages).mockResolvedValueOnce([Page.create.mock.calls[0][0]]);
+    fireEvent.click(screen.getByRole('button', { name: 'libraryLegacy.resumeCopy' }));
+    await screen.findByText('libraryLegacy.complete');
+    expect(Book.get.mock.calls).toEqual([['original'], ['copy'], ['original'], ['copy']]);
+    expect(Page.create.mock.calls.map(([page]) => [page.book_id, page.page_number])).toEqual([['copy', 0], ['copy', 1], ['copy', 1]]);
+    expect(Book.create).toHaveBeenCalledTimes(1);
+    expect(Book.update).toHaveBeenCalledWith('copy', { status: 'complete', total_pages: 2 });
+  });
+
+  it('does not write pages if the same copy is no longer private', async () => {
+    Page.create.mockRejectedValueOnce(new Error('write failed'));
+    render(view());
+    await duplicate();
+    const resume = await screen.findByRole('button', { name: 'libraryLegacy.resumeCopy' });
+    Book.get.mockResolvedValueOnce(original).mockResolvedValueOnce({ ...copy, is_public: true });
+    fireEvent.click(resume);
+    await screen.findByText('libraryLegacy.resumeConflict');
+    expect(Page.create).toHaveBeenCalledTimes(1);
+    expect(Book.update).not.toHaveBeenCalled();
   });
 
   it('publishes after every readable page is written in order and ignores repeated activation', async () => {
@@ -75,14 +101,18 @@ describe('legacy library duplicate', () => {
     expect(Page.create.mock.calls[0][0]).not.toHaveProperty('generation_job');
   });
 
-  it('offers the same draft for manual editing if the final status write fails', async () => {
-    Book.update.mockRejectedValueOnce(new Error('status write failed'));
+  it('confirms an update with a lost response by reading back the same complete copy', async () => {
+    Book.update.mockRejectedValueOnce(new Error('status response lost'));
     render(view());
     await duplicate();
-    expect(await screen.findByRole('link', { name: 'libraryLegacy.openCopy' })).toHaveAttribute('href', '/BookCreation?id=copy');
+    const resume = await screen.findByRole('button', { name: 'libraryLegacy.resumeCopy' });
+    Book.get.mockResolvedValueOnce(original).mockResolvedValueOnce({ ...copy, status: 'complete' });
+    Page.filter.mockResolvedValueOnce(pages).mockResolvedValueOnce(Page.create.mock.calls.map(([page]) => page));
+    fireEvent.click(resume);
+    await screen.findByText('libraryLegacy.complete');
     expect(Book.create).toHaveBeenCalledTimes(1);
     expect(Page.create).toHaveBeenCalledTimes(2);
-    expect(screen.queryByText('libraryLegacy.complete')).toBeNull();
+    expect(Book.update).toHaveBeenCalledTimes(1);
   });
 
   it('labels a source with zero readable pages as an editable draft', async () => {
