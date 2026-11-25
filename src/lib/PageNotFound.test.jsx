@@ -26,19 +26,18 @@ function renderNotFound(language) {
 describe("PageNotFound language", () => {
   beforeEach(() => localStorage.clear());
 
-  it("is fully Hebrew in Hebrew UI (no English words around the page name)", async () => {
+  it("offers localized recovery in Hebrew without reflecting the path", async () => {
     renderNotFound("hebrew");
-    await waitFor(() => expect(screen.getByText("הדף לא נמצא")).toBeInTheDocument());
-    const p = screen.getByText(/"Nope"/).closest("p");
-    expect(p.textContent).toBe("הדף \"Nope\" לא נמצא.");
-    expect(p.textContent).not.toMatch(/The page/);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "הדף הזה לא נמצא במדף" })).toBeVisible());
+    expect(screen.getByRole("link", { name: "לדף הבית" })).toHaveAttribute("href", "/");
+    expect(screen.queryByText(/Nope/)).toBeNull();
   });
 
   it("is English in English UI", async () => {
     renderNotFound("english");
-    await waitFor(() => expect(screen.getByText("Page Not Found")).toBeInTheDocument());
-    const p = screen.getByText(/"Nope"/).closest("p");
-    expect(p.textContent).toBe("The page \"Nope\" could not be found.");
+    await waitFor(() => expect(screen.getByRole("heading", { name: "This page is not on the shelf" })).toBeVisible());
+    expect(screen.getByRole("link", { name: "Sample story" })).toHaveAttribute("href", "/samples/demo-dragons-garden");
+    expect(screen.queryByText(/Nope/)).toBeNull();
   });
 });
 

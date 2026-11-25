@@ -23,7 +23,7 @@ const Tonight = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@
 const Shelf = import.meta.env.VITE_NEW_SHELL === 'true' ? lazy(() => import('@/screens/shelf/Shelf')) : null;
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { EmptyState } from '@/components/ds/EmptyState';
-import PageNotFound from './screens/notfound/NotFound';
+import PageNotFound from './lib/PageNotFound';
 import RedirectHome, { LEGACY_HOME_PATHS } from './lib/RedirectHome';
 import { AuthProvider, FallbackAuthProvider, useAuth } from '@/lib/AuthContext';
 import ClerkLocaleProvider from '@/components/ClerkLocaleProvider';
