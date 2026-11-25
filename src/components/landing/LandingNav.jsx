@@ -1,284 +1,203 @@
-import { Wordmark } from '@/components/brand/Wordmark';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, Menu, X, LayoutDashboard, Newspaper } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Globe, LayoutDashboard, Menu, Newspaper, X } from 'lucide-react';
+import { Wordmark } from '@/components/brand/Wordmark';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { useAuth } from '@/lib/AuthContext';
 
-const LandingNav = () => {
+const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600';
+const hitArea = `inline-flex min-h-11 min-w-11 items-center rounded-lg ${focusRing}`;
+
+export default function LandingNav() {
   const { t, isRTL, language, changeLanguage, languages } = useI18n();
   const { isAuthenticated } = useAuth();
+  const reduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const langDropdownRef = useRef(null);
+  const [languagesOpen, setLanguagesOpen] = useState(false);
+  const langMenu = useRef(null);
+  const langTrigger = useRef(null);
+  const mobileTrigger = useRef(null);
+  const mobilePanel = useRef(null);
+  const desktopLinks = useRef(null);
+  const desktopActions = useRef(null);
+  const homeLink = useRef(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target)) {
-        setLangDropdownOpen(false);
-      }
+    const desktop = window.matchMedia?.('(min-width: 1024px)');
+    if (!desktop) return;
+    const closeDisclosures = ({ matches }) => {
+      const focused = document.activeElement;
+      const focusWillBeHidden = matches
+        ? focused === mobileTrigger.current || mobilePanel.current?.contains(focused)
+        : desktopLinks.current?.contains(focused) || desktopActions.current?.contains(focused);
+      if (focusWillBeHidden) homeLink.current?.focus();
+      setMobileMenuOpen(false);
+      setLanguagesOpen(false);
     };
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setMobileMenuOpen(false);
-        setLangDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    desktop.addEventListener('change', closeDisclosures);
+    return () => desktop.removeEventListener('change', closeDisclosures);
   }, []);
 
+  useEffect(() => {
+    if (!languagesOpen && !mobileMenuOpen) return;
+    const closeOutside = (event) => {
+      if (languagesOpen && !langMenu.current?.contains(event.target)) setLanguagesOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.defaultPrevented || event.key !== 'Escape') return;
+      if (languagesOpen) {
+        setLanguagesOpen(false);
+        langTrigger.current?.focus();
+      } else {
+        setMobileMenuOpen(false);
+        mobileTrigger.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [languagesOpen, mobileMenuOpen]);
+
   const navLinks = [
+    { href: '#showcase', label: t('spxLibrary.allSamples') },
     { href: '#features', label: t('landing.nav.features') },
     { href: '#how-it-works', label: t('landing.nav.howItWorks') },
     { href: '#pricing', label: t('landing.nav.pricing') },
     { href: '/blog', label: t('landing.footer.blog'), isRoute: true },
   ];
+  const closeMobile = () => setMobileMenuOpen(false);
+  const closeAfterAnchor = (event) => {
+    if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) closeMobile();
+  };
 
-  const languageOptions = Object.entries(languages).map(([key, lang]) => ({
-    key,
-    name: lang.name,
-    code: lang.code,
-  }));
+  const renderLinks = (mobile = false) => navLinks.map(({ href, label, isRoute }) => {
+    const classes = `${hitArea} gap-1.5 text-gray-800 hover:text-purple-700 dark:text-gray-200 ${mobile ? 'w-full' : 'text-sm font-medium'}`;
+    return isRoute ? (
+      <Link key={href} to={href} onClick={closeMobile} className={classes}>
+        <Newspaper className="h-4 w-4" aria-hidden="true" />
+        {label}
+      </Link>
+    ) : (
+      <a key={href} href={href} onClick={closeAfterAnchor} className={classes}>{label}</a>
+    );
+  });
 
-  const scrollToSection = (e, href) => {
-    e.preventDefault();
-    const el = document.querySelector(href);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+  const renderLanguages = (mobile = false) => Object.entries(languages).map(([key, locale]) => (
+    <button
+      key={key}
+      type="button"
+      aria-pressed={language === key}
+      className={`${hitArea} px-3 text-sm ${mobile ? '' : 'w-full'} ${language === key
+        ? 'bg-purple-100 font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-100'
+        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+      onClick={() => {
+        changeLanguage(key);
+        setLanguagesOpen(false);
+        setMobileMenuOpen(false);
+        (mobile ? mobileTrigger : langTrigger).current?.focus();
+      }}
+    >
+      {locale.name}
+    </button>
+  ));
+
+  const renderActions = (mobile = false) => {
+    const base = `${hitArea} justify-center px-4 text-sm font-medium ${mobile ? 'w-full' : 'whitespace-nowrap'}`;
+    const primary = `${base} bg-purple-700 text-white hover:bg-purple-800`;
+    if (isAuthenticated) {
+      return (
+        <Link to="/" onClick={closeMobile} className={`${primary} gap-2`}>
+          <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+          {t('landing.nav.goToApp')}
+        </Link>
+      );
     }
-    setMobileMenuOpen(false);
+    return (
+      <>
+        <Link to="/sign-in" onClick={closeMobile} className={`${base} border border-gray-300 text-gray-800 dark:text-gray-200`}>
+          {t('landing.nav.signIn')}
+        </Link>
+        <Link to="/sign-up" onClick={closeMobile} className={primary}>{t('landing.nav.cta')}</Link>
+      </>
+    );
   };
 
   return (
     <motion.nav
-      initial={{ y: -100 }}
+      initial={reduceMotion ? false : { y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-md'
-          : 'bg-[#f8f1e3]'
-      }`}
       dir={isRTL ? 'rtl' : 'ltr'}
+      aria-label={t('nav.primaryNavigation')}
+      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 motion-reduce:transition-none ${scrolled
+        ? 'bg-white/95 shadow-md backdrop-blur-md dark:bg-gray-900/95'
+        : 'bg-[#f8f1e3] dark:bg-gray-900'}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="inline-flex min-h-12 items-center rounded-xl bg-[#f8f1e3] px-2" aria-label="Sipurai">
-            <Wordmark language={language === 'english' || language === 'en' ? 'en' : 'he'} variant="plate" />
-          </Link>
-
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) =>
-              link.isRoute ? (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className={`text-sm font-medium transition-colors hover:text-purple-600 flex items-center gap-1.5 ${
-                    scrolled ? 'text-gray-700 dark:text-gray-300' : 'text-[#263c4c] hover:text-[#765238]'
-                  }`}
-                >
-                  <Newspaper className="h-3.5 w-3.5" aria-hidden="true" />
-                  {link.label}
-                </Link>
-              ) : (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={(e) => scrollToSection(e, link.href)}
-                  className={`text-sm font-medium transition-colors hover:text-purple-600 ${
-                    scrolled ? 'text-gray-700 dark:text-gray-300' : 'text-[#263c4c] hover:text-[#765238]'
-                  }`}
-                >
-                  {link.label}
-                </a>
-              )
-            )}
-          </div>
-
-          {/* Right Side: Language + CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Language Switcher */}
-            <div className="relative group" ref={langDropdownRef}>
-              <button
-                onClick={() => setLangDropdownOpen((prev) => !prev)}
-                aria-haspopup="listbox"
-                aria-expanded={langDropdownOpen}
-                aria-label={t('nav.changeLanguage') || 'Change language'}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                  scrolled
-                    ? 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                    : 'text-[#263c4c] hover:bg-black/5'
-                }`}
-              >
-                <Globe className="h-4 w-4" aria-hidden="true" />
-                <span>{languages[language]?.name}</span>
-              </button>
-              <div
-                role="menu"
-                className={`absolute end-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border transition-all duration-200 min-w-[140px] ${
-                  langDropdownOpen
-                    ? 'opacity-100 visible'
-                    : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
-                }`}
-              >
-                {languageOptions.map((lang) => (
-                  <button
-                    key={lang.key}
-                    role="menuitem"
-                    onClick={() => {
-                      changeLanguage(lang.key);
-                      setLangDropdownOpen(false);
-                    }}
-                    className={`block w-full text-start px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
-                      language === lang.key
-                        ? 'text-purple-600 font-medium bg-purple-50 dark:bg-purple-900/20'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {lang.name}
-                  </button>
-                ))}
-              </div>
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+        <Link ref={homeLink} to="/" className={`${hitArea} shrink-0 bg-[#f8f1e3] px-2`} aria-label="Sipurai">
+          <Wordmark language={language === 'english' || language === 'en' ? 'en' : 'he'} variant="plate" />
+        </Link>
+        <div ref={desktopLinks} className="hidden items-center gap-3 lg:flex xl:gap-6">{renderLinks()}</div>
+        <div ref={desktopActions} className="hidden shrink-0 items-center gap-2 lg:flex">
+          <div ref={langMenu} className="relative" onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setLanguagesOpen(false);
+          }}>
+            <button
+              ref={langTrigger}
+              type="button"
+              aria-expanded={languagesOpen}
+              aria-controls="landing-languages"
+              aria-label={t('nav.changeLanguage')}
+              onClick={() => setLanguagesOpen(open => !open)}
+              className={`${hitArea} gap-1.5 px-3 text-sm text-gray-800 hover:bg-black/5 dark:text-gray-200`}
+            >
+              <Globe className="h-4 w-4" aria-hidden="true" />
+              {languages[language]?.name}
+            </button>
+            <div
+              id="landing-languages"
+              hidden={!languagesOpen}
+              className="absolute end-0 top-full mt-1 min-w-[140px] rounded-lg border bg-white p-1 shadow-lg dark:bg-gray-800"
+            >
+              {renderLanguages()}
             </div>
-
-            {isAuthenticated ? (
-              /* Logged-in: show Go to App button */
-              <Link to="/">
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg flex items-center gap-2">
-                  <LayoutDashboard className="h-4 w-4" />
-                  {t('landing.nav.goToApp')}
-                </Button>
-              </Link>
-            ) : (
-              <>
-                {/* Sign In */}
-                <Link to="/sign-in">
-                  <Button variant="ghost" className={`font-medium ${
-                    scrolled ? 'text-gray-700 hover:text-purple-600 dark:text-gray-300' : 'text-[#263c4c] hover:bg-black/5'
-                  }`}>
-                    {t('landing.nav.signIn')}
-                  </Button>
-                </Link>
-                {/* CTA Button */}
-                <Link to="/sign-up">
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg">
-                    {t('landing.nav.cta')}
-                  </Button>
-                </Link>
-              </>
-            )}
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`md:hidden p-2 rounded-lg ${
-              scrolled ? 'text-gray-700 dark:text-gray-300' : 'text-[#263c4c]'
-            }`}
-            aria-label={mobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-menu"
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
-          </button>
+          {renderActions()}
         </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-      {mobileMenuOpen && (
-        <motion.div
-          id="mobile-menu"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="md:hidden bg-white dark:bg-gray-900 border-t shadow-lg"
+        <button
+          ref={mobileTrigger}
+          type="button"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-menu"
+          aria-label={mobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+          onClick={() => setMobileMenuOpen(open => !open)}
+          className={`${hitArea} justify-center text-gray-800 dark:text-gray-200 lg:hidden`}
         >
-          <div className="px-4 py-4 space-y-3">
-            {navLinks.map((link) =>
-              link.isRoute ? (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600"
-                >
-                  <Newspaper className="h-4 w-4" aria-hidden="true" />
-                  {link.label}
-                </Link>
-              ) : (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={(e) => scrollToSection(e, link.href)}
-                  className="block py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600"
-                >
-                  {link.label}
-                </a>
-              )
-            )}
-            <hr className="border-gray-200 dark:border-gray-700" />
-            <div className="flex gap-2">
-              {languageOptions.map((lang) => (
-                <button
-                  key={lang.key}
-                  onClick={() => {
-                    changeLanguage(lang.key);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`px-3 py-1.5 rounded-md text-sm ${
-                    language === lang.key
-                      ? 'bg-purple-100 text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}
-                >
-                  {lang.name}
-                </button>
-              ))}
-            </div>
-            {isAuthenticated ? (
-              <Link to="/" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white mt-2 flex items-center justify-center gap-2">
-                  <LayoutDashboard className="h-4 w-4" />
-                  {t('landing.nav.goToApp')}
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/sign-in" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full mt-2">
-                    {t('landing.nav.signIn')}
-                  </Button>
-                </Link>
-                <Link to="/sign-up" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white mt-1">
-                    {t('landing.nav.cta')}
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+          {mobileMenuOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+        </button>
+      </div>
+      <div
+        ref={mobilePanel}
+        id="mobile-menu"
+        hidden={!mobileMenuOpen}
+        className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-white px-4 py-4 shadow-lg dark:bg-gray-900 lg:hidden"
+      >
+        <div className="space-y-1">{renderLinks(true)}</div>
+        <hr className="my-3 border-gray-200 dark:border-gray-700" />
+        <div className="flex flex-wrap gap-2">{renderLanguages(true)}</div>
+        <div className="mt-3 grid gap-2">{renderActions(true)}</div>
+      </div>
     </motion.nav>
   );
-};
-
-export default LandingNav;
+}

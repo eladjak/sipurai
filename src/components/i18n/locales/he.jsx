@@ -2556,7 +2556,8 @@ export default {
     blog: "בלוג",
     openMenu: "פתח תפריט",
     closeMenu: "סגור תפריט",
-    changeLanguage: "שנה שפה"
+    changeLanguage: "שנה שפה",
+    primaryNavigation: "ניווט ראשי"
   },
   modelSelector: {
     free: "חינמי",
