@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useI18n } from '@/components/i18n/i18nProvider';
 import { useShelf } from './useShelf';
 import EmptyState from '@/components/library/EmptyState';
@@ -9,10 +10,17 @@ import BookSheet from './BookSheet';
 const chip = 'min-h-11 rounded-sp-pill border px-4 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-sp-violet-600 motion-safe:active:scale-[0.98]';
 function recentIds() { try { return JSON.parse(localStorage.getItem('sipurai-shelf-recent') || '[]'); } catch { return []; } }
 export default function Shelf() {
+  const { user } = useCurrentUser();
+  return <FamilyShelf key={user?.id ?? ''} />;
+}
+
+function FamilyShelf() {
   const { t } = useI18n();
   const { books, loading, error, offline, retry } = useShelf();
   const [params, setParams] = useSearchParams();
-  const [selected, setSelected] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const selectedTrigger = useRef(null);
+  const selected = books.find(book => book.id === selectedId);
   const [recent, setRecent] = useState(recentIds);
   const filter = params.get('filter') || 'all';
   const heroes = [...new Set(books.map(book => book.child_name).filter(Boolean))].sort();
@@ -49,12 +57,17 @@ export default function Shelf() {
             </button>
           ))}
         </nav>
-        {filtered.length ? <ShelfGrid books={filtered} onSelect={setSelected} /> : (
+        {filtered.length ? <ShelfGrid books={filtered} onSelect={(book, trigger) => { selectedTrigger.current = trigger; setSelectedId(book.id); }} /> : (
           <EmptyState title={t('shelf.noMatchesTitle')} description={t('shelf.noMatches')} status="status"
             actionLabel={t('shelf.clearFilters')} onAction={() => setFilter('all')} />
         )}
       </>
     )}
-    <BookSheet book={selected} open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }} onRead={saveRead} onChanged={retry} />
+    <BookSheet book={selected} open={!!selected} onOpenChange={open => { if (!open) setSelectedId(null); }} onRead={saveRead} onChanged={retry} onCloseAutoFocus={event => {
+      if (selectedTrigger.current?.isConnected) {
+        event.preventDefault();
+        selectedTrigger.current.focus();
+      }
+    }} />
   </main>;
 }

@@ -17,6 +17,16 @@ describe('cross-device owner recovery', () => {
   fireEvent.click(screen.getByRole('link',{name:'spxRecovery.openBook'}));
   expect(screen.getByTestId('destination')).toHaveTextContent(`/BookView?id=book-${index}`);
  });
+ it('closes an open sheet immediately when the family changes', async () => {
+  const tree = () => <MemoryRouter initialEntries={['/shelf']}><Shelf /></MemoryRouter>;
+  const view = render(tree());
+  fireEvent.click(await screen.findByRole('button', { name: /Story 0/ }));
+  expect(screen.getByRole('dialog')).toHaveTextContent('Story 0');
+  state.id = 'owner-b';
+  view.rerender(tree());
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByText('Story 0')).toBeNull();
+ });
  it('does not show account A books during a switch to account B', async () => {
   const view=render(<ShelfProbe/>); await screen.findByText('Story 0'); state.id='owner-b'; view.rerender(<ShelfProbe/>);
   expect(screen.queryByText('Story 0')).toBeNull();

@@ -72,6 +72,14 @@ describe('createSecureEntity — authentication', () => {
     expect(result).toMatchObject({ title: 'Book', created_by: 'user_xyz' });
   });
 
+  it('rejects a create requested by the previous account', async () => {
+    mockUserMe.mockResolvedValue({ id: 'family-b' });
+    const entity = makeEntity();
+    await expect(createSecureEntity(entity).create({ created_by: 'family-a', title: 'Private book' }))
+      .rejects.toThrow('Not authorized');
+    expect(entity.create).not.toHaveBeenCalled();
+  });
+
   it('throws when User.me() returns null on update', async () => {
     mockUserMe.mockResolvedValue(null);
     const records = { id1: { id: 'id1', created_by: 'owner@example.com', title: 'Old' } };
