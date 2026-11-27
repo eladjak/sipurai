@@ -817,18 +817,17 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
   // Complete book editor
   return (
     <div className="max-w-7xl mx-auto py-4" dir={isRTL ? "rtl" : "ltr"}>
-      {/* Gradient Header Banner */}
+      {/* Book studio header */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="relative overflow-hidden rounded-2xl mb-6 shadow-lg"
       >
-        <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-6 py-5">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_20%_50%,white_0%,transparent_70%)]" />
-          <div className={`relative flex items-center justify-between gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-            {/* Left: back + title */}
-            <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className="bg-[#293e50] px-3 py-4 sm:px-6 sm:py-5">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,#597082,transparent_76%)]" />
+          <div className="relative flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <Button
                 variant="ghost"
                 size="icon"
@@ -840,12 +839,12 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
               </Button>
               <div>
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-yellow-300" aria-hidden="true" />
-                  <h1 className="text-xl font-bold text-white font-heading">
+                  <Sparkles className="size-5 shrink-0 text-[#f3ca8d]" aria-hidden="true" />
+                  <h1 className="break-words text-xl font-bold text-[#fff6e8] font-heading sm:text-2xl">
                     {book.title || t("book.createTitle")}
                   </h1>
                 </div>
-                <p className="text-white/60 text-sm mt-0.5">{t("book.editingLabel")}</p>
+                <p className="text-[#e7d9c7] text-sm mt-0.5">{t("book.editingLabel")}</p>
               </div>
             </div>
 
@@ -876,7 +875,7 @@ function OwnerBookEditor({ bookId, ownerId, preferredAgeRange, authLoading, sear
                 key={id}
                 value={id}
                 className={unifiedEditor
-                  ? "min-h-11 shrink-0 gap-1.5 rounded-xl px-3 text-sm focus-visible:ring-inset data-[state=active]:bg-purple-700 data-[state=active]:text-white data-[state=active]:underline data-[state=active]:decoration-2 data-[state=active]:underline-offset-4 sm:gap-2 sm:px-5"
+                  ? "min-h-11 shrink-0 gap-1.5 rounded-xl px-3 text-sm focus-visible:ring-inset data-[state=active]:bg-[#2b4255] data-[state=active]:text-white data-[state=active]:underline data-[state=active]:decoration-2 data-[state=active]:underline-offset-4 sm:gap-2 sm:px-5"
                   : "gap-2 rounded-xl px-5 py-2.5 text-sm text-gray-600 dark:text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"}
               >
                 <Icon className={unifiedEditor ? "hidden h-4 w-4 shrink-0 sm:block" : "h-4 w-4 shrink-0"} aria-hidden="true" />

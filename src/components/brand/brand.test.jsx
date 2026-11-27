@@ -40,6 +40,6 @@ describe('moon and book identity', () => {
       const png = readFileSync(`public/icons/${file}`);
       expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([size, size]);
     }
-    expect(readFileSync('public/sw.js', 'utf8')).toContain("const CACHE_VERSION = 'sipurai-v3'");
+    expect(readFileSync('public/sw.js', 'utf8')).toContain("const CACHE_VERSION = 'sipurai-v4'");
   });
 });

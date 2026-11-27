@@ -36,7 +36,9 @@
       color: #4c1d95;
       margin-bottom: 2rem;
     }
-    button {
+    .retry {
+      display: inline-block;
+      text-decoration: none;
       background: #7c3aed;
       color: white;
       border: none;
@@ -47,8 +49,8 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    button:hover { background: #6d28d9; }
-    button:active { background: #5b21b6; }
+    .retry:hover { background: #6d28d9; }
+    .retry:active { background: #5b21b6; }
   </style>
 </head>
 <body>
@@ -59,7 +61,7 @@
       נראה שאין חיבור לרשת כרגע.
       בדקו את החיבור ונסו שוב.
     </p>
-    <button onclick="window.location.reload()">נסו שוב</button>
+    <a class="retry" href="">נסו שוב</a>
   </div>
 </body>
 </html>

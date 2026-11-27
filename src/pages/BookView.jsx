@@ -581,9 +581,9 @@ function BookReader({ bookId, user }) {
   if (book && pages.length === 0 && (state === "starting" || state === "empty")) {
     const starting = state === "starting";
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900" dir={isRTL ? "rtl" : "ltr"}>
-        <h1 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">{book.title}</h1>
-        <div className="mb-6">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-10 text-center bg-[#eee4d4] bg-[radial-gradient(ellipse_at_top,#fff9ed,transparent_75%)] dark:bg-[#171e2b] dark:bg-none" dir={isRTL ? "rtl" : "ltr"}>
+        <h1 className="mb-5 max-w-lg break-words text-2xl font-bold font-heading text-[#26394b] dark:text-[#fff1d8] sm:text-4xl">{book.title}</h1>
+        <div className="mb-6 flex w-full justify-center">
           <GenerationWaiting
             t={t}
             message={starting ? t("spxWizard.waiting.firstWords") : t("bookView.building.stopped")}
@@ -909,7 +909,7 @@ function BookReader({ bookId, user }) {
         {book && pages.length > 0 ? (
           <div className="flex-1 flex flex-col">
             {/* Book viewer */}
-            <div className={`flex-1 flex flex-col items-center justify-start p-4 md:justify-center md:p-8 ${nightBg}`}>
+            <div className={`flex-1 flex flex-col items-center justify-start p-4 md:justify-center md:p-8 ${nightMode ? nightBg : ""}`}>
               <div
                 className="reader-desk w-full max-w-4xl"
                 onTouchStart={handleTouchStart}

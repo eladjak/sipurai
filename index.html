@@ -297,7 +297,14 @@
         <a href="/contact">יצירת קשר</a>
       </nav>
     </header>
-    <div id="root"><noscript><main>
+    <div id="root">
+      <main id="sp-startup" data-production="%PROD%" lang="he" dir="rtl"
+            style="min-height:100vh;display:grid;place-content:center;justify-items:center;gap:1rem;padding:1.5rem;box-sizing:border-box;text-align:center;background:#f8f1e3;color:#202f3d;font:1rem system-ui,sans-serif">
+        <img src="/favicon.svg" width="64" height="64" alt="">
+        <p id="sp-startup-message" role="status" style="font-size:1.3rem;font-weight:700">פותחים את סיפוראי…</p>
+        <a href="" style="display:inline-flex;align-items:center;min-height:44px;color:inherit;text-underline-offset:.2em">רענון העמוד</a>
+      </main>
+      <noscript><style>#sp-startup{display:none!important}</style><main>
       <article style="text-align:center;padding:40px;font-family:sans-serif;direction:rtl;">
         <header>
           <h1>סיפוראי — יצירת ספרי ילדים עם AI</h1>
@@ -340,6 +347,7 @@
         </footer>
       </article>
     </main></noscript></div>
+    <script src="/app-startup.js"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

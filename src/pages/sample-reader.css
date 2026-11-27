@@ -1,13 +1,46 @@
-.sample-page { transform-origin: left center; animation: sample-turn-in 420ms cubic-bezier(.2,.7,.2,1) both; }
-[dir='rtl'] .sample-page { transform-origin: right center; }
-.sample-page--back { transform-origin: right center; }
+.sample-page {
+  --leaf-paper: #fffaf0;
+  position: relative;
+  border: 1px solid #d9c6a7;
+  background: var(--leaf-paper);
+  box-shadow: 0 22px 42px #3e352426, 0 5px 0 -2px #dbc7a9, 0 10px 0 -5px #cbb08b;
+  transform-origin: left center;
+}
+
+[dir='rtl'] .sample-page, .sample-page--back { transform-origin: right center; }
 [dir='rtl'] .sample-page--back { transform-origin: left center; }
-.sample-page--cover { box-shadow: 0 12px 28px #20304333, inset 6px 0 0 #d3b992; }
+
+.sample-page > div:first-child { border-block-end: 1px solid #c9beab; }
+.sample-page > div:last-child { background: linear-gradient(145deg, #fffdf7, var(--leaf-paper)); }
+.sample-page--cover > div:last-child { background: linear-gradient(140deg, #fff9eb, #f6e6c9); }
 .sample-controls { background: #f8f1e3f2; border-top: 1px solid #d8cdbb; }
 .sample-page--cover:focus-within + .sample-controls { position: static; }
-@keyframes sample-turn-in { from { opacity: .55; transform: perspective(1200px) rotateY(-7deg) translateX(12px); } to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); } }
-[dir='rtl'] .sample-page--forward, [dir='ltr'] .sample-page--back { animation-name: sample-turn-in-rtl; }
-@keyframes sample-turn-in-rtl { from { opacity: .55; transform: perspective(1200px) rotateY(7deg) translateX(-12px); } to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); } }
-@media (prefers-reduced-motion: reduce) { [dir] .sample-page { animation: none; } }
-
 .sample-fallback { width: min(55%, 220px); min-width: 140px; margin: auto; }
+
+@media (min-width: 48rem) {
+  .sample-page > div:first-child {
+    border-block-end: 0;
+    border-inline-end: 1px solid #c9beab;
+  }
+
+  .sample-page > div:last-child {
+    box-shadow: inset 7px 0 10px -9px #5d4633;
+  }
+
+  [dir='rtl'] .sample-page > div:last-child {
+    box-shadow: inset -7px 0 10px -9px #5d4633;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sample-page { animation: sample-turn-in 360ms cubic-bezier(.2,.7,.2,1) both; }
+  [dir='rtl'] .sample-page--forward, [dir='ltr'] .sample-page--back { animation-name: sample-turn-in-rtl; }
+  @keyframes sample-turn-in {
+    from { opacity: .55; transform: perspective(1200px) rotateY(-7deg) translateX(12px); }
+    to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); }
+  }
+  @keyframes sample-turn-in-rtl {
+    from { opacity: .55; transform: perspective(1200px) rotateY(7deg) translateX(-12px); }
+    to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); }
+  }
+}
