@@ -52,3 +52,16 @@
 .family-reader[data-night="true"] .reader-leaf:is([data-layout="image_full"], [data-layout="text_overlay"]) figcaption {
   background: linear-gradient(to bottom, transparent, #282d39 4.5rem);
 }
+
+/* The reading surface stays separate from the toolbar and takes its tones
+   from the public sample books. Dark mode keeps the existing night palette. */
+.family-reader[data-night="false"] main {
+  background: radial-gradient(ellipse at top, #fff9ed, #eee4d4 85%);
+}
+.family-reader[data-night="false"] .reader-desk {
+  filter: drop-shadow(0 8px 12px #6d533329);
+}
+.family-reader[data-night="false"] .reader-leaf figcaption {
+  box-shadow: inset 0 10px 14px -17px #6d5333;
+}
+.dark .family-reader[data-night="false"] main { background: #171e2b; }

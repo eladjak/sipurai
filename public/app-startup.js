@@ -36,5 +36,12 @@
 
   if (startup.dataset.production === 'true' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {});
+    // The older worker may still control this first load. Clear its obsolete
+    // API cache without waiting for the app bundle or touching local drafts.
+    if ('caches' in window) {
+      caches.keys().then(names => Promise.all(
+        names.filter(name => /^sipurai-.*-api$/.test(name)).map(name => caches.delete(name))
+      )).catch(() => {});
+    }
   }
 })();

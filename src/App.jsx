@@ -73,6 +73,16 @@ const pageTransition = {
   transition: { duration: 0.18, ease: 'easeInOut' },
 };
 
+function RouteLoading() {
+  const { t } = useI18n();
+  return (
+    <div className="grid min-h-dvh place-content-center justify-items-center gap-3 bg-[#f8f1e3] px-4 text-center text-[#26394b] dark:bg-[#171e2b] dark:text-[#fff1d8]" role="status">
+      <img src="/favicon.svg" className="size-16" alt="" />
+      <span className="font-semibold">{t('common.loading')}</span>
+    </div>
+  );
+}
+
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
@@ -94,16 +104,15 @@ const Help = () => {
 export const NewShellRoutes = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const location = useLocation();
-  const { t } = useI18n();
   useEffect(() => { trackPageView(location.pathname.replace(/^\//, '') || 'Home'); }, [location.pathname]);
   const shell = (Page) => <NewAppShell><Page /></NewAppShell>;
   const protectedPage = (Page) => {
-    if (isLoadingAuth || isLoadingPublicSettings) return <div role="status" aria-label={t('common.loading')} />;
+    if (isLoadingAuth || isLoadingPublicSettings) return <RouteLoading />;
     if (authError?.type === 'user_not_registered') return <UserNotRegisteredError />;
     if (!user) return <Navigate replace to={`/sign-in?redirect_url=${encodeURIComponent(location.pathname + location.search + location.hash)}`} />;
     return shell(Page);
   };
-  return <Suspense fallback={<div role="status" aria-label={t('common.loading')} />}><PrivacyGate enabled={!!user && !location.pathname.startsWith('/samples/') && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
+  return <Suspense fallback={<RouteLoading />}><PrivacyGate enabled={!!user && !location.pathname.startsWith('/samples/') && !isGateExempt(({ '/help/contact': '/contact', '/help/accessibility': '/accessibility' })[location.pathname] || location.pathname) && !(PrivacyGateHarness !== null && location.pathname === '/__privacy-gate')}><Routes location={location}>
     {Object.keys(redirects).map(from => <Route caseSensitive key={from} path={from} element={<Navigate replace to={resolveRedirect(from, location.search, location.hash)} />} />)}
     <Route path="/" element={user ? shell(Tonight) : <LandingPage />} />
     <Route path="/welcome" element={<LandingPage />} />
@@ -167,11 +176,7 @@ export const LegacyAuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Suspense fallback={
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-700 rounded-full animate-spin"></div>
-      </div>
-    }>
+    <Suspense fallback={<RouteLoading />}>
       <AnimatedPage>
         {/* Privacy gate: a signed-in parent who has not accepted the current policy version sees only the
             consent screen. Legal, marketing and sign-in pages stay open to everyone (see isGateExempt). */}

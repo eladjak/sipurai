@@ -47,7 +47,7 @@ export default function BookEditorTab({
   const readerUrl = `${createPageUrl("BookView")}?id=${encodeURIComponent(bookId)}`;
   if (!pages.length) {
     return (
-      <div className="rounded-2xl border bg-card p-6 text-center">
+      <div className="rounded-3xl border border-[#d8c7aa] bg-[#fff8eb] p-6 text-center dark:border-slate-600 dark:bg-slate-800">
         <img src="/icons/moon-book-192.png" alt="" className="mx-auto size-20" />
         <p className="my-4">{editorCopy("book.editorNoPages")}</p>
         <Button asChild variant="outline" className="min-h-11">
@@ -57,20 +57,21 @@ export default function BookEditorTab({
     );
   }
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: Page preview and navigation */}
-      <div className="lg:col-span-2">
-        <PagePreview
-          currentPage={pages[currentPageIndex]}
-          totalPages={pages.length}
-          currentPageIndex={currentPageIndex}
-          currentPageText={currentPageText}
-          currentPageLayout={currentPageLayout}
-          textStyles={textStyles}
-          interactiveElements={interactiveElements}
-          bookLanguage={book.language}
-          t={t}
-        />
+    <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className="min-w-0 rounded-3xl border border-[#d8c7aa] bg-[#efe3ce] p-2.5 shadow-sm dark:border-slate-600 dark:bg-slate-800 sm:p-4">
+        <div className="overflow-hidden rounded-2xl [filter:drop-shadow(0_4px_5px_#45311d22)] [&_[role=article]]:border-[#d5c1a1] [&_[role=article]]:bg-[#fff9ec] dark:[&_[role=article]]:border-slate-600 dark:[&_[role=article]]:bg-slate-800">
+          <PagePreview
+            currentPage={pages[currentPageIndex]}
+            totalPages={pages.length}
+            currentPageIndex={currentPageIndex}
+            currentPageText={currentPageText}
+            currentPageLayout={currentPageLayout}
+            textStyles={textStyles}
+            interactiveElements={interactiveElements}
+            bookLanguage={book.language}
+            t={t}
+          />
+        </div>
 
         <PageNavigation
           currentPageIndex={currentPageIndex}
@@ -83,8 +84,7 @@ export default function BookEditorTab({
         />
       </div>
 
-      {/* Right: Editing tools */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4 rounded-3xl border border-[#deceb6] bg-[#fffaf2] p-3 shadow-sm dark:border-slate-600 dark:bg-slate-900 sm:p-4">
         <PageTextEditor
           currentPageText={currentPageText}
           onTextChange={onTextChange}
@@ -120,8 +120,8 @@ export default function BookEditorTab({
             </Button>
           </div>
         )}
-        <details className="rounded-xl border px-4">
-          <summary className="flex min-h-11 cursor-pointer items-center">{editorCopy("book.editorAdvanced")}</summary>
+        <details className="rounded-xl border border-[#cbbba1] bg-[#fff6e7] px-4 dark:border-slate-600 dark:bg-slate-800">
+          <summary className="min-h-11 cursor-pointer content-center font-semibold marker:text-[#805326] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">{editorCopy("book.editorAdvanced")}</summary>
           <div className="space-y-3 pb-4">
             <PageImageEditor
               currentPageImagePrompt={currentPageImagePrompt}
@@ -151,7 +151,7 @@ export default function BookEditorTab({
               {editorCopy("book.backToLibrary")}
             </Link>
           </Button>
-          <Button asChild className="min-h-11 bg-purple-600 hover:bg-purple-700">
+          <Button asChild className="min-h-11 bg-[#2b4255] text-white hover:bg-[#3a576c]">
             <Link to={readerUrl}>
               <BookOpen className="me-2 size-4" aria-hidden="true" />
               {t("book.viewFullBook")}
