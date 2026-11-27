@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import LandingNav from '@/components/landing/LandingNav';
 import { updateMeta, resetMeta } from '@/lib/seo';
 import HeroSection from '@/components/landing/HeroSection';
-import StatsSection from '@/components/landing/StatsSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import ShowcaseSection from '@/components/landing/ShowcaseSection';
 import WhyUsSection from '@/components/landing/WhyUsSection';
@@ -52,9 +51,8 @@ const LandingPage = () => {
     <div onClick={handleAnchor} className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden [&_section_h2]:scroll-mt-24" dir={isRTL ? 'rtl' : 'ltr'}>
       <LandingNav />
       <HeroSection />
-      <StatsSection />
-      <FeaturesSection />
       <ShowcaseSection />
+      <FeaturesSection />
       <WhyUsSection />
       <HowItWorksSection />
       <PricingSection />

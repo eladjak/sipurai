@@ -59,7 +59,7 @@ export default function BookEditorTab({
   return (
     <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
       <div className="min-w-0 rounded-3xl border border-[#d8c7aa] bg-[#efe3ce] p-2.5 shadow-sm dark:border-slate-600 dark:bg-slate-800 sm:p-4">
-        <div className="overflow-hidden rounded-2xl [filter:drop-shadow(0_4px_5px_#45311d22)] [&_[role=article]]:border-[#d5c1a1] [&_[role=article]]:bg-[#fff9ec] dark:[&_[role=article]]:border-slate-600 dark:[&_[role=article]]:bg-slate-800">
+        <div className="overflow-hidden rounded-2xl [filter:drop-shadow(0_4px_5px_#45311d22)] [&_[role=article]]:border-[#d5c1a1] [&_[role=article]]:bg-[#fff9ec] dark:[&_[role=article]]:border-slate-600 dark:[&_[role=article]]:bg-slate-800 max-lg:[&_img]:max-h-60">
           <PagePreview
             currentPage={pages[currentPageIndex]}
             totalPages={pages.length}

@@ -12,7 +12,7 @@ export default function HeroSection() {
     >
       <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 pb-14 pt-28 sm:px-8 sm:pb-20 sm:pt-36 lg:grid-cols-2 lg:gap-12">
         <div className="max-w-2xl">
-          <p className="inline-flex items-center rounded-full border border-[#edc89c]/30 bg-[#edc89c]/10 px-3.5 py-1 text-xs font-bold tracking-widest text-[#f5d4a5] sm:text-sm">
+          <p className="text-sm font-bold text-[#f5d4a5]">
             {t('spxLibrary.heroEyebrow')}
           </p>
           <h1 className="mt-4 font-serif text-3xl font-bold leading-tight tracking-tight text-[#fff8eb] sm:text-5xl lg:text-6xl">
@@ -42,6 +42,7 @@ export default function HeroSection() {
               src="/images/spx/hearth.webp"
               alt=""
               loading="eager"
+              fetchPriority="high"
               decoding="async"
               className="aspect-[4/3] w-full rounded-[1.5rem] object-cover ring-1 ring-[#fff8eb]/15"
             />
