@@ -1,26 +1,11 @@
 /**
- * Sipurai Service Worker — offline support for the PUBLIC app shell only.
- *
- * POSITIVE ALLOWLIST. The worker stores and replays ONLY:
- *   - the shell files precached at install (/, /offline.html, /manifest.json, /favicon.svg, /entry-splash.js)
- *   - build output under /assets/ (hashed JS/CSS/fonts/images)
- *   - the app's own static files under /fonts/, /icons/, /images/ and the public demo books /demo/<demo-slug>/
- * and only when the URL has no query string. Everything else (every /api path in any spelling,
- * anything with a query, anything id-like, any storage URL, unknown paths) is network-only:
- * the worker does not even call respondWith, so nothing is stored and nothing is replayed.
- *
- * Navigations: the SPA shell is identical for everyone (Vercel serves static index.html for every
- * non-/api path; no server-side rendering, no cookies in the HTML). A navigation is never stored
- * under its own URL. Online it goes to the network untouched; offline it gets the single shell
- * ('/') or the offline page. The shell is refreshed only from a 200, non-redirected '/' response.
- *
- * Cache access is best effort: a storage failure never breaks a request that the network can serve.
- * Range requests and 206 responses are never cached.
- *
- * Bump CACHE_VERSION to make every device drop the caches of older versions on activation.
+ * Sipurai Service Worker. Only explicitly allowlisted public static assets
+ * enter Cache Storage. Navigations go to the network with HTTP revalidation,
+ * so an old document cannot keep referencing a removed deployment's bundles.
+ * Offline navigations get a standalone page with no bundle dependencies.
  */
 
-const CACHE_VERSION = 'sipurai-v3';
+const CACHE_VERSION = 'sipurai-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
@@ -28,7 +13,6 @@ const OFFLINE_URL = '/offline.html';
 
 // Static assets to precache on install
 const PRECACHE_URLS = [
-  '/',
   '/offline.html',
   '/manifest.json',
   '/favicon.svg',
@@ -41,6 +25,7 @@ self.addEventListener('install', (event) => {
     caches
       .open(STATIC_CACHE)
       .then((cache) => cache.addAll(PRECACHE_URLS))
+      .catch(() => {})
       .then(() => self.skipWaiting())
   );
 });
@@ -60,13 +45,14 @@ self.addEventListener('activate', (event) => {
             .map((name) => caches.delete(name))
         )
       )
+      .catch(() => {})
       .then(() => self.clients.claim())
   );
 });
 
 // ─── Allowlist ───────────────────────────────────────────────────────────────
 
-const SHELL_PATHS = new Set(['/', '/offline.html', '/manifest.json', '/favicon.svg', '/entry-splash.js']);
+const SHELL_PATHS = new Set(PRECACHE_URLS);
 const ASSET_RE = /^\/assets\/[A-Za-z0-9._-]+\.(js|css|woff2?|ttf|png|jpe?g|webp|svg|gif)$/;
 const FONT_RE = /^\/fonts\/[A-Za-z0-9._-]+\.(woff2?|ttf)$/;
 const ICON_RE = /^\/icons\/[A-Za-z0-9._-]+\.(png|jpe?g|svg)$/;
@@ -92,15 +78,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (!url.protocol.startsWith('http')) return;
-  if (url.hostname !== location.hostname) return; // external services: browser handles them
+  if (url.origin !== location.origin) return; // external services: browser handles them
 
   // Never touch ranged requests or requests that carry credentials in a header.
   if (request.headers.has('Range') || request.headers.has('Authorization')) return;
 
-  // Navigations: never stored per URL; offline fallback is the single shell.
+  // Keep API and authentication navigations entirely outside the worker.
   if (request.mode === 'navigate') {
-    if (url.pathname.startsWith('/sign-in') || url.pathname.startsWith('/sign-up')) return;
-    event.respondWith(navigationHandler(event, request, url));
+    if (/^\/(?:api|sign-in|sign-up)(?:\/|$)/i.test(url.pathname)) return;
+    event.respondWith(navigationHandler(request));
     return;
   }
 
@@ -135,27 +121,26 @@ async function cacheFirst(event, request, cacheName) {
 
   try {
     const response = await fetch(request);
-    if (isCacheable(response)) safePut(event, cacheName, request, response.clone());
+    // A missing bundle can be rewritten to index.html with HTTP 200.
+    const isHtml = /^text\/html\b/i.test(response.headers.get('Content-Type') || '');
+    if (isCacheable(response) && (!isHtml || new URL(request.url).pathname === OFFLINE_URL)) {
+      safePut(event, cacheName, request, response.clone());
+    }
     return response;
   } catch {
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
-async function navigationHandler(event, request, url) {
+async function navigationHandler(request) {
   try {
-    const response = await fetch(request);
-    // Refresh the single shell from the home page only; never store any other navigation.
-    if (url.pathname === '/' && !url.search && response.status === 200 && !response.redirected && isCacheable(response)) {
-      safePut(event, STATIC_CACHE, '/', response.clone());
-    }
-    return response;
+    return await fetch(request, { cache: 'no-cache' });
   } catch {
-    const shell = await safeMatch(STATIC_CACHE, '/');
-    if (shell) return shell;
     const offlinePage = await safeMatch(STATIC_CACHE, OFFLINE_URL);
-    if (offlinePage) return offlinePage;
-    return new Response('Offline', { status: 503 });
+    return offlinePage || new Response('אין חיבור לאינטרנט. בדקו את החיבור ורעננו את העמוד.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   }
 }
 

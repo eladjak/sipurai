@@ -45,7 +45,7 @@ function loadWorker({ fetchImpl, failOpen = false }) {
     skipWaiting: async () => {},
     clients: { claim: async () => {} },
   };
-  const location = { hostname: 'app.test' };
+  const location = { origin: ORIGIN };
   new Function('self', 'caches', 'fetch', 'location', SW_SOURCE)(self, caches, fetchImpl, location);
 
   const fire = async (type, extra = {}) => {
@@ -74,9 +74,9 @@ const json = (body, headers = {}) => new Response(JSON.stringify(body), { status
 describe('service worker privacy contract', () => {
   let online;
   beforeEach(() => { online = true; });
-  const net = (make) => async (req) => {
+  const net = (make) => async (req, options) => {
     if (!online) throw new TypeError('network down');
-    return make(req);
+    return make(req, options);
   };
 
   it('never caches or answers /api/* GETs, online or offline', async () => {
@@ -146,9 +146,11 @@ describe('service worker privacy contract', () => {
     expect(await again.value.text()).toBe('js');
   });
 
-  it('still precaches the offline shell and serves it for a failed navigation', async () => {
+  it('precaches a standalone offline page without storing the app document', async () => {
     const sw = loadWorker({ fetchImpl: net(() => new Response('', { status: 200 })) });
     await sw.fire('install');
+    expect(sw.allCachedUrls()).toContain(ORIGIN + '/offline.html');
+    expect(sw.allCachedUrls()).not.toContain(ORIGIN + '/');
     online = false;
     const r = await sw.fire('fetch', { request: navRequest('/library') });
     expect(r.responded).toBe(true);
@@ -178,7 +180,7 @@ describe('service worker privacy contract', () => {
     expect(await again.value.text()).toBe('STATIC');
   });
 
-  it('never stores a navigation under its own URL; offline user B gets the shell, not user A page', async () => {
+  it('never stores an account navigation; offline users get the standalone page', async () => {
     const sw = loadWorker({ fetchImpl: net((req) => new Response(req.url.includes('/library') ? 'ALICE-CHILD-STORY' : 'shell-live', { status: 200 })) });
     await sw.fire('install');
     const a = await sw.nav('/library?child=7');
@@ -189,29 +191,29 @@ describe('service worker privacy contract', () => {
     expect(await b.value.text()).toBe('shell');
   });
 
-  it('refreshes the shell only from a 200, non-redirected home navigation', async () => {
-    const sw = loadWorker({ fetchImpl: net(() => new Response('new-shell', { status: 200 })) });
-    await sw.fire('install');
-    await sw.nav('/');
-    online = false;
-    expect(await (await sw.nav('/anything')).value.text()).toBe('new-shell');
+  it('revalidates app navigations against the network without storing the document', async () => {
+    let cacheMode;
+    const sw = loadWorker({ fetchImpl: net((_request, options) => {
+      cacheMode = options?.cache;
+      return new Response('current app');
+    }) });
+    expect(await (await sw.nav('/')).value.text()).toBe('current app');
+    expect(cacheMode).toBe('no-cache');
+    expect(sw.allCachedUrls()).toEqual([]);
   });
 
-  it('does not store a non-200 home navigation', async () => {
-    const sw = loadWorker({ fetchImpl: net(() => new Response('oops', { status: 404 })) });
-    await sw.fire('install');
-    await sw.nav('/');
-    online = false;
-    expect(await (await sw.nav('/')).value.text()).toBe('shell');
+  it.each(['/API/profile', '/sign-in/verify', '/sign-up'])('lets the browser handle navigation to %s', async (url) => {
+    const sw = loadWorker({ fetchImpl: net(() => new Response('network')) });
+    expect((await sw.nav(url)).responded).toBe(false);
   });
 
-  it('does not store a redirected home navigation', async () => {
-    const redirected = () => { const r = new Response('login-page', { status: 200 }); Object.defineProperty(r, 'redirected', { value: true }); return r; };
-    const sw = loadWorker({ fetchImpl: net(redirected) });
-    await sw.fire('install');
-    await sw.nav('/');
-    online = false;
-    expect(await (await sw.nav('/')).value.text()).toBe('shell');
+  it('does not store an HTML rewrite under a missing bundle URL', async () => {
+    const sw = loadWorker({ fetchImpl: net(() => new Response('<html>app</html>', {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    })) });
+    const asset = await sw.doFetch('/assets/missing-bundle.js');
+    expect(await asset.value.text()).toBe('<html>app</html>');
+    expect(sw.allCachedUrls()).toEqual([]);
   });
 
   it('bypasses Range requests and never stores a 206', async () => {
