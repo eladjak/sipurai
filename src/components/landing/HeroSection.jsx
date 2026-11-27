@@ -42,7 +42,6 @@ export default function HeroSection() {
               src="/images/spx/hearth.webp"
               alt=""
               loading="eager"
-              fetchPriority="high"
               decoding="async"
               className="aspect-[4/3] w-full rounded-[1.5rem] object-cover ring-1 ring-[#fff8eb]/15"
             />

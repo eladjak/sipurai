@@ -24,7 +24,7 @@ export default function GenerationWaiting({ t, message, title = "", counts = nul
         />
         {active && (
           <Sparkles className={compact
-            ? "absolute -end-1 -top-1 size-5 rounded-full bg-[#f8dda8] p-1 text-[#593c28]"
+            ? "absolute -end-1 -top-1 size-5 rounded-full bg-[#f8dda8] p-1 text-[#593c28] motion-safe:animate-pulse motion-safe:[animation-iteration-count:2]"
             : "absolute end-[13%] top-[18%] size-7 text-[#ffdb99] motion-safe:animate-[pulse_1.6s_ease-in-out_2]"} />
         )}
       </div>
